@@ -17,6 +17,10 @@ app.get('/', (req, res) => {
     });
 });
 
+const productoRoutes = require('./routes/productoRoutes');
+
+app.use('/productos', productoRoutes);
+
 
 //SINCRO CON BASE DE DATOS
 async function iniciarServidor(){
