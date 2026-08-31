@@ -9,6 +9,28 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
+      pedidoId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Pedidos',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
+      
+      productoId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Productos',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+      },
+      
       cantidad: {
         type: Sequelize.INTEGER
       },
