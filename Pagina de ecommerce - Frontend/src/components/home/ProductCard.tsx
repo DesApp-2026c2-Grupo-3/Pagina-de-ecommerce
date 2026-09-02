@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { Product } from '../../types/product'
 
 interface ProductCardProps {
@@ -6,7 +7,7 @@ interface ProductCardProps {
 
 function ProductCard({ product }: ProductCardProps) {
   return (
-    <a href={`/producto/${product.id}`} className="block h-full">
+    <Link to={`/producto/${product.id}`} className="block h-full">
       <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-md transition-transform hover:-translate-y-1 hover:shadow-xl">
         <img
           src={product.image}
@@ -23,7 +24,7 @@ function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
       </article>
-    </a>
+    </Link>
   )
 }
 
