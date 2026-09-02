@@ -11,7 +11,7 @@ const verUsuarios = async (req,res) => {
 
     }
     catch(error){
-        console.error('Algo salio mal',error.mensaje)
+        console.error('Algo salio mal',error.message)
         res.status(500).json({mensaje:'Error del servidor'})
     }
 }

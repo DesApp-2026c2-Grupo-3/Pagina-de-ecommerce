@@ -4,10 +4,10 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.bulkInsert('Productos', [
       {
-        nombre: 'Hamburguesa Clásica',
-        descripcion: 'Hamburguesa con carne, queso, lechuga y tomate',
+        nombre: 'Hamburguesa Abominacion',
+        descripcion: 'Hamburguesa con carne, queso, lechuga, aros de cebolla y mas mierdas...',
         precio: 4500.00,
-        imagen: 'hamburguesa-clasica.jpg',
+        imagen: '/imagenes/hamburguesa-abominacion.jpg',
         disponible: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -16,7 +16,7 @@ module.exports = {
         nombre: 'Papas Fritas',
         descripcion: 'Papas fritas clásicas',
         precio: 2000.00,
-        imagen: 'papas.jpg',
+        imagen: '/imagenes/papas-fritas.jpg',
         disponible: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -25,16 +25,16 @@ module.exports = {
         nombre: 'Nuggets',
         descripcion: 'Nuggets de pollo',
         precio: 3000.00,
-        imagen: 'nuggets.jpg',
+        imagen: '/imagenes/nuggets-pollo.jpg',
         disponible: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        nombre: 'Gaseosa',
-        descripcion: 'Gaseosa 500ml',
+        nombre: 'Pizza',
+        descripcion: 'Pizza pepperoni',
         precio: 1800.00,
-        imagen: 'gaseosa.jpg',
+        imagen: '/imagenes/pizza-pepperoni.avif',
         disponible: true,
         createdAt: new Date(),
         updatedAt: new Date()
