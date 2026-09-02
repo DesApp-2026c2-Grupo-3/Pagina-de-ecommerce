@@ -20,9 +20,9 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Pedido.init({
-    fecha: DataTypes.DATE,
-    total: DataTypes.DECIMAL,
-    estado: DataTypes.STRING
+    fecha: { type: DataTypes.DATE, allowNull: false },
+    total: { type: DataTypes.DECIMAL, allowNull: false },
+    estado: { type: DataTypes.STRING, allowNull: false, defaultValue: 'pendiente' }
   }, {
     sequelize,
     modelName: 'Pedido',

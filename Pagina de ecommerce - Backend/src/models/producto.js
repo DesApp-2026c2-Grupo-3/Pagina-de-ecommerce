@@ -17,11 +17,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Producto.init({
-    nombre: DataTypes.STRING,
-    descripcion: DataTypes.TEXT,
-    precio: DataTypes.DECIMAL,
-    imagen: DataTypes.STRING,
-    disponible: DataTypes.BOOLEAN
+    nombre: { type: DataTypes.STRING, allowNull: false },
+    descripcion: {type: DataTypes.TEXT, allowNull: false },
+    precio: { type: DataTypes.DECIMAL, allowNull: false },
+    imagen: { type: DataTypes.STRING, allowNull: true },
+    disponible: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
   }, {
     sequelize,
     modelName: 'Producto',
