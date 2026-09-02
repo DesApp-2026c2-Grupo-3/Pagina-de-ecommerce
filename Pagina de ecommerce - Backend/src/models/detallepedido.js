@@ -20,8 +20,15 @@ module.exports = (sequelize, DataTypes) => {
   }
 }
   DetallePedido.init({
-    cantidad: DataTypes.INTEGER,
-    precio: DataTypes.DECIMAL
+    cantidad: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+
+    precio: {
+      type: DataTypes.DECIMAL,
+      allowNull: false
+  }
   }, {
     sequelize,
     modelName: 'DetallePedido',
