@@ -19,9 +19,11 @@ app.get('/', (req, res) => {
 
 const productoRoutes = require('./routes/productoRoutes');
 const usuarioRoutes = require('./routes/usuarioRoutes');
+const pedidoRoutes = require('./routes/pedidoRoutes');
 
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
+app.use('/pedido', pedidoRoutes);
 
 
 //SINCRO CON BASE DE DATOS
