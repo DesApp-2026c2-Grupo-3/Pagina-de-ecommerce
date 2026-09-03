@@ -1,8 +1,18 @@
+import { useEffect, useState } from 'react'
 import CategorySection from '../components/home/CategorySection'
 import Hero from '../components/home/Hero'
-import { categories, products } from '../mocks/products'
+import { getCategories, getProducts } from '../services/productService'
+import type { Category, Product } from '../types/product'
 
 function Home() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+
+  useEffect(() => {
+    getProducts().then(setProducts)
+    getCategories().then(setCategories)
+  }, [])
+
   return (
     <section id="menu">
       <Hero />

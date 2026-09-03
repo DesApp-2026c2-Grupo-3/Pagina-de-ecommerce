@@ -1,15 +1,21 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 const navLinks = [
   { label: 'Home', to: '/', active: true },
   { label: 'Productos', to: '#', active: false },
   { label: 'Promociones', to: '#', active: false },
-  { label: 'Carrito', to: '#', active: false },
-]
+  { label: 'Carrito', to: '/carrito', active: false }]
 
 function Navbar() {
   const [open, setOpen] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
+
+  function handleLogout() {
+    logout()
+    setOpen(false)
+  }
 
   return (
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
@@ -35,12 +41,25 @@ function Navbar() {
             </li>
           ))}
           <li>
-            <a
-              href="#"
-              className="ml-2 rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Iniciar Sesión
-            </a>
+            {isAuthenticated ? (
+              <div className="ml-2 flex items-center gap-3">
+                <span className="font-semibold text-white">Hola, {user?.name}</span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="ml-2 rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Iniciar Sesión
+              </Link>
+            )}
           </li>
         </ul>
 
@@ -69,13 +88,26 @@ function Navbar() {
             </li>
           ))}
           <li>
-            <a
-              href="#"
-              onClick={() => setOpen(false)}
-              className="mt-1 block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
-            >
-              Iniciar Sesión
-            </a>
+            {isAuthenticated ? (
+              <div className="mt-1 flex flex-col gap-2">
+                <span className="px-4 font-semibold text-white">Hola, {user?.name}</span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="mt-1 block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+              >
+                Iniciar Sesión
+              </Link>
+            )}
           </li>
         </ul>
       )}
