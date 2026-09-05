@@ -22,13 +22,13 @@ function Checkout() {
     return <Navigate to="/carrito" replace />
   }
 
-  async function handleConfirm() {
-    setLoading(true)
-    const order = await createOrder(user!.id, items, totalPrice)
-    setConfirmedOrder(order)
-    clearCart()
-    setLoading(false)
-  }
+async function handleConfirm() {
+  setLoading(true)
+  const order = await createOrder(user!.id, items)
+  setConfirmedOrder(order)
+  clearCart()
+  setLoading(false)
+}
 
   if (confirmedOrder) {
     return (

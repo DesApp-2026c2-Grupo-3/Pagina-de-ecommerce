@@ -1,9 +1,8 @@
-import type { CartItem } from './cart'
+//import type { CartItem } from './cart'
 
 export interface Order {
   id: number
-  userId: number
-  items: CartItem[]
+  usuarioId: number
+  fecha: string
   total: number
-  date: string
 }

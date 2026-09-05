@@ -1,48 +1,111 @@
 'use strict';
 
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
     await queryInterface.bulkInsert('Productos', [
       {
-        nombre: 'Hamburguesa Abominacion',
-        descripcion: 'Hamburguesa con carne, queso, lechuga, aros de cebolla y mas mierdas...',
-        precio: 4500.00,
-        imagen: '/imagenes/hamburguesa-abominacion.jpg',
+        nombre: 'Clásica',
+        descripcion: 'Pan, carne de 100% vacuno, lechuga, tomate y salsa especial.',
+        precio: 5200,
+        imagen: '/imagenes/clasica.png',
         disponible: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
-        nombre: 'Papas Fritas',
-        descripcion: 'Papas fritas clásicas',
-        precio: 2000.00,
-        imagen: '/imagenes/papas-fritas.jpg',
+        nombre: 'Cuarto de Libra',
+        descripcion: 'Doble carne, queso derretido, cebolla y aderezo de la casa.',
+        precio: 6900,
+        imagen: '/imagenes/cuarto-libra.png',
         disponible: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
-        nombre: 'Nuggets',
-        descripcion: 'Nuggets de pollo',
-        precio: 3000.00,
-        imagen: '/imagenes/nuggets-pollo.jpg',
+        nombre: 'Crispy Chicken',
+        descripcion: 'Pechuga de pollo crujiente con lechuga y mayonesa.',
+        precio: 6100,
+        imagen: '/imagenes/crispy-chicken.png',
         disponible: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
-        nombre: 'Pizza',
-        descripcion: 'Pizza pepperoni',
-        precio: 1800.00,
-        imagen: '/imagenes/pizza-pepperoni.avif',
+        nombre: 'Combo Clásico',
+        descripcion: 'Clásica + papas medianas + bebida.',
+        precio: 8200,
+        imagen: '/imagenes/combo-clasico.jpg',
         disponible: true,
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
+      {
+        nombre: 'Combo Familiar',
+        descripcion: '4 hamburguesas + papas grandes + 4 bebidas.',
+        precio: 16500,
+        imagen: '/imagenes/combo-familiar.jpg',
+        disponible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nombre: 'Papas Medianas',
+        descripcion: 'Papas fritas crujientes con sal.',
+        precio: 2100,
+        imagen: '/imagenes/papas-medianas.png',
+        disponible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nombre: 'Papas Cheddar Bacon',
+        descripcion: 'Papas con salsa cheddar y trozos de bacon.',
+        precio: 3600,
+        imagen: '/imagenes/papas-cheddar-bacon.png',
+        disponible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nombre: 'Nuggets 10 unidades',
+        descripcion: '10 nuggets de pollo con 3 dips a elección.',
+        precio: 5200,
+        imagen: '/imagenes/nuggets-10.png',
+        disponible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nombre: 'Coca Cola 500ml',
+        descripcion: 'Bebida gaseosa helada.',
+        precio: 1800,
+        imagen: '/imagenes/coca-cola.png',
+        disponible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nombre: 'Limonada',
+        descripcion: 'Limonada natural con hielo.',
+        precio: 2000,
+        imagen: '/imagenes/limonada.png',
+        disponible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nombre: 'Sundae Clásico',
+        descripcion: 'Helado de vainilla con salsa de chocolate.',
+        precio: 2500,
+        imagen: '/imagenes/sundae.png',
+        disponible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.bulkDelete('Productos', null, {});
-  }
+  },
 };
