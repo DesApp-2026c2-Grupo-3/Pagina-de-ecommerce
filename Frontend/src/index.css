@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-red: #e4002b;
+  --color-brand-dark: #1a1414;
+  --color-brand-cream: #fff7e6;
+  --color-brand-green: #28a745;
+}
+
+@layer base {
+  body,
+  html {
+    cursor: default;
+  }
+
+  button,
+  [role='button'],
+  a,
+  summary,
+  select,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='file'],
+  input[type='color'],
+  label[for],
+  [onclick] {
+    cursor: pointer;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='number'],
+  input[type='search'],
+  input[type='tel'],
+  input[type='url'],
+  textarea,
+  [contenteditable='true'] {
+    cursor: text;
+  }
+
+  button,
+  [role='button'],
+  nav a,
+  nav button,
+  nav [role='button'] {
+    user-select: none;
+  }
+}
