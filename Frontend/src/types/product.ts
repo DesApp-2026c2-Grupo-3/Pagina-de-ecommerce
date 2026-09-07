@@ -12,6 +12,10 @@ export interface Product {
   image: string
   available: boolean
   configurations?: ProductConfiguration[]
+  /** Precio de lista sin descuento. Si está presente junto a discountLabel, se muestra tachado. */
+  originalPrice?: number
+  /** Texto corto para el badge circular de promo (ej: "-20%", "2x1", "Combo"). */
+  discountLabel?: string
 }
 
 export interface Category {
