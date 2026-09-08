@@ -27,7 +27,7 @@ function Hero() {
           </div>
         </div>
         <img
-          src={heroImg}
+          src="/imagenes/turbo-bacon.png"
           alt="Hamburguesa destacada"
           className="h-56 w-56 object-contain drop-shadow-xl md:h-72 md:w-72"
         />

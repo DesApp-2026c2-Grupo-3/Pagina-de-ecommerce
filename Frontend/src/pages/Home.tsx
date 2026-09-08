@@ -1,36 +1,34 @@
 import { useEffect, useState } from 'react'
-import CategorySection from '../components/home/CategorySection'
 import Hero from '../components/home/Hero'
-import { getCategories, getProducts } from '../services/productService'
-import type { Category, Product } from '../types/product'
+import ProductCard from '../components/home/ProductCard'
+import { getProducts } from '../services/productService'
+import type { Product } from '../types/product'
 
 function Home() {
   const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getProducts().then(setProducts)
-    getCategories().then(setCategories)
+    getProducts()
+      .then(setProducts)
+      .finally(() => setLoading(false))
   }, [])
 
   return (
     <section id="menu">
       <Hero />
-      {categories.map((category) => {
-        const categoryProducts = products.filter(
-          (product) => product.category === category.name && product.available,
-        )
-        if (categoryProducts.length === 0) return null
-        return (
-          <CategorySection
-            key={category.id}
-            categoryId={category.id}
-            title={category.name}
-            icon={category.icon}
-            products={categoryProducts}
-          />
-        )
-      })}
+
+      {loading ? (
+        <p className="px-4 py-12 text-center text-gray-600">Cargando productos...</p>
+      ) : (
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-12 sm:grid-cols-2 md:grid-cols-3">
+          {products
+            .filter((p) => p.available)
+            .map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+        </div>
+      )}
     </section>
   )
 }

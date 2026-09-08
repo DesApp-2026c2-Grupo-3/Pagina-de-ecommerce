@@ -37,9 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-  }
+const logout = () => {
+  setUser(null)
+}
 
   return (
     <AuthContext.Provider

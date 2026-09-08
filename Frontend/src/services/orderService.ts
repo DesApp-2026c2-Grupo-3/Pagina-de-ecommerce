@@ -1,24 +1,24 @@
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
+import { httpClient } from './httpClient'
 import type { CartItem } from '../types/cart'
-import type { Order } from '../types/order'
 
-let orderIdCounter = 1
+interface PedidoBackend {
+  id: number
+  usuarioId: number
+  fecha: string
+  total: number
+}
 
 export const createOrder = async (
-  userId: number,
+  usuarioId: number,
   items: CartItem[],
-  total: number,
-): Promise<Order> => {
-  await delay(500)
+): Promise<PedidoBackend> => {
+  const productos = items.map((item) => ({
+    productoId: item.product.id,
+    cantidad: item.quantity,
+  }))
 
-  const order: Order = {
-    id: orderIdCounter++,
-    userId,
-    items,
-    total,
-    date: new Date().toISOString(),
-  }
-
-  return order
+  return httpClient<PedidoBackend>('/pedido', {
+    method: 'POST',
+    body: JSON.stringify({ usuarioId, productos }),
+  })
 }
