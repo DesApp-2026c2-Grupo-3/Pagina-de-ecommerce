@@ -13,9 +13,9 @@ import Checkout from './pages/Checkout'
 
 function App() {
   return (
-    <div className="min-h-screen bg-brand-cream text-brand-dark">
+    <div className="flex flex-1 flex-col bg-brand-cream text-brand-dark">
       <Navbar />
-      <main>
+      <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Products />} />
