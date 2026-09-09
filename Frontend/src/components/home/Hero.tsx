@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 
 function Hero() {
   return (
@@ -11,18 +12,18 @@ function Hero() {
             Pedí en minutos y seguí tu pedido en tiempo real.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#menu"
+            <Link
+              to="/productos"
               className="rounded-full bg-brand-dark px-6 py-3 text-center font-bold text-white transition-opacity hover:opacity-90"
             >
-              Ver menú
-            </a>
-            <a
-              href="#"
+              Productos
+            </Link>
+            <Link
+              to="/promociones"
               className="rounded-full border-2 border-white bg-transparent px-6 py-3 text-center font-bold text-white transition-colors hover:bg-white hover:text-brand-red"
             >
               Promociones
-            </a>
+            </Link>
           </div>
         </div>
         <img
@@ -32,7 +33,7 @@ function Hero() {
         />
       </div>
     </section>
-  )
+  );
 }
 
-export default Hero
+export default Hero;
