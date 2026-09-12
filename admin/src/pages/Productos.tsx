@@ -2,26 +2,26 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
 export default function Productos() {
-    const navigate = useNavigate();
-    const [productos, setProductos] = useState(() => {
-        const productosGuardados = localStorage.getItem('productos')
+  const navigate = useNavigate();
+  const [productos, setProductos] = useState(() => {
+    const productosGuardados = localStorage.getItem('productos')
 
-        if (productosGuardados) {
-            return JSON.parse(productosGuardados)
-        }
-        
-        return []
-    })
+    if (productosGuardados) {
+      return JSON.parse(productosGuardados)
+    }
+    
+    return []
+  })
 
-    const eliminarProducto = (id: number) => {
-        const productosActualizados = productos.filter(
-            (producto) => producto.id !== id)
-            
-            setProductos(productosActualizados)
+  const eliminarProducto = (id: number) => {
+    const productosActualizados = productos.filter(
+      (producto) => producto.id !== id)
+      
+      setProductos(productosActualizados)
 
-            localStorage.setItem('productos',
-                JSON.stringify(productosActualizados)
-            )}
+      localStorage.setItem('productos',
+        JSON.stringify(productosActualizados)
+      )}
 
   return (
     <section className="p-8">
@@ -37,8 +37,8 @@ export default function Productos() {
         </div>
 
         <button
-        onClick={() => navigate('/admin/productos/nuevo')}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          onClick={() => navigate('/admin/productos/nuevo')}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
             Nuevo producto
         </button>
       </div>

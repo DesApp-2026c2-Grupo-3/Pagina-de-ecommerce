@@ -78,19 +78,18 @@ export default function NuevoProducto() {
         </div>
 
         <div>
-            <label>
-                <input
-                type="checkbox"
-                checked={disponible}
-                onChange={(e) => setDisponible(e.target.checked)}/>
-                {' '}Disponible
-            </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={disponible}
+              onChange={(e) => setDisponible(e.target.checked)}/>
+              {' '}Disponible
+          </label>
         </div>
 
         <button
           type="submit"
-          className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
+          className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
           Crear producto
         </button>
       </form>
