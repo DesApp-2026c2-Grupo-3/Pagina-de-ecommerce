@@ -13,6 +13,10 @@ export default function Productos() {
     return []
   })
 
+  const categorias = JSON.parse(
+    localStorage.getItem('categorias') || '[]'
+  );
+
   const eliminarProducto = (id: number) => {
     const productosActualizados = productos.filter(
       (producto) => producto.id !== id)
@@ -48,21 +52,43 @@ export default function Productos() {
           <thead className="bg-gray-100">
             <tr>
               <th className="text-left px-6 py-3">Nombre</th>
+              <th className="text-left px-6 py-3">Descripcion</th>
+              <th className="text-left px-6 py-3">Categoria</th>
               <th className="text-left px-6 py-3">Precio</th>
+              <th className="text-left px-6 py-3">Imagen</th>
               <th className="text-left px-6 py-3">Disponibilidad</th>
               <th className="text-left px-6 py-3">Acciones</th>
             </tr>
           </thead>
 
           <tbody>
-            {productos.map((producto) => (
-              <tr key={producto.id} className="border-t">
+            {productos.map((producto: any) => {
+              const categoria = categorias.find(
+                (categoria: { id: number }) =>
+                  categoria.id === producto.categoriaId
+              )
+              return(
+
+
+              <tr key={producto.id} className="border-t border-b">
                 <td className="px-6 py-4">
                   {producto.nombre}
                 </td>
 
                 <td className="px-6 py-4">
+                  {producto.descripcion}
+                </td>
+
+                <td className="px-6 py-4">
+                  {categoria?.nombre || 'Sin categoria'}
+                </td>
+
+                <td className="px-6 py-4">
                   ${producto.precio}
+                </td>
+
+                <td className="px-6 py-4">
+                  {producto.imagen}
                 </td>
 
                 <td className="px-6 py-4">
@@ -71,7 +97,7 @@ export default function Productos() {
 
                 <td className="px-6 py-4">
                     <button onClick={() => navigate(`/admin/productos/editar/${producto.id}`)}
-                    className="text-blue-600 hover:text-blue-800">
+                    className="text-blue-600 hover:text-blue-800 pr-1">
                         Editar
                     </button>
 
@@ -81,7 +107,8 @@ export default function Productos() {
                     </button>
                 </td>
               </tr>
-            ))}
+              )
+              })}
           </tbody>
         </table>
       </div>

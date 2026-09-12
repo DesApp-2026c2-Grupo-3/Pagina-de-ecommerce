@@ -3,15 +3,16 @@ import Home from '../pages/Home'
 import AdminHome from '../pages/AdminHome'
 import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../components/AdminLayout'
-import Productos from '../pages/Productos'
-import NuevoProducto from '../pages/NuevoProducto'
-import EditarProducto from '../pages/EditarProducto'
-import Categorias from '../pages/Categorias'
-import NuevaCategoria from '../pages/NuevaCategoria'
-import EditarCategoria from '../pages/EditarCategoria'
-import Administradores from '../pages/Administradores'
-import NuevoAdministrador from '../pages/NuevoAdministrador'
-import EditarAdministrador from '../pages/EditarAdministrador'
+import Productos from '../pages/Productos/Productos'
+import NuevoProducto from '../pages/Productos/NuevoProducto'
+import EditarProducto from '../pages/Productos/EditarProducto'
+import Categorias from '../pages/Categorias/Categorias'
+import NuevaCategoria from '../pages/Categorias/NuevaCategoria'
+import EditarCategoria from '../pages/Categorias/EditarCategoria'
+import Administradores from '../pages/Administradores/Administradores'
+import NuevoAdministrador from '../pages/Administradores/NuevoAdministrador'
+import EditarAdministrador from '../pages/Administradores/EditarAdministrador'
+import NotFound from '../pages/NotFound'
 
 interface AppRoutesProps {
   isAuthenticated: boolean
@@ -53,6 +54,8 @@ export default function AppRoutes({ isAuthenticated, setIsAuthenticated }: AppRo
                 <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />}/>
                 
             </Route>
+
+            <Route path="*" element={<NotFound />} />
         </Routes>
     )
 }

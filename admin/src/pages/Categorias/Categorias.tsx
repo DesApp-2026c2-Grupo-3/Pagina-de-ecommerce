@@ -44,30 +44,31 @@ export default function Categorias() {
       </button>
     </div>
     
-    <table className="w-full border-collapse">
-      <thead>
-        <tr className="border-b">
-          <th className="text-left p-3">Nombre</th>
-          <th className="text-left p-3">Acciones</th>
+    <div className="bg-white border rounded-lg overflow-hidden">
+    <table className="w-full">
+      <thead className="bg-gray-100">
+        <tr>
+          <th className="text-left px-6 py-3">Nombre</th>
+          <th className="text-left px-6 py-3">Acciones</th>
         </tr>
       </thead>
 
       <tbody>
         {categorias.map((categoria: { id: number; nombre: string }) => (
-          <tr key={categoria.id} className="border-b">
-            <td className="p-3">
+          <tr key={categoria.id} className="border-t border-b">
+            <td className="px-6 py-4">
               {categoria.nombre}
             </td>
 
-            <td className="p-3">
+            <td className="px-6 py-4">
               <button onClick={() => 
-              navigate(`/admin/categorias/editar/${categoria.id}`)
-            } className="text-blue-600 mr-4">
+              navigate(`/admin/categorias/editar/${categoria.id}`)}
+               className="text-blue-600 hover:text-blue-800 pr-1">
               Editar
               </button>
 
               <button onClick={() => eliminarCategoria(categoria.id)}
-              className="text-red-600">
+              className="text-red-600 hover:text-red-800">
                 Eliminar
               </button>
             </td>
@@ -75,6 +76,7 @@ export default function Categorias() {
         ))}
       </tbody>
     </table>
+    </div>
   </main>
   )
 }

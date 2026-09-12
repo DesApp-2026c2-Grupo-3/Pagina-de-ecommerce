@@ -11,13 +11,27 @@ export default function EditarCategoria() {
   )
 
   const categoria = categoriasGuardadas.find(
-    (categoria: { id: number }) => categoria.id === Number(id)
+    (categoria: { id: number }) => 
+      categoria.id === Number(id)
   )
 
-  const [nombre, setNombre] = useState(categoria?.nombre || '')
+  const [nombre, setNombre] = useState(categoria?.nombre || '');
+  const [errorNombre, setErrorNombre] = useState('');
 
   const guardarCambios = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    setErrorNombre('');
+
+    let hayErrores = false
+
+    if (nombre.trim().length < 3) {
+      setErrorNombre('El nombre debe tener al menos 3 caracteres.')
+      hayErrores = true
+    }
+
+    if (hayErrores) {
+      return
+    }
 
     const categoriasActualizadas = categoriasGuardadas.map(
       (categoria: { id: number; nombre: string }) =>
@@ -52,10 +66,17 @@ export default function EditarCategoria() {
           <input
             type="text"
             value={nombre}
+            maxLength={15}
             onChange={(e) => setNombre(e.target.value)}
             className="w-full border rounded px-3 py-2"
           />
         </div>
+
+        {errorNombre && (
+          <p className="text-red-600 text-sm m-1">
+            {errorNombre}
+          </p>
+        )}
 
         <button
           type="submit"

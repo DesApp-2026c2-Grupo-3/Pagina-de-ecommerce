@@ -4,6 +4,10 @@ import { useNavigate } from 'react-router-dom'
 
 export default function EditarProducto() {
   const { id } = useParams();
+  const [errorNombre, setErrorNombre] = useState('');
+  const [errorDescripcion, setErrorDescripcion] = useState('');
+  const [errorPrecio, setErrorPrecio] = useState('');
+  const [errorImagen, setErrorImagen] = useState('');
   const navigate = useNavigate();
 
   const productosGuardados = JSON.parse(
@@ -19,6 +23,11 @@ export default function EditarProducto() {
   const [precio, setPrecio] = useState(producto?.precio?.toString() || '')
   const [imagen, setImagen] = useState(producto?.imagen || '')
   const [disponible, setDisponible] = useState(producto?.disponible ?? true)
+  const [categoriaId, setCategoriaId] = useState('');
+  const categorias = JSON.parse(
+      localStorage.getItem('categorias') || '[]'
+    );
+
 
   return (
   <main className="p-8">
@@ -28,6 +37,50 @@ export default function EditarProducto() {
 
     <form className="max-w-xl flex flex-col gap-4"  onSubmit={(e) => {
       e.preventDefault()
+      setErrorNombre('')
+      setErrorDescripcion('')
+      setErrorPrecio('')
+      setErrorImagen('')
+
+      let hayErrores = false
+
+        if (nombre.trim().length < 3) {
+          setErrorNombre('El nombre debe tener al menos 3 caracteres.')
+          hayErrores = true
+        }
+
+        if (descripcion.trim().length < 15) {
+          setErrorDescripcion(
+            'La descripción debe tener al menos 15 caracteres.'
+          )
+          hayErrores = true
+        }
+
+        if(Number(precio) <= 0 || precio === ''){
+          setErrorPrecio(
+            'El precio debe ser mayor a 0'
+          )
+          hayErrores = true
+        }
+
+        if(Number(precio) > 999999){
+          setErrorPrecio(
+            'El precio no puede ser mayor a 999999'
+          )
+          hayErrores = true
+        }
+
+        if(imagen.trim().length < 1){
+          setErrorImagen(
+            'El campo imagen no puede estar vacio'
+          )
+          hayErrores = true
+        }
+
+        
+        if (hayErrores) {
+          return
+        }
 
       const productosActualizados = productosGuardados.map(
         (producto: any) => producto.id === Number(id) ? {
@@ -37,6 +90,7 @@ export default function EditarProducto() {
           precio: Number(precio),
           imagen,
           disponible,
+          categoriaId: Number(categoriaId),
         } : producto
       )
       
@@ -56,6 +110,12 @@ export default function EditarProducto() {
         />
       </div>
 
+      {errorNombre && (
+          <p className="text-red-600 text-sm mt-1">
+            {errorNombre}
+          </p>
+        )}
+
       <div>
         <label>Descripción</label>
         <textarea
@@ -63,6 +123,36 @@ export default function EditarProducto() {
         onChange={(e) => setDescripcion(e.target.value)}
         className="w-full border rounded p-2"
         />
+      </div>
+
+      {errorDescripcion && (
+          <p className="text-red-600 text-sm mt-1">
+            {errorDescripcion}
+          </p>
+        )}
+
+      <div className="mb-4">
+        <label className="block mb-2 font-medium">
+            Categoría
+        </label>
+
+        <select
+          value={categoriaId}
+          required
+          onChange={(e) => setCategoriaId(e.target.value)}
+          className="w-full border rounded px-3 py-2">
+
+          <option value="">
+              Seleccionar categoría
+          </option>
+
+          {categorias.map(
+            (categoria: { id: number; nombre: string }) => (
+            <option key={categoria.id} value={categoria.id}>
+              {categoria.nombre}
+            </option>
+            ))}
+        </select>
       </div>
 
       <div>
@@ -75,6 +165,12 @@ export default function EditarProducto() {
         />
       </div>
 
+      {errorPrecio && (
+          <p className="text-red-600 text-sm mt-1">
+            {errorPrecio}
+          </p>
+        )}
+
       <div>
         <label>Imagen</label>
         <input
@@ -85,6 +181,12 @@ export default function EditarProducto() {
         placeholder="URL de la imagen"
         />
       </div>
+
+      {errorImagen && (
+          <p className="text-red-600 text-sm mt-1">
+            {errorImagen}
+          </p>
+        )}
 
       <div>
         <label>

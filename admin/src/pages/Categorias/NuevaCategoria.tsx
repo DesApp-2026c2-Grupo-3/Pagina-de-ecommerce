@@ -3,10 +3,23 @@ import { useNavigate } from 'react-router-dom'
 
 export default function NuevaCategoria() {
   const [nombre, setNombre] = useState('')
+  const [errorNombre, setErrorNombre] = useState('');
   const navigate = useNavigate()
 
-  const guardarCategoria = (e: React.FormEvent) => {
-    e.preventDefault()
+  const guardarCategoria = (e: React.SubmitEvent) => {
+    e.preventDefault();
+    setErrorNombre('');
+
+    let hayErrores = false
+
+    if (nombre.trim().length < 3) {
+      setErrorNombre('El nombre debe tener al menos 3 caracteres.')
+      hayErrores = true
+    }
+
+    if (hayErrores) {
+      return
+    }
 
     const nuevaCategoria = {
       id: Date.now(),
@@ -42,11 +55,18 @@ export default function NuevaCategoria() {
           <input
             type="text"
             value={nombre}
+            maxLength={15}
             onChange={(e) => setNombre(e.target.value)}
             className="w-full border rounded px-3 py-2"
             placeholder="Ej: Hamburguesas"
           />
         </div>
+
+        {errorNombre && (
+          <p className="text-red-600 text-sm m-1">
+            {errorNombre}
+          </p>
+        )}
 
         <button
           type="submit"

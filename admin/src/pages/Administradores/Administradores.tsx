@@ -40,12 +40,13 @@ export default function Administradores() {
             </button>
         </div>
 
-        <table className="w-full border-collapse">
-            <thead>
-                <tr className="border-b">
-                    <th className="text-left p-3">Nombre</th>
-                    <th className="text-left p-3">Email</th>
-                    <th className="text-left p-3">Acciones</th>
+        <div className="bg-white border rounded-lg overflow-hidden">
+        <table className="w-full">
+            <thead className="bg-gray-100">
+                <tr>
+                    <th className="text-left px-6 py-3">Nombre</th>
+                    <th className="text-left px-6 py-3">Email</th>
+                    <th className="text-left px-6 py-3">Acciones</th>
                 </tr>
             </thead>
 
@@ -56,24 +57,24 @@ export default function Administradores() {
                     nombre: string
                     email: string
                 }) => (
-                <tr key={administrador.id} className="border-b">
-                    <td className="p-3">
+                <tr key={administrador.id} className="border-b border-t">
+                    <td className="px-6 py-4">
                         {administrador.nombre}
                     </td>
 
-                    <td className="p-3">
+                    <td className="px-6 py-4">
                         {administrador.email}
                     </td>
 
-                    <td className="p-3">
+                    <td className="px-6 py-4">
                         <button onClick={() => navigate(
                             `/admin/administradores/editar/${administrador.id}`)}
-                            className="text-blue-600 mr-4">
+                            className="text-blue-600 pr-1 hover:text-blue-800">
                                 Editar
                         </button>
 
                         <button onClick={() => eliminarAdministrador(administrador.id)}
-                        className="text-red-600">
+                        className="text-red-600 hover:text-red-800">
                             Eliminar
                         </button>
                     </td>
@@ -81,6 +82,7 @@ export default function Administradores() {
                 ))}
             </tbody>
         </table>
+        </div>
     </main>
   )
 }
