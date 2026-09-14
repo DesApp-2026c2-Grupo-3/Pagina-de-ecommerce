@@ -9,3 +9,15 @@
         box-sizing: border-box;
     }
   }
+
+  @theme {
+    --color-action: #f97316;
+    --color-action-hover: #ea580c;  
+
+    --color-danger: #dc2626;
+    --color-danger-hover: #b91c1c;
+
+    --color-success: #16a34a;
+    --color-success-hover: #15803d;
+
+}

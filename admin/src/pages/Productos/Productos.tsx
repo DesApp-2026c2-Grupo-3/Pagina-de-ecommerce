@@ -1,8 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import Paginacion from '../../components/Paginacion'
+import { Pencil, Trash2, Plus } from 'lucide-react'
 
 export default function Productos() {
   const navigate = useNavigate();
+  const [paginaActual, setPaginaActual] = useState(1);
+  const productosPorPagina = 5;
+
   const [productos, setProductos] = useState(() => {
     const productosGuardados = localStorage.getItem('productos')
 
@@ -19,7 +24,7 @@ export default function Productos() {
 
   const eliminarProducto = (id: number) => {
     const productosActualizados = productos.filter(
-      (producto) => producto.id !== id)
+      (producto: any) => producto.id !== id)
       
       setProductos(productosActualizados)
 
@@ -27,28 +32,44 @@ export default function Productos() {
         JSON.stringify(productosActualizados)
       )}
 
+  const indiceUltimoProducto = 
+  paginaActual * productosPorPagina
+
+  const indicePrimerProducto =
+  indiceUltimoProducto - productosPorPagina
+
+  const productosPagina = productos.slice(
+    indicePrimerProducto,
+    indiceUltimoProducto
+  )
+
   return (
-    <section className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">
-            Productos
-          </h1>
+    <main className="p-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+  <div>
+    <h1 className="text-3xl font-bold">
+      Productos
+    </h1>
 
-          <p className="text-gray-600 mt-1">
-            Gestioná los productos disponibles en el sistema.
-          </p>
-        </div>
+    <p className="text-gray-600 mt-2">
+      Gestioná los productos disponibles en el sistema.
+    </p>
+  </div>
 
-        <button
-          onClick={() => navigate('/admin/productos/nuevo')}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            Nuevo producto
-        </button>
-      </div>
+  <button
+    onClick={() => navigate('/admin/productos/nuevo')}
+    className="bg-action text-white px-4 py-4 rounded-full border 
+    shadow-[0_0_10px_rgba(249,115,22,0.6)]
+    hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
+    transition-all
+    border-orange-400 
+    hover:bg-action-hover w-fit ml-auto">
+    <Plus size={22} />
+  </button>
+</div>
 
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white border rounded-lg overflow-x-auto">
+        <table className="min-w-max w-full border-collapse">
           <thead className="bg-gray-100">
             <tr>
               <th className="text-left px-6 py-3">Nombre</th>
@@ -57,12 +78,12 @@ export default function Productos() {
               <th className="text-left px-6 py-3">Precio</th>
               <th className="text-left px-6 py-3">Imagen</th>
               <th className="text-left px-6 py-3">Disponibilidad</th>
-              <th className="text-left px-6 py-3">Acciones</th>
+              <th className="text-right px-6 py-3">Acciones</th>
             </tr>
           </thead>
 
           <tbody>
-            {productos.map((producto: any) => {
+            {productosPagina.map((producto: any) => {
               const categoria = categorias.find(
                 (categoria: { id: number }) =>
                   categoria.id === producto.categoriaId
@@ -95,15 +116,17 @@ export default function Productos() {
                   {producto.disponible ? 'Disponible' : 'No disponible'}
                 </td>
 
-                <td className="px-6 py-4">
+                <td className="flex justify-end gap-2 px-6 py-4">
                     <button onClick={() => navigate(`/admin/productos/editar/${producto.id}`)}
-                    className="text-blue-600 hover:text-blue-800 pr-1">
-                        Editar
+                    className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
+                    hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                        <Pencil size={18} />
                     </button>
 
                     <button onClick={() => eliminarProducto(producto.id)}
-                    className="text-red-600 hover:text-red-800">
-                        Eliminar
+                    className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
+                    hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                        <Trash2 size={18} />
                     </button>
                 </td>
               </tr>
@@ -112,6 +135,11 @@ export default function Productos() {
           </tbody>
         </table>
       </div>
-    </section>
+      <Paginacion
+        paginaActual={paginaActual}
+        totalElementos={productos.length}
+        elementosPorPagina={productosPorPagina}
+        cambiarPagina={setPaginaActual} />
+    </main>
   )
 }

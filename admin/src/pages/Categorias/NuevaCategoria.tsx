@@ -68,12 +68,23 @@ export default function NuevaCategoria() {
           </p>
         )}
 
-        <button
+       <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+
+          <button
+          type="button"
+          onClick={() => navigate('/admin/categorias')}
+          className="bg-danger hover:bg-danger-hover text-white
+          border border-red-300 px-4 py-2 rounded transition-colors">
+            Cancelar
+          </button>
+
+          <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Guardar categoría
-        </button>
+          className="bg-action hover:bg-action-hover
+           border border-orange-300 text-white px-4 py-2 rounded transition-colors">
+            Crear categoria
+          </button>
+        </div>
       </form>
     </main>
   )
