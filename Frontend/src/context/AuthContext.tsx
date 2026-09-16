@@ -14,7 +14,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('user')
+
+    return savedUser ? JSON.parse(savedUser) : null
+  })
+
+
   const [loading, setLoading] = useState(false)
 
   const login = async (credentials: LoginCredentials) => {
@@ -22,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const loggedUser = await loginService(credentials)
       setUser(loggedUser)
+      localStorage.setItem('user', JSON.stringify(loggedUser))
     } finally {
       setLoading(false)
     }
@@ -32,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const newUser = await registerService(data)
       setUser(newUser)
+      localStorage.setItem('user', JSON.stringify(newUser))
     } finally {
       setLoading(false)
     }
@@ -39,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 const logout = () => {
   setUser(null)
+  localStorage.removeItem('user')
 }
 
   return (
