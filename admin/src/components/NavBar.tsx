@@ -1,9 +1,24 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
-import { Menu } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom'
+import { Menu, LogOut } from 'lucide-react';
+import type { AdministradorSesion } from '../App';
 
-export default function Navbar() { 
+interface NavbarProps {
+  administrador: AdministradorSesion | null
+  setAdministrador: React.Dispatch<
+    React.SetStateAction<AdministradorSesion | null>
+  >
+}
+
+export default function Navbar({administrador, setAdministrador}:NavbarProps) { 
     const [menuAbierto, setMenuAbierto] = useState(false);
+    const navigate = useNavigate()
+
+    const cerrarSesion = () => {
+        setAdministrador(null)
+        localStorage.removeItem('administrador')
+        navigate('/')
+    }
 
     return (
     <nav className="bg-gray-900 text-white">
@@ -12,6 +27,7 @@ export default function Navbar() {
                 Administración
             </h1>
 
+
     {/* Botón móvil */}
             <button
             onClick={() => setMenuAbierto(!menuAbierto)}
@@ -19,9 +35,20 @@ export default function Navbar() {
             aria-label="Abrir menú">
                 <Menu size={20} />
             </button>
+            
 
     {/* Menú desktop */}
             <div className="hidden md:flex gap-4">
+                <div className="block text-right">
+                    <p className="font-medium">
+                        {administrador?.nombre}
+                    </p>
+
+                    <p className="text-sm text-gray-400">
+                        {administrador?.rol}
+                    </p>
+                </div>
+
                 <NavLink
                 to="/admin"
                 end
@@ -58,12 +85,19 @@ export default function Navbar() {
                 }>
                 Administradores
                 </NavLink>
+
+                <button onClick={cerrarSesion}
+                className="bg-danger hover:bg-danger-hover
+                py-2 px-3 rounded border">
+                    <LogOut size={18} />
+                </button>
             </div>
         </div>
 
   {/* Menú móvil */}
         {menuAbierto && (
             <div className="md:hidden flex flex-col gap-4 px-6 pb-4">
+
                 <NavLink
                 to="/admin"
                 end
@@ -104,6 +138,27 @@ export default function Navbar() {
                 }>
                 Administradores
                 </NavLink>
+
+                <div className='flex items-center gap-6 bg-gray-700 w-fit rounded p-2'>
+                    <div className="block">
+                        <p className="font-medium">
+                            {administrador?.nombre}
+                        </p>
+
+                        <p className="text-sm text-gray-400">
+                            {administrador?.rol}
+                        </p>
+                    </div>
+
+                    <div>    
+                        <button onClick={cerrarSesion}
+                        className="bg-danger hover:bg-danger-hover
+                        py-3 px-2 rounded border">
+                            <LogOut size={18} />
+                        </button>
+                    </div>
+                </div>
+
             </div>
         )}
     </nav>

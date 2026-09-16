@@ -2,11 +2,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Paginacion from '../../components/Paginacion'
 import { Pencil, Trash2, Plus } from 'lucide-react'
+import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
+import { useToast } from '../../context/ToastContext'
+import MensajeVacio from '../../components/MensajeVacio'
 
 export default function Categorias() {
   const navigate = useNavigate();
-    const [paginaActual, setPaginaActual] = useState(1);
+  const [paginaActual, setPaginaActual] = useState(1);
   const categoriaPorPagina = 5;
+  const [categoriaAEliminar, setCategoriaAEliminar] = useState<number | null>(null);
+  const { mostrarToast } = useToast();
 
   const [categorias, setCategorias] = useState(() => {
     const categoriasGuardadas = localStorage.getItem('categorias')
@@ -74,7 +79,14 @@ export default function Categorias() {
       </thead>
 
       <tbody>
-        {categoriasPagina.map((categoria: { id: number; nombre: string }) => (
+        {categoriasPagina.length === 0 ? (
+          <tr>
+            <td colSpan={2} className="px-6 py-10">
+              <MensajeVacio mensaje="No hay categorias registradas." />
+            </td>
+          </tr>
+        ) : (
+        categoriasPagina.map((categoria: { id: number; nombre: string }) => (
           <tr key={categoria.id} className="border-t border-b">
             <td className="px-6 py-4">
               {categoria.nombre}
@@ -87,17 +99,32 @@ export default function Categorias() {
                   <Pencil size={18} />
               </button>
 
-              <button onClick={() => eliminarCategoria(categoria.id)}
+              <button onClick={() => setCategoriaAEliminar(categoria.id)}
               className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
               hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                 <Trash2 size={18} />
               </button>
             </td>
           </tr>
-        ))}
+        )))}
       </tbody>
     </table>
     </div>
+
+    <ConfirmarEliminacion
+    abierto={categoriaAEliminar !== null}
+    mensaje="¿Estás seguro de que querés eliminar esta categoria?"
+    onConfirmar={() => {
+      if (categoriaAEliminar !== null) {
+        eliminarCategoria(categoriaAEliminar)
+        setCategoriaAEliminar(null)
+
+        mostrarToast('Categoria eliminada!')
+          }
+        }
+      }
+    onCancelar={() => setCategoriaAEliminar(null)}/>
+          
     <Paginacion
       paginaActual={paginaActual}
       totalElementos={categorias.length}

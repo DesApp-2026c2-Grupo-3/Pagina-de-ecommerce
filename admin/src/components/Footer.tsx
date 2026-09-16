@@ -1,4 +1,4 @@
-
+import { NavLink } from "react-router-dom"
 
 export default function Footer() {
   return (
@@ -22,10 +22,28 @@ export default function Footer() {
             </h3>
 
             <ul className="text-sm space-y-1">
-              <li>Productos</li>
-              <li>Categorías</li>
-              <li>Administradores</li>
+              <li>
+                <NavLink to="/admin/productos"
+                className="hover:text-action">
+                  Productos
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink to="/admin/categorias"
+                className="hover:text-action">
+                  Categorías
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink to="/admin/administradores"
+                className="hover:text-action">
+                  Administradores
+                </NavLink>
+              </li>
             </ul>
+
           </div>
 
         </div>

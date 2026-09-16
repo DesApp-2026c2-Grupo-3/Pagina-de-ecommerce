@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../../context/ToastContext'
 
 export default function EditarProducto() {
   const { id } = useParams();
@@ -8,6 +9,7 @@ export default function EditarProducto() {
   const [errorDescripcion, setErrorDescripcion] = useState('');
   const [errorPrecio, setErrorPrecio] = useState('');
   const [errorImagen, setErrorImagen] = useState('');
+  const { mostrarToast } = useToast();
   const navigate = useNavigate();
 
   const productosGuardados = JSON.parse(
@@ -97,6 +99,7 @@ export default function EditarProducto() {
       localStorage.setItem('productos',
         JSON.stringify(productosActualizados)
       )
+      mostrarToast('Producto modificado!')
       navigate('/admin/productos')
       }}>
 

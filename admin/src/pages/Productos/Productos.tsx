@@ -1,12 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import Paginacion from '../../components/Paginacion'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, DollarSign } from 'lucide-react'
+import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
+import { useToast } from '../../context/ToastContext'
+import MensajeVacio from '../../components/MensajeVacio'
 
 export default function Productos() {
   const navigate = useNavigate();
   const [paginaActual, setPaginaActual] = useState(1);
   const productosPorPagina = 5;
+  const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
+  const { mostrarToast } = useToast();
+
 
   const [productos, setProductos] = useState(() => {
     const productosGuardados = localStorage.getItem('productos')
@@ -83,7 +89,14 @@ export default function Productos() {
           </thead>
 
           <tbody>
-            {productosPagina.map((producto: any) => {
+            {productosPagina.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-10">
+                  <MensajeVacio mensaje="No hay productos registrados." />
+                </td>
+              </tr>
+            ) : (
+            productosPagina.map((producto: any) => {
               const categoria = categorias.find(
                 (categoria: { id: number }) =>
                   categoria.id === producto.categoriaId
@@ -105,7 +118,9 @@ export default function Productos() {
                 </td>
 
                 <td className="px-6 py-4">
-                  ${producto.precio}
+                  <div className='flex items-center gap-1'>
+                    <DollarSign size={18} />{producto.precio}
+                  </div>
                 </td>
 
                 <td className="px-6 py-4">
@@ -123,7 +138,7 @@ export default function Productos() {
                         <Pencil size={18} />
                     </button>
 
-                    <button onClick={() => eliminarProducto(producto.id)}
+                    <button onClick={() =>  setProductoAEliminar(producto.id)}
                     className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
                     hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                         <Trash2 size={18} />
@@ -131,10 +146,27 @@ export default function Productos() {
                 </td>
               </tr>
               )
-              })}
+              })
+            )}
           </tbody>
         </table>
       </div>
+
+      <ConfirmarEliminacion
+      abierto={productoAEliminar !== null}
+      mensaje="¿Estás seguro de que querés eliminar este producto?"
+      onConfirmar={() => {
+        if (productoAEliminar !== null) {
+          eliminarProducto(productoAEliminar)
+          setProductoAEliminar(null)
+
+          mostrarToast('Producto eliminado!')
+          }
+        }
+      }
+      onCancelar={() => setProductoAEliminar(null)}/>
+
+
       <Paginacion
         paginaActual={paginaActual}
         totalElementos={productos.length}

@@ -1,9 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { useToast } from '../../context/ToastContext'
+
 
 export default function EditarAdministrador() {
-  const { id } = useParams()
-  const navigate = useNavigate()
+  const { id } = useParams();
+  const { mostrarToast } = useToast();
+  const navigate = useNavigate();
 
   const administradoresGuardados = JSON.parse(
     localStorage.getItem('administradores') || '[]'
@@ -99,7 +102,7 @@ export default function EditarAdministrador() {
       'administradores',
       JSON.stringify(administradoresActualizados)
     )
-
+    mostrarToast('Administrador modificado!')
     navigate('/admin/administradores')
   }
 

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../../context/ToastContext'
 
 export default function NuevaCategoria() {
   const [nombre, setNombre] = useState('')
   const [errorNombre, setErrorNombre] = useState('');
+  const { mostrarToast } = useToast();
   const navigate = useNavigate()
 
   const guardarCategoria = (e: React.SubmitEvent) => {
@@ -36,7 +38,7 @@ export default function NuevaCategoria() {
       'categorias',
       JSON.stringify(categoriasGuardadas)
     )
-
+    mostrarToast('Categoria creada!')
     navigate('/admin/categorias')
   }
 

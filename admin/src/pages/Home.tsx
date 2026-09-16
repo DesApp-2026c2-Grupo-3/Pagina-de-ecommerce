@@ -1,15 +1,21 @@
 import { useNavigate } from 'react-router-dom'
+import type { AdministradorSesion } from '../App'
+import { useState } from 'react';
 
 interface HomeProps {
-  setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>
+  setAdministrador: React.Dispatch<
+    React.SetStateAction<AdministradorSesion | null>
+  >
 }
 
-export default function Home({setIsAuthenticated}:HomeProps) {
-  const navigate = useNavigate()
+export default function Home({setAdministrador}:HomeProps) {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   return (
   <main className="min-h-screen flex items-center justify-center bg-gray-100">
-    <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
+    <div className="w-full max-w-md bg-white p-8 m-2 rounded-lg shadow-md">
       <h1 className="text-3xl font-bold text-center mb-2">
           Administración
       </h1>
@@ -20,9 +26,24 @@ export default function Home({setIsAuthenticated}:HomeProps) {
 
       <form className="flex flex-col gap-5" onSubmit={(e) => {
         e.preventDefault()
-        setIsAuthenticated(true)
-        navigate('/admin')
-      }}>
+
+        if (email === 'manolo@admin.com' && password === 'admin123') {
+          const administrador = {
+            nombre: 'Manolo',
+            email: 'manolo@admin.com',
+            rol: 'MASTER' as const,
+          }
+
+          setAdministrador(administrador);
+
+          localStorage.setItem(
+            'administrador',
+            JSON.stringify(administrador)
+          )
+
+          navigate('/admin')
+      }}}>
+
         <div className="flex flex-col gap-2">
           <label htmlFor="email" className="font-medium">
               Correo electrónico
@@ -30,6 +51,8 @@ export default function Home({setIsAuthenticated}:HomeProps) {
 
           <input
             id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             type="email"
             placeholder="admin@ejemplo.com"
             className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -44,6 +67,8 @@ export default function Home({setIsAuthenticated}:HomeProps) {
           <input
             id="password"
             type="password"
+            value={password}
+            onChange={(e)=> setPassword(e.target.value)}
             placeholder="••••••••"
             className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

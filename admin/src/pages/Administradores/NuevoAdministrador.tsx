@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../../context/ToastContext'
 
 export default function NuevoAdministrador() {
   const [nombre, setNombre] = useState('')
@@ -8,7 +9,7 @@ export default function NuevoAdministrador() {
   const [errorNombre, setErrorNombre] = useState('');
   const [errorEmail, setErrorEmail] = useState('');
   const [errorPassword, setErrorPassword] = useState('');
-
+  const { mostrarToast } = useToast();
   const navigate = useNavigate()
 
   const guardarAdministrador = (e: React.SubmitEvent) => {
@@ -75,7 +76,7 @@ export default function NuevoAdministrador() {
       'administradores',
       JSON.stringify(administradoresGuardados)
     )
-
+    mostrarToast('Administrador creado!')
     navigate('/admin/administradores')
   }
 

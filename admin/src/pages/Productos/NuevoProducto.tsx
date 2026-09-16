@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../../context/ToastContext'
 
 export default function NuevoProducto() {
     const [nombre, setNombre] = useState('');
@@ -12,6 +13,7 @@ export default function NuevoProducto() {
     const [errorDescripcion, setErrorDescripcion] = useState('');
     const [errorPrecio, setErrorPrecio] = useState('');
     const [errorImagen, setErrorImagen] = useState('');
+    const { mostrarToast } = useToast();
     const navigate = useNavigate();
 
     const categorias = JSON.parse(
@@ -20,6 +22,7 @@ export default function NuevoProducto() {
 
   return (
     <main className="p-8">
+
       <h1 className="text-3xl font-bold mb-6">
         Nuevo producto
       </h1>
@@ -91,8 +94,7 @@ export default function NuevoProducto() {
             'productos',
             JSON.stringify(productosGuardados)
         )
-        
-        console.log(producto)
+        mostrarToast('Producto creado!')
 
         navigate('/admin/productos')
         }}>

@@ -13,24 +13,28 @@ import Administradores from '../pages/Administradores/Administradores'
 import NuevoAdministrador from '../pages/Administradores/NuevoAdministrador'
 import EditarAdministrador from '../pages/Administradores/EditarAdministrador'
 import NotFound from '../pages/NotFound'
+import type { AdministradorSesion } from '../App'
 
 interface AppRoutesProps {
   isAuthenticated: boolean
-  setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>
+  administrador: AdministradorSesion | null
+  setAdministrador: React.Dispatch<
+    React.SetStateAction<AdministradorSesion | null>
+  >
 }
 
-export default function AppRoutes({ isAuthenticated, setIsAuthenticated }: AppRoutesProps){
+export default function AppRoutes({ isAuthenticated, administrador ,setAdministrador }: AppRoutesProps){
     
 
     return(
         <Routes>
             <Route path='/' element={
-                <Home setIsAuthenticated={setIsAuthenticated}/>}
+                <Home setAdministrador={setAdministrador}/>}
             />
 
             <Route element={
                 <ProtectedRoute isAuthenticated={isAuthenticated}>
-                    <AdminLayout />
+                    <AdminLayout administrador={administrador} setAdministrador={setAdministrador} />
                 </ProtectedRoute>}>
             
                 <Route path="/admin" element={<AdminHome />} />

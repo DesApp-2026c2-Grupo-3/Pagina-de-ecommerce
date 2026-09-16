@@ -2,11 +2,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Paginacion from '../../components/Paginacion';
 import { Pencil, Trash2, Plus } from 'lucide-react'
+import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
+import { useToast } from '../../context/ToastContext'
+import MensajeVacio from '../../components/MensajeVacio'
 
 export default function Administradores() {
+    const { mostrarToast } = useToast();
     const navigate = useNavigate();
     const [paginaActual, setPaginaActual] = useState(1);
     const adminsPorPagina = 5;
+    const [adminAEliminar, setAdminAEliminar] = useState<number | null>(null);
 
     const [administradores, setAdministradores] = useState(() => {
         const administradoresGuardados = localStorage.getItem('administradores')
@@ -72,7 +77,14 @@ export default function Administradores() {
             </thead>
 
             <tbody>
-                {administradoresPagina.map(
+                {administradoresPagina.length === 0 ? (
+                    <tr>
+                        <td colSpan={3} className="px-6 py-10">
+                            <MensajeVacio mensaje="No hay administradores registrados." />
+                        </td>
+                    </tr>
+                ) : (
+                administradoresPagina.map(
                     (administrador: {
                     id: number
                     nombre: string
@@ -94,17 +106,32 @@ export default function Administradores() {
                             <Pencil size={18} />
                         </button>
 
-                        <button onClick={() => eliminarAdministrador(administrador.id)}
+                        <button onClick={() => setAdminAEliminar(administrador.id)}
                         className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
                         hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                             <Trash2 size={18} />
                         </button>
                     </td>
                 </tr>
-                ))}
+                )))}
             </tbody>
         </table>
         </div>
+
+        <ConfirmarEliminacion
+            abierto={adminAEliminar !== null}
+            mensaje="¿Estás seguro de que querés eliminar este administrador?"
+            onConfirmar={() => {
+              if (adminAEliminar !== null) {
+                eliminarAdministrador(adminAEliminar)
+                setAdminAEliminar(null)
+
+                mostrarToast('Administrador eliminado!')
+                  }
+                }
+              }
+            onCancelar={() => setAdminAEliminar(null)}/>
+
         <Paginacion
             paginaActual={paginaActual}
             totalElementos={administradores.length}
