@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getPerfil, actualizarPerfil } from '../services/userService'
 import type { User } from '../types/user'
+import ErrorAlert from '../components/ErrorAlert'
+import { esEmailValido } from '../utils/validaciones'
 
 function Perfil() {
   const { user, setUser } = useAuth()
@@ -38,7 +40,18 @@ function Perfil() {
     setError('')
     setSuccess(false)
     setSaving(true)
-
+    if (!name.trim()) {
+      setError('El nombre es obligatorio')
+      return
+    }
+    if (!esEmailValido(email)) {
+      setError('El email no tiene un formato válido')
+      return
+    }
+    if (password && password.length < 6) {
+      setError('La nueva contraseña debe tener al menos 6 caracteres')
+      return
+    }
     try {
       const updated = await actualizarPerfil(user!.id, {
         name,
@@ -69,8 +82,8 @@ function Perfil() {
       <h1 className="text-3xl font-extrabold text-brand-dark">Mi perfil</h1>
       <p className="mt-2 text-gray-600">Editá tus datos personales.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-        <div>
+        <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">
+          <div>
           <label htmlFor="name" className="text-sm font-semibold text-brand-dark">
             Nombre
           </label>
@@ -138,7 +151,7 @@ function Perfil() {
           />
         </div>
 
-        {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
+          <ErrorAlert message={error} />
         {success && (
           <p className="rounded-lg bg-brand-green/10 px-4 py-2 font-semibold text-brand-green">
             ✓ Perfil actualizado

@@ -12,6 +12,7 @@ router.post('/login', usuarioValidaciones.validarLogin, usuarioController.login)
 
 router.get('/:id', usuarioController.obtenerUsuarioPorId)
 
-router.put('/:id', usuarioController.actualizarUsuario)
+router.put('/:id', usuarioValidaciones.validarActualizarUsuario, usuarioController.actualizarUsuario)
+
 
 module.exports = router;
