@@ -66,6 +66,13 @@ function handleLogout() {
                     >
                       Datos personales
                     </Link>
+                    <Link
+                      to="/historial"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                    >
+                      Historial de pedidos
+                    </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
@@ -128,6 +135,13 @@ function handleLogout() {
                   onClick={handleLogout}
                   className="mt-1 block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
                 >
+                <Link
+                  to="/historial"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  Historial de pedidos
+                </Link>
                   Cerrar sesión
                 </button>
               </div>

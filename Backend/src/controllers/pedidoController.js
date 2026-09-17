@@ -15,6 +15,21 @@ const obtenerPedidos = async (req,res) => {
 
 }
 
+const obtenerPedidosPorUsuario = async (req, res) => {
+  try {
+    const pedidos = await Pedido.findAll({
+      where: { usuarioId: req.params.usuarioId },
+      include: [{ model: DetallePedido, include: [Producto] }],
+      order: [['fecha', 'DESC']],
+    });
+
+    res.status(200).json(pedidos);
+  } catch (error) {
+    console.error('Algo salió mal', error.message);
+    res.status(500).json({ mensaje: 'Error del servidor' });
+  }
+};
+
 const obtenerPedidoId = async (req,res) => {
     try{
         const pedido = await Pedido.findByPk(req.params.id, {
@@ -126,4 +141,4 @@ const crearPedido = async (req,res) => {
 //const obtenerHistorialPedido = async (req,res) => {};
 
 
-module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido }
+module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };

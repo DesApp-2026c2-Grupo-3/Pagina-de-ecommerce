@@ -11,6 +11,7 @@ import Register from './pages/Register'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Perfil from './pages/Perfil'
+import HistorialPedidos from './pages/HistorialPedidos'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/historial" element={<HistorialPedidos />} />
         </Routes>
       </main>
       <Footer />
