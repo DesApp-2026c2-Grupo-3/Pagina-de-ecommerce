@@ -10,4 +10,8 @@ router.post('/', usuarioValidaciones.validarUsuario ,usuarioController.crearUsua
 
 router.post('/login', usuarioValidaciones.validarLogin, usuarioController.login)
 
+router.get('/:id', usuarioController.obtenerUsuarioPorId)
+
+router.put('/:id', usuarioController.actualizarUsuario)
+
 module.exports = router;

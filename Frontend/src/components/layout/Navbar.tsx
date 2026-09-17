@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { Link, useNavigate } from 'react-router-dom'
 
 const navLinks = [
   { label: 'Home', to: '/', active: true },
@@ -10,12 +10,16 @@ const navLinks = [
 
 function Navbar() {
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
 
-  function handleLogout() {
-    logout()
-    setOpen(false)
-  }
+function handleLogout() {
+  logout()
+  setMenuOpen(false)
+  setOpen(false)
+  navigate('/')
+}
 
   return (
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
@@ -40,22 +44,42 @@ function Navbar() {
               </Link>
             </li>
           ))}
-          <li>
+
+          <li className="relative ml-2">
             {isAuthenticated ? (
-              <div className="ml-2 flex items-center gap-3">
-                <span className="font-semibold text-white">Hola, {user?.name}</span>
+              <>
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-expanded={menuOpen}
                   className="rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
                 >
-                  Cerrar sesión
+                  Hola, {user?.name}
                 </button>
-              </div>
+
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl bg-white shadow-xl">
+                    <Link
+                      to="/perfil"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                    >
+                      Datos personales
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="block w-full px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-cream"
+                    >
+                      Cerrar sesión
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <Link
                 to="/login"
-                className="ml-2 rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
+                className="rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
               >
                 Iniciar Sesión
               </Link>
@@ -87,14 +111,22 @@ function Navbar() {
               </Link>
             </li>
           ))}
-          <li>
+
+          <li className="mt-1">
             {isAuthenticated ? (
-              <div className="mt-1 flex flex-col gap-2">
-                <span className="px-4 font-semibold text-white">Hola, {user?.name}</span>
+              <div className="flex flex-col gap-1">
+                <span className="px-4 py-1 font-semibold text-white">Hola, {user?.name}</span>
+                <Link
+                  to="/perfil"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  Datos personales
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+                  className="mt-1 block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
                 >
                   Cerrar sesión
                 </button>
@@ -103,7 +135,7 @@ function Navbar() {
               <Link
                 to="/login"
                 onClick={() => setOpen(false)}
-                className="mt-1 block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+                className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
               >
                 Iniciar Sesión
               </Link>

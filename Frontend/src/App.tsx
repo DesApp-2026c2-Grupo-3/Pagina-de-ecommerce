@@ -10,6 +10,7 @@ import Promociones from './pages/Promociones'
 import Register from './pages/Register'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import Perfil from './pages/Perfil'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/carrito" element={<Cart />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/perfil" element={<Perfil />} />
         </Routes>
       </main>
       <Footer />
