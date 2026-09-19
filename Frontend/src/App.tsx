@@ -12,6 +12,7 @@ import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Perfil from './pages/Perfil'
 import HistorialPedidos from './pages/HistorialPedidos'
+import Address from './pages/Address'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/historial" element={<HistorialPedidos />} />
+          <Route path="/direcciones" element={<Address />} />
         </Routes>
       </main>
       <Footer />

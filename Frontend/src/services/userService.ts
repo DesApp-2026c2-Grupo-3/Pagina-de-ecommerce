@@ -4,18 +4,22 @@ import type { UpdateProfileData, User } from '../types/user'
 interface UsuarioBackend {
   id: number
   nombre: string
+  apellido: string | null
   email: string
   telefono: string | null
-  direccion: string | null
+  dni: string | null
+  fechaNacimiento: string | null
 }
 
 function mapUsuario(u: UsuarioBackend): User {
   return {
     id: u.id,
     name: u.nombre,
+    apellido: u.apellido ?? '',
     email: u.email,
     telefono: u.telefono ?? '',
-    direccion: u.direccion ?? '',
+    dni: u.dni ?? '',
+    fechaNacimiento: u.fechaNacimiento ?? '',
   }
 }
 
@@ -30,16 +34,17 @@ export const actualizarPerfil = async (
 ): Promise<User> => {
   const body: Record<string, string> = {
     nombre: data.name,
+    apellido: data.apellido ?? '',
     email: data.email,
     telefono: data.telefono ?? '',
-    direccion: data.direccion ?? '',
+    dni: data.dni ?? '',
+    fechaNacimiento: data.fechaNacimiento ?? '',
   }
 
   if (data.password) {
     body.password = data.password
   }
 
-  console.log('Enviando al backend:', body) 
   const usuario = await httpClient<UsuarioBackend>(`/usuario/${id}`, {
     method: 'PUT',
     body: JSON.stringify(body),

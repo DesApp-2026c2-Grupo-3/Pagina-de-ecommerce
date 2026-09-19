@@ -20,10 +20,12 @@ app.get('/', (req, res) => {
 const productoRoutes = require('./routes/productoRoutes');
 const usuarioRoutes = require('./routes/usuarioRoutes');
 const pedidoRoutes = require('./routes/pedidoRoutes');
+const direccionRoutes = require('./routes/direccionRoutes');
 
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
+app.use('/direcciones', direccionRoutes);
 
 
 //SINCRO CON BASE DE DATOS

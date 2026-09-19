@@ -1,9 +1,11 @@
 export interface User {
   id: number
   name: string
+  apellido?: string
   email: string
-  telefono?: string  
-  direccion?: string
+  telefono?: string
+  dni?: string
+  fechaNacimiento?: string
 }
 
 export interface LoginCredentials {
@@ -19,8 +21,10 @@ export interface RegisterData {
 
 export interface UpdateProfileData {
   name: string
+  apellido?: string
   email: string
   telefono?: string
-  direccion?: string
+  dni?: string
+  fechaNacimiento?: string
   password?: string
 }

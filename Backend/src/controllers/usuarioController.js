@@ -78,7 +78,7 @@ const login = async(req,res) =>{
 const obtenerUsuarioPorId = async (req, res) => {
     try {
         const usuario = await Usuario.findByPk(req.params.id, {
-            attributes: ['id', 'nombre', 'email', 'telefono', 'direccion'],
+            attributes: ['id', 'nombre', 'apellido', 'email', 'telefono', 'dni', 'fechaNacimiento'],
         });
 
         if (!usuario) {
@@ -100,13 +100,15 @@ const actualizarUsuario = async (req, res) => {
             return res.status(404).json({ mensaje: 'Usuario no encontrado' });
         }
 
-        const { nombre, email, telefono, direccion, password } = req.body;
+        const { nombre, apellido, email, telefono, dni, fechaNacimiento, password } = req.body;
 
         const datosActualizados = {
             nombre: nombre?.trim() ?? usuario.nombre,
+            apellido: apellido ?? usuario.apellido,
             email: email?.trim().toLowerCase() ?? usuario.email,
             telefono: telefono ?? usuario.telefono,
-            direccion: direccion ?? usuario.direccion,
+            dni: dni ?? usuario.dni,
+            fechaNacimiento: fechaNacimiento || usuario.fechaNacimiento,
         };
 
         if (password) {
@@ -118,9 +120,11 @@ const actualizarUsuario = async (req, res) => {
         return res.status(200).json({
             id: usuario.id,
             nombre: usuario.nombre,
+            apellido: usuario.apellido,
             email: usuario.email,
             telefono: usuario.telefono,
-            direccion: usuario.direccion,
+            dni: usuario.dni,
+            fechaNacimiento: usuario.fechaNacimiento,
         });
     } catch (error) {
         console.error('Algo salió mal', error.message);

@@ -45,8 +45,12 @@ const updateSchema = Joi.object({
         'string.empty': 'El nombre es obligatorio',
         'string.min': 'El nombre debe tener al menos 3 caracteres',
         'string.max': 'El nombre no puede superar los 20 caracteres',
-        'string.pattern.base': 'El nombre solo puede contener letras y números',
+        'string.pattern.base': 'El nombre solo puede contener letras, números y espacios',
         'any.required': 'El nombre es obligatorio'
+    }),
+
+    apellido: Joi.string().trim().allow('').max(20).messages({
+        'string.max': 'El apellido no puede superar los 20 caracteres'
     }),
 
     email: Joi.string().email().required().messages({
@@ -60,8 +64,13 @@ const updateSchema = Joi.object({
         'string.max': 'El teléfono no puede superar los 20 caracteres'
     }),
 
-    direccion: Joi.string().trim().allow('').max(100).messages({
-        'string.max': 'La dirección no puede superar los 100 caracteres'
+    dni: Joi.string().trim().pattern(/^[0-9]*$/).allow('').max(15).messages({
+        'string.pattern.base': 'El DNI solo puede contener números',
+        'string.max': 'El DNI no puede superar los 15 caracteres'
+    }),
+
+    fechaNacimiento: Joi.date().allow('', null).messages({
+        'date.base': 'La fecha de nacimiento no es válida'
     }),
 
     password: Joi.string().min(6).max(20).allow('').messages({
@@ -69,6 +78,5 @@ const updateSchema = Joi.object({
         'string.max': 'La contraseña no puede superar los 20 caracteres'
     })
 })
-
 
 module.exports = { userSchema, loginSchema, updateSchema }
