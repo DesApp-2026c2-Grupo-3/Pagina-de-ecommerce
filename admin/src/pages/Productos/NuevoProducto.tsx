@@ -11,6 +11,7 @@ export default function NuevoProducto() {
     const [categoriaId, setCategoriaId] = useState('');
     const [errorNombre, setErrorNombre] = useState('');
     const [errorDescripcion, setErrorDescripcion] = useState('');
+    const [errorCategoria, setErrorCategoria] = useState('');
     const [errorPrecio, setErrorPrecio] = useState('');
     const [errorImagen, setErrorImagen] = useState('');
     const { mostrarToast } = useToast();
@@ -30,10 +31,6 @@ export default function NuevoProducto() {
       <form className="max-w-xl flex flex-col gap-4" 
       onSubmit={(e) => {
         e.preventDefault()
-        setErrorNombre('')
-        setErrorDescripcion('')
-        setErrorPrecio('')
-        setErrorImagen('')
 
         let hayErrores = false
 
@@ -70,6 +67,12 @@ export default function NuevoProducto() {
           hayErrores = true
         }
 
+        if(categoriaId === ''){
+          setErrorCategoria(
+            'El campo categoria no puede estar vacio'
+          )
+          hayErrores = true
+        }
         
         if (hayErrores) {
           return
@@ -104,7 +107,7 @@ export default function NuevoProducto() {
             type="text"
             value={nombre}
             maxLength={15}
-            onChange={(e) => setNombre(e.target.value)}
+            onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
             className="w-full border rounded p-2"
             placeholder="Ej: Hamburguejas al vapor"
             />
@@ -121,7 +124,7 @@ export default function NuevoProducto() {
           <textarea
             value={descripcion}
             maxLength={100}
-            onChange={(e) => setDescripcion(e.target.value)}
+            onChange={(e) => {setDescripcion(e.target.value); setErrorDescripcion('')}}
             className="w-full border rounded p-2"
           />
         </div>
@@ -139,8 +142,7 @@ export default function NuevoProducto() {
 
           <select
           value={categoriaId}
-          required
-          onChange={(e) => setCategoriaId(e.target.value)}
+          onChange={(e) => {setCategoriaId(e.target.value); setErrorCategoria('')}}
           className="w-full border rounded px-3 py-2">
 
             <option value="">
@@ -157,12 +159,18 @@ export default function NuevoProducto() {
           </select>
         </div>
 
+        {errorCategoria && (
+          <p className="text-red-600 text-sm mt-1">
+            {errorCategoria}
+          </p>
+        )}
+
         <div>
           <label>Precio</label>
           <input type="number" 
           value={precio} 
           step="0.1"
-          onChange={(e) => setPrecio(e.target.value)} 
+          onChange={(e) => {setPrecio(e.target.value); setErrorPrecio('')}} 
           className="w-full border rounded p-2" />
         </div>
 
@@ -176,7 +184,7 @@ export default function NuevoProducto() {
           <label>Imagen</label>
           <input type="text" 
           value={imagen} 
-          onChange={(e) => setImagen(e.target.value)} 
+          onChange={(e) => {setImagen(e.target.value); setErrorImagen('')}} 
           className="w-full border rounded p-2" 
           placeholder="URL de la imagen"/>
         </div>

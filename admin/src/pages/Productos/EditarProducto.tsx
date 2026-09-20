@@ -7,6 +7,7 @@ export default function EditarProducto() {
   const { id } = useParams();
   const [errorNombre, setErrorNombre] = useState('');
   const [errorDescripcion, setErrorDescripcion] = useState('');
+  const [errorCategoria, setErrorCategoria] = useState('');
   const [errorPrecio, setErrorPrecio] = useState('');
   const [errorImagen, setErrorImagen] = useState('');
   const { mostrarToast } = useToast();
@@ -25,7 +26,7 @@ export default function EditarProducto() {
   const [precio, setPrecio] = useState(producto?.precio?.toString() || '')
   const [imagen, setImagen] = useState(producto?.imagen || '')
   const [disponible, setDisponible] = useState(producto?.disponible ?? true)
-  const [categoriaId, setCategoriaId] = useState('');
+  const [categoriaId, setCategoriaId] = useState(producto?.categoriaId || '');
   const categorias = JSON.parse(
       localStorage.getItem('categorias') || '[]'
     );
@@ -39,10 +40,6 @@ export default function EditarProducto() {
 
     <form className="max-w-xl flex flex-col gap-4"  onSubmit={(e) => {
       e.preventDefault()
-      setErrorNombre('')
-      setErrorDescripcion('')
-      setErrorPrecio('')
-      setErrorImagen('')
 
       let hayErrores = false
 
@@ -79,6 +76,13 @@ export default function EditarProducto() {
           hayErrores = true
         }
 
+         if(categoriaId === ''){
+          setErrorCategoria(
+            'El campo categoria no puede estar vacio'
+          )
+          hayErrores = true
+        }
+
         
         if (hayErrores) {
           return
@@ -108,7 +112,7 @@ export default function EditarProducto() {
         <input
         type="text"
         value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
+        onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
         className="w-full border rounded p-2"
         />
       </div>
@@ -123,7 +127,7 @@ export default function EditarProducto() {
         <label>Descripción</label>
         <textarea
         value={descripcion}
-        onChange={(e) => setDescripcion(e.target.value)}
+        onChange={(e) => {setDescripcion(e.target.value); setErrorDescripcion('')}}
         className="w-full border rounded p-2"
         />
       </div>
@@ -141,8 +145,7 @@ export default function EditarProducto() {
 
         <select
           value={categoriaId}
-          required
-          onChange={(e) => setCategoriaId(e.target.value)}
+          onChange={(e) => {setCategoriaId(e.target.value); setErrorCategoria('')}}
           className="w-full border rounded px-3 py-2">
 
           <option value="">
@@ -158,12 +161,18 @@ export default function EditarProducto() {
         </select>
       </div>
 
+      {errorCategoria && (
+          <p className="text-red-600 text-sm mt-1">
+            {errorCategoria}
+          </p>
+        )}
+
       <div>
         <label>Precio</label>
         <input
         type="number"
         value={precio}
-        onChange={(e) => setPrecio(e.target.value)}
+        onChange={(e) => {setPrecio(e.target.value); setErrorPrecio('')}}
         className="w-full border rounded p-2"
         />
       </div>
@@ -179,7 +188,7 @@ export default function EditarProducto() {
         <input
         type="text"
         value={imagen}
-        onChange={(e) => setImagen(e.target.value)}
+        onChange={(e) => {setImagen(e.target.value); setErrorImagen('')}}
         className="w-full border rounded p-2"
         placeholder="URL de la imagen"
         />

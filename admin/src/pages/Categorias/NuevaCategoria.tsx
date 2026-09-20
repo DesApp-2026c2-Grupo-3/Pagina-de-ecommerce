@@ -10,7 +10,6 @@ export default function NuevaCategoria() {
 
   const guardarCategoria = (e: React.SubmitEvent) => {
     e.preventDefault();
-    setErrorNombre('');
 
     let hayErrores = false
 
@@ -58,7 +57,7 @@ export default function NuevaCategoria() {
             type="text"
             value={nombre}
             maxLength={15}
-            onChange={(e) => setNombre(e.target.value)}
+            onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
             className="w-full border rounded px-3 py-2"
             placeholder="Ej: Hamburguesas"
           />

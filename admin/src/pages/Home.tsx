@@ -12,6 +12,7 @@ export default function Home({setAdministrador}:HomeProps) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   return (
   <main className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -42,7 +43,16 @@ export default function Home({setAdministrador}:HomeProps) {
           )
 
           navigate('/admin')
-      }}}>
+        }else{
+          setError('Ingrese su email y contraseña')
+        }
+      }}>
+        {error && (
+        <p className="text-center text-danger text-md mt-2
+         p-2 border-b border-t">
+          {error}
+        </p>
+      )}
 
         <div className="flex flex-col gap-2">
           <label htmlFor="email" className="font-medium">
@@ -52,12 +62,13 @@ export default function Home({setAdministrador}:HomeProps) {
           <input
             id="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {setEmail(e.target.value); setError('')}}
             type="email"
             placeholder="admin@ejemplo.com"
             className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+
 
         <div className="flex flex-col gap-2">
           <label htmlFor="password" className="font-medium">
@@ -68,7 +79,7 @@ export default function Home({setAdministrador}:HomeProps) {
             id="password"
             type="password"
             value={password}
-            onChange={(e)=> setPassword(e.target.value)}
+            onChange={(e)=> {setPassword(e.target.value); setError('')}}
             placeholder="••••••••"
             className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -80,6 +91,7 @@ export default function Home({setAdministrador}:HomeProps) {
             Iniciar sesión
         </button>
       </form>
+
     </div>
   </main>
   )

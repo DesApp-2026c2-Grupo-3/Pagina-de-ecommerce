@@ -21,7 +21,6 @@ export default function EditarCategoria() {
 
   const guardarCambios = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorNombre('');
 
     let hayErrores = false
 
@@ -68,7 +67,7 @@ export default function EditarCategoria() {
             type="text"
             value={nombre}
             maxLength={15}
-            onChange={(e) => setNombre(e.target.value)}
+            onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
             className="w-full border rounded px-3 py-2"
           />
         </div>

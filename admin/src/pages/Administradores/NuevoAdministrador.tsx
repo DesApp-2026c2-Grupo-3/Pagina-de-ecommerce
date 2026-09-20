@@ -14,9 +14,6 @@ export default function NuevoAdministrador() {
 
   const guardarAdministrador = (e: React.SubmitEvent) => {
     e.preventDefault();
-    setErrorNombre('');
-    setErrorEmail('');
-    setErrorPassword('');
 
     let hayErrores = false
 
@@ -99,7 +96,7 @@ export default function NuevoAdministrador() {
             type="text"
             value={nombre}
             maxLength={30}
-            onChange={(e) => setNombre(e.target.value)}
+            onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
             className="w-full border rounded px-3 py-2"
           />
         </div>
@@ -118,7 +115,7 @@ export default function NuevoAdministrador() {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {setEmail(e.target.value); setErrorEmail('')}}
             className="w-full border rounded px-3 py-2"
           />
         </div>
@@ -138,7 +135,7 @@ export default function NuevoAdministrador() {
             type="password"
             value={password}
             maxLength={20}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {setPassword(e.target.value); setErrorPassword('')}}
             className="w-full border rounded px-3 py-2"
           />
         </div>

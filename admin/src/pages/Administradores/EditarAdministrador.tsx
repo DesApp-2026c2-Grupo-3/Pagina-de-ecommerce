@@ -35,9 +35,6 @@ export default function EditarAdministrador() {
 
   const guardarCambios = (e: React.SubmitEvent) => {
     e.preventDefault();
-    setErrorNombre('');
-    setErrorEmail('');
-    setErrorPassword('');
 
     let hayErrores = false
 
@@ -124,7 +121,7 @@ export default function EditarAdministrador() {
           <input
             type="text"
             value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
+            onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
             className="w-full border rounded px-3 py-2"
           />
         </div>
@@ -143,7 +140,7 @@ export default function EditarAdministrador() {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {setEmail(e.target.value); setErrorEmail('')}}
             className="w-full border rounded px-3 py-2"
           />
         </div>
@@ -163,7 +160,7 @@ export default function EditarAdministrador() {
             type="password"
             value={password}
             maxLength={20}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {setPassword(e.target.value); setErrorPassword('')}}
             className="w-full border rounded px-3 py-2"
           />
         </div>
