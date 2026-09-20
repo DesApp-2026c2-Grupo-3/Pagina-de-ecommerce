@@ -11,6 +11,8 @@ interface UsuarioBackend {
   fechaNacimiento: string | null
 }
 
+
+
 function mapUsuario(u: UsuarioBackend): User {
   return {
     id: u.id,
@@ -43,6 +45,7 @@ export const actualizarPerfil = async (
 
   if (data.password) {
     body.password = data.password
+    body.passwordActual = data.passwordActual ?? ''
   }
 
   const usuario = await httpClient<UsuarioBackend>(`/usuario/${id}`, {

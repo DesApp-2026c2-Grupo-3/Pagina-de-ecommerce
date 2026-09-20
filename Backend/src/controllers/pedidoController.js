@@ -57,8 +57,7 @@ const crearPedido = async (req,res) => {
     const t = await sequelize.transaction();
 
     try{
-        const { usuarioId, productos } = req.body;
-
+        const { usuarioId, productos, direccionId } = req.body;
         const usuario = await Usuario.findByPk(usuarioId);
 
         if(!usuario){
@@ -73,7 +72,7 @@ const crearPedido = async (req,res) => {
         }
 
         const nuevoPedido = await Pedido.create({
-            usuarioId, fecha: new Date(), total: 0
+            usuarioId, direccionId, fecha: new Date(), total: 0
         }, { transaction: t});
 
         let total = 0;

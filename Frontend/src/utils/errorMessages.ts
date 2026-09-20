@@ -1,6 +1,8 @@
 const errorMessages: Record<string, string> = {
   'email-en-uso': 'Ese email ya está registrado. Probá con otro o iniciá sesión.',
   'email-password-incorrectos': 'Email o contraseña incorrectos.',
+  'password-actual-requerida': 'Ingresá tu contraseña actual para poder cambiarla.',
+  'password-actual-incorrecta': 'La contraseña actual no es correcta.',
 }
 
 export function traducirError(code: string): string {

@@ -27,4 +27,5 @@ export interface UpdateProfileData {
   dni?: string
   fechaNacimiento?: string
   password?: string
+  passwordActual?: string
 }

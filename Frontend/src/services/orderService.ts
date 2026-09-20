@@ -2,7 +2,11 @@ import { httpClient } from './httpClient'
 import type { CartItem } from '../types/cart'
 import type { Order } from '../types/order'
 
-export const createOrder = async (usuarioId: number, items: CartItem[]): Promise<Order> => {
+export const createOrder = async (
+  usuarioId: number,
+  items: CartItem[],
+  direccionId: number,
+): Promise<Order> => {
   const productos = items.map((item) => ({
     productoId: item.product.id,
     cantidad: item.quantity,
@@ -10,7 +14,7 @@ export const createOrder = async (usuarioId: number, items: CartItem[]): Promise
 
   return httpClient<Order>('/pedido', {
     method: 'POST',
-    body: JSON.stringify({ usuarioId, productos }),
+    body: JSON.stringify({ usuarioId, productos, direccionId }),
   })
 }
 

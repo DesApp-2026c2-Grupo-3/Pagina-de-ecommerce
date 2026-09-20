@@ -100,7 +100,20 @@ const actualizarUsuario = async (req, res) => {
             return res.status(404).json({ mensaje: 'Usuario no encontrado' });
         }
 
-        const { nombre, apellido, email, telefono, dni, fechaNacimiento, password } = req.body;
+        const { nombre, apellido, email, telefono, dni, fechaNacimiento, password, passwordActual } = req.body;
+
+        // Si viene una password nueva, hay que validar la actual primero
+        if (password) {
+            if (!passwordActual) {
+                return res.status(400).json({ code: 'password-actual-requerida' });
+            }
+
+            const passwordCorrecta = await bcrypt.compare(passwordActual, usuario.password);
+
+            if (!passwordCorrecta) {
+                return res.status(401).json({ code: 'password-actual-incorrecta' });
+            }
+        }
 
         const datosActualizados = {
             nombre: nombre?.trim() ?? usuario.nombre,
@@ -131,5 +144,4 @@ const actualizarUsuario = async (req, res) => {
         res.status(500).json({ mensaje: 'Error del servidor' });
     }
 };
-
 module.exports = { verUsuarios, crearUsuario, login, obtenerUsuarioPorId, actualizarUsuario };

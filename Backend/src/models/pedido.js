@@ -17,12 +17,17 @@ module.exports = (sequelize, DataTypes) => {
       Pedido.belongsTo(models.Usuario, {
        foreignKey: 'usuarioId'
       });
+
+      Pedido.belongsTo(models.Direccion, {
+      foreignKey: 'direccionId'
+      });
     }
   }
   Pedido.init({
     fecha: { type: DataTypes.DATE, allowNull: false },
     total: { type: DataTypes.DECIMAL, allowNull: false },
-    estado: { type: DataTypes.STRING, allowNull: false, defaultValue: 'pendiente' }
+    estado: { type: DataTypes.STRING, allowNull: false, defaultValue: 'pendiente' },
+    direccionId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     sequelize,
     modelName: 'Pedido',

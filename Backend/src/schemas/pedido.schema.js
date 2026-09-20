@@ -6,6 +6,11 @@ const pedidoSchema = Joi.object({
         'any.required': 'El id de usuario es obligatorio'
     }),
 
+    direccionId: Joi.number().integer().positive().required().messages({
+        'number.base': 'El id de dirección debe ser un número',
+        'any.required': 'Tenés que seleccionar una dirección de entrega'
+    }),
+
     productos: Joi.array().items(
         Joi.object({
             productoId: Joi.number().integer().positive().required().messages({

@@ -13,6 +13,9 @@ module.exports = (sequelize, DataTypes) => {
     Direccion.belongsTo(models.Usuario, {
       foreignKey: 'usuarioId'
     });
+    Direccion.hasMany(models.Pedido, {
+      foreignKey: 'direccionId'
+    });
   }
   }
   Direccion.init({

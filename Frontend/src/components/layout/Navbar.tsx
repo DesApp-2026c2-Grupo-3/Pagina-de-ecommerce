@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -13,13 +13,25 @@ function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
+  const menuRef = useRef<HTMLLIElement>(null)
 
-function handleLogout() {
-  logout()
-  setMenuOpen(false)
-  setOpen(false)
-  navigate('/')
-}
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function handleLogout() {
+    logout()
+    setMenuOpen(false)
+    setOpen(false)
+    navigate('/')
+  }
 
   return (
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
@@ -45,7 +57,7 @@ function handleLogout() {
             </li>
           ))}
 
-          <li className="relative ml-2">
+          <li className="relative ml-2" ref={menuRef}>
             {isAuthenticated ? (
               <>
                 <button
@@ -58,34 +70,41 @@ function handleLogout() {
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl bg-white shadow-xl">
+                  <div className="absolute right-0 mt-2 w-max overflow-hidden rounded-xl bg-white shadow-xl">
                     <Link
                       to="/perfil"
                       onClick={() => setMenuOpen(false)}
-                      className="block px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
                     >
-                      Datos personales
+                      <span>👤</span> Datos personales
                     </Link>
                     <Link
                       to="/direcciones"
                       onClick={() => setMenuOpen(false)}
-                      className="block px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
                     >
-                      Direcciones guardadas
+                      <span>📍</span> Direcciones guardadas
                     </Link>
                     <Link
                       to="/historial"
                       onClick={() => setMenuOpen(false)}
-                      className="block px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
                     >
-                      Historial de pedidos
+                      <span>🧾</span> Historial de pedidos
+                    </Link>
+                    <Link
+                      to="/seguridad"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                    >
+                      <span>🔒</span> Seguridad
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="block w-full px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-cream"
+                      className="flex w-full items-center gap-2 whitespace-nowrap px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-cream"
                     >
-                      Cerrar sesión
+                      <span>🚪</span> Cerrar sesión
                     </button>
                   </div>
                 )}
@@ -133,30 +152,37 @@ function handleLogout() {
                 <Link
                   to="/perfil"
                   onClick={() => setOpen(false)}
-                  className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
                 >
-                  Datos personales
+                  <span>👤</span> Datos personales
                 </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="mt-1 block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
-                >
                 <Link
                   to="/direcciones"
                   onClick={() => setOpen(false)}
-                  className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
                 >
-                  Direcciones guardadas
+                  <span>📍</span> Direcciones guardadas
                 </Link>
                 <Link
                   to="/historial"
                   onClick={() => setOpen(false)}
-                  className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
                 >
-                  Historial de pedidos
+                  <span>🧾</span> Historial de pedidos
                 </Link>
-                  Cerrar sesión
+                <Link
+                  to="/seguridad"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <span>🔒</span> Seguridad
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="mt-1 flex items-center justify-center gap-2 rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+                >
+                  <span>🚪</span> Cerrar sesión
                 </button>
               </div>
             ) : (

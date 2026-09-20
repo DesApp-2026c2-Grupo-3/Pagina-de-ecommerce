@@ -76,7 +76,10 @@ const updateSchema = Joi.object({
     password: Joi.string().min(6).max(20).allow('').messages({
         'string.min': 'La contraseña debe tener al menos 6 caracteres',
         'string.max': 'La contraseña no puede superar los 20 caracteres'
-    })
+    }),
+    passwordActual: Joi.string().allow('').messages({
+    'string.base': 'La contraseña actual no es válida'
+    }),
 })
 
 module.exports = { userSchema, loginSchema, updateSchema }

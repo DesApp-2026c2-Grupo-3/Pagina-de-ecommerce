@@ -15,6 +15,7 @@ export interface DetallePedido {
 export interface Order {
   id: number
   usuarioId: number
+  direccionId: number | null
   fecha: string
   total: string
   estado: string
