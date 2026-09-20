@@ -1,11 +1,19 @@
 import { Outlet } from 'react-router-dom'
 import NavBar from './NavBar'
 import Footer from './Footer'
+import type { AdministradorSesion } from '../App'
 
-export default function AdminLayout() {
+interface AdminLayoutProps {
+  administrador: AdministradorSesion | null
+  setAdministrador: React.Dispatch<
+    React.SetStateAction<AdministradorSesion | null>
+  >
+}
+
+export default function AdminLayout({administrador, setAdministrador}:AdminLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
-      <NavBar />
+      <NavBar administrador={administrador}  setAdministrador={setAdministrador}/>
 
       <main className="flex-1">
         <Outlet />
