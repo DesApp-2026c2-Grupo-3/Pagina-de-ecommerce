@@ -1,35 +1,83 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import Hero from '../components/home/Hero'
-import ProductCard from '../components/home/ProductCard'
-import { getProducts } from '../services/productService'
-import type { Product } from '../types/product'
+import CategorySection from '../components/home/CategorySection'
+import CategoryChips from '../components/home/CategoryChips'
+import CompanySection from '../components/home/CompanySection'
+import CareersSection from '../components/home/CareersSection'
+import GuestQuickAccessRow from '../components/home/GuestQuickAccessRow'
+import { getCategories, getProducts } from '../services/productService'
+import { useAuth } from '../context/AuthContext'
+import type { Category, Product } from '../types/product'
 
 function Home() {
+  const { isAuthenticated } = useAuth()
+  const location = useLocation()
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getProducts()
-      .then(setProducts)
+    setLoading(true)
+    Promise.all([getProducts(), getCategories()])
+      .then(([productsRes, categoriesRes]) => {
+        setProducts(productsRes)
+        setCategories(categoriesRes)
+      })
       .finally(() => setLoading(false))
   }, [])
 
+  // Permite que un link tipo "/#trabaja-con-nosotros" (navbar) haga scroll
+  // hasta la sección correspondiente, incluso si ya estábamos en el Home.
+  useEffect(() => {
+    if (!location.hash) return
+    const target = document.querySelector(location.hash)
+    target?.scrollIntoView({ behavior: 'smooth' })
+  }, [location])
+
+  const categorySections = useMemo(() => {
+    return categories
+      .map((category) => ({
+        category,
+        products: products.filter(
+          (product) => product.available && product.category === category.name,
+        ),
+      }))
+      .filter((entry) => entry.products.length > 0)
+  }, [categories, products])
+
   return (
-    <section id="menu">
+    <div id="menu">
       <Hero />
 
-      {loading ? (
-        <p className="px-4 py-12 text-center text-gray-600">Cargando productos...</p>
+      {isAuthenticated ? (
+        <>
+          {!loading && categorySections.length > 0 && (
+            <CategoryChips categories={categorySections.map((entry) => entry.category)} />
+          )}
+
+          {loading ? (
+            <p className="px-4 py-12 text-center text-gray-600">Cargando productos...</p>
+          ) : (
+            categorySections.map(({ category, products: categoryProducts }) => (
+              <CategorySection
+                key={category.id}
+                categoryId={category.id}
+                title={category.name}
+                icon={category.icon}
+                products={categoryProducts}
+              />
+            ))
+          )}
+        </>
       ) : (
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-12 sm:grid-cols-2 md:grid-cols-3">
-          {products
-            .filter((p) => p.available)
-            .map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-        </div>
+        <>
+          <GuestQuickAccessRow />
+          <CompanySection />
+          <CareersSection />
+        </>
       )}
-    </section>
+    </div>
   )
 }
 

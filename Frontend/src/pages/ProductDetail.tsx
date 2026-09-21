@@ -24,7 +24,7 @@ function ProductDetail() {
 
   function handleAddToCart() {
     addItem(product!, 1, Array.from(selected));
-    showToast(`${product!.name} agregado al carrito`);
+    showToast(`${product!.name} se agregó al carrito`);
   }
 
   function handleBuyNow() {

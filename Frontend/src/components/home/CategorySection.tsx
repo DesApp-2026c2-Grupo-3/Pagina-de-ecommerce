@@ -10,14 +10,19 @@ interface CategorySectionProps {
 
 function CategorySection({ categoryId, title, icon, products }: CategorySectionProps) {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8" id={`categoria-${categoryId}`}>
-      <h2 className="mb-6 flex items-center gap-3 text-2xl font-extrabold text-brand-dark">
+    <section
+      className="mx-auto max-w-7xl scroll-mt-32 px-4 py-8"
+      id={`categoria-${categoryId}`}
+    >
+      <h2 className="mb-4 flex items-center gap-3 text-2xl font-extrabold text-brand-dark">
         <span className="text-3xl">{icon}</span>
         {title}
       </h2>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2">
         {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <div key={product.id} className="w-64 shrink-0 snap-start">
+            <ProductCard product={product} />
+          </div>
         ))}
       </div>
     </section>

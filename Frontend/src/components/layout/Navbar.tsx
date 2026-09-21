@@ -2,11 +2,20 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
 
-const navLinks = [
-  { label: 'Home', to: '/', active: true },
-  { label: 'Productos', to: '/productos', active: false },
-  { label: 'Promociones', to: '/promociones', active: false },
-  { label: 'Carrito', to: '/carrito', active: false }]
+function getNavLinks(isAuthenticated: boolean) {
+  const links = [
+    { label: 'Home', to: '/' },
+    { label: 'Productos', to: '/productos' },
+    { label: 'Promociones', to: '/promociones' },
+  ]
+
+  if (!isAuthenticated) {
+    links.push({ label: 'Trabajá con nosotros', to: '/#trabaja-con-nosotros' })
+  }
+
+  links.push({ label: 'Carrito', to: '/carrito' })
+  return links
+}
 
 function Navbar() {
   const [open, setOpen] = useState(false)
@@ -14,6 +23,7 @@ function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
   const menuRef = useRef<HTMLLIElement>(null)
+  const navLinks = getNavLinks(isAuthenticated)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
