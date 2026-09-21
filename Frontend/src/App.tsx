@@ -14,6 +14,7 @@ import Perfil from './pages/Perfil'
 import HistorialPedidos from './pages/HistorialPedidos'
 import Address from './pages/Address'
 import Seguridad from './pages/Seguridad'
+import Toast from './components/Toast'
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         </Routes>
       </main>
       <Footer />
+      <Toast />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { getProducts } from "../services/productService";
 import type { Product } from "../types/product";
 import { useCart } from "../context/CartContext";
+import { useToast } from "../context/ToastContext";
 
 function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -10,8 +11,8 @@ function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const navigate = useNavigate();
-  const [showAddedMessage, setShowAddedMessage] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -23,8 +24,7 @@ function ProductDetail() {
 
   function handleAddToCart() {
     addItem(product!, 1, Array.from(selected));
-    setShowAddedMessage(true);
-    setTimeout(() => setShowAddedMessage(false), 2000);
+    showToast(`${product!.name} agregado al carrito`);
   }
 
   function handleBuyNow() {
@@ -129,11 +129,6 @@ function ProductDetail() {
               ${product.price.toLocaleString("es-AR")}
             </span>
           </div>
-          {showAddedMessage && (
-            <div className="mb-4 rounded-lg border border-brand-green bg-brand-green/10 px-4 py-2 font-semibold text-brand-green">
-              ✓ Producto agregado al carrito
-            </div>
-          )}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
