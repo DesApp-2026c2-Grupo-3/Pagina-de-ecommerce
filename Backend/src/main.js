@@ -17,10 +17,16 @@ app.get('/', (req, res) => {
     });
 });
 
+const adminRoutes = require('./routes/admin/adminRoutes');
+const adminProductoRoutes = require('./routes/admin/productoRoutes');
+
 const productoRoutes = require('./routes/productoRoutes');
 const usuarioRoutes = require('./routes/usuarioRoutes');
 const pedidoRoutes = require('./routes/pedidoRoutes');
 const direccionRoutes = require('./routes/direccionRoutes');
+
+/* app.use('/admin', adminRoutes); */
+app.use('/admin/productos', adminProductoRoutes);
 
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
@@ -29,7 +35,7 @@ app.use('/direcciones', direccionRoutes);
 
 
 //SINCRO CON BASE DE DATOS
-async function iniciarServidor(){
+async function iniciarServidor() {
     try {
         console.log('Sincronizando base de datos...');
 
@@ -37,11 +43,11 @@ async function iniciarServidor(){
 
         console.log('Base de datos sincronizada');
 
-       app.listen(PORT, () => { 
-        
-        console.log(`Servidor corriendo en http://localhost:${PORT}`);
-       })
-        
+        app.listen(PORT, () => {
+
+            console.log(`Servidor corriendo en http://localhost:${PORT}`);
+        })
+
     } catch (error) {
         console.error('Error conectando con la base de datos:', error.message);
     }
