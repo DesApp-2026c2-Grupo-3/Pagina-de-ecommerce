@@ -1,17 +1,38 @@
 import { useState } from 'react'
 import AppRoutes from './routes/AppRoutes'
+import { ToastProvider } from './context/ToastContext'
+
+
+export interface AdministradorSesion {
+  nombre: string
+  email: string
+  rol: 'ADMIN' | 'MASTER'
+}
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [administrador, setAdministrador] =
+  useState<AdministradorSesion | null>(() => {
+    const administradorGuardado =
+      localStorage.getItem('administrador')
+
+    if (!administradorGuardado) {
+      return null
+    }
+
+    return JSON.parse(administradorGuardado)
+  })
+
+  const isAuthenticated = administrador !== null
 
   return (
-  <div>
-    
-      <AppRoutes 
-      isAuthenticated={isAuthenticated}
-      setIsAuthenticated={setIsAuthenticated}/>
-    
-  </div>)
+    <ToastProvider>
+      <AppRoutes
+        isAuthenticated={isAuthenticated}
+        setAdministrador={setAdministrador}
+        administrador={administrador}
+      />
+    </ToastProvider>
+  )
   
 }
 

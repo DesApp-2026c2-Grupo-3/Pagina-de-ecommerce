@@ -1,7 +1,6 @@
-const { userSchema,loginSchema } = require('../schemas/usuario.schema')
-
+const { userSchema, loginSchema, updateSchema } = require('../schemas/usuario.schema')
 const validarUsuario = (req,res,next) => {
-    const { error } = userSchema.validate(req.body)
+const { error } = userSchema.validate(req.body)
 
     if(error){
         return res.status(400).json({
@@ -21,6 +20,16 @@ const validarLogin = (req,res,next) => {
     next()
 } 
 
+const validarActualizarUsuario = (req, res, next) => {
+    const { error } = updateSchema.validate(req.body)
 
-module.exports = { validarUsuario, validarLogin }
+    if (error) {
+        return res.status(400).json({
+            code: error.details[0].message
+        })
+    }
+    next()
+}
 
+
+module.exports = { validarUsuario, validarLogin, validarActualizarUsuario }

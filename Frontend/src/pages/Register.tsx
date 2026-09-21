@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import ErrorAlert from '../components/ErrorAlert'
+import { esEmailValido } from '../utils/validaciones'
 
 function Register() {
   const { register, loading } = useAuth()
@@ -14,7 +16,18 @@ function Register() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
-
+    if (!name.trim()) {
+      setError('El nombre es obligatorio')
+      return
+    }
+    if (!esEmailValido(email)) {
+      setError('El email no tiene un formato válido')
+      return
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
     try {
       await register({ name, email, password })
       navigate('/')
@@ -28,8 +41,7 @@ function Register() {
       <h1 className="text-3xl font-extrabold text-brand-dark">Crear cuenta</h1>
       <p className="mt-2 text-gray-600">Registrate para poder confirmar tus pedidos.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-        <div>
+        <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">        <div>
           <label htmlFor="name" className="text-sm font-semibold text-brand-dark">
             Nombre
           </label>
@@ -72,8 +84,7 @@ function Register() {
           />
         </div>
 
-        {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
-
+          <ErrorAlert message={error} />
         <button
           type="submit"
           disabled={loading}

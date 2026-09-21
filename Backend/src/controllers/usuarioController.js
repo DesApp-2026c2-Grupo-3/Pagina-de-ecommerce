@@ -75,5 +75,73 @@ const login = async(req,res) =>{
     }
 }
 
+const obtenerUsuarioPorId = async (req, res) => {
+    try {
+        const usuario = await Usuario.findByPk(req.params.id, {
+            attributes: ['id', 'nombre', 'apellido', 'email', 'telefono', 'dni', 'fechaNacimiento'],
+        });
 
-module.exports = { verUsuarios, crearUsuario, login };
+        if (!usuario) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+        }
+
+        res.status(200).json(usuario);
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error del servidor' });
+    }
+};
+
+const actualizarUsuario = async (req, res) => {
+    try {
+        const usuario = await Usuario.findByPk(req.params.id);
+
+        if (!usuario) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+        }
+
+        const { nombre, apellido, email, telefono, dni, fechaNacimiento, password, passwordActual } = req.body;
+
+        // Si viene una password nueva, hay que validar la actual primero
+        if (password) {
+            if (!passwordActual) {
+                return res.status(400).json({ code: 'password-actual-requerida' });
+            }
+
+            const passwordCorrecta = await bcrypt.compare(passwordActual, usuario.password);
+
+            if (!passwordCorrecta) {
+                return res.status(401).json({ code: 'password-actual-incorrecta' });
+            }
+        }
+
+        const datosActualizados = {
+            nombre: nombre?.trim() ?? usuario.nombre,
+            apellido: apellido ?? usuario.apellido,
+            email: email?.trim().toLowerCase() ?? usuario.email,
+            telefono: telefono ?? usuario.telefono,
+            dni: dni ?? usuario.dni,
+            fechaNacimiento: fechaNacimiento || usuario.fechaNacimiento,
+        };
+
+        if (password) {
+            datosActualizados.password = await bcrypt.hash(password, 10);
+        }
+
+        await usuario.update(datosActualizados);
+
+        return res.status(200).json({
+            id: usuario.id,
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            email: usuario.email,
+            telefono: usuario.telefono,
+            dni: usuario.dni,
+            fechaNacimiento: usuario.fechaNacimiento,
+        });
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error del servidor' });
+    }
+};
+module.exports = { verUsuarios, crearUsuario, login, obtenerUsuarioPorId, actualizarUsuario };
