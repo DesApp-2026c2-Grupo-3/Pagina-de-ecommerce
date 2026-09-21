@@ -25,8 +25,10 @@ const usuarioRoutes = require('./routes/usuarioRoutes');
 const pedidoRoutes = require('./routes/pedidoRoutes');
 const direccionRoutes = require('./routes/direccionRoutes');
 
-/* app.use('/admin', adminRoutes); */
+
+app.use('/admin', adminRoutes);
 app.use('/admin/productos', adminProductoRoutes);
+
 
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
