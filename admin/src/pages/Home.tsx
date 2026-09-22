@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import type { AdministradorSesion } from '../App'
 import { useState } from 'react';
+import { iniciarSesion } from '../services/auth';
 
 interface HomeProps {
   setAdministrador: React.Dispatch<
@@ -25,28 +26,34 @@ export default function Home({setAdministrador}:HomeProps) {
           Iniciá sesión para continuar
       </p>
 
-      <form className="flex flex-col gap-5" onSubmit={(e) => {
+      <form className="flex flex-col gap-5" 
+      onSubmit={async (e) => {
         e.preventDefault()
 
-        if (email === 'manolo@admin.com' && password === 'admin123') {
-          const administrador = {
-            nombre: 'Manolo',
-            email: 'manolo@admin.com',
-            rol: 'MASTER' as const,
-          }
+        try {
+          const administrador = await iniciarSesion(email, password)
 
-          setAdministrador(administrador);
+          setAdministrador({
+            nombre: administrador.nombre,
+            email: administrador.email,
+            rol: administrador.rol,
+          })
 
           localStorage.setItem(
             'administrador',
-            JSON.stringify(administrador)
+              JSON.stringify({
+                nombre: administrador.nombre,
+                email: administrador.email,
+                rol: 'MASTER',
+              })
           )
 
           navigate('/admin')
-        }else{
-          setError('Ingrese su email y contraseña')
+        } catch (error) {
+          setError('Email o contraseña incorrectos')
         }
-      }}>
+        }}>
+          
         {error && (
         <p className="text-center text-danger text-md mt-2
          p-2 border-b border-t">

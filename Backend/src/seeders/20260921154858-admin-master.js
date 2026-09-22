@@ -9,7 +9,7 @@ module.exports = {
     await queryInterface.bulkInsert('Admins', [{
       nombre: 'Admin-Master',
       email: 'admin@master.com',
-      password: 123456,
+      password: hashedPassword,
       rol: 'MASTER',
       createdAt: new Date(),
       updatedAt: new Date()
@@ -17,6 +17,10 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('Admins', { email: 'admin@master.com' }, {});
+    await queryInterface.bulkDelete(
+      'Admins',
+      { email: 'admin@master.com' },
+      {}
+    );
   }
 };

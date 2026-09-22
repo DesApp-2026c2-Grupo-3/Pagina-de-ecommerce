@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
+import { crearAdministrador } from '../../services/administradores'
 
 export default function NuevoAdministrador() {
   const [nombre, setNombre] = useState('')
@@ -12,7 +13,7 @@ export default function NuevoAdministrador() {
   const { mostrarToast } = useToast();
   const navigate = useNavigate()
 
-  const guardarAdministrador = (e: React.SubmitEvent) => {
+  const guardarAdministrador = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
     let hayErrores = false
@@ -57,24 +58,19 @@ export default function NuevoAdministrador() {
     }
 
     const nuevoAdministrador = {
-      id: Date.now(),
       nombre,
       email,
       password,
     }
+    
+    try {
+      await crearAdministrador(nuevoAdministrador)
 
-    const administradoresGuardados = JSON.parse(
-      localStorage.getItem('administradores') || '[]'
-    )
-
-    administradoresGuardados.push(nuevoAdministrador)
-
-    localStorage.setItem(
-      'administradores',
-      JSON.stringify(administradoresGuardados)
-    )
-    mostrarToast('Administrador creado!')
-    navigate('/admin/administradores')
+      mostrarToast('Administrador creado!')
+      navigate('/admin/administradores')
+    } catch (error) {
+      console.error('Error al crear administrador:', error)
+    }
   }
 
   return (

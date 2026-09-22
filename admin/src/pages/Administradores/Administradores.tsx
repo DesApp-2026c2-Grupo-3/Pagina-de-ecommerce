@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Paginacion from '../../components/Paginacion';
 import { Pencil, Trash2, Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
 import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
+import { obtenerAdministradores } from '../../services/administradores'
+import { eliminarAdministrador as eliminarAdministradorAPI } from '../../services/administradores'
 
 export default function Administradores() {
     const { mostrarToast } = useToast();
@@ -13,23 +15,36 @@ export default function Administradores() {
     const adminsPorPagina = 5;
     const [adminAEliminar, setAdminAEliminar] = useState<number | null>(null);
 
-    const [administradores, setAdministradores] = useState(() => {
-        const administradoresGuardados = localStorage.getItem('administradores')
+    const [administradores, setAdministradores] = useState<any[]>([])
 
-        if (administradoresGuardados) {
-            return JSON.parse(administradoresGuardados)
+    useEffect(() => {
+    const cargarAdministradores = async () => {
+        try {
+            const datos = await obtenerAdministradores()
+            setAdministradores(datos)
+        } catch (error) {
+            console.error('Error al cargar administradores:', error)
         }
-        return []
-    })
+    }
 
-    const eliminarAdministrador = (id: number) => {
-        const administradoresActualizados = administradores.filter(
-            (administrador:any) => administrador.id !== id)
+    cargarAdministradores()
+}, [])
 
-    setAdministradores(administradoresActualizados)
+    const eliminarAdministrador = async (id: number) => {
+        try {
+            await eliminarAdministradorAPI(id)
 
-    localStorage.setItem('administradores',
-    JSON.stringify(administradoresActualizados))}
+            setAdministradores(
+                administradores.filter(
+                    (administrador: any) => administrador.id !== id
+                )
+            )
+
+             mostrarToast('Administrador eliminado!')
+        } catch (error) {
+            console.error('Error al eliminar administrador:', error)
+        }
+    }
 
     const indiceUltimoAdmin = 
     paginaActual * adminsPorPagina
@@ -126,7 +141,6 @@ export default function Administradores() {
                 eliminarAdministrador(adminAEliminar)
                 setAdminAEliminar(null)
 
-                mostrarToast('Administrador eliminado!')
                   }
                 }
               }
