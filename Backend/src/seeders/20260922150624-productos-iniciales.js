@@ -4,7 +4,7 @@ module.exports = {
   async up(queryInterface) {
     await queryInterface.bulkInsert('Productos', [
       {
-        nombre: 'hamburguesa Gourmet',
+        nombre: 'Hamburguesa Gourmet',
         descripcion: 'Una hamburguesa gourmet con un generoso medallón de carne, pan con semillas de sésamo y una cremosa salsa especial de sabor irresistible. Una combinación abundante y llena de sabor para disfrutar en cada mordida.',
         precio: 5200,
         imagen: '/imagenes/HGourmet.png',
@@ -24,7 +24,7 @@ module.exports = {
         updatedAt: new Date(),
       },
       {
-        nombre: 'hamburguesa Queso',
+        nombre: 'Hamburguesa Queso',
         descripcion: 'Jugosa hamburguesa con queso derretido y crujientes papas fritas en su interior. Una combinación contundente y deliciosa que lleva el clásico acompañamiento directamente dentro de cada mordida.',
         precio: 5200,
         imagen: '/imagenes/HQueso.png',

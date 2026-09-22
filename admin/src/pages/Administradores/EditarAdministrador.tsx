@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '../../context/ToastContext'
+import { obtenerAdministradorPorId, actualizarAdministrador } from '../../services/administradores';
 
 
 export default function EditarAdministrador() {
@@ -8,32 +9,15 @@ export default function EditarAdministrador() {
   const { mostrarToast } = useToast();
   const navigate = useNavigate();
 
-  const administradoresGuardados = JSON.parse(
-    localStorage.getItem('administradores') || '[]'
-  )
-
-  const administrador = administradoresGuardados.find(
-    (administrador: { id: number }) =>
-      administrador.id === Number(id)
-  )
-
-  const [nombre, setNombre] = useState(
-    administrador?.nombre || ''
-  )
-
-  const [email, setEmail] = useState(
-    administrador?.email || ''
-  )
-
-  const [password, setPassword] = useState(
-    administrador?.password || ''
-  )
+  const [nombre, setNombre] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   const [errorNombre, setErrorNombre] = useState('');
   const [errorEmail, setErrorEmail] = useState('');
   const [errorPassword, setErrorPassword] = useState('');
 
-  const guardarCambios = (e: React.SubmitEvent) => {
+  const guardarCambios = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
     let hayErrores = false
@@ -53,55 +37,60 @@ export default function EditarAdministrador() {
       hayErrores = true
     }
 
-    if (password.trim() === '') {
-      setErrorPassword('La contraseña es obligatoria.')
+    if (password !== '') {
+      if(password.length < 8){
+        setErrorPassword('La contraseña debe tener al menos 8 caracteres.')
       hayErrores = true
-    }
+      }
+    
 
-    if (password.length < 8) {
-      setErrorPassword('La contraseña debe tener al menos 8 caracteres.')
-      hayErrores = true
-    }
+      if (!/[A-Z]/.test(password)) {
+        setErrorPassword('La contraseña debe contener al menos una mayúscula.')
+        hayErrores = true
+      }
 
-    if (!/[A-Z]/.test(password)) {
-      setErrorPassword('La contraseña debe contener al menos una mayúscula.')
-      hayErrores = true
-    }
-
-    if (!/[0-9]/.test(password)) {
-      setErrorPassword('La contraseña debe contener al menos un número.')
-      hayErrores = true
+      if (!/[0-9]/.test(password)) {
+        setErrorPassword('La contraseña debe contener al menos un número.')
+        hayErrores = true
+      }
     }
 
     if (hayErrores) {
       return
     }
 
-    const administradoresActualizados =
-      administradoresGuardados.map(
-        (administrador: {
-          id: number
-          nombre: string
-          email: string
-          password: string
-        }) =>
-          administrador.id === Number(id)
-            ? {
-                ...administrador,
-                nombre,
-                email,
-                password,
-              }
-            : administrador
-      )
+    const administradorActualizado = {
+      nombre,
+      email,
+      ...(password !== '' && { password })
+    }
 
-    localStorage.setItem(
-      'administradores',
-      JSON.stringify(administradoresActualizados)
+    try {
+      await actualizarAdministrador(
+      Number(id),
+      administradorActualizado
     )
-    mostrarToast('Administrador modificado!')
-    navigate('/admin/administradores')
+      mostrarToast('Administrador modificado!')
+      navigate('/admin/administradores')
+  } catch (error) {
+      console.error('Error al actualizar administrador:', error)
   }
+}
+
+  useEffect(() => {
+  const cargarAdministrador = async () => {
+    try {
+      const administrador = await obtenerAdministradorPorId(Number(id))
+
+      setNombre(administrador.nombre)
+      setEmail(administrador.email)
+    } catch (error) {
+      console.error('Error al cargar administrador:', error)
+    }
+  }
+
+  cargarAdministrador()
+}, [id])
 
   return (
     <main className="p-8">

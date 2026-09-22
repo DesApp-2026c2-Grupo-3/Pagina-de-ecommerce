@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const { Op } = require('sequelize');
 
 const esIdValido = (id) => !isNaN(id) && Number.isInteger(Number(id));
 
@@ -7,6 +8,11 @@ const { Admin } = require('../../models')
 const verAdmins = async (req, res) => {
     try {
         const admins = await Admin.findAll({
+            where:{
+                rol:{
+                    [Op.ne]: 'MASTER'
+                }
+            },
             attributes: ['id', 'nombre', 'email', 'rol', 'createdAt']
         });
         res.status(200).json(admins)
@@ -70,7 +76,7 @@ const login = async (req, res) => {
             });
         }
 
-        return res.status(200).json({ id: admin.id, nombre: admin.nombre, email: admin.email })
+        return res.status(200).json({ id: admin.id, nombre: admin.nombre, email: admin.email, rol: admin.rol })
     } catch (error) {
         console.error('Error al loguear:', error.message);
         return res.status(500).json({
@@ -106,6 +112,16 @@ const actualizarAdmin = async (req, res) => {
         }
 
         const { nombre, email, password } = req.body;
+
+        const emailNormalizado = email?.trim().toLowerCase() ?? admin.email;
+
+        const adminConEseEmail = await Admin.findOne({
+            where: { email: emailNormalizado }
+        });
+
+        if (adminConEseEmail && adminConEseEmail.id !== admin.id) {
+            return res.status(409).json({ code: "email-en-uso" });
+        }
 
         const datosActualizados = {
             nombre: nombre?.trim() ?? admin.nombre,

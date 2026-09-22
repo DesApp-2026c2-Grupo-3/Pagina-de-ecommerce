@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000'
+const API_URL = 'http://localhost:3000/admin'
 
 export async function obtenerAdministradores() {
   const respuesta = await fetch(`${API_URL}/administradores`)
@@ -10,8 +10,18 @@ export async function obtenerAdministradores() {
   return respuesta.json()
 }
 
+export async function obtenerAdministradorPorId(id: number) {
+  const respuesta = await fetch(`${API_URL}/${id}`)
+
+  if (!respuesta.ok) {
+    throw new Error('Error al obtener el administrador')
+  }
+
+  return respuesta.json()
+}
+
 export async function crearAdministrador(administrador: unknown) {
-  const respuesta = await fetch(`${API_URL}/administradores`, {
+  const respuesta = await fetch(`${API_URL}/administradores/nuevo`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -28,7 +38,7 @@ export async function crearAdministrador(administrador: unknown) {
 
 export async function actualizarAdministrador(id: number,  administrador: unknown) {
   const respuesta = await fetch(
-    `${API_URL}/administradores/${id}`,
+    `${API_URL}/administradores/editar/${id}`,
     {
       method: 'PUT',
       headers: {
@@ -47,7 +57,7 @@ export async function actualizarAdministrador(id: number,  administrador: unknow
 
 export async function eliminarAdministrador(id: number) {
   const respuesta = await fetch(
-    `${API_URL}/administradores/${id}`,
+    `${API_URL}/eliminar/${id}`,
     {
       method: 'DELETE',
     }
