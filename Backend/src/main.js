@@ -19,6 +19,7 @@ app.get('/', (req, res) => {
 
 const adminRoutes = require('./routes/admin/adminRoutes');
 const adminProductoRoutes = require('./routes/admin/productoRoutes');
+const adminCategoriaRoutes = require('./routes/admin/categoriaRoutes');
 
 const productoRoutes = require('./routes/productoRoutes');
 const usuarioRoutes = require('./routes/usuarioRoutes');
@@ -26,8 +27,9 @@ const pedidoRoutes = require('./routes/pedidoRoutes');
 const direccionRoutes = require('./routes/direccionRoutes');
 
 
-app.use('/admin', adminRoutes);
 app.use('/admin/productos', adminProductoRoutes);
+app.use('/admin/categorias', adminCategoriaRoutes);
+app.use('/admin', adminRoutes);
 
 
 app.use('/productos', productoRoutes);
