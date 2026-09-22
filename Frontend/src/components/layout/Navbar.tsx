@@ -3,6 +3,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingCart } from 'lucide-react'
+//import logo from '../../assets/logoX.png'
+import { LogoConEco } from '../logoEcoMotion'
 
 function getNavLinks(isAuthenticated: boolean) {
   const links = [
@@ -52,13 +54,28 @@ function Navbar() {
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold text-white">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-red text-white">
+         {/*
+           <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-red text-white">
             B
           </span>
           <span>
             Burger<span className="text-brand-red">Fast</span>
-          </span>
+          </span> 
+         */}
+        {/*<div className="flex-1 flex justify-center items-center">
+          <a href="/" className="flex items-center">
+            <img 
+              src={logo} 
+              alt="Logotipo de la empresa" 
+              className="h-24 w-auto object-contain"
+            />
+          </a>
+        </div>*/} 
+        <LogoConEco isAuthenticated={isAuthenticated} />
+
         </Link>
+
+        
 
         <ul className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => (
@@ -83,7 +100,7 @@ function Navbar() {
                 {totalItems > 0 && (
                   <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-red text-xs font-bold text-white">
                     {totalItems}
-                  </span>
+                   </span>
                 )}
               </Link>
             </li>
