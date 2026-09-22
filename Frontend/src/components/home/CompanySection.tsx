@@ -1,6 +1,6 @@
 function CompanySection() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16">
+    <section id="sobre-nosotros" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16">
       <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
         <div>
           <span className="text-3xl" aria-hidden="true">

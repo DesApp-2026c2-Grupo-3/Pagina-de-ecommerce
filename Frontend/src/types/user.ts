@@ -6,6 +6,8 @@ export interface User {
   telefono?: string
   dni?: string
   fechaNacimiento?: string
+  sucursalId?: number | null
+  sucursal?: { id: number; nombre: string; localidad: string } | null
 }
 
 export interface LoginCredentials {

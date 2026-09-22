@@ -9,6 +9,8 @@ interface UsuarioBackend {
   telefono: string | null
   dni: string | null
   fechaNacimiento: string | null
+  sucursalId?: number | null
+  Sucursal?: { id: number; nombre: string; localidad: string } | null
 }
 
 
@@ -22,11 +24,25 @@ function mapUsuario(u: UsuarioBackend): User {
     telefono: u.telefono ?? '',
     dni: u.dni ?? '',
     fechaNacimiento: u.fechaNacimiento ?? '',
+    sucursalId: u.sucursalId ?? null,
+    sucursal: u.Sucursal ?? null,
   }
 }
 
 export const getPerfil = async (id: number): Promise<User> => {
   const usuario = await httpClient<UsuarioBackend>(`/usuario/${id}`)
+  return mapUsuario(usuario)
+}
+
+export const actualizarSucursalPredeterminada = async (
+  id: number,
+  sucursalId: number,
+): Promise<User> => {
+  const usuario = await httpClient<UsuarioBackend>(`/usuario/${id}/sucursal`, {
+    method: 'PUT',
+    body: JSON.stringify({ sucursalId }),
+  })
+
   return mapUsuario(usuario)
 }
 

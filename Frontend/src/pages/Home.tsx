@@ -3,9 +3,11 @@ import { useLocation } from 'react-router-dom'
 import Hero from '../components/home/Hero'
 import CategorySection from '../components/home/CategorySection'
 import CategoryChips from '../components/home/CategoryChips'
-import CompanySection from '../components/home/CompanySection'
-import CareersSection from '../components/home/CareersSection'
+import DefaultBranchBadge from '../components/home/DefaultBranchBadge'
 import GuestQuickAccessRow from '../components/home/GuestQuickAccessRow'
+import CompanySection from '../components/home/CompanySection'
+import ContactSection from '../components/home/ContactSection'
+import CareersSection from '../components/home/CareersSection'
 import { getCategories, getProducts } from '../services/productService'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Product } from '../types/product'
@@ -27,8 +29,8 @@ function Home() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Permite que un link tipo "/#trabaja-con-nosotros" (navbar) haga scroll
-  // hasta la sección correspondiente, incluso si ya estábamos en el Home.
+  // Hace scroll hasta la sección correspondiente cuando el navbar linkea
+  // con un hash, por ejemplo "/#sobre-nosotros" o "/#trabaja-con-nosotros".
   useEffect(() => {
     if (!location.hash) return
     const target = document.querySelector(location.hash)
@@ -52,6 +54,8 @@ function Home() {
 
       {isAuthenticated ? (
         <>
+          <DefaultBranchBadge />
+
           {!loading && categorySections.length > 0 && (
             <CategoryChips categories={categorySections.map((entry) => entry.category)} />
           )}
@@ -74,6 +78,7 @@ function Home() {
         <>
           <GuestQuickAccessRow />
           <CompanySection />
+          <ContactSection />
           <CareersSection />
         </>
       )}

@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 
-const { Usuario } = require('../models')
+const { Usuario, Sucursal } = require('../models')
 
 const verUsuarios = async (req,res) => {
     try{
@@ -78,7 +78,8 @@ const login = async(req,res) =>{
 const obtenerUsuarioPorId = async (req, res) => {
     try {
         const usuario = await Usuario.findByPk(req.params.id, {
-            attributes: ['id', 'nombre', 'apellido', 'email', 'telefono', 'dni', 'fechaNacimiento'],
+            attributes: ['id', 'nombre', 'apellido', 'email', 'telefono', 'dni', 'fechaNacimiento', 'sucursalId'],
+            include: [{ model: Sucursal, attributes: ['id', 'nombre', 'localidad'] }],
         });
 
         if (!usuario) {
@@ -86,6 +87,37 @@ const obtenerUsuarioPorId = async (req, res) => {
         }
 
         res.status(200).json(usuario);
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error del servidor' });
+    }
+};
+
+const actualizarSucursalPredeterminada = async (req, res) => {
+    try {
+        const usuario = await Usuario.findByPk(req.params.id);
+
+        if (!usuario) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+        }
+
+        const { sucursalId } = req.body;
+
+        if (sucursalId) {
+            const sucursal = await Sucursal.findByPk(sucursalId);
+            if (!sucursal) {
+                return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
+            }
+        }
+
+        await usuario.update({ sucursalId: sucursalId ?? null });
+
+        const usuarioActualizado = await Usuario.findByPk(usuario.id, {
+            attributes: ['id', 'nombre', 'apellido', 'email', 'telefono', 'dni', 'fechaNacimiento', 'sucursalId'],
+            include: [{ model: Sucursal, attributes: ['id', 'nombre', 'localidad'] }],
+        });
+
+        res.status(200).json(usuarioActualizado);
     } catch (error) {
         console.error('Algo salió mal', error.message);
         res.status(500).json({ mensaje: 'Error del servidor' });
@@ -144,4 +176,4 @@ const actualizarUsuario = async (req, res) => {
         res.status(500).json({ mensaje: 'Error del servidor' });
     }
 };
-module.exports = { verUsuarios, crearUsuario, login, obtenerUsuarioPorId, actualizarUsuario };
+module.exports = { verUsuarios, crearUsuario, login, obtenerUsuarioPorId, actualizarUsuario, actualizarSucursalPredeterminada };

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useCart } from '../../context/CartContext'
 import { Link, useNavigate } from 'react-router-dom'
+import { ShoppingCart } from 'lucide-react'
 
 function getNavLinks(isAuthenticated: boolean) {
   const links = [
@@ -10,10 +12,11 @@ function getNavLinks(isAuthenticated: boolean) {
   ]
 
   if (!isAuthenticated) {
-    links.push({ label: 'Trabajá con nosotros', to: '/#trabaja-con-nosotros' })
+    links.push({ label: 'Trabajá acá', to: '/#trabaja-con-nosotros' })
+    links.push({ label: 'Sobre nosotros', to: '/#sobre-nosotros' })
+    links.push({ label: 'Contacto', to: '/#contacto' })
   }
 
-  links.push({ label: 'Carrito', to: '/carrito' })
   return links
 }
 
@@ -21,6 +24,7 @@ function Navbar() {
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
+  const { totalItems, clearCart } = useCart()
   const navigate = useNavigate()
   const menuRef = useRef<HTMLLIElement>(null)
   const navLinks = getNavLinks(isAuthenticated)
@@ -38,6 +42,7 @@ function Navbar() {
 
   function handleLogout() {
     logout()
+    clearCart()
     setMenuOpen(false)
     setOpen(false)
     navigate('/')
@@ -66,6 +71,23 @@ function Navbar() {
               </Link>
             </li>
           ))}
+
+          {isAuthenticated && (
+            <li>
+              <Link
+                to="/carrito"
+                aria-label="Ver carrito"
+                className="relative flex items-center rounded-lg p-2 text-white transition-colors hover:bg-brand-red"
+              >
+                <ShoppingCart className="h-6 w-6" />
+                {totalItems > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-red text-xs font-bold text-white">
+                    {totalItems}
+                  </span>
+                )}
+              </Link>
+            </li>
+          )}
 
           <li className="relative ml-2" ref={menuRef}>
             {isAuthenticated ? (
@@ -159,6 +181,19 @@ function Navbar() {
             {isAuthenticated ? (
               <div className="flex flex-col gap-1">
                 <span className="px-4 py-1 font-semibold text-white">Hola, {user?.name}</span>
+                <Link
+                  to="/carrito"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Carrito
+                  {totalItems > 0 && (
+                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-brand-red">
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
                 <Link
                   to="/perfil"
                   onClick={() => setOpen(false)}

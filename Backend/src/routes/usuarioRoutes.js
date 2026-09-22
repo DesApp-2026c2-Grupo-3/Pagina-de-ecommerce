@@ -14,5 +14,7 @@ router.get('/:id', usuarioController.obtenerUsuarioPorId)
 
 router.put('/:id', usuarioValidaciones.validarActualizarUsuario, usuarioController.actualizarUsuario)
 
+router.put('/:id/sucursal', usuarioController.actualizarSucursalPredeterminada)
+
 
 module.exports = router;
