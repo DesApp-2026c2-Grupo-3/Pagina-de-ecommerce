@@ -14,6 +14,10 @@
     flex-direction: column;
   }
 
+ html {
+  overflow-y: scroll; 
+}
+  
   body,
   html {
     cursor: default;

@@ -1,19 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useCart } from '../../context/CartContext'
 import { Link, useNavigate } from 'react-router-dom'
+import { ShoppingCart } from 'lucide-react'
+//import logo from '../../assets/logoX.png'
+import { LogoConEco } from '../logoEcoMotion'
 
-const navLinks = [
-  { label: 'Home', to: '/', active: true },
-  { label: 'Productos', to: '/productos', active: false },
-  { label: 'Promociones', to: '/promociones', active: false },
-  { label: 'Carrito', to: '/carrito', active: false }]
+function getNavLinks(isAuthenticated: boolean) {
+  const links = [
+    { label: 'Home', to: '/' },
+    { label: 'Productos', to: '/productos' },
+    { label: 'Promociones', to: '/promociones' },
+  ]
+
+  if (!isAuthenticated) {
+    links.push({ label: 'Trabajá acá', to: '/#trabaja-con-nosotros' })
+    links.push({ label: 'Sobre nosotros', to: '/#sobre-nosotros' })
+    links.push({ label: 'Contacto', to: '/#contacto' })
+  }
+
+  return links
+}
 
 function Navbar() {
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
+  const { totalItems, clearCart } = useCart()
   const navigate = useNavigate()
   const menuRef = useRef<HTMLLIElement>(null)
+  const navLinks = getNavLinks(isAuthenticated)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -28,6 +44,7 @@ function Navbar() {
 
   function handleLogout() {
     logout()
+    clearCart()
     setMenuOpen(false)
     setOpen(false)
     navigate('/')
@@ -37,13 +54,28 @@ function Navbar() {
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold text-white">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-red text-white">
+         {/*
+           <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-red text-white">
             B
           </span>
           <span>
             Burger<span className="text-brand-red">Fast</span>
-          </span>
+          </span> 
+         */}
+        {/*<div className="flex-1 flex justify-center items-center">
+          <a href="/" className="flex items-center">
+            <img 
+              src={logo} 
+              alt="Logotipo de la empresa" 
+              className="h-24 w-auto object-contain"
+            />
+          </a>
+        </div>*/} 
+        <LogoConEco isAuthenticated={isAuthenticated} />
+
         </Link>
+
+        
 
         <ul className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => (
@@ -56,6 +88,23 @@ function Navbar() {
               </Link>
             </li>
           ))}
+
+          {isAuthenticated && (
+            <li>
+              <Link
+                to="/carrito"
+                aria-label="Ver carrito"
+                className="relative flex items-center rounded-lg p-2 text-white transition-colors hover:bg-brand-red"
+              >
+                <ShoppingCart className="h-6 w-6" />
+                {totalItems > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-red text-xs font-bold text-white">
+                    {totalItems}
+                   </span>
+                )}
+              </Link>
+            </li>
+          )}
 
           <li className="relative ml-2" ref={menuRef}>
             {isAuthenticated ? (
@@ -149,6 +198,19 @@ function Navbar() {
             {isAuthenticated ? (
               <div className="flex flex-col gap-1">
                 <span className="px-4 py-1 font-semibold text-white">Hola, {user?.name}</span>
+                <Link
+                  to="/carrito"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Carrito
+                  {totalItems > 0 && (
+                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-brand-red">
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
                 <Link
                   to="/perfil"
                   onClick={() => setOpen(false)}

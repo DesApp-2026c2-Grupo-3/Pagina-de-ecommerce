@@ -16,6 +16,9 @@ module.exports = (sequelize, DataTypes) => {
       Usuario.hasMany(models.Direccion, {
         foreignKey: 'usuarioId'
       });
+      Usuario.belongsTo(models.Sucursal, {
+        foreignKey: 'sucursalId'
+      });
 
     }
   }
@@ -27,6 +30,7 @@ Usuario.init({
   telefono: { type: DataTypes.STRING, allowNull: true },
   dni: { type: DataTypes.STRING, allowNull: true },
   fechaNacimiento: { type: DataTypes.DATEONLY, allowNull: true },
+  sucursalId: { type: DataTypes.INTEGER, allowNull: true },
 }, {
   sequelize,
   modelName: 'Usuario',

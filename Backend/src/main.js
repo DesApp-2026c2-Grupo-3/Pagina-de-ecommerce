@@ -25,6 +25,7 @@ const productoRoutes = require('./routes/productoRoutes');
 const usuarioRoutes = require('./routes/usuarioRoutes');
 const pedidoRoutes = require('./routes/pedidoRoutes');
 const direccionRoutes = require('./routes/direccionRoutes');
+const sucursalRoutes = require('./routes/sucursalRoutes');
 
 
 app.use('/admin/productos', adminProductoRoutes);
@@ -36,6 +37,7 @@ app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
+app.use('/sucursales', sucursalRoutes);
 
 
 //SINCRO CON BASE DE DATOS

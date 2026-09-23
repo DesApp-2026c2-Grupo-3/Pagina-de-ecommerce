@@ -20,7 +20,8 @@ function ProductCard({ product }: ProductCardProps) {
         <img
           src={product.image}
           alt={product.name}
-          className="h-40 w-full bg-brand-cream object-cover"
+          className="h-40 w-full bg-brand-cream object-contain object-center"
+          //className="h-40 w-full bg-brand-cream object-cover"
         />
         <div className="flex flex-1 flex-col p-4">
           <h3 className="text-lg font-bold text-brand-dark">{product.name}</h3>

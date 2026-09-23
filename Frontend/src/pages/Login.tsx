@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import { esEmailValido } from '../utils/validaciones'
 import ErrorAlert from '../components/ErrorAlert'
 
 function Login() {
   const { login, loading } = useAuth()
+  const { clearCart } = useCart()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -31,6 +33,7 @@ async function handleSubmit(e: FormEvent) {
 
   try {
     await login({ email, password })
+    clearCart()
     navigate('/')
   } catch (err) {
     setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
