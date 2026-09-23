@@ -1,8 +1,5 @@
 const { Producto } = require("../../models");
 
-/////////////
-const esIdValido = (id) => !isNaN(id) && Number.isInteger(Number(id));
-
 const obtenerProductos = async (req, res) => {
     try {
         const productos = await Producto.findAll();
@@ -16,13 +13,9 @@ const obtenerProductos = async (req, res) => {
 const obtenerProductoPorId = async (req, res) => {
     try {
         const { id } = req.params;
-        ///////////
-        if (!esIdValido(id)) {
-            return res.status(400).json({ mensaje: 'El ID debe ser un número válido' });
-        }
 
         const producto = await Producto.findByPk(id);
-        ///////////
+
         if (!producto) {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
@@ -37,11 +30,6 @@ const obtenerProductoPorId = async (req, res) => {
 const crearProducto = async (req, res) => {
     try {
         const { nombre, descripcion, precio, imagen, disponible, categoriaId } = req.body;
-
-        //////
-        if (!nombre || precio === undefined) {
-            return res.status(400).json({ mensaje: 'El nombre y el precio son obligatorios' });
-        }
 
         const nuevoProducto = await Producto.create({
             nombre,
@@ -66,10 +54,6 @@ const crearProducto = async (req, res) => {
 const editarProductoPorId = async (req, res) => {
     try {
         const { id } = req.params;
-
-        if (!esIdValido(id)) {
-            return res.status(400).json({ mensaje: 'El ID debe ser un número válido' });
-        }
 
         const producto = await Producto.findByPk(id);
 
@@ -102,10 +86,6 @@ const editarProductoPorId = async (req, res) => {
 const eliminarProducto = async (req, res) => {
     try {
         const { id } = req.params;
-
-        if (!esIdValido(id)) {
-            return res.status(400).json({ mensaje: 'El ID debe ser un número válido' });
-        }
 
         const producto = await Producto.findByPk(id);
 
