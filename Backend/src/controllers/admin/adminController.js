@@ -1,15 +1,13 @@
 const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
 
-const esIdValido = (id) => !isNaN(id) && Number.isInteger(Number(id));
-
 const { Admin } = require('../../models')
 
 const verAdmins = async (req, res) => {
     try {
         const admins = await Admin.findAll({
-            where:{
-                rol:{
+            where: {
+                rol: {
                     [Op.ne]: 'MASTER'
                 }
             },
@@ -147,10 +145,6 @@ const actualizarAdmin = async (req, res) => {
 const eliminarAdmin = async (req, res) => {
     try {
         const { id } = req.params;
-
-        if (!esIdValido(id)) {
-            return res.status(400).json({ mensaje: 'El ID debe ser un número válido' });
-        }
 
         const admin = await Admin.findByPk(id);
 

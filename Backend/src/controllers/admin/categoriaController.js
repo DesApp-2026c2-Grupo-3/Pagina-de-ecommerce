@@ -1,8 +1,5 @@
 const { Categoria } = require("../../models");
 
-/////////////
-const esIdValido = (id) => !isNaN(id) && Number.isInteger(Number(id));
-
 const obtenerCategorias = async (req, res) => {
     try {
         const categoria = await Categoria.findAll();
@@ -17,10 +14,6 @@ const crearCategoria = async (req, res) => {
     try {
         const { nombre } = req.body;
 
-        //////
-        if (!nombre || nombre.trim() === '') {
-            return res.status(400).json({ mensaje: 'El nombre es obligatorio' });
-        }
         const nuevaCategoria = await Categoria.create({
             nombre
         });
@@ -39,10 +32,6 @@ const crearCategoria = async (req, res) => {
 const editarCategoriaPorId = async (req, res) => {
     try {
         const { id } = req.params;
-
-        if (!esIdValido(id)) {
-            return res.status(400).json({ mensaje: 'El ID debe ser un número válido' });
-        }
 
         const categoria = await Categoria.findByPk(id);
 
@@ -70,10 +59,6 @@ const editarCategoriaPorId = async (req, res) => {
 const eliminarCategorias = async (req, res) => {
     try {
         const { id } = req.params;
-
-        if (!esIdValido(id)) {
-            return res.status(400).json({ mensaje: 'El ID debe ser un número válido' });
-        }
 
         const categoria = await Categoria.findByPk(id);
 
