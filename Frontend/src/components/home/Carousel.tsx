@@ -63,8 +63,7 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
           </div>
         </div>
 
-        <div className="grid h-56 w-56 shrink-0 place-items-center md:h-72 md:w-72">
-          {slide.visualType === 'image' ? (
+        <div className="hidden h-72 w-72 shrink-0 place-items-center md:grid">          {slide.visualType === 'image' ? (
             <img
               src={slide.visual}
               alt=""

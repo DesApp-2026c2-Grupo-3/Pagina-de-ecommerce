@@ -2,14 +2,8 @@ const {Producto} = require('../models');
 
 const obtenerProductos = async (req, res) => {
     try {
-        const productos = await Producto.findAll({
-            where: {
-                disponible: true
-            }
-        });
-
+       const productos = await Producto.findAll();
         res.json(productos);
-
     } catch (error) {
         console.error(error);
 
