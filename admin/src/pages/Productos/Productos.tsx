@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Paginacion from '../../components/Paginacion'
 import { Pencil, Trash2, Plus, DollarSign } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
+import { obtenerProductos } from '../../services/productos'
+import { obtenerCategorias } from '../../services/categorias'
+import { eliminarProducto as eliminarProductoAPI } from '../../services/productos'
 
 export default function Productos() {
   const navigate = useNavigate();
@@ -13,31 +16,58 @@ export default function Productos() {
   const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
   const { mostrarToast } = useToast();
 
+  const [productos, setProductos] = useState<any[]>([])
 
-  const [productos, setProductos] = useState(() => {
-    const productosGuardados = localStorage.getItem('productos')
+  const [categorias, setCategorias] = useState<any[]>([])
 
-    if (productosGuardados) {
-      return JSON.parse(productosGuardados)
-    }
-    
-    return []
-  })
+  const eliminarProducto = async (id: number) => {
+    try {
+      await eliminarProductoAPI(id)
 
-  const categorias = JSON.parse(
-    localStorage.getItem('categorias') || '[]'
-  );
+      const productosActualizados = productos.filter(
+        (producto: any) => producto.id !== id
+      )
 
-  const eliminarProducto = (id: number) => {
-    const productosActualizados = productos.filter(
-      (producto: any) => producto.id !== id)
-      
       setProductos(productosActualizados)
 
-      localStorage.setItem('productos',
-        JSON.stringify(productosActualizados)
-      )}
+      const ultimaPagina = Math.max(1, Math.ceil(productosActualizados.length / productosPorPagina))
 
+      if (paginaActual > ultimaPagina) {
+        setPaginaActual(ultimaPagina)
+      }
+
+      mostrarToast('Producto eliminado!')
+    } catch (error) {
+      console.error('Error al eliminar producto:', error)
+    }
+  }
+
+  useEffect(() => {
+    const cargarProductos = async () => {
+      try {
+        const datos = await obtenerProductos()
+        setProductos(datos)
+      } catch (error) {
+        console.error('Error al cargar productos:', error)
+      }
+    }
+
+    cargarProductos()
+  }, [])
+
+  useEffect(() => {
+    const cargarCategorias = async () => {
+      try {
+        const datos = await obtenerCategorias()
+        setCategorias(datos)
+      } catch (error) {
+        console.error('Error al cargar categorías:', error)
+      }
+    }
+
+    cargarCategorias()
+  }, [])
+  
   const indiceUltimoProducto = 
   paginaActual * productosPorPagina
 
@@ -50,29 +80,29 @@ export default function Productos() {
   )
 
   return (
-    <main className="p-8">
+    <main className="p-8 ">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-  <div>
-    <h1 className="text-3xl font-bold">
-      Productos
-    </h1>
+        <div>
+          <h1 className="text-3xl font-bold">
+            Productos
+          </h1>
 
-    <p className="text-gray-600 mt-2">
-      Gestioná los productos disponibles en el sistema.
-    </p>
-  </div>
+          <p className="text-gray-600 mt-2">
+            Gestioná los productos disponibles en el sistema.
+          </p>
+        </div>
 
-  <button
-    onClick={() => navigate('/admin/productos/nuevo')}
-    className="bg-action text-white px-4 py-4 rounded-full border 
-    shadow-[0_0_10px_rgba(249,115,22,0.6)]
-    hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
-    transition-all
-    border-orange-400 
-    hover:bg-action-hover w-fit ml-auto">
-    <Plus size={22} />
-  </button>
-</div>
+        <button
+        onClick={() => navigate('/admin/productos/nuevo')}
+        className="bg-action text-white px-4 py-4 rounded-full border 
+        shadow-[0_0_10px_rgba(249,115,22,0.6)]
+        hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
+        transition-all
+        border-orange-400 
+        hover:bg-action-hover w-fit ml-auto">
+          <Plus size={22} />
+        </button>
+      </div>
 
       <div className="bg-white border rounded-lg overflow-x-auto">
         <table className="min-w-max w-full border-collapse">
@@ -159,19 +189,17 @@ export default function Productos() {
         if (productoAEliminar !== null) {
           eliminarProducto(productoAEliminar)
           setProductoAEliminar(null)
-
-          mostrarToast('Producto eliminado!')
           }
         }
       }
       onCancelar={() => setProductoAEliminar(null)}/>
-
 
       <Paginacion
         paginaActual={paginaActual}
         totalElementos={productos.length}
         elementosPorPagina={productosPorPagina}
         cambiarPagina={setPaginaActual} />
+        
     </main>
   )
 }

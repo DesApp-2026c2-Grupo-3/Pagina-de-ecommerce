@@ -48,8 +48,10 @@ export async function actualizarAdministrador(id: number,  administrador: unknow
     }
   )
 
+  const datos = await respuesta.json()
+
   if (!respuesta.ok) {
-    throw new Error('Error al actualizar el administrador')
+    throw new Error(datos.mensaje || 'Error al actualizar el administrador')
   }
 
   return respuesta.json()

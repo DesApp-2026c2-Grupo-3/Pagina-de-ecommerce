@@ -1,7 +1,9 @@
 import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
+import { obtenerProductoPorId, actualizarProducto } from "../../services/productos";
+import { obtenerCategorias } from "../../services/categorias";
 
 export default function EditarProducto() {
   const { id } = useParams();
@@ -13,21 +15,36 @@ export default function EditarProducto() {
   const { mostrarToast } = useToast();
   const navigate = useNavigate();
 
-  const productosGuardados = JSON.parse(
-    localStorage.getItem("productos") || "[]",
-  );
+  const [nombre, setNombre] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [imagen, setImagen] = useState("");
+  const [disponible, setDisponible] = useState(true);
+  const [categoriaId, setCategoriaId] = useState("");
+  const [categorias, setCategorias] = useState<any[]>([]);
 
-  const producto = productosGuardados.find(
-    (producto: { id: number }) => producto.id === Number(id),
-  );
 
-  const [nombre, setNombre] = useState(producto?.nombre || "");
-  const [descripcion, setDescripcion] = useState(producto?.descripcion || "");
-  const [precio, setPrecio] = useState(producto?.precio?.toString() || "");
-  const [imagen, setImagen] = useState(producto?.imagen || "");
-  const [disponible, setDisponible] = useState(producto?.disponible ?? true);
-  const [categoriaId, setCategoriaId] = useState(producto?.categoriaId || "");
-  const categorias = JSON.parse(localStorage.getItem("categorias") || "[]");
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const producto = await obtenerProductoPorId(Number(id));
+
+        setNombre(producto.nombre);
+        setDescripcion(producto.descripcion);
+        setPrecio(producto.precio.toString());
+        setImagen(producto.imagen);
+        setDisponible(producto.disponible);
+        setCategoriaId(producto.categoriaId.toString());
+
+        const datosCategorias = await obtenerCategorias();
+        setCategorias(datosCategorias);
+      } catch (error) {
+        console.error("Error al cargar el producto:", error);
+      }
+    };
+
+    cargarDatos();
+  }, [id]);
 
   return (
     <main className="p-8">
@@ -35,7 +52,7 @@ export default function EditarProducto() {
 
       <form
         className="max-w-xl flex flex-col gap-4"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
 
           let hayErrores = false;
@@ -76,27 +93,21 @@ export default function EditarProducto() {
             return;
           }
 
-          const productosActualizados = productosGuardados.map(
-            (producto: any) =>
-              producto.id === Number(id)
-                ? {
-                    ...producto,
-                    nombre,
-                    descripcion,
-                    precio: Number(precio),
-                    imagen,
-                    disponible,
-                    categoriaId: Number(categoriaId),
-                  }
-                : producto,
-          );
-
-          localStorage.setItem(
-            "productos",
-            JSON.stringify(productosActualizados),
-          );
-          mostrarToast("Producto modificado!");
-          navigate("/admin/productos");
+          try {
+            await actualizarProducto(Number(id), {
+              nombre,
+              descripcion,
+              precio: Number(precio),
+              imagen,
+              disponible,
+              categoriaId: Number(categoriaId),
+            });
+            
+            mostrarToast("Producto modificado!");
+            navigate("/admin/productos");
+          } catch (error) {
+            console.error("Error al modificar producto:", error);
+          }
         }}
       >
         <div>
@@ -120,6 +131,7 @@ export default function EditarProducto() {
           <label>Descripción</label>
           <textarea
             value={descripcion}
+            maxLength={300}
             onChange={(e) => {
               setDescripcion(e.target.value);
               setErrorDescripcion("");

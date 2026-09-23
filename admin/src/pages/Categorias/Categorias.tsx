@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Paginacion from '../../components/Paginacion'
 import { Pencil, Trash2, Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
 import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
+import { obtenerCategorias } from '../../services/categorias';
+import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categorias'
 
 export default function Categorias() {
   const navigate = useNavigate();
@@ -13,25 +15,42 @@ export default function Categorias() {
   const [categoriaAEliminar, setCategoriaAEliminar] = useState<number | null>(null);
   const { mostrarToast } = useToast();
 
-  const [categorias, setCategorias] = useState(() => {
-    const categoriasGuardadas = localStorage.getItem('categorias')
-   
-    if (categoriasGuardadas) {
-        return JSON.parse(categoriasGuardadas)
-    }
-    return []
-  });
+  const [categorias, setCategorias] = useState<any[]>([])
 
-  const eliminarCategoria = (id: number) => {
-    const categoriasActualizadas = categorias.filter(
-      (categoria: any) => categoria.id !== id)
-        
+  const eliminarCategoria = async (id: number) => {
+    try {
+      await eliminarCategoriaAPI(id)
+
+      const categoriasActualizadas = categorias.filter(
+        (categoria: any) => categoria.id !== id
+      )
+
       setCategorias(categoriasActualizadas)
 
-      localStorage.setItem('categorias',
-      JSON.stringify(categoriasActualizadas)
-    )
+      const ultimaPagina = Math.max(1,Math.ceil(categoriasActualizadas.length / categoriaPorPagina))
+
+      if (paginaActual > ultimaPagina) {
+        setPaginaActual(ultimaPagina)
+      }
+
+      mostrarToast('Categoria eliminada!')
+    } catch (error) {
+      console.error('Error al eliminar categoria:', error)
+    }
   }
+
+  useEffect(() => {
+  const cargarCategorias = async () => {
+    try {
+      const datos = await obtenerCategorias()
+      setCategorias(datos)
+    } catch (error) {
+      console.error('Error al cargar categorías:', error)
+    }
+  }
+
+  cargarCategorias()
+}, [])
 
   const indiceUltimaCategoria = 
   paginaActual * categoriaPorPagina
@@ -118,8 +137,6 @@ export default function Categorias() {
       if (categoriaAEliminar !== null) {
         eliminarCategoria(categoriaAEliminar)
         setCategoriaAEliminar(null)
-
-        mostrarToast('Categoria eliminada!')
           }
         }
       }

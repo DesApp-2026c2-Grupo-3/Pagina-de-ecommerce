@@ -18,29 +18,37 @@ export default function Administradores() {
     const [administradores, setAdministradores] = useState<any[]>([])
 
     useEffect(() => {
-    const cargarAdministradores = async () => {
-        try {
-            const datos = await obtenerAdministradores()
-            setAdministradores(datos)
-        } catch (error) {
-            console.error('Error al cargar administradores:', error)
+        const cargarAdministradores = async () => {
+            try {
+                const datos = await obtenerAdministradores()
+                setAdministradores(datos)
+            } catch (error) {
+                console.error('Error al cargar administradores:', error)
+            }
         }
-    }
 
-    cargarAdministradores()
-}, [])
+        cargarAdministradores()
+    }, [])
 
     const eliminarAdministrador = async (id: number) => {
         try {
             await eliminarAdministradorAPI(id)
 
-            setAdministradores(
-                administradores.filter(
-                    (administrador: any) => administrador.id !== id
-                )
+            const administradoresActualizados = administradores.filter(
+                (administrador: any) => administrador.id !== id
             )
 
-             mostrarToast('Administrador eliminado!')
+            setAdministradores(administradoresActualizados)
+
+            const ultimaPagina = Math.max(1,
+                Math.ceil(administradoresActualizados.length / adminsPorPagina)
+            )
+
+            if (paginaActual > ultimaPagina) {
+                setPaginaActual(ultimaPagina)
+            }
+
+            mostrarToast('Administrador eliminado!')
         } catch (error) {
             console.error('Error al eliminar administrador:', error)
         }
