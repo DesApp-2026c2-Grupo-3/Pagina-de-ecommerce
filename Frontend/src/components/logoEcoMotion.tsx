@@ -42,8 +42,14 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     ];
 
     return (
-        <div className="flex-1 flex justify-center py-4">
-            <div className="relative h-24 w-96">
+        <div className="flex shrink-0 items-center justify-center">
+            <div
+                className="relative"
+                style={{
+                    height: 'clamp(2.25rem, 4vw + 1.2rem, 3.5rem)',
+                    aspectRatio: '417 / 274',
+                }}
+            >
                 {/* KEYFRAMES DE VIBRACIÓN NATIVOS */}
                 <style>{`
                     @keyframes vibrarGlitch {
@@ -67,12 +73,11 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                             key={index}
                             src={logo}
                             alt="Logotipo con efecto de vibración cromática"
-                            className={`h-24 w-auto object-cover absolute top-0 will-change-transform ${
+                            className={`h-full w-full object-contain absolute inset-0 will-change-transform ${
                                 vibrando && !esLogoFrente ? 'vibracion-activa' : ''
                             }`}
                             style={
                                 {
-                                    left: '0px', 
                                     opacity: eco.opacity,
                                     filter: eco.filter,
                                     mixBlendMode: 'screen', 

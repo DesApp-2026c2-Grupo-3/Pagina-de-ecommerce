@@ -60,3 +60,13 @@
     user-select: none;
   }
 }
+
+/* Oculta la barra de scroll pero mantiene el scroll funcional (carruseles tipo Netflix) */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge viejo */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge nuevo */
+}
