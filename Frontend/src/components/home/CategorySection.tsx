@@ -1,5 +1,6 @@
 import type { Product } from '../../types/product'
 import ProductCard from './ProductCard'
+import { useDragScroll } from '../../hooks/useDragScroll'
 
 interface CategorySectionProps {
   categoryId: number
@@ -9,6 +10,8 @@ interface CategorySectionProps {
 }
 
 function CategorySection({ categoryId, title, icon, products }: CategorySectionProps) {
+  const { ref, handlers } = useDragScroll<HTMLDivElement>()
+
   return (
     <section
       className="mx-auto max-w-7xl scroll-mt-32 px-4 py-8"
@@ -18,7 +21,11 @@ function CategorySection({ categoryId, title, icon, products }: CategorySectionP
         <span className="text-3xl">{icon}</span>
         {title}
       </h2>
-      <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2">
+      <div
+        ref={ref}
+        {...handlers}
+        className={`-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide ${handlers.className}`}
+      >
         {products.map((product) => (
           <div key={product.id} className="w-64 shrink-0 snap-start">
             <ProductCard product={product} />

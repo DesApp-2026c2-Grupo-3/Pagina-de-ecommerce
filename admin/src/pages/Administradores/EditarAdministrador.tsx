@@ -40,7 +40,7 @@ export default function EditarAdministrador() {
     if (password !== '') {
       if(password.length < 8){
         setErrorPassword('La contraseña debe tener al menos 8 caracteres.')
-      hayErrores = true
+        hayErrores = true
       }
     
 

@@ -1,234 +1,239 @@
-import { useParams } from 'react-router-dom'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useToast } from '../../context/ToastContext'
+import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "../../context/ToastContext";
+import { obtenerProductoPorId, actualizarProducto } from "../../services/productos";
+import { obtenerCategorias } from "../../services/categorias";
 
 export default function EditarProducto() {
   const { id } = useParams();
-  const [errorNombre, setErrorNombre] = useState('');
-  const [errorDescripcion, setErrorDescripcion] = useState('');
-  const [errorCategoria, setErrorCategoria] = useState('');
-  const [errorPrecio, setErrorPrecio] = useState('');
-  const [errorImagen, setErrorImagen] = useState('');
+  const [errorNombre, setErrorNombre] = useState("");
+  const [errorDescripcion, setErrorDescripcion] = useState("");
+  const [errorCategoria, setErrorCategoria] = useState("");
+  const [errorPrecio, setErrorPrecio] = useState("");
+  const [errorImagen, setErrorImagen] = useState("");
   const { mostrarToast } = useToast();
   const navigate = useNavigate();
 
-  const productosGuardados = JSON.parse(
-    localStorage.getItem('productos') || '[]'
-  )
+  const [nombre, setNombre] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [imagen, setImagen] = useState("");
+  const [disponible, setDisponible] = useState(true);
+  const [categoriaId, setCategoriaId] = useState("");
+  const [categorias, setCategorias] = useState<any[]>([]);
 
-  const producto = productosGuardados.find(
-    (producto: { id: number }) => producto.id === Number(id)
-  )
 
-  const [nombre, setNombre] = useState(producto?.nombre || '')
-  const [descripcion, setDescripcion] = useState(producto?.descripcion || '')
-  const [precio, setPrecio] = useState(producto?.precio?.toString() || '')
-  const [imagen, setImagen] = useState(producto?.imagen || '')
-  const [disponible, setDisponible] = useState(producto?.disponible ?? true)
-  const [categoriaId, setCategoriaId] = useState(producto?.categoriaId || '');
-  const categorias = JSON.parse(
-      localStorage.getItem('categorias') || '[]'
-    );
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const producto = await obtenerProductoPorId(Number(id));
 
+        setNombre(producto.nombre);
+        setDescripcion(producto.descripcion);
+        setPrecio(producto.precio.toString());
+        setImagen(producto.imagen);
+        setDisponible(producto.disponible);
+        setCategoriaId(producto.categoriaId.toString());
+
+        const datosCategorias = await obtenerCategorias();
+        setCategorias(datosCategorias);
+      } catch (error) {
+        console.error("Error al cargar el producto:", error);
+      }
+    };
+
+    cargarDatos();
+  }, [id]);
 
   return (
-  <main className="p-8">
-    <h1 className="text-3xl font-bold mb-6">
-      Editar producto
-    </h1>
+    <main className="p-8">
+      <h1 className="text-3xl font-bold mb-6">Editar producto</h1>
 
-    <form className="max-w-xl flex flex-col gap-4"  onSubmit={(e) => {
-      e.preventDefault()
+      <form
+        className="max-w-xl flex flex-col gap-4"
+        onSubmit={async (e) => {
+          e.preventDefault();
 
-      let hayErrores = false
+          let hayErrores = false;
 
-        if (nombre.trim().length < 3) {
-          setErrorNombre('El nombre debe tener al menos 3 caracteres.')
-          hayErrores = true
-        }
+          if (nombre.trim().length < 3) {
+            setErrorNombre("El nombre debe tener al menos 3 caracteres.");
+            hayErrores = true;
+          }
 
-        if (descripcion.trim().length < 15) {
-          setErrorDescripcion(
-            'La descripción debe tener al menos 15 caracteres.'
-          )
-          hayErrores = true
-        }
+          if (descripcion.trim().length < 15) {
+            setErrorDescripcion(
+              "La descripción debe tener al menos 15 caracteres.",
+            );
+            hayErrores = true;
+          }
 
-        if(Number(precio) <= 0 || precio === ''){
-          setErrorPrecio(
-            'El precio debe ser mayor a 0'
-          )
-          hayErrores = true
-        }
+          if (Number(precio) <= 0 || precio === "") {
+            setErrorPrecio("El precio debe ser mayor a 0");
+            hayErrores = true;
+          }
 
-        if(Number(precio) > 999999){
-          setErrorPrecio(
-            'El precio no puede ser mayor a 999999'
-          )
-          hayErrores = true
-        }
+          if (Number(precio) > 999999) {
+            setErrorPrecio("El precio no puede ser mayor a 999999");
+            hayErrores = true;
+          }
 
-        if(imagen.trim().length < 1){
-          setErrorImagen(
-            'El campo imagen no puede estar vacio'
-          )
-          hayErrores = true
-        }
+          if (imagen.trim().length < 1) {
+            setErrorImagen("El campo imagen no puede estar vacio");
+            hayErrores = true;
+          }
 
-         if(categoriaId === ''){
-          setErrorCategoria(
-            'El campo categoria no puede estar vacio'
-          )
-          hayErrores = true
-        }
+          if (categoriaId === "") {
+            setErrorCategoria("El campo categoria no puede estar vacio");
+            hayErrores = true;
+          }
 
-        
-        if (hayErrores) {
-          return
-        }
+          if (hayErrores) {
+            return;
+          }
 
-      const productosActualizados = productosGuardados.map(
-        (producto: any) => producto.id === Number(id) ? {
-          ...producto,
-          nombre,
-          descripcion,
-          precio: Number(precio),
-          imagen,
-          disponible,
-          categoriaId: Number(categoriaId),
-        } : producto
-      )
-      
-      localStorage.setItem('productos',
-        JSON.stringify(productosActualizados)
-      )
-      mostrarToast('Producto modificado!')
-      navigate('/admin/productos')
-      }}>
-
-      <div>
-        <label>Nombre</label>
-        <input
-        type="text"
-        value={nombre}
-        onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
-        className="w-full border rounded p-2"
-        />
-      </div>
-
-      {errorNombre && (
-          <p className="text-red-600 text-sm mt-1">
-            {errorNombre}
-          </p>
-        )}
-
-      <div>
-        <label>Descripción</label>
-        <textarea
-        value={descripcion}
-        onChange={(e) => {setDescripcion(e.target.value); setErrorDescripcion('')}}
-        className="w-full border rounded p-2"
-        />
-      </div>
-
-      {errorDescripcion && (
-          <p className="text-red-600 text-sm mt-1">
-            {errorDescripcion}
-          </p>
-        )}
-
-      <div className="mb-4">
-        <label className="block mb-2 font-medium">
-            Categoría
-        </label>
-
-        <select
-          value={categoriaId}
-          onChange={(e) => {setCategoriaId(e.target.value); setErrorCategoria('')}}
-          className="w-full border rounded px-3 py-2">
-
-          <option value="">
-              Seleccionar categoría
-          </option>
-
-          {categorias.map(
-            (categoria: { id: number; nombre: string }) => (
-            <option key={categoria.id} value={categoria.id}>
-              {categoria.nombre}
-            </option>
-            ))}
-        </select>
-      </div>
-
-      {errorCategoria && (
-          <p className="text-red-600 text-sm mt-1">
-            {errorCategoria}
-          </p>
-        )}
-
-      <div>
-        <label>Precio</label>
-        <input
-        type="number"
-        value={precio}
-        onChange={(e) => {setPrecio(e.target.value); setErrorPrecio('')}}
-        className="w-full border rounded p-2"
-        />
-      </div>
-
-      {errorPrecio && (
-          <p className="text-red-600 text-sm mt-1">
-            {errorPrecio}
-          </p>
-        )}
-
-      <div>
-        <label>Imagen</label>
-        <input
-        type="text"
-        value={imagen}
-        onChange={(e) => {setImagen(e.target.value); setErrorImagen('')}}
-        className="w-full border rounded p-2"
-        placeholder="URL de la imagen"
-        />
-      </div>
-
-      {errorImagen && (
-          <p className="text-red-600 text-sm mt-1">
-            {errorImagen}
-          </p>
-        )}
-
-      <div>
-        <label>
+          try {
+            await actualizarProducto(Number(id), {
+              nombre,
+              descripcion,
+              precio: Number(precio),
+              imagen,
+              disponible,
+              categoriaId: Number(categoriaId),
+            });
+            
+            mostrarToast("Producto modificado!");
+            navigate("/admin/productos");
+          } catch (error) {
+            console.error("Error al modificar producto:", error);
+          }
+        }}
+      >
+        <div>
+          <label>Nombre</label>
           <input
-          type="checkbox"
-          checked={disponible}
-          onChange={(e) => setDisponible(e.target.checked)}
+            type="text"
+            value={nombre}
+            onChange={(e) => {
+              setNombre(e.target.value);
+              setErrorNombre("");
+            }}
+            className="w-full border rounded p-2"
           />
-          {' '}Disponible
-        </label>
-      </div>
+        </div>
 
-      <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+        {errorNombre && (
+          <p className="text-red-600 text-sm mt-1">{errorNombre}</p>
+        )}
 
+        <div>
+          <label>Descripción</label>
+          <textarea
+            value={descripcion}
+            maxLength={300}
+            onChange={(e) => {
+              setDescripcion(e.target.value);
+              setErrorDescripcion("");
+            }}
+            className="w-full border rounded p-2"
+          />
+        </div>
+
+        {errorDescripcion && (
+          <p className="text-red-600 text-sm mt-1">{errorDescripcion}</p>
+        )}
+
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">Categoría</label>
+
+          <select
+            value={categoriaId}
+            onChange={(e) => {
+              setCategoriaId(e.target.value);
+              setErrorCategoria("");
+            }}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="">Seleccionar categoría</option>
+
+            {categorias.map((categoria: { id: number; nombre: string }) => (
+              <option key={categoria.id} value={categoria.id}>
+                {categoria.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {errorCategoria && (
+          <p className="text-red-600 text-sm mt-1">{errorCategoria}</p>
+        )}
+
+        <div>
+          <label>Precio</label>
+          <input
+            type="number"
+            value={precio}
+            onChange={(e) => {
+              setPrecio(e.target.value);
+              setErrorPrecio("");
+            }}
+            className="w-full border rounded p-2"
+          />
+        </div>
+
+        {errorPrecio && (
+          <p className="text-red-600 text-sm mt-1">{errorPrecio}</p>
+        )}
+
+        <div>
+          <label>Imagen</label>
+          <input
+            type="text"
+            value={imagen}
+            onChange={(e) => {
+              setImagen(e.target.value);
+              setErrorImagen("");
+            }}
+            className="w-full border rounded p-2"
+            placeholder="URL de la imagen"
+          />
+        </div>
+
+        {errorImagen && (
+          <p className="text-red-600 text-sm mt-1">{errorImagen}</p>
+        )}
+
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              checked={disponible}
+              onChange={(e) => setDisponible(e.target.checked)}
+            />{" "}
+            Disponible
+          </label>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
           <button
-          type="button"
-          onClick={() => navigate('/admin/productos')}
-          className="bg-danger hover:bg-danger-hover text-white
-          border border-red-300 px-4 py-2 rounded transition-colors">
+            type="button"
+            onClick={() => navigate("/admin/productos")}
+            className="bg-danger hover:bg-danger-hover text-white
+          border border-red-300 px-4 py-2 rounded transition-colors"
+          >
             Cancelar
           </button>
 
           <button
-          type="submit"
-          className="bg-action hover:bg-action-hover
-           border border-orange-300 text-white px-4 py-2 rounded transition-colors">
+            type="submit"
+            className="bg-action hover:bg-action-hover
+           border border-orange-300 text-white px-4 py-2 rounded transition-colors"
+          >
             Guardar cambios
           </button>
         </div>
-    </form>
-  </main>
-)
+      </form>
+    </main>
+  );
 }

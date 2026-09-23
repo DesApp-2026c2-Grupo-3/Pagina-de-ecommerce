@@ -50,6 +50,15 @@ function Navbar() {
     navigate('/')
   }
 
+  // Si el link es "Home" (to === '/') y ya estás en esa ruta, React Router no
+  // navega (misma URL) y por lo tanto no hay ningún trigger que suba el scroll.
+  // Forzamos el scroll arriba manualmente en ese caso.
+  function handleNavLinkClick(to: string) {
+    if (to === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   return (
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
@@ -77,12 +86,13 @@ function Navbar() {
 
         
 
-        <ul className="hidden items-center gap-1 md:flex">
+        <ul className="hidden items-center gap-0.5 lg:flex xl:gap-1">
           {navLinks.map((link) => (
             <li key={link.label}>
               <Link
                 to={link.to}
-                className="rounded-lg px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-red"
+                onClick={() => handleNavLinkClick(link.to)}
+                className="whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-red xl:px-4 xl:text-base"
               >
                 {link.label}
               </Link>
@@ -174,19 +184,22 @@ function Navbar() {
           aria-label="Abrir menú"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          className="rounded-md p-2 text-2xl text-white focus:outline-none focus:ring-2 focus:ring-white md:hidden"
+          className="rounded-md p-2 text-2xl text-white focus:outline-none focus:ring-2 focus:ring-white lg:hidden"
         >
           {open ? '✕' : '☰'}
         </button>
       </nav>
 
       {open && (
-        <ul className="flex flex-col gap-1 border-t border-white/10 bg-brand-dark px-4 pb-4 md:hidden">
+        <ul className="flex flex-col gap-1 border-t border-white/10 bg-brand-dark px-4 pb-4 lg:hidden">
           {navLinks.map((link) => (
             <li key={link.label}>
               <Link
                 to={link.to}
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  handleNavLinkClick(link.to)
+                  setOpen(false)
+                }}
                 className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
               >
                 {link.label}
