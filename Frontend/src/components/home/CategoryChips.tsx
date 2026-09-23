@@ -1,10 +1,13 @@
 import type { Category } from '../../types/product'
+import { useDragScroll } from '../../hooks/useDragScroll'
 
 interface CategoryChipsProps {
   categories: Category[]
 }
 
 function CategoryChips({ categories }: CategoryChipsProps) {
+  const { ref, handlers } = useDragScroll<HTMLDivElement>()
+
   function handleClick(id: number) {
     document
       .getElementById(`categoria-${id}`)
@@ -13,7 +16,11 @@ function CategoryChips({ categories }: CategoryChipsProps) {
 
   return (
     <div className="sticky top-16 z-10 border-b border-brand-dark/10 bg-brand-cream/95 backdrop-blur">
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 py-3 md:mx-auto md:max-w-7xl">
+      <div
+        ref={ref}
+        {...handlers}
+        className={`-mx-4 flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide md:mx-auto md:max-w-7xl ${handlers.className}`}
+      >
         {categories.map((category) => (
           <button
             key={category.id}

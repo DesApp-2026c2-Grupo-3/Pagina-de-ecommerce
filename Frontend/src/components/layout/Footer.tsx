@@ -1,6 +1,6 @@
 function Footer() {
   return (
-    <footer className="mt-16 bg-brand-dark text-white">
+    <footer className="bg-brand-dark text-white">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm md:flex-row">
         <span className="font-bold">
           Burger<span className="text-brand-red">Fast</span>
