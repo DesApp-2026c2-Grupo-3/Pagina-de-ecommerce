@@ -1,39 +1,50 @@
-import heroImg from '../../assets/hero.png'
+import { useAuth } from "../../context/AuthContext";
+import Carousel from "./Carousel";
+import type { CarouselSlide } from "../../types/carousel";
 
 function Hero() {
-  return (
-    <section className="bg-brand-red text-white">
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-12 md:flex-row md:justify-between">
-        <div className="max-w-xl text-center md:text-left">
-          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-            La hamburguesa que amás, en la puerta de tu casa
-          </h1>
-          <p className="mt-4 text-lg text-white/90">
-            Pedí en minutos y seguí tu pedido en tiempo real.
-          </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#menu"
-              className="rounded-full bg-brand-dark px-6 py-3 text-center font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Ver menú
-            </a>
-            <a
-              href="#"
-              className="rounded-full border-2 border-white bg-transparent px-6 py-3 text-center font-bold text-white transition-colors hover:bg-white hover:text-brand-red"
-            >
-              Promociones
-            </a>
-          </div>
-        </div>
-        <img
-          src="/imagenes/turbo-bacon.png"
-          alt="Hamburguesa destacada"
-          className="h-56 w-56 object-contain drop-shadow-xl md:h-72 md:w-72"
-        />
-      </div>
-    </section>
-  )
+  const { isAuthenticated, user } = useAuth();
+
+  const primerNombre = user?.name?.split(" ")[0];
+
+  const slides: CarouselSlide[] = [
+    {
+      id: "valor",
+      title: isAuthenticated
+        ? `Hola, ${primerNombre} 👋 ¿Qué se te antoja hoy?`
+        : "La hamburguesa que amás, en la puerta de tu casa",
+      description: isAuthenticated
+        ? "Volvé a pedir tus favoritos o descubrí algo nuevo en el menú."
+        : "Pedí en minutos y seguí tu pedido en tiempo real.",
+      ctaLabel: "Ver menú",
+      ctaTo: "/productos",
+      visual: "/imagenes/turbo-bacon.png",
+      visualType: "image",
+    },
+    {
+      id: "rapidez",
+      eyebrow: "Fácil y rápido",
+      title: "Pedí en pocos pasos",
+      description:
+        "Elegí, personalizá y pagá online: tu pedido llega directo a la puerta de tu casa.",
+      ctaLabel: "Empezar a pedir",
+      ctaTo: "/productos",
+      ctaVariant: "outline",
+      visual: "🛵",
+    },
+    {
+      id: "combo",
+      eyebrow: "Promo de la semana",
+      title: "Box Familiar con 20% off",
+      description:
+        "Hamburguesas, papas grandes y bebidas para compartir, a un precio especial.",
+      ctaLabel: "Ver promociones",
+      ctaTo: "/promociones",
+      visual: "🎉",
+    },
+  ];
+
+  return <Carousel slides={slides} />;
 }
 
-export default Hero
+export default Hero;

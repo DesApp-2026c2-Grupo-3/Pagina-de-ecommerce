@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Product } from '../types/product'
 import type { CartItem } from '../types/cart'
 
@@ -14,12 +14,27 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+const CART_STORAGE_KEY = 'cart'
+
 function buildItemId(productId: number, selectedOptions: string[]) {
   return `${productId}-${[...selectedOptions].sort().join('|')}`
 }
 
+function leerCarritoGuardado(): CartItem[] {
+  try {
+    const guardado = localStorage.getItem(CART_STORAGE_KEY)
+    return guardado ? JSON.parse(guardado) : []
+  } catch {
+    return []
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>(() => leerCarritoGuardado())
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+  }, [items])
 
   function addItem(product: Product, quantity: number, selectedOptions: string[]) {
     const id = buildItemId(product.id, selectedOptions)

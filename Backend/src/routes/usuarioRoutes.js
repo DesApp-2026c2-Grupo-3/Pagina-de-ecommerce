@@ -10,4 +10,11 @@ router.post('/', usuarioValidaciones.validarUsuario ,usuarioController.crearUsua
 
 router.post('/login', usuarioValidaciones.validarLogin, usuarioController.login)
 
+router.get('/:id', usuarioController.obtenerUsuarioPorId)
+
+router.put('/:id', usuarioValidaciones.validarActualizarUsuario, usuarioController.actualizarUsuario)
+
+router.put('/:id/sucursal', usuarioController.actualizarSucursalPredeterminada)
+
+
 module.exports = router;

@@ -11,18 +11,29 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Usuario.hasMany(models.Pedido, {
-    foreignKey: 'usuarioId'
-  });
+        foreignKey: 'usuarioId'
+      });
+      Usuario.hasMany(models.Direccion, {
+        foreignKey: 'usuarioId'
+      });
+      Usuario.belongsTo(models.Sucursal, {
+        foreignKey: 'sucursalId'
+      });
 
     }
   }
-  Usuario.init({
-    nombre:{type:DataTypes.STRING, allowNull:false},
-    email:{type:DataTypes.STRING, allowNull:false,unique:true},
-    password: {type:DataTypes.STRING, allowNull:false}
-  }, {
-    sequelize,
-    modelName: 'Usuario',
-  });
+Usuario.init({
+  nombre: { type: DataTypes.STRING, allowNull: false },
+  apellido: { type: DataTypes.STRING, allowNull: true },
+  email: { type: DataTypes.STRING, allowNull: false, unique: true },
+  password: { type: DataTypes.STRING, allowNull: false },
+  telefono: { type: DataTypes.STRING, allowNull: true },
+  dni: { type: DataTypes.STRING, allowNull: true },
+  fechaNacimiento: { type: DataTypes.DATEONLY, allowNull: true },
+  sucursalId: { type: DataTypes.INTEGER, allowNull: true },
+}, {
+  sequelize,
+  modelName: 'Usuario',
+})
   return Usuario;
 };

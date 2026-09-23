@@ -1,33 +1,81 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useCart } from '../../context/CartContext'
+import { Link, useNavigate } from 'react-router-dom'
+import { ShoppingCart } from 'lucide-react'
+//import logo from '../../assets/logoX.png'
+import { LogoConEco } from '../logoEcoMotion'
 
-const navLinks = [
-  { label: 'Home', to: '/', active: true },
-  { label: 'Productos', to: '#', active: false },
-  { label: 'Promociones', to: '#', active: false },
-  { label: 'Carrito', to: '/carrito', active: false }]
+function getNavLinks(isAuthenticated: boolean) {
+  const links = [
+    { label: 'Home', to: '/' },
+    { label: 'Productos', to: '/productos' },
+    { label: 'Promociones', to: '/promociones' },
+  ]
+
+  if (!isAuthenticated) {
+    links.push({ label: 'Trabajá acá', to: '/#trabaja-con-nosotros' })
+    links.push({ label: 'Sobre nosotros', to: '/#sobre-nosotros' })
+    links.push({ label: 'Contacto', to: '/#contacto' })
+  }
+
+  return links
+}
 
 function Navbar() {
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
+  const { totalItems, clearCart } = useCart()
+  const navigate = useNavigate()
+  const menuRef = useRef<HTMLLIElement>(null)
+  const navLinks = getNavLinks(isAuthenticated)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   function handleLogout() {
     logout()
+    clearCart()
+    setMenuOpen(false)
     setOpen(false)
+    navigate('/')
   }
 
   return (
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold text-white">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-red text-white">
+         {/*
+           <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-red text-white">
             B
           </span>
           <span>
             Burger<span className="text-brand-red">Fast</span>
-          </span>
+          </span> 
+         */}
+        {/*<div className="flex-1 flex justify-center items-center">
+          <a href="/" className="flex items-center">
+            <img 
+              src={logo} 
+              alt="Logotipo de la empresa" 
+              className="h-24 w-auto object-contain"
+            />
+          </a>
+        </div>*/} 
+        <LogoConEco isAuthenticated={isAuthenticated} />
+
         </Link>
+
+        
 
         <ul className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => (
@@ -40,22 +88,80 @@ function Navbar() {
               </Link>
             </li>
           ))}
-          <li>
+
+          {isAuthenticated && (
+            <li>
+              <Link
+                to="/carrito"
+                aria-label="Ver carrito"
+                className="relative flex items-center rounded-lg p-2 text-white transition-colors hover:bg-brand-red"
+              >
+                <ShoppingCart className="h-6 w-6" />
+                {totalItems > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-red text-xs font-bold text-white">
+                    {totalItems}
+                   </span>
+                )}
+              </Link>
+            </li>
+          )}
+
+          <li className="relative ml-2" ref={menuRef}>
             {isAuthenticated ? (
-              <div className="ml-2 flex items-center gap-3">
-                <span className="font-semibold text-white">Hola, {user?.name}</span>
+              <>
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-expanded={menuOpen}
                   className="rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
                 >
-                  Cerrar sesión
+                  Hola, {user?.name}
                 </button>
-              </div>
+
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-max overflow-hidden rounded-xl bg-white shadow-xl">
+                    <Link
+                      to="/perfil"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                    >
+                      <span>👤</span> Datos personales
+                    </Link>
+                    <Link
+                      to="/direcciones"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                    >
+                      <span>📍</span> Direcciones guardadas
+                    </Link>
+                    <Link
+                      to="/historial"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                    >
+                      <span>🧾</span> Historial de pedidos
+                    </Link>
+                    <Link
+                      to="/seguridad"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                    >
+                      <span>🔒</span> Seguridad
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2 whitespace-nowrap px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-cream"
+                    >
+                      <span>🚪</span> Cerrar sesión
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <Link
                 to="/login"
-                className="ml-2 rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
+                className="rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
               >
                 Iniciar Sesión
               </Link>
@@ -87,23 +193,65 @@ function Navbar() {
               </Link>
             </li>
           ))}
-          <li>
+
+          <li className="mt-1">
             {isAuthenticated ? (
-              <div className="mt-1 flex flex-col gap-2">
-                <span className="px-4 font-semibold text-white">Hola, {user?.name}</span>
+              <div className="flex flex-col gap-1">
+                <span className="px-4 py-1 font-semibold text-white">Hola, {user?.name}</span>
+                <Link
+                  to="/carrito"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Carrito
+                  {totalItems > 0 && (
+                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-brand-red">
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  to="/perfil"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <span>👤</span> Datos personales
+                </Link>
+                <Link
+                  to="/direcciones"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <span>📍</span> Direcciones guardadas
+                </Link>
+                <Link
+                  to="/historial"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <span>🧾</span> Historial de pedidos
+                </Link>
+                <Link
+                  to="/seguridad"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                >
+                  <span>🔒</span> Seguridad
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+                  className="mt-1 flex items-center justify-center gap-2 rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
                 >
-                  Cerrar sesión
+                  <span>🚪</span> Cerrar sesión
                 </button>
               </div>
             ) : (
               <Link
                 to="/login"
                 onClick={() => setOpen(false)}
-                className="mt-1 block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+                className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
               >
                 Iniciar Sesión
               </Link>

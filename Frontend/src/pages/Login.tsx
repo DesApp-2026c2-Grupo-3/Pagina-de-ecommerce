@@ -1,34 +1,51 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
+import { esEmailValido } from '../utils/validaciones'
+import ErrorAlert from '../components/ErrorAlert'
 
 function Login() {
   const { login, loading } = useAuth()
+  const { clearCart } = useCart()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError('')
+async function handleSubmit(e: FormEvent) {
+  e.preventDefault()
+  setError('')
 
-    try {
-      await login({ email, password })
-      navigate('/')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
-    }
+  if (!email.trim()) {
+    setError('El email es obligatorio')
+    return
   }
+  if (!esEmailValido(email)) {
+    setError('El email no tiene un formato válido')
+    return
+  }
+  if (!password) {
+    setError('La contraseña es obligatoria')
+    return
+  }
+
+  try {
+    await login({ email, password })
+    clearCart()
+    navigate('/')
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
+  }
+}
 
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-16">
       <h1 className="text-3xl font-extrabold text-brand-dark">Iniciar sesión</h1>
       <p className="mt-2 text-gray-600">Ingresá tus datos para continuar con tu pedido.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-        <div>
+        <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">        <div>
           <label htmlFor="email" className="text-sm font-semibold text-brand-dark">
             Email
           </label>
@@ -56,8 +73,7 @@ function Login() {
           />
         </div>
 
-        {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
-
+          <ErrorAlert message={error} />
         <button
           type="submit"
           disabled={loading}
