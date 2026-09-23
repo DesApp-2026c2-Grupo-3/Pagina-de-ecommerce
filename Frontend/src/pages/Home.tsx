@@ -41,9 +41,9 @@ function Home() {
     return categories
       .map((category) => ({
         category,
-        products: products.filter(
-          (product) => product.available && product.category === category.name,
-        ),
+      products: products
+        .filter((product) => product.category === category.name)
+        .sort((a, b) => Number(b.available) - Number(a.available)),  
       }))
       .filter((entry) => entry.products.length > 0)
   }, [categories, products])

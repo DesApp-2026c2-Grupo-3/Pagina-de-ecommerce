@@ -19,13 +19,13 @@ function Products() {
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
     return products.filter((product) => {
-      if (!product.available) return false;
       if (selectedCategory !== ALL_TAB && product.category !== selectedCategory)
         return false;
       if (query && !product.name.toLowerCase().includes(query)) return false;
-      return true;
-    });
-  }, [products, selectedCategory, search]);
+        return true;
+        })
+        .sort((a, b) => Number(b.available) - Number(a.available));
+      }, [products, selectedCategory, search]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">

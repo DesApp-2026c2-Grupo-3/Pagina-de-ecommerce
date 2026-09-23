@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart } from 'lucide-react'
-//import logo from '../../assets/logoX.png'
+import { ChevronDown, ShoppingCart } from 'lucide-react'
 import { LogoConEco } from '../logoEcoMotion'
 
 function getNavLinks(isAuthenticated: boolean) {
   const links = [
     { label: 'Home', to: '/' },
-    { label: 'Productos', to: '/productos' },
+    { label: 'Catalogo', to: '/catalogo' },
     { label: 'Promociones', to: '/promociones' },
   ]
 
@@ -22,9 +21,17 @@ function getNavLinks(isAuthenticated: boolean) {
   return links
 }
 
+const profileLinks = [
+  { label: 'Datos personales', to: '/perfil', icon: '👤' },
+  { label: 'Direcciones guardadas', to: '/direcciones', icon: '📍' },
+  { label: 'Historial de pedidos', to: '/historial', icon: '🧾' },
+  { label: 'Seguridad', to: '/seguridad', icon: '🔒' },
+]
+
 function Navbar() {
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
   const { totalItems, clearCart } = useCart()
   const navigate = useNavigate()
@@ -46,6 +53,7 @@ function Navbar() {
     logout()
     clearCart()
     setMenuOpen(false)
+    setMobileProfileOpen(false) 
     setOpen(false)
     navigate('/')
   }
@@ -57,6 +65,10 @@ function Navbar() {
     if (to === '/') {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
+  }
+  function closeMobileMenu() {
+  setOpen(false)
+  setMobileProfileOpen(false)
   }
 
   return (
@@ -98,8 +110,6 @@ function Navbar() {
               </Link>
             </li>
           ))}
-
-          {isAuthenticated && (
             <li>
               <Link
                 to="/carrito"
@@ -113,9 +123,7 @@ function Navbar() {
                    </span>
                 )}
               </Link>
-            </li>
-          )}
-
+            </li> 
           <li className="relative ml-2" ref={menuRef}>
             {isAuthenticated ? (
               <>
@@ -129,40 +137,37 @@ function Navbar() {
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-max overflow-hidden rounded-xl bg-white shadow-xl">
-                    <Link
+                <div className="absolute right-0 mt-2 w-max overflow-hidden rounded-xl border border-white/10 bg-brand-dark shadow-xl">                    <Link
                       to="/perfil"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
-                    >
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"                    >
                       <span>👤</span> Datos personales
                     </Link>
                     <Link
                       to="/direcciones"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-cream"
                     >
                       <span>📍</span> Direcciones guardadas
                     </Link>
                     <Link
                       to="/historial"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-cream"
                     >
                       <span>🧾</span> Historial de pedidos
                     </Link>
                     <Link
                       to="/seguridad"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-brand-dark hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-cream"
                     >
                       <span>🔒</span> Seguridad
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-2 whitespace-nowrap px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-cream"
-                    >
+                      className="flex w-full items-center gap-2 whitespace-nowrap border-t border-white/10 px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-red hover:text-white"                    >
                       <span>🚪</span> Cerrar sesión
                     </button>
                   </div>
@@ -190,88 +195,85 @@ function Navbar() {
         </button>
       </nav>
 
-      {open && (
-        <ul className="flex flex-col gap-1 border-t border-white/10 bg-brand-dark px-4 pb-4 lg:hidden">
-          {navLinks.map((link) => (
-            <li key={link.label}>
-              <Link
-                to={link.to}
-                onClick={() => {
-                  handleNavLinkClick(link.to)
-                  setOpen(false)
-                }}
-                className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+     {open && (
+  <ul className="flex flex-col gap-1 border-t border-white/10 bg-brand-dark px-4 pb-4 lg:hidden">
+    {navLinks.map((link) => (
+      <li key={link.label}>
+        <Link
+          to={link.to}
+          onClick={() => {
+            handleNavLinkClick(link.to)
+            closeMobileMenu()
+          }}
+          className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+        >
+          {link.label}
+        </Link>
+      </li>
+    ))}
 
-          <li className="mt-1">
-            {isAuthenticated ? (
-              <div className="flex flex-col gap-1">
-                <span className="px-4 py-1 font-semibold text-white">Hola, {user?.name}</span>
+    <li>
+      <Link
+        to="/carrito"
+        onClick={closeMobileMenu}
+        className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+      >
+        <ShoppingCart className="h-5 w-5" />
+        Carrito
+        {totalItems > 0 && (
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-brand-red">
+            {totalItems}
+          </span>
+        )}
+      </Link>
+    </li>
+
+    <li className="mt-2">
+      {isAuthenticated ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setMobileProfileOpen((v) => !v)}
+            aria-expanded={mobileProfileOpen}
+            className="flex w-full items-center justify-between rounded-full bg-brand-red px-5 py-2 font-bold text-white"
+          >
+            Hola, {user?.name}
+            <ChevronDown
+              className={`h-5 w-5 transition-transform ${mobileProfileOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {mobileProfileOpen && (
+            <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-brand-dark">              {profileLinks.map((item) => (
                 <Link
-                  to="/carrito"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  Carrito
-                  {totalItems > 0 && (
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-brand-red">
-                      {totalItems}
-                    </span>
-                  )}
+                  key={item.to}
+                  to={item.to}
+                  onClick={closeMobileMenu}
+                      className="flex items-center gap-2 px-4 py-2 font-semibold text-white hover:bg-brand-red"                >
+                  <span>{item.icon}</span> {item.label}
                 </Link>
-                <Link
-                  to="/perfil"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                >
-                  <span>👤</span> Datos personales
-                </Link>
-                <Link
-                  to="/direcciones"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                >
-                  <span>📍</span> Direcciones guardadas
-                </Link>
-                <Link
-                  to="/historial"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                >
-                  <span>🧾</span> Historial de pedidos
-                </Link>
-                <Link
-                  to="/seguridad"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                >
-                  <span>🔒</span> Seguridad
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="mt-1 flex items-center justify-center gap-2 rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
-                >
-                  <span>🚪</span> Cerrar sesión
-                </button>
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
-              >
-                Iniciar Sesión
-              </Link>
-            )}
-          </li>
-        </ul>
+              ))}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2 border-t border-white/10 px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-red hover:text-white"              >
+                <span>🚪</span> Cerrar sesión
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <Link
+          to="/login"
+          onClick={closeMobileMenu}
+          className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+        >
+          Iniciar Sesión
+        </Link>
       )}
+    </li>
+  </ul>
+)} 
     </header>
   )
 }

@@ -17,10 +17,10 @@ function Promociones() {
 
   const filteredPromotions = useMemo(() => {
     return promotions.filter((promo) => {
-      if (!promo.available) return false
       if (selectedCategory !== ALL_TAB && promo.category !== selectedCategory) return false
       return true
     })
+    .sort((a, b) => Number(b.available) - Number(a.available))
   }, [promotions, selectedCategory])
 
   return (

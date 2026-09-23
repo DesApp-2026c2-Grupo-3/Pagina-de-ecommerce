@@ -11,8 +11,7 @@ function Cart() {
 
   function handleCheckout() {
     if (!isAuthenticated) {
-      navigate("/login");
-      return;
+    navigate("/login", { state: { from: "/carrito" } });      return;
     }
     navigate("/checkout");
   }

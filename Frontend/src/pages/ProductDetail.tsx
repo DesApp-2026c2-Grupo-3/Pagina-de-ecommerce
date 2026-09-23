@@ -23,11 +23,13 @@ function ProductDetail() {
   }, [id]);
 
   function handleAddToCart() {
+    if (!product?.available) return 
     addItem(product!, 1, Array.from(selected));
     showToast(`${product!.name} se agregó al carrito`);
   }
 
   function handleBuyNow() {
+    if (!product?.available) return;
     addItem(product!, 1, Array.from(selected));
     navigate("/carrito");
   }
@@ -129,21 +131,29 @@ function ProductDetail() {
               ${product.price.toLocaleString("es-AR")}
             </span>
           </div>
+          {!product.available && (
+            <p className="mt-2 font-semibold text-gray-500">
+              No disponible por el momento
+            </p>
+          )}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={handleAddToCart}
-              className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
+              disabled={!product.available}
+              className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:opacity-100"
             >
-              Agregar al carrito
+              {product.available ? 'Agregar al carrito' : 'No disponible'}
             </button>
-            <button
-              type="button"
-              onClick={handleBuyNow}
-              className="rounded-full bg-brand-dark px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Comprar ahora
-            </button>
+            {product.available && (
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                className="rounded-full bg-brand-dark px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Comprar ahora
+              </button>
+            )}
           </div>
         </div>
       </div>

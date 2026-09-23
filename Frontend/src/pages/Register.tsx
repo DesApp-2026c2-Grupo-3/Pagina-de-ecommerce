@@ -1,13 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useCart } from '../context/CartContext'
 import ErrorAlert from '../components/ErrorAlert'
 import { esEmailValido } from '../utils/validaciones'
 
 function Register() {
   const { register, loading } = useAuth()
-  const { clearCart } = useCart()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
@@ -32,7 +30,6 @@ function Register() {
     }
     try {
       await register({ name, email, password })
-      clearCart()
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse')
