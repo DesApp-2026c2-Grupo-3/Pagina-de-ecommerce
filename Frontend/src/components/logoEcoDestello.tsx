@@ -19,28 +19,38 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     const [mostrarLogo, setMostrarLogo] = useState(false);
 
     useEffect(() => {
+        // Declaramos los manejadores locales para que pertenezcan únicamente a este renderizado
+        let timerVibracionStart: NodeJS.Timeout | null = null;
+        let timerVibracionEnd: NodeJS.Timeout | null = null;
+
         if (isAuthenticated) {
             setRayoActivo(true);
             setMostrarLogo(false);
             setVibrando(false);
 
-            // Impacto a los 400ms: aparece el logo en el centro exacto
-            const timerVibracionStart = setTimeout(() => {
+            // Impacto a los 600ms: aparece el logo en el centro exacto
+            timerVibracionStart = setTimeout(() => {
                 setMostrarLogo(true);
                 setVibrando(true);
             }, 600);
 
             // Fin de la secuencia a los 1600ms totales
-            const timerVibracionEnd = setTimeout(() => {
+            timerVibracionEnd = setTimeout(() => {
                 setVibrando(false);
                 setRayoActivo(false); 
             }, 1600);
-
-            return () => {
-                clearTimeout(timerVibracionStart);
-                clearTimeout(timerVibracionEnd);
-            };
         }
+
+        // FUNCIÓN DE LIMPIEZA INMUNE A REFRESH (F5) RÁPIDOS
+        return () => {
+            if (timerVibracionStart) clearTimeout(timerVibracionStart);
+            if (timerVibracionEnd) clearTimeout(timerVibracionEnd);
+            
+            // Forzamos el apagado inmediato para que el nuevo montaje empiece de cero absoluto
+            setRayoActivo(false);
+            setMostrarLogo(false);
+            setVibrando(false);
+        };
     }, [isAuthenticated]);
 
     const ecos: EcoConfig[] = [
@@ -84,23 +94,23 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
 
                     .rayo-centrado-perfecto {
                         animation: animarRayoCentrado 0.65s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
-                        transform-origin: center center; /* Fuerza el anclaje en la mitad */
+                        transform-origin: center center;
                     }
                 `}</style>
 
-                {/* LOS RAYOS: Idénticos, uno en el centro y otro desplazado a la derecha */}
+                {/* LOS RAYOS: Corregido el anidamiento de comentarios aquí adentro */}
                 {rayoActivo && (
                     <svg 
                         className="rayo-centrado-perfecto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[240%] w-[180%] pointer-events-none z-0"
-                        viewBox="0 0 140 100" // Ampliado a 140 para dar margen al espacio derecho
+                        viewBox="0 0 140 100" 
                         fill="#00f0ff"
                         style={{
                             filter: 'drop-shadow(0 0 8px #00f0ff) drop-shadow(0 0 20px #0066ff) drop-shadow(0 0 40px #002299)',
                             mixBlendMode: 'screen'
                         }}
                     >
-                        {/* RAYO ORIGINAL (Centro) */}
-                        {/*<path d="M50,0 L40,18 L53,18 L36,36 L48,36 L32,56 L45,56 L26,76 L41,76 L15,100 L32,79 L20,79 L38,59 L26,59 L43,39 L31,39 L48,21 L36,21 Z" />
+                        {/* RAYO ORIGINAL (Centro) - Desactivado limpiamente */}
+                        {/* <path d="M50,0 L40,18 L53,18 L36,36 L48,36 L32,56 L45,56 L26,76 L41,76 L15,100 L32,79 L20,79 L38,59 L26,59 L43,39 L31,39 L48,21 L36,21 Z" /> */}
                         
                         {/* RAYO REPLICADO (Derecha): Idéntica forma y orientación gracias al translate */}
                         <path 
