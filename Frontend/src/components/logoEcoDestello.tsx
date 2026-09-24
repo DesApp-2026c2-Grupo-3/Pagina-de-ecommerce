@@ -19,7 +19,6 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     const [mostrarLogo, setMostrarLogo] = useState(false);
 
     useEffect(() => {
-        // Declaramos los manejadores locales para que pertenezcan únicamente a este renderizado
         let timerVibracionStart: NodeJS.Timeout | null = null;
         let timerVibracionEnd: NodeJS.Timeout | null = null;
 
@@ -39,14 +38,17 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                 setVibrando(false);
                 setRayoActivo(false); 
             }, 1600);
+        } else {
+            // Si no está autenticado, limpiamos estados de animación
+            setRayoActivo(false);
+            setMostrarLogo(false);
+            setVibrando(false);
         }
 
-        // FUNCIÓN DE LIMPIEZA INMUNE A REFRESH (F5) RÁPIDOS
         return () => {
             if (timerVibracionStart) clearTimeout(timerVibracionStart);
             if (timerVibracionEnd) clearTimeout(timerVibracionEnd);
             
-            // Forzamos el apagado inmediato para que el nuevo montaje empiece de cero absoluto
             setRayoActivo(false);
             setMostrarLogo(false);
             setVibrando(false);
@@ -58,7 +60,8 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
         { x: vibrando ? -20 : 0, opacity: vibrando ? 0.30 : 0, filter: 'hue-rotate(240deg) brightness(1.4)',           delay: '0.1s' }, 
         { x: vibrando ? 10 : 0,  opacity: vibrando ? 0.50 : 0, filter: 'hue-rotate(300deg) brightness(1.3)',           delay: '0.05s' },
         { x: vibrando ? -10 : 0, opacity: vibrando ? 0.65 : 0, filter: 'hue-rotate(0deg) saturate(1.5)',               delay: '0.15s' },
-        { x: 0,                  opacity: mostrarLogo ? 1.00 : 0, filter: 'none',                                      delay: '0s' }    
+        // CORRECCIÓN: Si no está autenticado, la opacidad del logo del frente pasa a ser 1.00 directamente
+        { x: 0,                  opacity: (!isAuthenticated || mostrarLogo) ? 1.00 : 0, filter: 'none',                delay: '0s' }    
     ];
 
     return (
@@ -98,7 +101,7 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                     }
                 `}</style>
 
-                {/* LOS RAYOS: Corregido el anidamiento de comentarios aquí adentro */}
+                {/* LOS RAYOS */}
                 {rayoActivo && (
                     <svg 
                         className="rayo-centrado-perfecto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[240%] w-[180%] pointer-events-none z-0"
@@ -109,10 +112,6 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                             mixBlendMode: 'screen'
                         }}
                     >
-                        {/* RAYO ORIGINAL (Centro) - Desactivado limpiamente */}
-                        {/* <path d="M50,0 L40,18 L53,18 L36,36 L48,36 L32,56 L45,56 L26,76 L41,76 L15,100 L32,79 L20,79 L38,59 L26,59 L43,39 L31,39 L48,21 L36,21 Z" /> */}
-                        
-                        {/* RAYO REPLICADO (Derecha): Idéntica forma y orientación gracias al translate */}
                         <path 
                             d="M50,0 L40,18 L53,18 L36,36 L48,36 L32,56 L45,56 L26,76 L41,76 L15,100 L32,79 L20,79 L38,59 L26,59 L43,39 L31,39 L48,21 L36,21 Z" 
                             transform="translate(100, 0)" 
@@ -121,8 +120,11 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                 )}
 
                 {/* EL LOGO Y ECOS */}
-                {mostrarLogo && ecos.map((eco, index) => {
+                {(!isAuthenticated || mostrarLogo) && ecos.map((eco, index) => {
                     const esLogoFrente = index === ecos.length - 1;
+
+                    // Si no está autenticado, ignoramos los ecos cromáticos de fondo
+                    if (!isAuthenticated && !esLogoFrente) return null;
 
                     return (
                         <img
