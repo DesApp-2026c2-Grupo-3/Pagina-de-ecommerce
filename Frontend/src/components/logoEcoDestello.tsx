@@ -17,41 +17,39 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     const [vibrando, setVibrando] = useState(false);
     const [rayoActivo, setRayoActivo] = useState(false);
     const [mostrarLogo, setMostrarLogo] = useState(false);
+    // NUEVO: Estado para saber si el archivo de imagen ya fue procesado por el navegador
+    const [logoCargado, setLogoCargado] = useState(false);
 
     useEffect(() => {
-        let timerVibracionStart: NodeJS.Timeout | null = null;
-        let timerVibracionEnd: NodeJS.Timeout | null = null;
+        let timerVibracionStart: ReturnType<typeof setTimeout> | null = null;
+        let timerVibracionEnd: ReturnType<typeof setTimeout> | null = null;
 
-        if (isAuthenticated) {
-            setRayoActivo(true);
-            setMostrarLogo(false);
-            setVibrando(false);
-
-            // Impacto a los 600ms: aparece el logo en el centro exacto
-            timerVibracionStart = setTimeout(() => {
-                setMostrarLogo(true);
-                setVibrando(true);
-            }, 600);
-
-            // Fin de la secuencia a los 1600ms totales
-            timerVibracionEnd = setTimeout(() => {
-                setVibrando(false);
-                setRayoActivo(false); 
-            }, 1600);
-        } else {
-            // Si no está autenticado, limpiamos estados de animación
+        if (!isAuthenticated) {
             setRayoActivo(false);
-            setMostrarLogo(false);
+            setMostrarLogo(true);
             setVibrando(false);
+            return; 
         }
 
+        setRayoActivo(true);
+        setMostrarLogo(false);
+        setVibrando(false);
+
+        // Impacto a los 600ms: aparece el logo en el centro exacto
+        timerVibracionStart = setTimeout(() => {
+            setMostrarLogo(true);
+            setVibrando(true);
+        }, 600);
+
+        // Fin de la secuencia a los 1600ms totales
+        timerVibracionEnd = setTimeout(() => {
+            setVibrando(false);
+            setRayoActivo(false); 
+        }, 1600);
+       
         return () => {
             if (timerVibracionStart) clearTimeout(timerVibracionStart);
             if (timerVibracionEnd) clearTimeout(timerVibracionEnd);
-            
-            setRayoActivo(false);
-            setMostrarLogo(false);
-            setVibrando(false);
         };
     }, [isAuthenticated]);
 
@@ -60,7 +58,6 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
         { x: vibrando ? -20 : 0, opacity: vibrando ? 0.30 : 0, filter: 'hue-rotate(240deg) brightness(1.4)',           delay: '0.1s' }, 
         { x: vibrando ? 10 : 0,  opacity: vibrando ? 0.50 : 0, filter: 'hue-rotate(300deg) brightness(1.3)',           delay: '0.05s' },
         { x: vibrando ? -10 : 0, opacity: vibrando ? 0.65 : 0, filter: 'hue-rotate(0deg) saturate(1.5)',               delay: '0.15s' },
-        // CORRECCIÓN: Si no está autenticado, la opacidad del logo del frente pasa a ser 1.00 directamente
         { x: 0,                  opacity: (!isAuthenticated || mostrarLogo) ? 1.00 : 0, filter: 'none',                delay: '0s' }    
     ];
 
@@ -123,14 +120,17 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                 {(!isAuthenticated || mostrarLogo) && ecos.map((eco, index) => {
                     const esLogoFrente = index === ecos.length - 1;
 
-                    // Si no está autenticado, ignoramos los ecos cromáticos de fondo
                     if (!isAuthenticated && !esLogoFrente) return null;
 
                     return (
                         <img
                             key={index}
                             src={logo}
-                            alt="Logotipo con efecto de vibración cromática"
+                            // CORRECCIÓN DEFINITIVA: Si la imagen aún no disparó el onLoad, 
+                            // el texto alt permanece vacío para que el navegador no dibuje nada.
+                            alt={logoCargado ? "Logotipo EcoDestello" : ""}
+                            // Al completarse la carga física, activamos el alt de forma segura
+                            onLoad={() => { if (esLogoFrente) setLogoCargado(true); }}
                             className={`h-full w-full object-contain absolute inset-0 will-change-transform z-10 ${
                                 vibrando ? 'vibracion-activa' : ''
                             }`}
