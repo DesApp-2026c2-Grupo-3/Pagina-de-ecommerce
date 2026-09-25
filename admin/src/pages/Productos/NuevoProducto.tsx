@@ -105,7 +105,7 @@ export default function NuevoProducto() {
           <input
             type="text"
             value={nombre}
-            maxLength={15}
+            maxLength={25}
             onChange={(e) => {
               setNombre(e.target.value);
               setErrorNombre("");
@@ -123,7 +123,7 @@ export default function NuevoProducto() {
           <label>Descripción</label>
           <textarea
             value={descripcion}
-            maxLength={100}
+            maxLength={300}
             onChange={(e) => {
               setDescripcion(e.target.value);
               setErrorDescripcion("");

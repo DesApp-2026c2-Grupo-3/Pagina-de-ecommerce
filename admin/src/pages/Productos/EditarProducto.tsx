@@ -114,6 +114,7 @@ export default function EditarProducto() {
           <label>Nombre</label>
           <input
             type="text"
+            maxLength={25}
             value={nombre}
             onChange={(e) => {
               setNombre(e.target.value);

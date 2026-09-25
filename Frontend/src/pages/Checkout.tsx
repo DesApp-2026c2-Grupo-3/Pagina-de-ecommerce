@@ -99,16 +99,12 @@ function Checkout() {
           >
             <div>
               <p className="font-bold text-brand-dark">
-                {item.quantity}x {item.product.name}
+                {item.quantity}x {item.product.nombre}
               </p>
-              {item.selectedOptions.length > 0 && (
-                <p className="text-sm text-gray-600">
-                  {item.selectedOptions.map((o) => o.split("-")[1]).join(", ")}
-                </p>
-              )}
+              
             </div>
             <span className="font-extrabold text-brand-red">
-              ${(item.product.price * item.quantity).toLocaleString("es-AR")}
+              ${(Number(item.product.precio) * item.quantity).toLocaleString("es-AR")}
             </span>
           </div>
         ))}

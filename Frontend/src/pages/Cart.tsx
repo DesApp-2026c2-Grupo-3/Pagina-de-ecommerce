@@ -41,20 +41,16 @@ function Cart() {
           <div key={item.id} className="flex flex-col">
             <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-md">
               <img
-              src={item.product.image}
-              alt={item.product.name}
+              src={item.product.imagen}
+              alt={item.product.nombre}
               className="h-20 w-20 rounded-xl bg-brand-cream object-cover"
               />
 
               <div className="flex-1">
-                <h3 className="font-bold text-brand-dark">{item.product.name}</h3>
-                {item.selectedOptions.length > 0 && (
-                  <p className="text-sm text-gray-600">
-                    {item.selectedOptions.map((o) => o.split("-")[1]).join(", ")}
-                  </p>
-                )}
+                <h3 className="font-bold text-brand-dark">{item.product.nombre}</h3>
+                
                 <span className="font-extrabold text-brand-red">
-                  ${item.product.price.toLocaleString("es-AR")}
+                  ${Number(item.product.precio).toLocaleString("es-AR")}
                 </span>
               </div>
 

@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { Product } from '../types/product'
+import type { ProductoBackend } from '../types/product'
 import type { CartItem } from '../types/cart'
 
 interface CartContextType {
   items: CartItem[]
-  addItem: (product: Product, quantity: number, selectedOptions: string[]) => void
+  addItem: (product: ProductoBackend, quantity: number) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
@@ -16,8 +16,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 const CART_STORAGE_KEY = 'cart'
 
-function buildItemId(productId: number, selectedOptions: string[]) {
-  return `${productId}-${[...selectedOptions].sort().join('|')}`
+function buildItemId(productId: number) {
+  return String(productId)
 }
 
 function leerCarritoGuardado(): CartItem[] {
@@ -36,19 +36,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
   }, [items])
 
-  function addItem(product: Product, quantity: number, selectedOptions: string[]) {
-    const id = buildItemId(product.id, selectedOptions)
+function addItem(product: ProductoBackend, quantity: number) {
+  const id = buildItemId(product.id)
 
-    setItems((prev) => {
-      const existing = prev.find((item) => item.id === id)
-      if (existing) {
-        return prev.map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity + quantity } : item,
-        )
-      }
-      return [...prev, { id, product, quantity, selectedOptions }]
-    })
-  }
+  setItems((prev) => {
+    const existing = prev.find((item) => item.id === id)
+
+    if (existing) {
+      return prev.map((item) =>
+        item.id === id
+          ? { ...item, quantity: item.quantity + quantity }
+          : item,
+      )
+    }
+
+    return [...prev, { id, product, quantity }]
+  })
+}
 
   function removeItem(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id))
@@ -67,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const totalPrice = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+  const totalPrice = items.reduce((sum, item) => sum + Number(item.product.precio) * item.quantity, 0)
 
   return (
     <CartContext.Provider
