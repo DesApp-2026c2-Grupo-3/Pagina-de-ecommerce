@@ -13,6 +13,10 @@ module.exports = (sequelize, DataTypes) => {
       Sucursal.hasMany(models.Usuario, {
         foreignKey: 'sucursalId'
       });
+
+      Sucursal.hasMany(models.StockSucursal, {
+        foreignKey: 'sucursalId'
+      });
     }
   }
   Sucursal.init({
