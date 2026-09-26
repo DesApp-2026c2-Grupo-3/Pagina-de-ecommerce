@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, ShoppingCart } from 'lucide-react'
-import { LogoConEco } from '../logoEcoMotion'
+import { LogoConEco } from '../logoEcoDestello'
 
 function getNavLinks(isAuthenticated: boolean) {
   const links = [
@@ -146,21 +146,21 @@ function Navbar() {
                     <Link
                       to="/direcciones"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"
                     >
                       <span>📍</span> Direcciones guardadas
                     </Link>
                     <Link
                       to="/historial"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"
                     >
                       <span>🧾</span> Historial de pedidos
                     </Link>
                     <Link
                       to="/seguridad"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-cream"
+                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"
                     >
                       <span>🔒</span> Seguridad
                     </Link>

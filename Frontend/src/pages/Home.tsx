@@ -10,12 +10,12 @@ import ContactSection from '../components/home/ContactSection'
 import CareersSection from '../components/home/CareersSection'
 import { getCategories, getProducts } from '../services/productService'
 import { useAuth } from '../context/AuthContext'
-import type { Category, Product } from '../types/product'
+import type { Category, ProductoBackend } from '../types/product'
 
 function Home() {
   const { isAuthenticated } = useAuth()
   const location = useLocation()
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductoBackend[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -41,9 +41,9 @@ function Home() {
     return categories
       .map((category) => ({
         category,
-      products: products
-        .filter((product) => product.category === category.name)
-        .sort((a, b) => Number(b.available) - Number(a.available)),  
+        products: products
+        .filter((product) => product.categoriaId === category.id)
+        .sort((a, b) => Number(b.disponible) - Number(a.disponible)),  
       }))
       .filter((entry) => entry.products.length > 0)
   }, [categories, products])
@@ -67,8 +67,7 @@ function Home() {
               <CategorySection
                 key={category.id}
                 categoryId={category.id}
-                title={category.name}
-                icon={category.icon}
+                title={category.nombre}
                 products={categoryProducts}
               />
             ))

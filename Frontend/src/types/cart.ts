@@ -1,8 +1,7 @@
-import type { Product } from './product'
+import type { ProductoBackend } from './product'
 
 export interface CartItem {
-  id: string          // id único de esta línea del carrito (producto + configuraciones)
-  product: Product
+  id: string
+  product: ProductoBackend
   quantity: number
-  selectedOptions: string[]  // ej: ["Extra ingredientes-Bacon", "Salsas-Ketchup"]
 }
