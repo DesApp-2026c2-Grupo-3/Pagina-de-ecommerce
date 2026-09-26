@@ -18,8 +18,17 @@ export interface Product {
   discountLabel?: string
 }
 
+export interface ProductoBackend {
+  id: number
+  nombre: string
+  descripcion: string
+  precio: number
+  imagen: string
+  disponible: boolean
+  categoriaId: number
+}
+
 export interface Category {
   id: number
-  name: string
-  icon: string
+  nombre: string
 }

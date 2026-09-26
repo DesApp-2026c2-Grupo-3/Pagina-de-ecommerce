@@ -1,4 +1,4 @@
-import type { Product } from '../../types/product'
+import type { ProductoBackend } from '../../types/product'
 import ProductCard from './ProductCard'
 import { useDragScroll } from '../../hooks/useDragScroll'
 import { useEffect, useState } from 'react'
@@ -7,11 +7,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 interface CategorySectionProps {
   categoryId: number
   title: string
-  icon: string
-  products: Product[]
+  products: ProductoBackend[]
 }
 
-function CategorySection({ categoryId, title, icon, products }: CategorySectionProps) {
+function CategorySection({ categoryId, title, products }: CategorySectionProps) {
   const { ref, handlers } = useDragScroll<HTMLDivElement>()
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
@@ -41,46 +40,45 @@ function scrollByPage(direction: 1 | -1) {
       id={`categoria-${categoryId}`}
     >
       <h2 className="mb-4 flex items-center gap-3 text-2xl font-extrabold text-brand-dark">
-        <span className="text-3xl">{icon}</span>
         {title}
       </h2>
 
       <div className="relative">
-      <div
-        ref={ref}
-        {...handlers}
-        className={`-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide ${handlers.className}`}
-      >
-        {products.map((product) => (
-          <div key={product.id} className="w-64 shrink-0 snap-start">
-            <ProductCard product={product} />
-          </div>
-        ))}
+        <div
+          ref={ref}
+          {...handlers}
+          className={`-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide ${handlers.className}`}>
+          {products.map((product) => (
+            <div key={product.id} className="w-64 shrink-0 snap-start">
+              <ProductCard product={product} />
+            </div>
+          ))}
+
           {canScrollLeft && (
-    <button
-      type="button"
-      aria-label="Ver productos anteriores"
-      onClick={() => scrollByPage(-1)}
-      className="absolute left-0 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white text-brand-dark shadow-lg transition-colors hover:bg-brand-red hover:text-white"
-    >
-      <ChevronLeft className="h-6 w-6" />
-    </button>
-  )}
+            <button
+            type="button"
+            aria-label="Ver productos anteriores"
+            onClick={() => scrollByPage(-1)}
+            className="absolute left-0 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white text-brand-dark shadow-lg transition-colors hover:bg-brand-red hover:text-white">
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            )
+          }
 
-  {canScrollRight && (
-    <button
-      type="button"
-      aria-label="Ver más productos"
-      onClick={() => scrollByPage(1)}
-      className="absolute right-0 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white text-brand-dark shadow-lg transition-colors hover:bg-brand-red hover:text-white"
-    >
-      <ChevronRight className="h-6 w-6" />
-    </button>
-  )}
-</div>
-      </div>
+          {canScrollRight && (
+            <button
+            type="button"
+            aria-label="Ver más productos"
+            onClick={() => scrollByPage(1)}
+            className="absolute right-0 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white text-brand-dark shadow-lg transition-colors hover:bg-brand-red hover:text-white">
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          )
+        }
+    </div>
+  </div>
 
-    </section>
+  </section>
   )
 }
 

@@ -1,46 +1,51 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getProducts } from "../services/productService";
-import type { Product } from "../types/product";
+import { getCategories, getProducts } from "../services/productService";
+import type { ProductoBackend } from "../types/product";
 import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
 
 function ProductDetail() {
   const { id } = useParams<{ id: string }>();
-  const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [product, setProduct] = useState<ProductoBackend | undefined>(undefined);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [categoryName, setCategoryName] = useState('')
   const { addItem } = useCart();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoading(true);
-    getProducts().then((products) => {
-      setProduct(products.find((item) => item.id === Number(id)));
-      setLoading(false);
-    });
-  }, [id]);
+  setLoading(true)
+
+  Promise.all([getProducts(), getCategories()])
+    .then(([products, categories]) => {
+      const foundProduct = products.find(
+        (item) => item.id === Number(id)
+      )
+
+      setProduct(foundProduct)
+
+      if (foundProduct) {
+        const category = categories.find(
+          (item) => item.id === foundProduct.categoriaId
+        )
+
+        setCategoryName(category?.nombre ?? '')
+      }
+    })
+    .finally(() => setLoading(false))
+}, [id])
 
   function handleAddToCart() {
-    if (!product?.available) return 
-    addItem(product!, 1, Array.from(selected));
-    showToast(`${product!.name} se agregó al carrito`);
+    if (!product?.disponible) return 
+    addItem(product, 1);
+    showToast(`${product!.nombre} se agregó al carrito`);
   }
 
   function handleBuyNow() {
-    if (!product?.available) return;
-    addItem(product!, 1, Array.from(selected));
+    if (!product?.disponible) return;
+    addItem(product, 1);
     navigate("/carrito");
-  }
-
-  function toggleOption(key: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
   }
 
   if (loading) {
@@ -78,60 +83,33 @@ function ProductDetail() {
       >
         ← Volver al catálogo
       </Link>
-
+      
       <div className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-2">
+
         <img
-          src={product.image}
-          alt={product.name}
+          src={product.imagen}
+          alt={product.nombre}
           className="h-72 w-full rounded-2xl bg-brand-cream object-cover md:h-96"
         />
 
         <div className="flex flex-col">
-          <span className="inline-block w-fit rounded-full bg-brand-red/10 px-3 py-1 text-sm font-bold text-brand-red">
-            {product.category}
-          </span>
-          <h1 className="mt-3 text-3xl font-extrabold text-brand-dark sm:text-4xl">
-            {product.name}
-          </h1>
-          <p className="mt-4 text-gray-600">{product.description}</p>
-
-          {product.configurations && product.configurations.length > 0 && (
-            <div className="mt-6 space-y-4">
-              {product.configurations.map((config) => (
-                <div key={config.label}>
-                  <p className="font-bold text-brand-dark">{config.label}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {config.options.map((option) => {
-                      const key = `${config.label}-${option}`;
-                      const isSelected = selected.has(key);
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          aria-pressed={isSelected}
-                          onClick={() => toggleOption(key)}
-                          className={`rounded-full border px-3 py-1 text-sm font-semibold transition-colors ${
-                            isSelected
-                              ? "border-brand-red bg-brand-red text-white"
-                              : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+          {categoryName && (
+            <span className="mr-auto rounded-full bg-brand-red px-3 py-1 text-sm font-bold text-white">
+              {categoryName}
+            </span>
           )}
+
+          <h1 className="mt-3 text-3xl font-extrabold text-brand-dark sm:text-4xl">
+            {product.nombre}
+          </h1>
+          <p className="mt-4 text-gray-600">{product.descripcion}</p>
 
           <div className="mt-6">
             <span className="text-3xl font-extrabold text-brand-red">
-              ${product.price.toLocaleString("es-AR")}
+              ${Number(product.precio).toLocaleString("es-AR")}
             </span>
           </div>
-          {!product.available && (
+          {!product.disponible && (
             <p className="mt-2 font-semibold text-gray-500">
               No disponible por el momento
             </p>
@@ -140,12 +118,12 @@ function ProductDetail() {
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={!product.available}
+              disabled={!product.disponible}
               className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:opacity-100"
             >
-              {product.available ? 'Agregar al carrito' : 'No disponible'}
+              {product.disponible ? 'Agregar al carrito' : 'No disponible'}
             </button>
-            {product.available && (
+            {product.disponible && (
               <button
                 type="button"
                 onClick={handleBuyNow}
