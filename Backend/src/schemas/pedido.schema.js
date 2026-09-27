@@ -11,6 +11,11 @@ const pedidoSchema = Joi.object({
         'any.required': 'Tenés que seleccionar una dirección de entrega'
     }),
 
+    sucursalId: Joi.number().integer().positive().required().messages({
+        'number.base': 'El id de sucursal debe ser un número',
+        'any.required': 'Tenés que seleccionar una sucursal'
+    }),
+
     productos: Joi.array().items(
         Joi.object({
             productoId: Joi.number().integer().positive().required().messages({
@@ -21,6 +26,21 @@ const pedidoSchema = Joi.object({
                 'number.base': 'La cantidad debe ser un número',
                 'number.min': 'La cantidad debe ser al menos 1',
                 'any.required': 'La cantidad es obligatoria'
+            }),
+            personalizaciones: Joi.array().items(
+                Joi.object({
+                    insumoId: Joi.number().integer().positive().required().messages({
+                        'number.base': 'El id de insumo debe ser un número',
+                        'any.required': 'Cada personalización debe indicar el insumo'
+                    }),
+                    cantidad: Joi.number().min(0).required().messages({
+                        'number.base': 'La cantidad del insumo debe ser un número',
+                        'number.min': 'La cantidad del insumo no puede ser negativa',
+                        'any.required': 'Cada personalización debe indicar la cantidad'
+                    })
+                })
+            ).default([]).messages({
+                'array.base': 'Las personalizaciones deben ser una lista'
             })
         })
     ).min(1).required().messages({

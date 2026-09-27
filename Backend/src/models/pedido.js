@@ -21,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
       Pedido.belongsTo(models.Direccion, {
       foreignKey: 'direccionId'
       });
+
+     Pedido.belongsTo(models.Sucursal, {
+      foreignKey: 'sucursalId'
+      });
     }
   }
   Pedido.init({
@@ -28,6 +32,7 @@ module.exports = (sequelize, DataTypes) => {
     total: { type: DataTypes.DECIMAL, allowNull: false },
     estado: { type: DataTypes.STRING, allowNull: false, defaultValue: 'pendiente' },
     direccionId: { type: DataTypes.INTEGER, allowNull: true },
+    sucursalId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     sequelize,
     modelName: 'Pedido',

@@ -50,11 +50,11 @@ function Cart() {
                 <h3 className="font-bold text-brand-dark">{item.product.name}</h3>
                 {item.selectedOptions.length > 0 && (
                   <p className="text-sm text-gray-600">
-                    {item.selectedOptions.map((o) => o.split("-")[1]).join(", ")}
+                    {item.selectedOptions.join(", ")}
                   </p>
                 )}
                 <span className="font-extrabold text-brand-red">
-                  ${item.product.price.toLocaleString("es-AR")}
+                  ${item.unitPrice.toLocaleString("es-AR")}
                 </span>
               </div>
 

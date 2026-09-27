@@ -28,6 +28,15 @@ module.exports = (sequelize, DataTypes) => {
     precio: {
       type: DataTypes.DECIMAL,
       allowNull: false
+    },
+
+    // Insumos cuya cantidad final difiere de la receta base: [{ insumoId, cantidad }].
+    // Si la cantidad final es menor a la base fue "sacado/reducido" (no cambia el precio);
+    // si es mayor, el excedente ya está incluido en "precio" (precioComercial del insumo).
+    personalizaciones: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: []
   }
   }, {
     sequelize,

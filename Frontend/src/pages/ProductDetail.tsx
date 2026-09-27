@@ -1,36 +1,124 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getProducts } from "../services/productService";
-import type { Product } from "../types/product";
+import { getProductoDetalle } from "../services/productService";
+import type { Product, ProductIngredient } from "../types/product";
 import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
+import Modal from "../components/Modal";
+
+// Cuánto por encima de lo incluido en la receta se puede pedir de un insumo agregable
+// (ej. cantidadBase 1 feta de queso -> se puede llegar hasta 1 + 3 = 4 fetas).
+const EXTRA_MAX_INCREMENTO = 3;
 
 function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  // Configuraciones "genéricas" heredadas del mock (ej. salsas de combos/promos).
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Personalización real basada en la receta: insumoId -> cantidad final elegida.
+  const [cantidades, setCantidades] = useState<Record<number, number>>({});
+  const [isPersonalizeOpen, setPersonalizeOpen] = useState(false);
   const { addItem } = useCart();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!id) return;
     setLoading(true);
-    getProducts().then((products) => {
-      setProduct(products.find((item) => item.id === Number(id)));
-      setLoading(false);
-    });
+    setCantidades({});
+    setPersonalizeOpen(false);
+    getProductoDetalle(Number(id))
+      .then((producto) => {
+        setProduct(producto);
+        const iniciales: Record<number, number> = {};
+        for (const ing of producto?.ingredients ?? []) {
+          iniciales[ing.insumoId] = ing.cantidadBase;
+        }
+        setCantidades(iniciales);
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
+  const ingredients = product?.ingredients ?? [];
+  const structuralIngredients = ingredients.filter(
+    (i) => !i.esRemovible && !i.esAgregable,
+  );
+  const controllableIngredients = ingredients.filter(
+    (i) => i.esRemovible || i.esAgregable,
+  );
+
+  function cantidadDe(ing: ProductIngredient) {
+    return cantidades[ing.insumoId] ?? ing.cantidadBase;
+  }
+
+  function stepDe(ing: ProductIngredient) {
+    // Cantidades no enteras (ej. 0.5 kg de papas) se tratan como on/off en un solo paso.
+    return Number.isInteger(ing.cantidadBase) ? 1 : ing.cantidadBase;
+  }
+
+  function minDe(ing: ProductIngredient) {
+    return ing.esRemovible ? 0 : ing.cantidadBase;
+  }
+
+  function maxDe(ing: ProductIngredient) {
+    return ing.esAgregable ? ing.cantidadBase + EXTRA_MAX_INCREMENTO : ing.cantidadBase;
+  }
+
+  function updateCantidad(ing: ProductIngredient, next: number) {
+    const clamped = Math.min(maxDe(ing), Math.max(minDe(ing), next));
+    setCantidades((prev) => ({ ...prev, [ing.insumoId]: clamped }));
+  }
+
+  const extraPrice = ingredients.reduce((sum, ing) => {
+    const extra = Math.max(0, cantidadDe(ing) - ing.cantidadBase);
+    return sum + extra * ing.precioComercial;
+  }, 0);
+  const unitPrice = (product?.price ?? 0) + extraPrice;
+
+  const touchedIngredients = ingredients.filter(
+    (ing) => cantidadDe(ing) !== ing.cantidadBase,
+  );
+
+  function buildRecipeOptions(): string[] {
+    return touchedIngredients.map((ing) => {
+      const cantidad = cantidadDe(ing);
+      if (cantidad === 0) return `Sin ${ing.nombre}`;
+      if (cantidad < ing.cantidadBase) return `${ing.nombre} x${cantidad}`;
+      const extra = cantidad - ing.cantidadBase;
+      const costoExtra = extra * ing.precioComercial;
+      return `Extra ${ing.nombre} x${extra}${
+        costoExtra > 0 ? ` (+$${costoExtra.toLocaleString("es-AR")})` : ""
+      }`;
+    });
+  }
+
+  function buildSelectedOptions(): string[] {
+    return [...buildRecipeOptions(), ...Array.from(selected)];
+  }
+
+  function buildPersonalizaciones() {
+    return touchedIngredients.map((ing) => ({
+      insumoId: ing.insumoId,
+      cantidad: cantidadDe(ing),
+    }));
+  }
+
   function handleAddToCart() {
-    if (!product?.available) return 
-    addItem(product!, 1, Array.from(selected));
+    if (!product?.available) return;
+    addItem(product!, 1, buildSelectedOptions(), {
+      unitPrice,
+      personalizaciones: buildPersonalizaciones(),
+    });
     showToast(`${product!.name} se agregó al carrito`);
   }
 
   function handleBuyNow() {
     if (!product?.available) return;
-    addItem(product!, 1, Array.from(selected));
+    addItem(product!, 1, buildSelectedOptions(), {
+      unitPrice,
+      personalizaciones: buildPersonalizaciones(),
+    });
     navigate("/carrito");
   }
 
@@ -95,6 +183,23 @@ function ProductDetail() {
           </h1>
           <p className="mt-4 text-gray-600">{product.description}</p>
 
+          {ingredients.length > 0 && (
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setPersonalizeOpen(true)}
+                className="rounded-full border border-brand-red px-4 py-2 text-sm font-bold text-brand-red transition-colors hover:bg-brand-red hover:text-white"
+              >
+                Personalizar ingredientes ✏️
+              </button>
+              {touchedIngredients.length > 0 && (
+                <p className="mt-2 text-sm text-gray-600">
+                  {buildRecipeOptions().join(" · ")}
+                </p>
+              )}
+            </div>
+          )}
+
           {product.configurations && product.configurations.length > 0 && (
             <div className="mt-6 space-y-4">
               {product.configurations.map((config) => (
@@ -128,7 +233,7 @@ function ProductDetail() {
 
           <div className="mt-6">
             <span className="text-3xl font-extrabold text-brand-red">
-              ${product.price.toLocaleString("es-AR")}
+              ${unitPrice.toLocaleString("es-AR")}
             </span>
           </div>
           {!product.available && (
@@ -157,6 +262,83 @@ function ProductDetail() {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isPersonalizeOpen}
+        onClose={() => setPersonalizeOpen(false)}
+        title="Personalizar ingredientes"
+        subtitle="Ajustá la cantidad de cada ingrediente a tu gusto."
+      >
+        <div className="flex max-h-[60vh] flex-col gap-5 overflow-y-auto">
+          {structuralIngredients.length > 0 && (
+            <div>
+              <p className="text-sm font-bold text-brand-dark">Incluye</p>
+              <p className="mt-1 text-sm text-gray-600">
+                {structuralIngredients.map((i) => i.nombre).join(", ")}
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col divide-y divide-brand-dark/10">
+            {controllableIngredients.map((ing) => {
+              const cantidad = cantidadDe(ing);
+              const step = stepDe(ing);
+              const min = minDe(ing);
+              const max = maxDe(ing);
+              const extra = Math.max(0, cantidad - ing.cantidadBase);
+              return (
+                <div
+                  key={ing.insumoId}
+                  className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                >
+                  <div>
+                    <p className="font-semibold text-brand-dark">{ing.nombre}</p>
+                    {ing.esAgregable && ing.precioComercial > 0 && (
+                      <p className="text-xs text-gray-500">
+                        +${ing.precioComercial.toLocaleString("es-AR")} c/u extra
+                        {extra > 0
+                          ? ` · +$${(extra * ing.precioComercial).toLocaleString("es-AR")}`
+                          : ""}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      aria-label={`Sacar ${ing.nombre}`}
+                      onClick={() => updateCantidad(ing, cantidad - step)}
+                      disabled={cantidad <= min}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-dark/20 font-bold text-brand-dark transition-colors hover:border-brand-red hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      −
+                    </button>
+                    <span className="w-6 text-center font-bold text-brand-dark">
+                      {cantidad}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Agregar ${ing.nombre}`}
+                      onClick={() => updateCantidad(ing, cantidad + step)}
+                      disabled={cantidad >= max}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-dark/20 font-bold text-brand-dark transition-colors hover:border-brand-red hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPersonalizeOpen(false)}
+            className="mt-2 rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Listo
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

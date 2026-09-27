@@ -6,15 +6,17 @@ export const createOrder = async (
   usuarioId: number,
   items: CartItem[],
   direccionId: number,
+  sucursalId: number,
 ): Promise<Order> => {
   const productos = items.map((item) => ({
     productoId: item.product.id,
     cantidad: item.quantity,
+    personalizaciones: item.personalizaciones ?? [],
   }))
 
   return httpClient<Order>('/pedido', {
     method: 'POST',
-    body: JSON.stringify({ usuarioId, productos, direccionId }),
+    body: JSON.stringify({ usuarioId, productos, direccionId, sucursalId }),
   })
 }
 
