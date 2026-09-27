@@ -6,10 +6,8 @@ const { esIdValido } = require('../middleware/esIdValido');
 const direccionController = require('../controllers/direccionController');
 
 router.get('/usuario/:usuarioId', direccionController.obtenerDireccionesPorUsuario);
-router.post('/', direccionController.crearDireccion);
-router.post('/', validarCrearDireccion, crearDireccion);
-router.put('/:id', esIdValido, validarActualizarDireccion, actualizarDireccion);
-router.put('/:id', direccionController.actualizarDireccion);
-router.delete('/:id', direccionController.eliminarDireccion);
+router.post('/', validarCrearDireccion, direccionController.crearDireccion);
+router.put('/:id', esIdValido, validarActualizarDireccion, direccionController.actualizarDireccion);
+router.delete('/:id', esIdValido, direccionController.eliminarDireccion);
 
 module.exports = router;
