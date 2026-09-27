@@ -17,8 +17,7 @@ function Modal({ isOpen, onClose, title, subtitle, children }: ModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
           <div>
