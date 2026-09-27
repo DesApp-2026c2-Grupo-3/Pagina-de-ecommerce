@@ -1,5 +1,30 @@
 const { Direccion } = require('../models');
 
+function validarDireccion(d) {
+    if (!d.calle?.trim() || !String(d.numero ?? '').trim()) {
+        return 'La calle y la altura son obligatorias';
+    }
+    if (!d.localidad?.trim() || !d.provincia?.trim()) {
+        return 'La localidad y la provincia son obligatorias';
+    }
+    const lat = Number(d.latitud);
+    const lon = Number(d.longitud);
+    // Rango aproximado de Argentina continental
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
+        lat < -55.1 || lat > -21.7 || lon < -73.6 || lon > -53.5) {
+        return 'Marcá la ubicación en el mapa (debe estar dentro de Argentina)';
+    }
+    if (d.observaciones && d.observaciones.length > 140) {
+        return 'Las observaciones no pueden superar los 140 caracteres';
+    }
+    return null;
+}
+
+const CAMPOS = [
+    'alias', 'calle', 'numero', 'piso', 'localidad', 'provincia', 'codigoPostal',
+    'entreCalles', 'observaciones', 'latitud', 'longitud',
+];
+
 const obtenerDireccionesPorUsuario = async (req, res) => {
     try {
         const direcciones = await Direccion.findAll({
@@ -16,7 +41,13 @@ const obtenerDireccionesPorUsuario = async (req, res) => {
 
 const crearDireccion = async (req, res) => {
     try {
-        const { alias, calle, numero, piso, ciudad, codigoPostal, predeterminada, usuarioId } = req.body;
+        const { predeterminada, usuarioId } = req.body;
+        const datos = Object.fromEntries(CAMPOS.map((c) => [c, req.body[c] ?? null]));
+
+        const error = validarDireccion(datos);
+        if (error) {
+            return res.status(400).json({ mensaje: error });
+        }
 
         if (predeterminada) {
             await Direccion.update(
@@ -26,12 +57,7 @@ const crearDireccion = async (req, res) => {
         }
 
         const nuevaDireccion = await Direccion.create({
-            alias,
-            calle,
-            numero,
-            piso,
-            ciudad,
-            codigoPostal,
+            ...datos,
             predeterminada: !!predeterminada,
             usuarioId,
         });
@@ -51,7 +77,15 @@ const actualizarDireccion = async (req, res) => {
             return res.status(404).json({ mensaje: 'Dirección no encontrada' });
         }
 
-        const { alias, calle, numero, piso, ciudad, codigoPostal, predeterminada } = req.body;
+        const { predeterminada } = req.body;
+        const datos = Object.fromEntries(
+            CAMPOS.map((c) => [c, req.body[c] ?? direccion[c]])
+        );
+
+        const error = validarDireccion(datos);
+        if (error) {
+            return res.status(400).json({ mensaje: error });
+        }
 
         if (predeterminada) {
             await Direccion.update(
@@ -61,12 +95,7 @@ const actualizarDireccion = async (req, res) => {
         }
 
         await direccion.update({
-            alias: alias ?? direccion.alias,
-            calle: calle ?? direccion.calle,
-            numero: numero ?? direccion.numero,
-            piso: piso ?? direccion.piso,
-            ciudad: ciudad ?? direccion.ciudad,
-            codigoPostal: codigoPostal ?? direccion.codigoPostal,
+            ...datos,
             predeterminada: predeterminada ?? direccion.predeterminada,
         });
 

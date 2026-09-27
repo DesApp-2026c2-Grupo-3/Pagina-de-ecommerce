@@ -11,6 +11,7 @@ import CareersSection from '../components/home/CareersSection'
 import { getCategories, getProducts } from '../services/productService'
 import { useAuth } from '../context/AuthContext'
 import type { Category, Product } from '../types/product'
+import SucursalesMap from '../components/home/SucursalesMap'
 
 function Home() {
   const { isAuthenticated } = useAuth()
@@ -50,39 +51,42 @@ function Home() {
 
   return (
     <div id="menu">
-      <Hero />
+  <Hero />
 
-      {isAuthenticated ? (
-        <>
-          <DefaultBranchBadge />
+  {isAuthenticated ? (
+    <>
+      <DefaultBranchBadge />
 
-          {!loading && categorySections.length > 0 && (
-            <CategoryChips categories={categorySections.map((entry) => entry.category)} />
-          )}
-
-          {loading ? (
-            <p className="px-4 py-12 text-center text-gray-600">Cargando productos...</p>
-          ) : (
-            categorySections.map(({ category, products: categoryProducts }) => (
-              <CategorySection
-                key={category.id}
-                categoryId={category.id}
-                title={category.name}
-                icon={category.icon}
-                products={categoryProducts}
-              />
-            ))
-          )}
-        </>
-      ) : (
-        <>
-          <GuestQuickAccessRow />
-          <CompanySection />
-          <ContactSection />
-          <CareersSection />
-        </>
+      {!loading && categorySections.length > 0 && (
+        <CategoryChips categories={categorySections.map((entry) => entry.category)} />
       )}
-    </div>
+
+      {loading ? (
+        <p className="px-4 py-12 text-center text-gray-600">Cargando productos...</p>
+      ) : (
+        categorySections.map(({ category, products: categoryProducts }) => (
+          <CategorySection
+            key={category.id}
+            categoryId={category.id}
+            title={category.name}
+            icon={category.icon}
+            products={categoryProducts}
+          />
+        ))
+      )}
+
+      <SucursalesMap />   
+    </>
+  ) : (
+    <>
+      <GuestQuickAccessRow />
+      <CompanySection />
+      <SucursalesMap />   
+      <ContactSection />
+      <CareersSection />
+    </>
+  )}
+</div>
   )
 }
 
