@@ -8,8 +8,9 @@ function Login() {
   const { login, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
-  const [email, setEmail] = useState('')
+  const estado = location.state as { from?: string; mensaje?: string; email?: string } | null
+  const from = estado?.from ?? '/'
+  const [email, setEmail] = useState(estado?.email ?? '') 
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
@@ -42,7 +43,11 @@ async function handleSubmit(e: FormEvent) {
     <div className="mx-auto flex max-w-md flex-col px-4 py-16">
       <h1 className="text-3xl font-extrabold text-brand-dark">Iniciar sesión</h1>
       <p className="mt-2 text-gray-600">Ingresá tus datos para continuar con tu pedido.</p>
-
+      {estado?.mensaje && (
+        <p className="mt-4 rounded-lg bg-brand-green/10 px-4 py-3 text-sm font-semibold text-brand-green">
+          {estado.mensaje}
+        </p>
+      )}
         <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">        <div>
           <label htmlFor="email" className="text-sm font-semibold text-brand-dark">
             Email
@@ -83,7 +88,7 @@ async function handleSubmit(e: FormEvent) {
 
       <p className="mt-6 text-center text-sm text-gray-600">
         ¿No tenés cuenta?{' '}
-        <Link to="/registro" className="font-semibold text-brand-red hover:underline">
+        <Link to="/registro" state={{ from }} className="font-semibold text-brand-red hover:underline">
           Registrate
         </Link>
       </p>

@@ -2,13 +2,16 @@ const bcrypt = require('bcrypt');
 
 const { Usuario, Sucursal } = require('../models')
 
+// Hash de relleno: se usa en el login cuando el email no existe,
+// para que la respuesta tarde lo mismo y no revele qué emails están registrados.
+const HASH_FALSO = bcrypt.hashSync('contraseña-que-no-existe', 10);
+const RESPUESTA_REGISTRO = { mensaje: '¡Tu cuenta fue creada! Iniciá sesión para continuar.' };
+
 const verUsuarios = async (req,res) => {
     try{
-        
-        const usuarios = await Usuario.findAll()
-        
-        res.status(200).json(usuarios)
+        const usuarios = await Usuario.findAll({ attributes: { exclude: ['password'] } })
 
+        res.status(200).json(usuarios)
     }
     catch(error){
         console.error('Algo salio mal',error.message)
@@ -17,28 +20,29 @@ const verUsuarios = async (req,res) => {
 }
 
 const crearUsuario = async (req,res) => {
-
     try{
         const { nombre, email, password } = req.body
 
         const nombreNormalizado = nombre.trim();
         const emailNormalizado = email.trim().toLowerCase();
 
-        const validarEmail = await Usuario.findOne({where:{email: emailNormalizado}})
-
-        if(validarEmail){
-            return res.status(409).json({code:"email-en-uso"})
-        }
-
+        // Se encripta siempre, aunque el email ya exista, para que las dos respuestas tarden lo mismo
         const passwordEncriptada = await bcrypt.hash(password, 10);
 
-        const nuevoUsuario = await Usuario.create({ 
-            nombre:nombreNormalizado,
+        const usuarioExistente = await Usuario.findOne({where:{email: emailNormalizado}})
+
+        if (usuarioExistente) {
+            // Mensaje genérico: no se aclara que el email ya está en uso
+            return res.status(400).json({ code: 'No se pudo completar el registro' })
+        }
+
+        await Usuario.create({
+            nombre: nombreNormalizado,
             email: emailNormalizado,
-            password: passwordEncriptada })
-        
-        return  res.status(201).json({
-            id: nuevoUsuario.id, nombre: nuevoUsuario.nombre, email: nuevoUsuario.email})
+            password: passwordEncriptada
+        })
+
+        return res.status(201).json(RESPUESTA_REGISTRO)
 
     } catch(error){
         console.error('Algo salio mal',error.message)
@@ -54,24 +58,18 @@ const login = async(req,res) =>{
 
         const user = await Usuario.findOne({where:{email: emailNormalizado}})
 
-        if(!user){
-            return res.status(401).json({code:"email-password-incorrectos"})
+        // Se compara siempre (con un hash falso si el email no existe),
+        // así el tiempo de respuesta no revela si la cuenta existe
+        const passwordCorrecta = await bcrypt.compare(password, user ? user.password : HASH_FALSO);
+
+        if (!user || !passwordCorrecta) {
+            return res.status(401).json({ code: "email-password-incorrectos" });
         }
 
-        const passwordCorrecta = await bcrypt.compare( password, user.password );
-
-        if (!passwordCorrecta) {
-            return res.status(401).json({
-                code: "email-password-incorrectos"
-            });
-        }
-        
         return res.status(200).json({id: user.id,nombre: user.nombre, email: user.email})
     }catch(error){
         console.error('Error al loguear:', error.message);
-        return res.status(500).json({
-            mensaje:'Error al loguear',
-            error:error.message})
+        return res.status(500).json({ mensaje:'Error al loguear' })
     }
 }
 
@@ -147,10 +145,19 @@ const actualizarUsuario = async (req, res) => {
             }
         }
 
+        // Si cambia el email, no puede estar en uso por otra cuenta
+        const emailNuevo = email?.trim().toLowerCase();
+        if (emailNuevo && emailNuevo !== usuario.email) {
+            const emailEnUso = await Usuario.findOne({ where: { email: emailNuevo } });
+            if (emailEnUso) {
+                return res.status(409).json({ code: 'email-no-disponible' });
+            }
+        }
+
         const datosActualizados = {
             nombre: nombre?.trim() ?? usuario.nombre,
             apellido: apellido ?? usuario.apellido,
-            email: email?.trim().toLowerCase() ?? usuario.email,
+            email: emailNuevo ?? usuario.email,
             telefono: telefono ?? usuario.telefono,
             dni: dni ?? usuario.dni,
             fechaNacimiento: fechaNacimiento || usuario.fechaNacimiento,
@@ -176,4 +183,5 @@ const actualizarUsuario = async (req, res) => {
         res.status(500).json({ mensaje: 'Error del servidor' });
     }
 };
+
 module.exports = { verUsuarios, crearUsuario, login, obtenerUsuarioPorId, actualizarUsuario, actualizarSucursalPredeterminada };

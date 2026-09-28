@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ErrorAlert from '../components/ErrorAlert'
 import { esEmailValido } from '../utils/validaciones'
@@ -7,6 +7,8 @@ import { esEmailValido } from '../utils/validaciones'
 function Register() {
   const { register, loading } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? '/'
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -29,8 +31,8 @@ function Register() {
       return
     }
     try {
-      await register({ name, email, password })
-      navigate('/')
+      const mensaje = await register({ name, email, password })
+      navigate('/login', { state: { from, mensaje, email } })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse')
     }
@@ -96,8 +98,7 @@ function Register() {
 
       <p className="mt-6 text-center text-sm text-gray-600">
         ¿Ya tenés cuenta?{' '}
-        <Link to="/login" className="font-semibold text-brand-red hover:underline">
-          Iniciar sesión
+        <Link to="/login" state={{ from }} className="font-semibold text-brand-red hover:underline">          Iniciar sesión
         </Link>
       </p>
     </div>

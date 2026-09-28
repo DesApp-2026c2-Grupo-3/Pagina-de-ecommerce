@@ -24,7 +24,20 @@
     "sequelize": "^6.37.8"
   },
   "devDependencies": {
+    "jest": "^...",
     "nodemon": "^3.1.14",
     "sequelize-cli": "^6.6.5"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/main.js",
+      "!src/migrations/**",
+      "!src/seeders/**",
+      "!src/config/**",
+      "!src/models/**",
+      "!src/routes/**"
+    ]
   }
 }
+

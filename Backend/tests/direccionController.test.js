@@ -161,3 +161,43 @@ describe('eliminarDireccion', () => {
         expect(res.status).toHaveBeenCalledWith(200);
     });
 });
+describe('errores de la base de datos', () => {
+    test('crearDireccion responde 500', async () => {
+        Direccion.create.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await crearDireccion({ body: { ...datosDireccion, usuarioId: 1 } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    test('actualizarDireccion responde 500', async () => {
+        Direccion.findByPk.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await actualizarDireccion({ params: { id: '1' }, body: {} }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    test('actualizarDireccion desmarca las otras si pasa a ser predeterminada', async () => {
+        const direccionExistente = { ...datosDireccion, usuarioId: 1, predeterminada: false, update: jest.fn() };
+        Direccion.findByPk.mockResolvedValue(direccionExistente);
+
+        await actualizarDireccion({ params: { id: '1' }, body: { predeterminada: true } }, crearRes());
+
+        expect(Direccion.update).toHaveBeenCalledWith(
+            { predeterminada: false },
+            { where: { usuarioId: 1 } }
+        );
+    });
+
+    test('eliminarDireccion responde 500', async () => {
+        Direccion.findByPk.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await eliminarDireccion({ params: { id: '1' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+    });
+});

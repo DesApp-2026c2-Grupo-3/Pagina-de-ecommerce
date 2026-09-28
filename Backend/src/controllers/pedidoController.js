@@ -1,5 +1,4 @@
-const { Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, Insumo, StockSucursal, sequelize } = require("../models");
-
+const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, sequelize } = require("../models");
 //Solo para pruebas
 const obtenerPedidos = async (req,res) => {
     try{
@@ -66,11 +65,16 @@ const crearPedido = async (req,res) => {
         }
 
         const sucursal = await Sucursal.findByPk(sucursalId);
-
         if(!sucursal){
             await t.rollback();
             return res.status(404).json({ mensaje: 'Sucursal no encontrada'})
         }
+
+        const direccion = await Direccion.findOne({ where: { id: direccionId, usuarioId } });
+        if (!direccion) {
+            await t.rollback();
+            return res.status(404).json({ mensaje: 'Dirección no encontrada' });
+        }        
 
          // Verificar que haya productos
         if (!Array.isArray(productos) || productos.length === 0) {
