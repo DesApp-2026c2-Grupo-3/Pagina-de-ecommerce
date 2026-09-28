@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { createOrder } from "../services/orderService";
 import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
+import { etiquetaTamanio } from "../config/combo";
+import { distanciaKm } from "../utils/distancia";
 import type { Order } from "../types/order";
 import type { Address } from "../types/address";
 import type { Sucursal } from "../types/sucursal";
 
+function formatearKm(km: number) {
+  return km.toLocaleString("es-AR", { maximumFractionDigits: 1 });
+}
+
 function Checkout() {
   const { user, isAuthenticated } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
+  const location = useLocation();
+
+  // Si vuelve de agregar o editar una dirección, llega con su id para dejarla elegida
+  const direccionDeRegreso = (location.state as { direccionId?: number } | null)?.direccionId;
 
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
@@ -20,10 +30,10 @@ function Checkout() {
   const [direcciones, setDirecciones] = useState<Address[]>([]);
   const [direccionesLoading, setDireccionesLoading] = useState(true);
   const [direccionSeleccionada, setDireccionSeleccionada] = useState<number | null>(null);
+  const [eligiendoDireccion, setEligiendoDireccion] = useState(false);
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [sucursalesLoading, setSucursalesLoading] = useState(true);
-  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<number | null>(null);
 
   const [error, setError] = useState("");
 
@@ -32,8 +42,9 @@ function Checkout() {
     getDirecciones(user.id)
       .then((data) => {
         setDirecciones(data);
+        const deRegreso = data.find((d) => d.id === direccionDeRegreso);
         const predeterminada = data.find((d) => d.predeterminada);
-        setDireccionSeleccionada(predeterminada?.id ?? data[0]?.id ?? null);
+        setDireccionSeleccionada(deRegreso?.id ?? predeterminada?.id ?? data[0]?.id ?? null);
       })
       .catch(() => setError("No se pudieron cargar tus direcciones"))
       .finally(() => setDireccionesLoading(false));
@@ -41,15 +52,10 @@ function Checkout() {
 
   useEffect(() => {
     getSucursales()
-      .then((data) => {
-        setSucursales(data);
-        // Si el usuario tiene una sucursal predeterminada cargada, la preseleccionamos
-        // (pero sigue pudiendo elegir otra); si no tiene, queda sin marcar.
-        setSucursalSeleccionada(user?.sucursalId ?? null);
-      })
+      .then(setSucursales)
       .catch(() => setError("No se pudieron cargar las sucursales"))
       .finally(() => setSucursalesLoading(false));
-  }, [user]);
+  }, []);
 
   // Si no está logueado o no hay items, no debería estar acá
   if (!isAuthenticated) {
@@ -60,21 +66,43 @@ function Checkout() {
     return <Navigate to="/carrito" replace />;
   }
 
+  // ---------- Sucursal más cercana a la dirección elegida ----------
+  const direccion = direcciones.find((d) => d.id === direccionSeleccionada);
+  const coordsDireccion =
+    direccion && direccion.latitud != null && direccion.longitud != null
+      ? { lat: Number(direccion.latitud), lng: Number(direccion.longitud) }
+      : null;
+
+  const masCercana = coordsDireccion
+    ? sucursales
+        .map((sucursal) => ({
+          sucursal,
+          distancia: distanciaKm(coordsDireccion, { lat: sucursal.latitud, lng: sucursal.longitud }),
+        }))
+        .sort((a, b) => a.distancia - b.distancia)[0]
+    : undefined;
+
+  const dentroDeZona = masCercana ? masCercana.distancia <= masCercana.sucursal.radioEntregaKm : false;
+  const puedeConfirmar = Boolean(direccion && masCercana && dentroDeZona);
+
   async function handleConfirm() {
-    if (!direccionSeleccionada) {
+    if (!direccion) {
       setError("Seleccioná una dirección de entrega");
       return;
     }
-
-    if (!sucursalSeleccionada) {
-      setError("Seleccioná la sucursal desde donde vas a pedir");
+    if (!coordsDireccion) {
+      setError("Tu dirección no tiene ubicación en el mapa. Editala para completarla.");
+      return;
+    }
+    if (!masCercana || !dentroDeZona) {
+      setError("Tu dirección está fuera de nuestra zona de entrega");
       return;
     }
 
     setError("");
     setLoading(true);
     try {
-      const order = await createOrder(user!.id, items, direccionSeleccionada, sucursalSeleccionada);
+      const order = await createOrder(user!.id, items, direccion.id, masCercana.sucursal.id);
       setConfirmedOrder(order);
       clearCart();
     } catch (err) {
@@ -87,13 +115,9 @@ function Checkout() {
   if (confirmedOrder) {
     return (
       <div className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-24 text-center">
-        <h1 className="text-3xl font-extrabold text-brand-dark">
-          ¡Pedido confirmado!
-        </h1>
+        <h1 className="text-3xl font-extrabold text-brand-dark">¡Pedido confirmado!</h1>
         <p className="text-gray-600">
-          Tu pedido{" "}
-          <span className="font-bold text-brand-red">#{confirmedOrder.id}</span>{" "}
-          fue generado con éxito.
+          Tu pedido <span className="font-bold text-brand-red">#{confirmedOrder.id}</span> fue generado con éxito.
         </p>
         <p className="text-xl font-extrabold text-brand-dark">
           Total: ${Number(confirmedOrder.total).toLocaleString("es-AR")}
@@ -102,7 +126,7 @@ function Checkout() {
           to="/"
           className="mt-4 rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
         >
-          Volver al catálogo.
+          Volver al catálogo
         </Link>
       </div>
     );
@@ -110,74 +134,34 @@ function Checkout() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-3xl font-extrabold text-brand-dark">
-        Confirmar pedido
-      </h1>
+      <h1 className="text-3xl font-extrabold text-brand-dark">Confirmar pedido</h1>
       <p className="mt-2 text-gray-600">Revisá tu pedido antes de confirmar.</p>
 
+      {/* ---------- Productos ---------- */}
       <div className="mt-8 flex flex-col gap-3">
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex items-center justify-between rounded-xl bg-white p-4 shadow-md"
+            className="flex items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-md"
           >
-            <div>
+            <div className="min-w-0">
               <p className="font-bold text-brand-dark">
                 {item.quantity}x {item.product.nombre}
               </p>
-              
+              {(item.tamanio || item.selectedOptions.length > 0) && (
+                <p className="text-sm text-gray-600">
+                  {[etiquetaTamanio(item.tamanio), ...item.selectedOptions].filter(Boolean).join(" · ")}
+                </p>
+              )}
             </div>
-            <span className="font-extrabold text-brand-red">
-              ${(Number(item.product.precio) * item.quantity).toLocaleString("es-AR")}
+            <span className="shrink-0 font-extrabold text-brand-red">
+              ${(item.unitPrice * item.quantity).toLocaleString("es-AR")}
             </span>
           </div>
         ))}
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-lg font-bold text-brand-dark">Sucursal</h2>
-
-        {sucursalesLoading ? (
-          <p className="mt-2 text-sm text-gray-600">Cargando sucursales...</p>
-        ) : sucursales.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-600">No hay sucursales disponibles.</p>
-        ) : (
-          <div className="mt-3 flex flex-col gap-2">
-            {sucursales.map((sucursal) => (
-              <label
-                key={sucursal.id}
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
-                  sucursalSeleccionada === sucursal.id
-                    ? "border-brand-red bg-brand-red/5"
-                    : "border-brand-dark/10 bg-white hover:border-brand-red/40"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="sucursal"
-                  className="mt-1 accent-brand-red"
-                  checked={sucursalSeleccionada === sucursal.id}
-                  onChange={() => setSucursalSeleccionada(sucursal.id)}
-                />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-brand-dark">{sucursal.nombre}</span>
-                    {user?.sucursalId === sucursal.id && (
-                      <span className="rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-bold text-brand-green">
-                        Tu sucursal predeterminada
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {sucursal.calle} {sucursal.numero} — {sucursal.localidad}
-                  </p>
-                </div>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
+      {/* ---------- Dirección de entrega ---------- */}
       <div className="mt-8">
         <h2 className="text-lg font-bold text-brand-dark">Dirección de entrega</h2>
 
@@ -185,23 +169,49 @@ function Checkout() {
           <p className="mt-2 text-sm text-gray-600">Cargando direcciones...</p>
         ) : direcciones.length === 0 ? (
           <div className="mt-3 rounded-xl border border-brand-red/20 bg-brand-red/10 p-4">
-            <p className="text-sm font-semibold text-brand-red">
-              Todavía no tenés direcciones guardadas.
-            </p>
+            <p className="text-sm font-semibold text-brand-red">Todavía no tenés direcciones guardadas.</p>
             <Link
               to="/direcciones"
+              state={{ from: "/checkout", abrirNueva: true }}
               className="mt-2 inline-block text-sm font-bold text-brand-red hover:underline"
             >
               Agregar una dirección →
             </Link>
           </div>
+        ) : !eligiendoDireccion && direccion ? (
+          // La dirección elegida, con opciones para cambiarla o editarla
+          <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-brand-red bg-brand-red/5 p-4">
+            <div className="min-w-0">
+              <p className="font-bold text-brand-dark">{direccion.alias}</p>
+              <p className="text-sm text-gray-600">
+                {direccion.calle} {direccion.numero} — {direccion.localidad}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-3">
+              <Link
+                to="/direcciones"
+                state={{ from: "/checkout", editarId: direccion.id }}
+                className="text-sm font-semibold text-brand-dark hover:text-brand-red"
+              >
+                Editar
+              </Link>
+              <button
+                type="button"
+                onClick={() => setEligiendoDireccion(true)}
+                className="text-sm font-semibold text-brand-red hover:underline"
+              >
+                Cambiar
+              </button>
+            </div>
+          </div>
         ) : (
+          // Lista para elegir otra dirección
           <div className="mt-3 flex flex-col gap-2">
-            {direcciones.map((direccion) => (
+            {direcciones.map((d) => (
               <label
-                key={direccion.id}
+                key={d.id}
                 className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
-                  direccionSeleccionada === direccion.id
+                  direccionSeleccionada === d.id
                     ? "border-brand-red bg-brand-red/5"
                     : "border-brand-dark/10 bg-white hover:border-brand-red/40"
                 }`}
@@ -210,26 +220,78 @@ function Checkout() {
                   type="radio"
                   name="direccion"
                   className="mt-1 accent-brand-red"
-                  checked={direccionSeleccionada === direccion.id}
-                  onChange={() => setDireccionSeleccionada(direccion.id)}
+                  checked={direccionSeleccionada === d.id}
+                  onChange={() => {
+                    setDireccionSeleccionada(d.id);
+                    setEligiendoDireccion(false);
+                  }}
                 />
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-brand-dark">{direccion.alias}</span>
-                    {direccion.predeterminada && (
+                    <span className="font-bold text-brand-dark">{d.alias}</span>
+                    {d.predeterminada && (
                       <span className="rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-bold text-brand-green">
                         Predeterminada
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-gray-600">
-                    {direccion.calle} {direccion.numero}
-                    {direccion.piso && `, piso ${direccion.piso}`} — {direccion.ciudad} (
-                    {direccion.codigoPostal})
+                    {d.calle} {d.numero} — {d.localidad}
                   </p>
                 </div>
               </label>
             ))}
+            <Link
+              to="/direcciones"
+              state={{ from: "/checkout", abrirNueva: true }}
+              className="rounded-xl border border-dashed border-brand-dark/20 p-4 text-center text-sm font-bold text-brand-red transition-colors hover:border-brand-red"
+            >
+              + Agregar dirección
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* ---------- Sucursal más cercana ---------- */}
+      <div className="mt-8">
+        <h2 className="text-lg font-bold text-brand-dark">Sucursal</h2>
+
+        {sucursalesLoading ? (
+          <p className="mt-2 text-sm text-gray-600">Buscando la sucursal más cercana...</p>
+        ) : !direccion ? (
+          <p className="mt-2 text-sm text-gray-600">Elegí una dirección para ver qué sucursal te lo envía.</p>
+        ) : !coordsDireccion ? (
+          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-700">Esta dirección no tiene ubicación en el mapa.</p>
+            <Link
+              to="/direcciones"
+              state={{ from: "/checkout", editarId: direccion.id }}
+              className="mt-1 inline-block text-sm font-bold text-amber-700 hover:underline"
+            >
+              Marcarla en el mapa →
+            </Link>
+          </div>
+        ) : !masCercana ? (
+          <p className="mt-2 text-sm text-gray-600">No hay sucursales disponibles.</p>
+        ) : !dentroDeZona ? (
+          <div className="mt-3 rounded-xl border border-brand-red/20 bg-brand-red/10 p-4">
+            <p className="text-sm font-semibold text-brand-red">Tu dirección está fuera de nuestra zona de entrega.</p>
+            <p className="mt-1 text-sm text-brand-red">
+              La sucursal más cercana, {masCercana.sucursal.nombre}, está a {formatearKm(masCercana.distancia)} km y
+              entrega hasta {masCercana.sucursal.radioEntregaKm} km.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-brand-red bg-brand-red/5 p-4">
+            <div className="min-w-0">
+              <p className="font-bold text-brand-dark">{masCercana.sucursal.nombre}</p>
+              <p className="text-sm text-gray-600">
+                {masCercana.sucursal.calle} {masCercana.sucursal.numero} — {masCercana.sucursal.localidad}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-bold text-brand-green">
+              a {formatearKm(masCercana.distancia)} km
+            </span>
           </div>
         )}
       </div>
@@ -238,6 +300,7 @@ function Checkout() {
         <ErrorAlert message={error} />
       </div>
 
+      {/* ---------- Total y confirmar ---------- */}
       <div className="mt-6 flex items-center justify-between border-t border-brand-dark/10 pt-6">
         <span className="text-xl font-extrabold text-brand-dark">
           Total: ${totalPrice.toLocaleString("es-AR")}
@@ -245,7 +308,7 @@ function Checkout() {
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={loading || direcciones.length === 0 || sucursales.length === 0}
+          disabled={loading || !puedeConfirmar}
           className="rounded-full bg-brand-red px-8 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {loading ? "Confirmando..." : "Confirmar pedido"}

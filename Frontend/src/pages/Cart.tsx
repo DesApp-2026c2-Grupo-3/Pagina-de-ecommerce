@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { Plus, Minus, Trash } from "lucide-react";
-
+import { etiquetaTamanio } from "../config/combo";
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice } = useCart();
@@ -49,6 +49,14 @@ function Cart() {
 
               <div className="flex-1">
                 <h3 className="font-bold text-brand-dark">{item.product.nombre}</h3>
+                {item.tamanio && (
+                  <p className="text-sm text-gray-600">
+                    {etiquetaTamanio(
+                      item.tamanio,
+                      item.product.variantes?.find((v) => v.tamanio === item.tamanio)?.etiqueta,
+                    )}
+                  </p>
+                )}
                 {item.selectedOptions.length > 0 && (
                   <p className="text-sm text-gray-600">
                     {item.selectedOptions.join(", ")}

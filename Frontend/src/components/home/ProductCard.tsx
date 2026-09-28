@@ -7,6 +7,9 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const isUnavailable = !product.disponible
+  const precios = product.variantes?.map((v) => Number(v.precio)) ?? []
+  const tieneTamanios = precios.length > 0
+  const precioMostrado = tieneTamanios ? Math.min(...precios) : Number(product.precio)
 
   return (
     <Link to={`/producto/${product.id}`} className="block h-full">
@@ -39,12 +42,9 @@ export default function ProductCard({ product }: ProductCardProps) {
           </p>
 
           <div className="mt-4 flex items-center justify-between">
-            <span
-              className={`text-xl font-extrabold ${
-                isUnavailable ? 'text-gray-400' : 'text-brand-red'
-              }`}
-            >
-              ${Number(product.precio).toLocaleString('es-AR')}
+            {tieneTamanios && <span className="text-xs font-semibold text-gray-500">desde</span>}
+            <span className={`text-xl font-extrabold ${isUnavailable ? 'text-gray-400' : 'text-brand-red'}`}>
+              ${precioMostrado.toLocaleString('es-AR')}
             </span>
           </div>
         </div>

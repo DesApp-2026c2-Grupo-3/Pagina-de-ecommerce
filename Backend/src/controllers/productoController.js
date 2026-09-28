@@ -1,4 +1,4 @@
-const {Producto, RecetaInsumo, Insumo} = require('../models');
+const {Producto, RecetaInsumo, Insumo, ProductoVariante} = require('../models');
 
 function mapIngredientes(producto) {
     const receta = producto.RecetaInsumos || [];
@@ -18,7 +18,9 @@ function mapIngredientes(producto) {
 
 const obtenerProductos = async (req, res) => {
     try {
-       const productos = await Producto.findAll();
+        const productos = await Producto.findAll({
+            include: [{ model: ProductoVariante, as: 'variantes', attributes: ['tamanio', 'precio', 'etiqueta'] }]
+        });  
         res.json(productos);
     } catch (error) {
         console.error(error);
@@ -32,7 +34,10 @@ const obtenerProductos = async (req, res) => {
 const obtenerProductoPorId = async (req, res) => {
     try {
         const producto = await Producto.findByPk(req.params.id, {
-            include: [{ model: RecetaInsumo, include: [Insumo] }]
+            include: [
+                { model: RecetaInsumo, include: [Insumo] },
+                { model: ProductoVariante, as: 'variantes', attributes: ['tamanio', 'precio', 'etiqueta'] }
+            ]
         });
 
         if (!producto) {

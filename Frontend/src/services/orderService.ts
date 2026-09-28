@@ -8,10 +8,13 @@ export const createOrder = async (
   direccionId: number,
   sucursalId: number,
 ): Promise<Order> => {
+  
   const productos = items.map((item) => ({
     productoId: item.product.id,
     cantidad: item.quantity,
     personalizaciones: item.personalizaciones ?? [],
+     ...(item.tamanio ? { tamanio: item.tamanio } : {}),
+
   }))
 
   return httpClient<Order>('/pedido', {

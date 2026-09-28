@@ -34,6 +34,13 @@ export interface Product {
   discountLabel?: string
 }
 
+/** Un tamaño de un producto, con su precio (ej: papas grandes $2600) */
+export interface ProductoVariante {
+  tamanio: string // regular, mediano, grande
+  precio: number | string // DECIMAL: Postgres lo devuelve como texto
+  etiqueta: string | null // ej: "354 ml"
+}
+
 export interface ProductoBackend {
   id: number
   nombre: string
@@ -42,8 +49,9 @@ export interface ProductoBackend {
   imagen: string
   disponible: boolean
   categoriaId: number
-  /** Receta real del producto (insumos removibles/agregables). Solo viene en el detalle. */
   ingredientes?: ProductIngredient[]
+  sabor?: string | null
+  variantes?: ProductoVariante[]
 }
 
 export interface Category {

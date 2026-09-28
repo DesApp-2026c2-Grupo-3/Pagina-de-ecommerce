@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { ProductoBackend } from '../types/product'
 import type { CartItem } from '../types/cart'
+import { ordenarVariantes } from '../config/combo'
 
 interface AddItemOptions {
   unitPrice?: number
   personalizaciones?: CartItem['personalizaciones']
+  tamanio?: string | null
 }
 
 interface CartContextType {
@@ -26,15 +28,19 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 const CART_STORAGE_KEY = 'cart'
 
-// El mismo producto con distinta personalización va en líneas separadas del carrito.
-// Ej: "12" (sin cambios), "12-5:0|8:2" (insumo 5 quitado, insumo 8 doble)
-function buildItemId(productId: number, personalizaciones: CartItem['personalizaciones'] = []) {
-  if (personalizaciones.length === 0) return String(productId)
+// Ej: "12" (sin cambios), "40-grande", "12-5:0|8:2" (insumo 5 quitado, insumo 8 doble)
+function buildItemId(
+  productId: number,
+  tamanio: string | null,
+  personalizaciones: CartItem['personalizaciones'] = [],
+) {
+  const base = tamanio ? `${productId}-${tamanio}` : String(productId)
+  if (personalizaciones.length === 0) return base
   const clave = [...personalizaciones]
     .sort((a, b) => a.insumoId - b.insumoId)
     .map((p) => `${p.insumoId}:${p.cantidad}`)
     .join('|')
-  return `${productId}-${clave}`
+  return `${base}-${clave}`
 }
 
 function leerCarritoGuardado(): CartItem[] {
@@ -75,8 +81,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Un producto no disponible nunca entra al carrito, venga de donde venga
     if (!product.disponible) return
 
-    const id = buildItemId(product.id, options?.personalizaciones)
-    const unitPrice = options?.unitPrice ?? Number(product.precio)
+    // Si el producto tiene tamaños y no se eligió ninguno, va el primero (regular)
+    const tamanio = options?.tamanio ?? ordenarVariantes(product.variantes)[0]?.tamanio ?? null    
+    const variante = product.variantes?.find((v) => v.tamanio === tamanio)
+    const id = buildItemId(product.id, tamanio, options?.personalizaciones)
+    const unitPrice = options?.unitPrice ?? Number(variante?.precio ?? product.precio)
 
     setItems((prev) => {
       const existing = prev.find((item) => item.id === id)
@@ -94,6 +103,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           selectedOptions,
           unitPrice,
           personalizaciones: options?.personalizaciones,
+          tamanio,
         },
       ]
     })

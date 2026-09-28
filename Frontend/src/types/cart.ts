@@ -13,4 +13,5 @@ export interface CartItem {
   selectedOptions: string[]  // texto para mostrar, ej: ["Sin Cebolla", "Extra Queso x1 (+$500)"]
   unitPrice: number   // precio final de una unidad, ya con los extras de personalización sumados
   personalizaciones?: IngredientePersonalizacion[]  // insumos cuya cantidad final difiere de la receta base
+  tamanio?: string | null  // tamaño elegido, si el producto tiene variantes
 }
