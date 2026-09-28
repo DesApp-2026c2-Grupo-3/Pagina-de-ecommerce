@@ -4,9 +4,11 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { createOrder } from "../services/orderService";
 import { getDirecciones } from "../services/addressService";
+import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
 import type { Order } from "../types/order";
 import type { Address } from "../types/address";
+import type { Sucursal } from "../types/sucursal";
 
 function Checkout() {
   const { user, isAuthenticated } = useAuth();
@@ -18,6 +20,11 @@ function Checkout() {
   const [direcciones, setDirecciones] = useState<Address[]>([]);
   const [direccionesLoading, setDireccionesLoading] = useState(true);
   const [direccionSeleccionada, setDireccionSeleccionada] = useState<number | null>(null);
+
+  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [sucursalesLoading, setSucursalesLoading] = useState(true);
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<number | null>(null);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -30,6 +37,18 @@ function Checkout() {
       })
       .catch(() => setError("No se pudieron cargar tus direcciones"))
       .finally(() => setDireccionesLoading(false));
+  }, [user]);
+
+  useEffect(() => {
+    getSucursales()
+      .then((data) => {
+        setSucursales(data);
+        // Si el usuario tiene una sucursal predeterminada cargada, la preseleccionamos
+        // (pero sigue pudiendo elegir otra); si no tiene, queda sin marcar.
+        setSucursalSeleccionada(user?.sucursalId ?? null);
+      })
+      .catch(() => setError("No se pudieron cargar las sucursales"))
+      .finally(() => setSucursalesLoading(false));
   }, [user]);
 
   // Si no está logueado o no hay items, no debería estar acá
@@ -47,10 +66,15 @@ function Checkout() {
       return;
     }
 
+    if (!sucursalSeleccionada) {
+      setError("Seleccioná la sucursal desde donde vas a pedir");
+      return;
+    }
+
     setError("");
     setLoading(true);
     try {
-      const order = await createOrder(user!.id, items, direccionSeleccionada);
+      const order = await createOrder(user!.id, items, direccionSeleccionada, sucursalSeleccionada);
       setConfirmedOrder(order);
       clearCart();
     } catch (err) {
@@ -108,6 +132,50 @@ function Checkout() {
             </span>
           </div>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-lg font-bold text-brand-dark">Sucursal</h2>
+
+        {sucursalesLoading ? (
+          <p className="mt-2 text-sm text-gray-600">Cargando sucursales...</p>
+        ) : sucursales.length === 0 ? (
+          <p className="mt-2 text-sm text-gray-600">No hay sucursales disponibles.</p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-2">
+            {sucursales.map((sucursal) => (
+              <label
+                key={sucursal.id}
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                  sucursalSeleccionada === sucursal.id
+                    ? "border-brand-red bg-brand-red/5"
+                    : "border-brand-dark/10 bg-white hover:border-brand-red/40"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="sucursal"
+                  className="mt-1 accent-brand-red"
+                  checked={sucursalSeleccionada === sucursal.id}
+                  onChange={() => setSucursalSeleccionada(sucursal.id)}
+                />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-brand-dark">{sucursal.nombre}</span>
+                    {user?.sucursalId === sucursal.id && (
+                      <span className="rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-bold text-brand-green">
+                        Tu sucursal predeterminada
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {sucursal.calle} {sucursal.numero} — {sucursal.localidad}
+                  </p>
+                </div>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-8">
@@ -177,7 +245,7 @@ function Checkout() {
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={loading || direcciones.length === 0}
+          disabled={loading || direcciones.length === 0 || sucursales.length === 0}
           className="rounded-full bg-brand-red px-8 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {loading ? "Confirmando..." : "Confirmar pedido"}

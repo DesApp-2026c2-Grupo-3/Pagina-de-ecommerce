@@ -16,8 +16,7 @@ interface EcoConfig {
 export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     const [vibrando, setVibrando] = useState(false);
     const [rayoActivo, setRayoActivo] = useState(false);
-    const [mostrarLogo, setMostrarLogo] = useState(false);
-    
+   
     // Estado para saber si el archivo de imagen ya fue procesado por el navegador
     const [logoCargado, setLogoCargado] = useState(false);
 
@@ -27,18 +26,15 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
 
         if (!isAuthenticated) {
             setRayoActivo(false);
-            setMostrarLogo(true);
             setVibrando(false);
             return; 
         }
 
         setRayoActivo(true);
-        setMostrarLogo(false);
         setVibrando(false);
 
-        // Impacto a los 600ms: aparece el logo en el centro exacto y vibra el fondo
+        // Impacto a los 600ms: termina la espera y empiezan a vibrar los ecos traseros
         timerVibracionStart = setTimeout(() => {
-            setMostrarLogo(true);
             setVibrando(true);
         }, 600);
 
@@ -46,7 +42,7 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
         timerVibracionEnd = setTimeout(() => {
             setVibrando(false);
             setRayoActivo(false); 
-        }, 1600);
+        }, 1200);
        
         return () => {
             if (timerVibracionStart) clearTimeout(timerVibracionStart);
@@ -54,12 +50,16 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
         };
     }, [isAuthenticated]);
 
+    // Detecta el momento exacto donde el rayo cae pero los ecos aún no se activan (0ms a 600ms)
+    const duranteDisparoRayo = rayoActivo && !vibrando;
+
     const ecos: EcoConfig[] = [
-        { x: vibrando ? 40 : 0,  opacity: vibrando ? 0.15 : 0, filter: 'hue-rotate(180deg) brightness(1.6) blur(1px)', delay: '0s' },   
+        { x: vibrando ? 20 : 0,  opacity: vibrando ? 0.15 : 0, filter: 'hue-rotate(180deg) brightness(1.6) blur(1px)', delay: '0s' },   
         { x: vibrando ? -20 : 0, opacity: vibrando ? 0.30 : 0, filter: 'hue-rotate(240deg) brightness(1.4)',           delay: '0.1s' }, 
         { x: vibrando ? 10 : 0,  opacity: vibrando ? 0.50 : 0, filter: 'hue-rotate(300deg) brightness(1.3)',           delay: '0.05s' },
         { x: vibrando ? -10 : 0, opacity: vibrando ? 0.65 : 0, filter: 'hue-rotate(0deg) saturate(1.5)',               delay: '0.15s' },
-        { x: 0,                  opacity: (!isAuthenticated || mostrarLogo) ? 1.00 : 0, filter: 'none',                delay: '0s' }    
+        // El logo del frente se vuelve traslúcido (0.40) SOLO durante el rayo. Al empezar la vibración vuelve a 1.00 sólido.
+        { x: 0,                  opacity: duranteDisparoRayo ? 0.40 : 1.00, filter: 'none',                    delay: '0s' }    
     ];
 
     return (
@@ -71,7 +71,7 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                     aspectRatio: '417 / 274',
                 }}
             >
-                {/* ANIMACIONES NATIVAS CORREGIDAS */}
+                {/* ANIMACIONES NATIVAS */}
                 <style>{`
                     @keyframes vibrarGlitch {
                         0%   { transform: translate(0px, 0px); }
@@ -112,13 +112,13 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                     >
                         <path 
                             d="M50,0 L40,18 L53,18 L36,36 L48,36 L32,56 L45,56 L26,76 L41,76 L15,100 L32,79 L20,79 L38,59 L26,59 L43,39 L31,39 L48,21 L36,21 Z" 
-                            transform="translate(100, 12)" 
+                            transform="translate(100, 15)" 
                         />
                     </svg>
                 )}
 
                 {/* EL LOGO Y ECOS */}
-                {(!isAuthenticated || mostrarLogo) && ecos.map((eco, index) => {
+                {ecos.map((eco, index) => {
                     const esLogoFrente = index === ecos.length - 1;
 
                     if (!isAuthenticated && !esLogoFrente) return null;
@@ -129,18 +129,18 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                             src={logo}
                             alt={logoCargado ? "Logotipo EcoDestello" : ""}
                             onLoad={() => { if (esLogoFrente) setLogoCargado(true); }}
-                            className={`h-full w-full object-contain absolute inset-0 will-change-transform ${
-                                // CORRECCIÓN CLAVE: Solo aplika la vibración a las capas traseras. El frente se queda firme.
+                            className={`h-full w-full object-contain absolute inset-0 will-change-transform z-10 ${
+                                // RECUPERADO: Solo los ecos vibran. El logo del frente (!esLogoFrente) se queda quieto.
                                 vibrando && !esLogoFrente ? 'vibracion-activa' : ''
                             }`}
                             style={
                                 {
-                                    opacity: esLogoFrente ? 1.00 : eco.opacity,
+                                    opacity: eco.opacity,
                                     filter: eco.filter,
                                     mixBlendMode: 'screen', 
                                     '--max-x': `${eco.x}px`,
                                     animationDelay: eco.delay,
-                                    // CORRECCIÓN CLAVE: Volvemos al suavizado de 0.5s para que los ecos regresen flotando
+                                    // RECUPERADO: Volvemos a las transiciones suaves de 0.5s de tu diseño original
                                     transition: 'opacity 0.5s ease-out, transform 0.5s ease-out',
                                 } as React.CSSProperties
                             }
