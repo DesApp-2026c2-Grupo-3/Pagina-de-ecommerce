@@ -8,7 +8,7 @@ import { LogoConEco } from '../logoEcoDestello'
 function getNavLinks(isAuthenticated: boolean) {
   const links = [
     { label: 'Home', to: '/' },
-    { label: 'Catalogo', to: '/catalogo' },
+    { label: 'Catálogo', to: '/catalogo' },
     { label: 'Promociones', to: '/promociones' },
   ]
 

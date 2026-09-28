@@ -11,7 +11,8 @@ function Cart() {
 
   function handleCheckout() {
     if (!isAuthenticated) {
-    navigate("/login", { state: { from: "/carrito" } });      return;
+    navigate("/login", { state: { from: "/carrito" } });  
+    return;
     }
     navigate("/checkout");
   }
@@ -48,9 +49,13 @@ function Cart() {
 
               <div className="flex-1">
                 <h3 className="font-bold text-brand-dark">{item.product.nombre}</h3>
-                
+                {item.selectedOptions.length > 0 && (
+                  <p className="text-sm text-gray-600">
+                    {item.selectedOptions.join(", ")}
+                  </p>
+                )}
                 <span className="font-extrabold text-brand-red">
-                  ${Number(item.product.precio).toLocaleString("es-AR")}
+                  ${item.unitPrice.toLocaleString("es-AR")}
                 </span>
               </div>
 
