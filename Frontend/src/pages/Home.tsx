@@ -6,7 +6,6 @@ import CategoryChips from '../components/home/CategoryChips'
 import DefaultBranchBadge from '../components/home/DefaultBranchBadge'
 import GuestQuickAccessRow from '../components/home/GuestQuickAccessRow'
 import CompanySection from '../components/home/CompanySection'
-import ContactSection from '../components/home/ContactSection'
 import CareersSection from '../components/home/CareersSection'
 import SucursalesMap from '../components/home/SucursalesMap'
 import { getCategories, getProducts } from '../services/productService'
@@ -74,14 +73,13 @@ function Home() {
             ))
           )}
 
-          <SucursalesMap />
+       
         </>
       ) : (
         <>
           <GuestQuickAccessRow />
           <CompanySection />
           <SucursalesMap />
-          <ContactSection />
           <CareersSection />
         </>
       )}
