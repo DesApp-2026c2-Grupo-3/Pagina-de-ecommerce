@@ -5,6 +5,7 @@ import Modal from '../components/Modal'
 import ErrorAlert from '../components/ErrorAlert'
 import { esEmailValido } from '../utils/validaciones'
 import type { User } from '../types/user'
+import { formatearFecha } from '../utils/fechas'
 
 type CampoEditable = 'nombre' | 'telefono' | 'fechaNacimiento' | 'dni' | 'email' | 'password' | null
 
@@ -106,8 +107,7 @@ function Perfil() {
       campo: 'fechaNacimiento' as const,
       icono: '🎂',
       titulo: 'Fecha de nacimiento',
-      valor: datos.fechaNacimiento || 'Datos no proporcionados',
-    },
+      valor: formatearFecha(datos.fechaNacimiento) || 'Datos no proporcionados',    },
     {
       campo: 'dni' as const,
       icono: '🪪',

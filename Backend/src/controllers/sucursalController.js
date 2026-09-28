@@ -1,15 +1,31 @@
 const { Sucursal } = require('../models');
 
+// GET /sucursales → sucursales activas (público: lo usa el mapa de Home)
 const obtenerSucursales = async (req, res) => {
     try {
         const sucursales = await Sucursal.findAll({
-            order: [['localidad', 'ASC']],
+            where: { activa: true },
+            attributes: [
+                'id',
+                'nombre',
+                'calle',
+                'numero',
+                'localidad',
+                'provincia',
+                'codigoPostal',
+                'telefono',
+                'horario',
+                'latitud',
+                'longitud',
+                'radioEntregaKm',
+            ],
+            order: [['nombre', 'ASC']],
         });
 
-        res.status(200).json(sucursales);
+        res.json(sucursales);
     } catch (error) {
-        console.error('Algo salió mal', error.message);
-        res.status(500).json({ mensaje: 'Error del servidor' });
+        console.error(error);
+        res.status(500).json({ mensaje: 'Error al obtener las sucursales' });
     }
 };
 

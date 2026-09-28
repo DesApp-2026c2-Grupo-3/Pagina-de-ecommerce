@@ -20,8 +20,9 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
   return mapUsuario(usuario)
 }
 
-export const register = async (data: RegisterData): Promise<User> => {
-  const usuario = await httpClient<UsuarioBackend>('/usuario', {
+// El backend responde siempre el mismo mensaje (no revela si el email ya tenía cuenta)
+export const register = async (data: RegisterData): Promise<string> => {
+  const respuesta = await httpClient<{ mensaje: string }>('/usuario', {
     method: 'POST',
     body: JSON.stringify({
       nombre: data.name,
@@ -29,5 +30,5 @@ export const register = async (data: RegisterData): Promise<User> => {
       password: data.password,
     }),
   })
-  return mapUsuario(usuario)
+  return respuesta.mensaje
 }

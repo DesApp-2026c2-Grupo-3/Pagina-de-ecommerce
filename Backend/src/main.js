@@ -7,6 +7,7 @@ const cors = require('cors')
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+
 app.use(cors())
 app.use(express.json());
 
@@ -20,6 +21,7 @@ app.get('/', (req, res) => {
 const adminRoutes = require('./routes/admin/adminRoutes');
 const adminProductoRoutes = require('./routes/admin/productoRoutes');
 const adminCategoriaRoutes = require('./routes/admin/categoriaRoutes');
+const adminStockRoutes = require('./routes/admin/stockRoutes');
 
 const productoRoutes = require('./routes/productoRoutes');
 const usuarioRoutes = require('./routes/usuarioRoutes');
@@ -30,6 +32,7 @@ const sucursalRoutes = require('./routes/sucursalRoutes');
 
 app.use('/admin/productos', adminProductoRoutes);
 app.use('/admin/categorias', adminCategoriaRoutes);
+app.use('/admin/stock', adminStockRoutes);
 app.use('/admin', adminRoutes);
 
 
@@ -38,7 +41,7 @@ app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
-
+app.use('/geo', require('./routes/geo'));
 
 //SINCRO CON BASE DE DATOS
 async function iniciarServidor() {

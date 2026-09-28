@@ -1,5 +1,4 @@
-const { Pedido, DetallePedido, Producto, Usuario, sequelize } = require("../models");
-
+const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, sequelize } = require("../models");
 //Solo para pruebas
 const obtenerPedidos = async (req,res) => {
     try{
@@ -57,22 +56,36 @@ const crearPedido = async (req,res) => {
     const t = await sequelize.transaction();
 
     try{
-        const { usuarioId, productos, direccionId } = req.body;
+        const { usuarioId, productos, direccionId, sucursalId } = req.body;
         const usuario = await Usuario.findByPk(usuarioId);
 
         if(!usuario){
+            await t.rollback();
             return res.status(404).json({ mensaje: 'Usuario no encontrado'})
         }
 
+        const sucursal = await Sucursal.findByPk(sucursalId);
+        if(!sucursal){
+            await t.rollback();
+            return res.status(404).json({ mensaje: 'Sucursal no encontrada'})
+        }
+
+        const direccion = await Direccion.findOne({ where: { id: direccionId, usuarioId } });
+        if (!direccion) {
+            await t.rollback();
+            return res.status(404).json({ mensaje: 'Dirección no encontrada' });
+        }        
+
          // Verificar que haya productos
         if (!Array.isArray(productos) || productos.length === 0) {
+            await t.rollback();
             return res.status(400).json({
                 mensaje: 'El pedido debe contener al menos un producto'
             });
         }
 
         const nuevoPedido = await Pedido.create({
-            usuarioId, direccionId, fecha: new Date(), total: 0
+            usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0
         }, { transaction: t});
 
         let total = 0;
@@ -81,33 +94,123 @@ const crearPedido = async (req,res) => {
         for ( const producto of productos){
             
             if (!producto.productoId || !producto.cantidad) {
+                await t.rollback();
                 return res.status(400).json({
                     mensaje: 'Cada producto debe tener productoId y cantidad'
-        });
-    }
+                });
+            }
 
-    if (producto.cantidad <= 0) {
-        return res.status(400).json({
-            mensaje: 'La cantidad debe ser mayor a 0'
-        });
-    }
+            if (producto.cantidad <= 0) {
+                await t.rollback();
+                return res.status(400).json({
+                    mensaje: 'La cantidad debe ser mayor a 0'
+                });
+            }
 
             const productoBD = await Producto.findByPk(producto.productoId);
 
             if (!productoBD) {
+                await t.rollback();
                 return res.status(404).json({
                     mensaje: `No existe el producto con id ${producto.productoId}`
                 });
             }
 
             if (!productoBD.disponible) {
-        return res.status(400).json({
-            mensaje: `El producto ${productoBD.nombre} no está disponible`
-        });
-    }
+                await t.rollback();
+                return res.status(400).json({
+                    mensaje: `El producto ${productoBD.nombre} no está disponible`
+                });
+            }
 
-            // Calcular subtotal
-            const subtotal = Number(productoBD.precio) * producto.cantidad;
+            // Cantidad final elegida por insumo (insumoId -> cantidad), solo para los insumos
+            // que el cliente tocó respecto de la receta base.
+            const personalizaciones = Array.isArray(producto.personalizaciones)
+                ? producto.personalizaciones
+                : [];
+            const cantidadElegidaPorInsumo = new Map(
+                personalizaciones.map((p) => [Number(p.insumoId), Number(p.cantidad)])
+            );
+
+            const receta = await RecetaInsumo.findAll({
+                where: { productoId: producto.productoId },
+                include: [Insumo],
+                transaction: t
+            });
+
+            const recetaPorInsumo = new Map(receta.map((item) => [item.insumoId, item]));
+
+            // Toda personalización debe referirse a un insumo real de la receta de este producto,
+            // y respetar lo que la receta permite (esRemovible habilita bajar, esAgregable habilita subir).
+            for (const [insumoId, cantidad] of cantidadElegidaPorInsumo) {
+                const item = recetaPorInsumo.get(insumoId);
+                if (!item) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        mensaje: `El insumo ${insumoId} no pertenece a la receta de ${productoBD.nombre}`
+                    });
+                }
+                const base = Number(item.cantidadBase);
+                if (cantidad < base && !item.esRemovible) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        mensaje: `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede sacar de ${productoBD.nombre}`
+                    });
+                }
+                if (cantidad > base && !item.esAgregable) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        mensaje: `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede aumentar en ${productoBD.nombre}`
+                    });
+                }
+            }
+
+            let extraUnitario = 0;
+
+            for (const item of receta) {
+                const base = Number(item.cantidadBase);
+                const cantidadFinal = cantidadElegidaPorInsumo.has(item.insumoId)
+                    ? cantidadElegidaPorInsumo.get(item.insumoId)
+                    : base;
+
+                const cantidadNecesaria = cantidadFinal * producto.cantidad;
+                const extra = Math.max(0, cantidadFinal - base);
+
+                if (extra > 0 && item.Insumo && item.Insumo.precioComercial != null) {
+                    extraUnitario += extra * Number(item.Insumo.precioComercial);
+                }
+
+                if (cantidadNecesaria <= 0) continue;
+
+                const stock = await StockSucursal.findOne({
+                    where: { insumoId: item.insumoId, sucursalId },
+                    transaction: t,
+                    lock: t.LOCK.UPDATE
+                });
+
+                if (!stock) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        mensaje: `No hay stock cargado para un insumo de ${productoBD.nombre} en esta sucursal`
+                    });
+                }
+
+                if (Number(stock.cantidad) < cantidadNecesaria) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        mensaje: `Stock insuficiente para preparar ${productoBD.nombre} en esta sucursal`
+                    });
+                }
+
+                await stock.update(
+                    { cantidad: Number(stock.cantidad) - cantidadNecesaria },
+                    { transaction: t }
+                );
+            }
+
+            // Calcular subtotal (precio base + extras agregados, la personalización de sacar no descuenta)
+            const precioUnitario = Number(productoBD.precio) + extraUnitario;
+            const subtotal = precioUnitario * producto.cantidad;
 
             // Acumular al total
             total += subtotal;
@@ -116,7 +219,8 @@ const crearPedido = async (req,res) => {
                 pedidoId: nuevoPedido.id,
                 productoId: producto.productoId,
                 cantidad: producto.cantidad,
-                precio: productoBD.precio
+                precio: precioUnitario,
+                personalizaciones
             },{transaction: t});
         }
 

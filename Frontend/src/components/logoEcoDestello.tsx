@@ -17,7 +17,8 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     const [vibrando, setVibrando] = useState(false);
     const [rayoActivo, setRayoActivo] = useState(false);
     const [mostrarLogo, setMostrarLogo] = useState(false);
-    // NUEVO: Estado para saber si el archivo de imagen ya fue procesado por el navegador
+    
+    // Estado para saber si el archivo de imagen ya fue procesado por el navegador
     const [logoCargado, setLogoCargado] = useState(false);
 
     useEffect(() => {
@@ -35,7 +36,7 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
         setMostrarLogo(false);
         setVibrando(false);
 
-        // Impacto a los 600ms: aparece el logo en el centro exacto
+        // Impacto a los 600ms: aparece el logo en el centro exacto y vibra el fondo
         timerVibracionStart = setTimeout(() => {
             setMostrarLogo(true);
             setVibrando(true);
@@ -54,7 +55,7 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     }, [isAuthenticated]);
 
     const ecos: EcoConfig[] = [
-        { x: vibrando ? 20 : 0,  opacity: vibrando ? 0.15 : 0, filter: 'hue-rotate(180deg) brightness(1.6) blur(1px)', delay: '0s' },   
+        { x: vibrando ? 40 : 0,  opacity: vibrando ? 0.15 : 0, filter: 'hue-rotate(180deg) brightness(1.6) blur(1px)', delay: '0s' },   
         { x: vibrando ? -20 : 0, opacity: vibrando ? 0.30 : 0, filter: 'hue-rotate(240deg) brightness(1.4)',           delay: '0.1s' }, 
         { x: vibrando ? 10 : 0,  opacity: vibrando ? 0.50 : 0, filter: 'hue-rotate(300deg) brightness(1.3)',           delay: '0.05s' },
         { x: vibrando ? -10 : 0, opacity: vibrando ? 0.65 : 0, filter: 'hue-rotate(0deg) saturate(1.5)',               delay: '0.15s' },
@@ -111,7 +112,7 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                     >
                         <path 
                             d="M50,0 L40,18 L53,18 L36,36 L48,36 L32,56 L45,56 L26,76 L41,76 L15,100 L32,79 L20,79 L38,59 L26,59 L43,39 L31,39 L48,21 L36,21 Z" 
-                            transform="translate(100, 0)" 
+                            transform="translate(100, 12)" 
                         />
                     </svg>
                 )}
@@ -126,13 +127,11 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                         <img
                             key={index}
                             src={logo}
-                            // CORRECCIÓN DEFINITIVA: Si la imagen aún no disparó el onLoad, 
-                            // el texto alt permanece vacío para que el navegador no dibuje nada.
                             alt={logoCargado ? "Logotipo EcoDestello" : ""}
-                            // Al completarse la carga física, activamos el alt de forma segura
                             onLoad={() => { if (esLogoFrente) setLogoCargado(true); }}
-                            className={`h-full w-full object-contain absolute inset-0 will-change-transform z-10 ${
-                                vibrando ? 'vibracion-activa' : ''
+                            className={`h-full w-full object-contain absolute inset-0 will-change-transform ${
+                                // CORRECCIÓN CLAVE: Solo aplika la vibración a las capas traseras. El frente se queda firme.
+                                vibrando && !esLogoFrente ? 'vibracion-activa' : ''
                             }`}
                             style={
                                 {
@@ -141,7 +140,8 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
                                     mixBlendMode: 'screen', 
                                     '--max-x': `${eco.x}px`,
                                     animationDelay: eco.delay,
-                                    transition: 'opacity 0.2s ease-out, transform 0.2s ease-out',
+                                    // CORRECCIÓN CLAVE: Volvemos al suavizado de 0.5s para que los ecos regresen flotando
+                                    transition: 'opacity 0.5s ease-out, transform 0.5s ease-out',
                                 } as React.CSSProperties
                             }
                         />

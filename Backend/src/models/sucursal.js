@@ -13,6 +13,14 @@ module.exports = (sequelize, DataTypes) => {
       Sucursal.hasMany(models.Usuario, {
         foreignKey: 'sucursalId'
       });
+
+      Sucursal.hasMany(models.StockSucursal, {
+        foreignKey: 'sucursalId'
+      });
+
+      Sucursal.hasMany(models.Pedido, {
+       foreignKey: 'sucursalId'
+      });
     }
   }
   Sucursal.init({
@@ -25,6 +33,9 @@ module.exports = (sequelize, DataTypes) => {
     horario: { type: DataTypes.STRING, allowNull: true },
     latitud: { type: DataTypes.FLOAT, allowNull: false },
     longitud: { type: DataTypes.FLOAT, allowNull: false },
+    codigoPostal: { type: DataTypes.STRING, allowNull: true },
+    radioEntregaKm: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 5 },
+    activa: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   }, {
     sequelize,
     modelName: 'Sucursal',
