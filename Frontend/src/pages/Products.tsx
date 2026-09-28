@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
-import type { Category, Product } from "../types/product";
-
-const ALL_TAB = "Todos";
+import type { Category, ProductoBackend } from "../types/product";
+import { Search } from "lucide-react";
 
 function Products() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>(ALL_TAB);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -17,15 +16,31 @@ function Products() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return products.filter((product) => {
-      if (selectedCategory !== ALL_TAB && product.category !== selectedCategory)
+  const query = search.trim().toLowerCase();
+
+  return products
+    .filter((product) => {
+      if (
+        selectedCategory !== null &&
+        product.categoriaId !== selectedCategory
+      ) {
         return false;
-      if (query && !product.name.toLowerCase().includes(query)) return false;
-        return true;
-        })
-        .sort((a, b) => Number(b.available) - Number(a.available));
-      }, [products, selectedCategory, search]);
+      }
+
+      if (
+        query &&
+        !product.nombre.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort(
+      (a, b) =>
+        Number(b.disponible) - Number(a.disponible)
+    );
+}, [products, selectedCategory, search]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
@@ -40,36 +55,36 @@ function Products() {
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:px-0 md:pb-0">
           <button
             type="button"
-            onClick={() => setSelectedCategory(ALL_TAB)}
-            aria-pressed={selectedCategory === ALL_TAB}
+            onClick={() => setSelectedCategory(null)}
+            aria-pressed={selectedCategory === null}
             className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-              selectedCategory === ALL_TAB
+              selectedCategory === null
                 ? "border-brand-red bg-brand-red text-white"
                 : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
             }`}
           >
-            🍽️ {ALL_TAB}
+            Todos
           </button>
           {categories.map((category) => (
             <button
               key={category.id}
               type="button"
-              onClick={() => setSelectedCategory(category.name)}
-              aria-pressed={selectedCategory === category.name}
+              onClick={() => setSelectedCategory(category.id)}
+              aria-pressed={selectedCategory === category.id}
               className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-                selectedCategory === category.name
+                selectedCategory === category.id
                   ? "border-brand-red bg-brand-red text-white"
                   : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
-              }`}
-            >
-              {category.icon} {category.name}
+              }`}>
+
+                {category.nombre}
             </button>
           ))}
         </div>
 
         <div className="relative w-full md:w-72">
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-            🔍
+            <Search size={18} />
           </span>
           <input
             type="search"

@@ -34,8 +34,19 @@ export interface Product {
   discountLabel?: string
 }
 
+export interface ProductoBackend {
+  id: number
+  nombre: string
+  descripcion: string
+  precio: number
+  imagen: string
+  disponible: boolean
+  categoriaId: number
+  /** Receta real del producto (insumos removibles/agregables). Solo viene en el detalle. */
+  ingredientes?: ProductIngredient[]
+}
+
 export interface Category {
   id: number
-  name: string
-  icon: string
+  nombre: string
 }

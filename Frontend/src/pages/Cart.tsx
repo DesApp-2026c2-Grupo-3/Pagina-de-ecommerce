@@ -11,7 +11,8 @@ function Cart() {
 
   function handleCheckout() {
     if (!isAuthenticated) {
-    navigate("/login", { state: { from: "/carrito" } });      return;
+    navigate("/login", { state: { from: "/carrito" } });  
+    return;
     }
     navigate("/checkout");
   }
@@ -41,13 +42,13 @@ function Cart() {
           <div key={item.id} className="flex flex-col">
             <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-md">
               <img
-              src={item.product.image}
-              alt={item.product.name}
+              src={item.product.imagen}
+              alt={item.product.nombre}
               className="h-20 w-20 rounded-xl bg-brand-cream object-cover"
               />
 
               <div className="flex-1">
-                <h3 className="font-bold text-brand-dark">{item.product.name}</h3>
+                <h3 className="font-bold text-brand-dark">{item.product.nombre}</h3>
                 {item.selectedOptions.length > 0 && (
                   <p className="text-sm text-gray-600">
                     {item.selectedOptions.join(", ")}

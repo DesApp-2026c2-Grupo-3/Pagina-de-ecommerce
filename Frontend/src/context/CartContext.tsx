@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { Product } from '../types/product'
+import type { ProductoBackend } from '../types/product'
 import type { CartItem } from '../types/cart'
 
 interface AddItemOptions {
@@ -10,9 +10,9 @@ interface AddItemOptions {
 interface CartContextType {
   items: CartItem[]
   addItem: (
-    product: Product,
+    product: ProductoBackend,
     quantity: number,
-    selectedOptions: string[],
+    selectedOptions?: string[],
     options?: AddItemOptions,
   ) => void
   removeItem: (id: string) => void
@@ -26,8 +26,15 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 const CART_STORAGE_KEY = 'cart'
 
-function buildItemId(productId: number, selectedOptions: string[]) {
-  return `${productId}-${[...selectedOptions].sort().join('|')}`
+// El mismo producto con distinta personalización va en líneas separadas del carrito.
+// Ej: "12" (sin cambios), "12-5:0|8:2" (insumo 5 quitado, insumo 8 doble)
+function buildItemId(productId: number, personalizaciones: CartItem['personalizaciones'] = []) {
+  if (personalizaciones.length === 0) return String(productId)
+  const clave = [...personalizaciones]
+    .sort((a, b) => a.insumoId - b.insumoId)
+    .map((p) => `${p.insumoId}:${p.cantidad}`)
+    .join('|')
+  return `${productId}-${clave}`
 }
 
 function leerCarritoGuardado(): CartItem[] {
@@ -36,13 +43,17 @@ function leerCarritoGuardado(): CartItem[] {
     const items = guardado ? JSON.parse(guardado) : []
     if (!Array.isArray(items)) return []
 
-    // Normaliza carritos guardados con una versión anterior (sin unitPrice/selectedOptions),
-    // para no romper el render si alguien tiene algo viejo en el localStorage del navegador.
-    return items.map((item: CartItem) => ({
-      ...item,
-      selectedOptions: item.selectedOptions ?? [],
-      unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : item.product?.price ?? 0,
-    }))
+    return items
+      // Descarta ítems guardados con el formato viejo de producto (sin "nombre"),
+      // que romperían el render del carrito.
+      .filter((item: CartItem) => item?.product && 'nombre' in item.product)
+      // Completa campos que pueden faltar en carritos de versiones anteriores
+      .map((item: CartItem) => ({
+        ...item,
+        selectedOptions: item.selectedOptions ?? [],
+        unitPrice:
+          typeof item.unitPrice === 'number' ? item.unitPrice : Number(item.product.precio) || 0,
+      }))
   } catch {
     return []
   }
@@ -56,13 +67,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items])
 
   function addItem(
-    product: Product,
+    product: ProductoBackend,
     quantity: number,
-    selectedOptions: string[],
+    selectedOptions: string[] = [],
     options?: AddItemOptions,
   ) {
-    const id = buildItemId(product.id, selectedOptions)
-    const unitPrice = options?.unitPrice ?? product.price
+    // Un producto no disponible nunca entra al carrito, venga de donde venga
+    if (!product.disponible) return
+
+    const id = buildItemId(product.id, options?.personalizaciones)
+    const unitPrice = options?.unitPrice ?? Number(product.precio)
 
     setItems((prev) => {
       const existing = prev.find((item) => item.id === id)

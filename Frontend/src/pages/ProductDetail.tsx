@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getProductoDetalle } from "../services/productService";
-import type { Product, ProductIngredient } from "../types/product";
+import { getCategories, getProductoDetalle } from "../services/productService";
+import type { ProductIngredient, ProductoBackend } from "../types/product";
 import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
 import Modal from "../components/Modal";
@@ -12,11 +12,10 @@ const EXTRA_MAX_INCREMENTO = 3;
 
 function ProductDetail() {
   const { id } = useParams<{ id: string }>();
-  const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [product, setProduct] = useState<ProductoBackend | undefined>(undefined);
+  const [categoryName, setCategoryName] = useState("");
   const [loading, setLoading] = useState(true);
-  // Configuraciones "genéricas" heredadas del mock (ej. salsas de combos/promos).
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Personalización real basada en la receta: insumoId -> cantidad final elegida.
+  // Personalización basada en la receta: insumoId -> cantidad final elegida.
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [isPersonalizeOpen, setPersonalizeOpen] = useState(false);
   const { addItem } = useCart();
@@ -28,19 +27,26 @@ function ProductDetail() {
     setLoading(true);
     setCantidades({});
     setPersonalizeOpen(false);
-    getProductoDetalle(Number(id))
-      .then((producto) => {
+
+    Promise.all([getProductoDetalle(Number(id)), getCategories()])
+      .then(([producto, categorias]) => {
         setProduct(producto);
+
+        const categoria = categorias.find((c) => c.id === producto.categoriaId);
+        setCategoryName(categoria?.nombre ?? "");
+
         const iniciales: Record<number, number> = {};
-        for (const ing of producto?.ingredients ?? []) {
+        for (const ing of producto.ingredientes ?? []) {
           iniciales[ing.insumoId] = ing.cantidadBase;
         }
         setCantidades(iniciales);
       })
+      // Si el producto no existe, el backend responde 404 y se muestra "Producto no encontrado"
+      .catch(() => setProduct(undefined))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const ingredients = product?.ingredients ?? [];
+  const ingredients = product?.ingredientes ?? [];
   const structuralIngredients = ingredients.filter(
     (i) => !i.esRemovible && !i.esAgregable,
   );
@@ -74,13 +80,14 @@ function ProductDetail() {
     const extra = Math.max(0, cantidadDe(ing) - ing.cantidadBase);
     return sum + extra * ing.precioComercial;
   }, 0);
-  const unitPrice = (product?.price ?? 0) + extraPrice;
+  const unitPrice = Number(product?.precio ?? 0) + extraPrice;
 
   const touchedIngredients = ingredients.filter(
     (ing) => cantidadDe(ing) !== ing.cantidadBase,
   );
 
-  function buildRecipeOptions(): string[] {
+  // Texto para mostrar la personalización, ej: ["Sin Cebolla", "Extra Queso x1 (+$500)"]
+  function buildSelectedOptions(): string[] {
     return touchedIngredients.map((ing) => {
       const cantidad = cantidadDe(ing);
       if (cantidad === 0) return `Sin ${ing.nombre}`;
@@ -93,10 +100,6 @@ function ProductDetail() {
     });
   }
 
-  function buildSelectedOptions(): string[] {
-    return [...buildRecipeOptions(), ...Array.from(selected)];
-  }
-
   function buildPersonalizaciones() {
     return touchedIngredients.map((ing) => ({
       insumoId: ing.insumoId,
@@ -104,31 +107,25 @@ function ProductDetail() {
     }));
   }
 
-  function handleAddToCart() {
-    if (!product?.available) return;
-    addItem(product!, 1, buildSelectedOptions(), {
+  function agregarAlCarrito() {
+    if (!product?.disponible) return false;
+    addItem(product, 1, buildSelectedOptions(), {
       unitPrice,
       personalizaciones: buildPersonalizaciones(),
     });
-    showToast(`${product!.name} se agregó al carrito`);
+    return true;
+  }
+
+  function handleAddToCart() {
+    if (agregarAlCarrito()) {
+      showToast(`${product!.nombre} se agregó al carrito`);
+    }
   }
 
   function handleBuyNow() {
-    if (!product?.available) return;
-    addItem(product!, 1, buildSelectedOptions(), {
-      unitPrice,
-      personalizaciones: buildPersonalizaciones(),
-    });
-    navigate("/carrito");
-  }
-
-  function toggleOption(key: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+    if (agregarAlCarrito()) {
+      navigate("/carrito");
+    }
   }
 
   if (loading) {
@@ -169,21 +166,24 @@ function ProductDetail() {
 
       <div className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-2">
         <img
-          src={product.image}
-          alt={product.name}
+          src={product.imagen}
+          alt={product.nombre}
           className="h-72 w-full rounded-2xl bg-brand-cream object-cover md:h-96"
         />
 
         <div className="flex flex-col">
-          <span className="inline-block w-fit rounded-full bg-brand-red/10 px-3 py-1 text-sm font-bold text-brand-red">
-            {product.category}
-          </span>
-          <h1 className="mt-3 text-3xl font-extrabold text-brand-dark sm:text-4xl">
-            {product.name}
-          </h1>
-          <p className="mt-4 text-gray-600">{product.description}</p>
+          {categoryName && (
+            <span className="mr-auto rounded-full bg-brand-red px-3 py-1 text-sm font-bold text-white">
+              {categoryName}
+            </span>
+          )}
 
-          {ingredients.length > 0 && (
+          <h1 className="mt-3 text-3xl font-extrabold text-brand-dark sm:text-4xl">
+            {product.nombre}
+          </h1>
+          <p className="mt-4 text-gray-600">{product.descripcion}</p>
+
+          {product.disponible && controllableIngredients.length > 0 && (
             <div className="mt-6">
               <button
                 type="button"
@@ -194,40 +194,9 @@ function ProductDetail() {
               </button>
               {touchedIngredients.length > 0 && (
                 <p className="mt-2 text-sm text-gray-600">
-                  {buildRecipeOptions().join(" · ")}
+                  {buildSelectedOptions().join(" · ")}
                 </p>
               )}
-            </div>
-          )}
-
-          {product.configurations && product.configurations.length > 0 && (
-            <div className="mt-6 space-y-4">
-              {product.configurations.map((config) => (
-                <div key={config.label}>
-                  <p className="font-bold text-brand-dark">{config.label}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {config.options.map((option) => {
-                      const key = `${config.label}-${option}`;
-                      const isSelected = selected.has(key);
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          aria-pressed={isSelected}
-                          onClick={() => toggleOption(key)}
-                          className={`rounded-full border px-3 py-1 text-sm font-semibold transition-colors ${
-                            isSelected
-                              ? "border-brand-red bg-brand-red text-white"
-                              : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
             </div>
           )}
 
@@ -236,7 +205,7 @@ function ProductDetail() {
               ${unitPrice.toLocaleString("es-AR")}
             </span>
           </div>
-          {!product.available && (
+          {!product.disponible && (
             <p className="mt-2 font-semibold text-gray-500">
               No disponible por el momento
             </p>
@@ -245,12 +214,12 @@ function ProductDetail() {
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={!product.available}
+              disabled={!product.disponible}
               className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:opacity-100"
             >
-              {product.available ? 'Agregar al carrito' : 'No disponible'}
+              {product.disponible ? "Agregar al carrito" : "No disponible"}
             </button>
-            {product.available && (
+            {product.disponible && (
               <button
                 type="button"
                 onClick={handleBuyNow}
@@ -269,7 +238,7 @@ function ProductDetail() {
         title="Personalizar ingredientes"
         subtitle="Ajustá la cantidad de cada ingrediente a tu gusto."
       >
-        <div className="flex max-h-[60vh] flex-col gap-5 overflow-y-auto">
+        <div className="flex flex-col gap-5">
           {structuralIngredients.length > 0 && (
             <div>
               <p className="text-sm font-bold text-brand-dark">Incluye</p>

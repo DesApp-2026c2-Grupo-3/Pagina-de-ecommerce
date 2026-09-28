@@ -28,7 +28,7 @@ function CategoryChips({ categories }: CategoryChipsProps) {
             onClick={() => handleClick(category.id)}
             className="shrink-0 rounded-full border border-brand-dark/20 bg-white px-4 py-2 text-sm font-bold text-brand-dark transition-colors hover:border-brand-red hover:text-brand-red"
           >
-            {category.icon} {category.name}
+             {category.nombre}
           </button>
         ))}
       </div>

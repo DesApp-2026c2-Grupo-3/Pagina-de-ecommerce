@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
+import { obtenerCategorias } from "../../services/categorias";
+import { crearProducto } from "../../services/productos";
 
 export default function NuevoProducto() {
   const [nombre, setNombre] = useState("");
@@ -17,7 +19,20 @@ export default function NuevoProducto() {
   const { mostrarToast } = useToast();
   const navigate = useNavigate();
 
-  const categorias = JSON.parse(localStorage.getItem("categorias") || "[]");
+  const [categorias, setCategorias] = useState<any[]>([]);
+
+  useEffect(() => {
+  const cargarCategorias = async () => {
+    try {
+      const datos = await obtenerCategorias();
+      setCategorias(datos);
+    } catch (error) {
+      console.error("Error al cargar categorías:", error);
+    }
+  };
+
+    cargarCategorias();
+  }, []);
 
   return (
     <main className="p-8">
@@ -25,7 +40,7 @@ export default function NuevoProducto() {
 
       <form
         className="max-w-xl flex flex-col gap-4"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
 
           let hayErrores = false;
@@ -66,25 +81,23 @@ export default function NuevoProducto() {
             return;
           }
 
-          const producto = {
-            id: Date.now(),
+
+          try {
+            await crearProducto({
             nombre,
             descripcion,
             precio: Number(precio),
             imagen,
             disponible,
             categoriaId: Number(categoriaId),
-          };
-          const productosGuardados = JSON.parse(
-            localStorage.getItem("productos") || "[]",
-          );
+          });
 
-          productosGuardados.push(producto);
-
-          localStorage.setItem("productos", JSON.stringify(productosGuardados));
-          mostrarToast("Producto creado!");
-
-          navigate("/admin/productos");
+            mostrarToast("Producto creado!");
+            navigate("/admin/productos");
+          } catch (error) {
+            console.error("Error al crear producto:", error);
+          }
+          
         }}
       >
         <div>
@@ -92,7 +105,7 @@ export default function NuevoProducto() {
           <input
             type="text"
             value={nombre}
-            maxLength={15}
+            maxLength={25}
             onChange={(e) => {
               setNombre(e.target.value);
               setErrorNombre("");
@@ -110,7 +123,7 @@ export default function NuevoProducto() {
           <label>Descripción</label>
           <textarea
             value={descripcion}
-            maxLength={100}
+            maxLength={300}
             onChange={(e) => {
               setDescripcion(e.target.value);
               setErrorDescripcion("");

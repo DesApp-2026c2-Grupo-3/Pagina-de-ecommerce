@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "../../context/ToastContext";
+import { obtenerCategorias, actualizarCategoria } from "../../services/categorias";
 
 export default function EditarCategoria() {
   const { id } = useParams();
@@ -18,7 +19,7 @@ export default function EditarCategoria() {
   const [nombre, setNombre] = useState(categoria?.nombre || "");
   const [errorNombre, setErrorNombre] = useState("");
 
-  const guardarCambios = (e: React.FormEvent) => {
+  const guardarCambios = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
     let hayErrores = false;
@@ -31,21 +32,38 @@ export default function EditarCategoria() {
     if (hayErrores) {
       return;
     }
+    
+    try {
+      await actualizarCategoria(Number(id), { nombre });
 
-    const categoriasActualizadas = categoriasGuardadas.map(
-      (categoria: { id: number; nombre: string }) =>
-        categoria.id === Number(id)
-          ? {
-              ...categoria,
-              nombre,
-            }
-          : categoria,
-    );
-
-    localStorage.setItem("categorias", JSON.stringify(categoriasActualizadas));
-    mostrarToast("Categoria modificada!");
-    navigate("/admin/categorias");
+      mostrarToast("Categoria modificada!");
+      navigate("/admin/categorias");
+    } catch (error) {
+      console.error("Error al modificar categoria:", error);
+    }
+  
   };
+
+  useEffect(() => {
+  const cargarCategoria = async () => {
+    try {
+      const categorias = await obtenerCategorias();
+
+      const categoria = categorias.find(
+        (categoria: { id: number }) =>
+          categoria.id === Number(id)
+      );
+
+      if (categoria) {
+        setNombre(categoria.nombre);
+      }
+    } catch (error) {
+      console.error("Error al cargar categoria:", error);
+    }
+  };
+
+  cargarCategoria();
+}, [id]);
 
   return (
     <main className="p-8">

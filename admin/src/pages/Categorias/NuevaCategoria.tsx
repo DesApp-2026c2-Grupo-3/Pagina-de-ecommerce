@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
+import { crearCategoria } from '../../services/categorias'
 
 export default function NuevaCategoria() {
   const [nombre, setNombre] = useState('')
@@ -8,7 +9,7 @@ export default function NuevaCategoria() {
   const { mostrarToast } = useToast();
   const navigate = useNavigate()
 
-  const guardarCategoria = (e: React.SubmitEvent) => {
+  const guardarCategoria = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
     let hayErrores = false
@@ -22,23 +23,14 @@ export default function NuevaCategoria() {
       return
     }
 
-    const nuevaCategoria = {
-      id: Date.now(),
-      nombre,
+    try {
+      await crearCategoria({ nombre })
+
+      mostrarToast('Categoria creada!')
+      navigate('/admin/categorias')
+    } catch (error) {
+      console.error('Error al crear categoria:', error)
     }
-
-    const categoriasGuardadas = JSON.parse(
-      localStorage.getItem('categorias') || '[]'
-    )
-
-    categoriasGuardadas.push(nuevaCategoria)
-
-    localStorage.setItem(
-      'categorias',
-      JSON.stringify(categoriasGuardadas)
-    )
-    mostrarToast('Categoria creada!')
-    navigate('/admin/categorias')
   }
 
   return (
