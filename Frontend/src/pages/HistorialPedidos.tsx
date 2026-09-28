@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getHistorialPedidos } from '../services/orderService'
 import type { Order } from '../types/order'
+import { formatearFechaHora } from '../utils/fechas'
 
 const estadoColores: Record<string, string> = {
   pendiente: 'bg-brand-red/10 text-brand-red',
@@ -71,15 +72,9 @@ function HistorialPedidos() {
                 {pedido.estado}
               </span>
             </div>
-
+            
             <span className="mt-1 block text-sm text-gray-600">
-              {new Date(pedido.fecha).toLocaleDateString('es-AR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatearFechaHora(pedido.fecha)}
             </span>
 
             <div className="mt-4 flex flex-col gap-2 border-t border-brand-dark/10 pt-4">

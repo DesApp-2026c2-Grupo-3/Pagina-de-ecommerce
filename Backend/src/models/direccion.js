@@ -23,8 +23,13 @@ module.exports = (sequelize, DataTypes) => {
     calle: DataTypes.STRING,
     numero: DataTypes.STRING,
     piso: DataTypes.STRING,
-    ciudad: DataTypes.STRING,
+    localidad: DataTypes.STRING,
+    provincia: DataTypes.STRING,
     codigoPostal: DataTypes.STRING,
+    entreCalles: DataTypes.STRING,
+    observaciones: DataTypes.STRING(140),
+    latitud: DataTypes.DECIMAL(10, 7),
+    longitud: DataTypes.DECIMAL(10, 7),
     predeterminada: DataTypes.BOOLEAN,
     usuarioId: DataTypes.INTEGER
   }, {

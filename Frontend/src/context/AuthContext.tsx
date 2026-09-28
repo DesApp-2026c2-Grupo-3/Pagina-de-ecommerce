@@ -7,7 +7,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   loading: boolean
   login: (credentials: LoginCredentials) => Promise<void>
-  register: (data: RegisterData) => Promise<void>
+  register: (data: RegisterData) => Promise<string>
   logout: () => void
   setUser: (user: User) => void
 }
@@ -35,16 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: RegisterData) => {
-    setLoading(true)
-    try {
-      const newUser = await registerService(data)
-      setUser(newUser)
-      localStorage.setItem('user', JSON.stringify(newUser))
-    } finally {
-      setLoading(false)
-    }
+// Registrarse ya no inicia sesión: el usuario va al login
+const register = async (data: RegisterData): Promise<string> => {
+  setLoading(true)
+  try {
+    return await registerService(data)
+  } finally {
+    setLoading(false)
   }
+}
 
 const logout = () => {
   setUser(null)

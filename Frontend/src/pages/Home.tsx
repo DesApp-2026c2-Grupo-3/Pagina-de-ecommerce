@@ -6,8 +6,8 @@ import CategoryChips from '../components/home/CategoryChips'
 import DefaultBranchBadge from '../components/home/DefaultBranchBadge'
 import GuestQuickAccessRow from '../components/home/GuestQuickAccessRow'
 import CompanySection from '../components/home/CompanySection'
-import ContactSection from '../components/home/ContactSection'
 import CareersSection from '../components/home/CareersSection'
+import SucursalesMap from '../components/home/SucursalesMap'
 import { getCategories, getProducts } from '../services/productService'
 import { useAuth } from '../context/AuthContext'
 import type { Category, ProductoBackend } from '../types/product'
@@ -42,8 +42,8 @@ function Home() {
       .map((category) => ({
         category,
         products: products
-        .filter((product) => product.categoriaId === category.id)
-        .sort((a, b) => Number(b.disponible) - Number(a.disponible)),  
+          .filter((product) => product.categoriaId === category.id)
+          .sort((a, b) => Number(b.disponible) - Number(a.disponible)),
       }))
       .filter((entry) => entry.products.length > 0)
   }, [categories, products])
@@ -72,12 +72,14 @@ function Home() {
               />
             ))
           )}
+
+       
         </>
       ) : (
         <>
           <GuestQuickAccessRow />
           <CompanySection />
-          <ContactSection />
+          <SucursalesMap />
           <CareersSection />
         </>
       )}

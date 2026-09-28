@@ -1,5 +1,28 @@
 const { Direccion } = require('../models');
 
+// Campos que el usuario puede enviar al crear o editar una dirección
+const CAMPOS = [
+    'alias',
+    'calle',
+    'numero',
+    'piso',
+    'localidad',
+    'provincia',
+    'codigoPostal',
+    'entreCalles',
+    'observaciones',
+    'latitud',
+    'longitud',
+];
+
+// Arma un objeto solo con los CAMPOS permitidos.
+// Si un campo no viene en el body, usa el valor de "base" (la dirección actual al editar).
+function tomarCampos(body, base = {}) {
+    return Object.fromEntries(
+        CAMPOS.map((campo) => [campo, body[campo] ?? base[campo] ?? null])
+    );
+}
+
 const obtenerDireccionesPorUsuario = async (req, res) => {
     try {
         const direcciones = await Direccion.findAll({
@@ -16,7 +39,7 @@ const obtenerDireccionesPorUsuario = async (req, res) => {
 
 const crearDireccion = async (req, res) => {
     try {
-        const { alias, calle, numero, piso, ciudad, codigoPostal, predeterminada, usuarioId } = req.body;
+        const { predeterminada, usuarioId } = req.body;
 
         if (predeterminada) {
             await Direccion.update(
@@ -26,12 +49,7 @@ const crearDireccion = async (req, res) => {
         }
 
         const nuevaDireccion = await Direccion.create({
-            alias,
-            calle,
-            numero,
-            piso,
-            ciudad,
-            codigoPostal,
+            ...tomarCampos(req.body),
             predeterminada: !!predeterminada,
             usuarioId,
         });
@@ -51,7 +69,7 @@ const actualizarDireccion = async (req, res) => {
             return res.status(404).json({ mensaje: 'Dirección no encontrada' });
         }
 
-        const { alias, calle, numero, piso, ciudad, codigoPostal, predeterminada } = req.body;
+        const { predeterminada } = req.body;
 
         if (predeterminada) {
             await Direccion.update(
@@ -61,12 +79,7 @@ const actualizarDireccion = async (req, res) => {
         }
 
         await direccion.update({
-            alias: alias ?? direccion.alias,
-            calle: calle ?? direccion.calle,
-            numero: numero ?? direccion.numero,
-            piso: piso ?? direccion.piso,
-            ciudad: ciudad ?? direccion.ciudad,
-            codigoPostal: codigoPostal ?? direccion.codigoPostal,
+            ...tomarCampos(req.body, direccion),
             predeterminada: predeterminada ?? direccion.predeterminada,
         });
 

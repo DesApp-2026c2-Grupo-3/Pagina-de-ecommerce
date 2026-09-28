@@ -1,8 +1,8 @@
-const { Router } = require('express');
-const router = Router();
+const express = require('express');
+const { obtenerSucursales } = require('../controllers/sucursalController');
 
-const sucursalController = require('../controllers/sucursalController');
+const router = express.Router();
 
-router.get('/', sucursalController.obtenerSucursales);
+router.get('/', obtenerSucursales);
 
 module.exports = router;

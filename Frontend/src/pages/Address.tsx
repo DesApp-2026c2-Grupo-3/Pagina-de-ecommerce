@@ -8,14 +8,21 @@ import {
 } from '../services/addressService'
 import Modal from '../components/Modal'
 import ErrorAlert from '../components/ErrorAlert'
+import AddressPicker from '../components/AddressPicker'
 import type { Address as AddressData, AddressFormData } from '../types/address'
+
 const formVacio: AddressFormData = {
   alias: '',
   calle: '',
   numero: '',
   piso: '',
-  ciudad: '',
+  localidad: '',
+  provincia: '',
   codigoPostal: '',
+  entreCalles: '',
+  observaciones: '',
+  latitud: null,
+  longitud: null,
   predeterminada: false,
 }
 
@@ -58,8 +65,13 @@ function Address() {
       calle: direccion.calle,
       numero: direccion.numero,
       piso: direccion.piso ?? '',
-      ciudad: direccion.ciudad,
-      codigoPostal: direccion.codigoPostal,
+      localidad: direccion.localidad ?? '',
+      provincia: direccion.provincia ?? '',
+      codigoPostal: direccion.codigoPostal ?? '',
+      entreCalles: direccion.entreCalles ?? '',
+      observaciones: direccion.observaciones ?? '',
+      latitud: direccion.latitud != null ? Number(direccion.latitud) : null,
+      longitud: direccion.longitud != null ? Number(direccion.longitud) : null,
       predeterminada: direccion.predeterminada,
     })
     setEditandoId(direccion.id)
@@ -71,8 +83,16 @@ function Address() {
     e.preventDefault()
     setError('')
 
-    if (!form.alias.trim() || !form.calle.trim() || !form.numero.trim() || !form.ciudad.trim()) {
-      setError('Completá alias, calle, número y ciudad')
+    if (!form.alias.trim()) {
+      setError('Completá el alias')
+      return
+    }
+    if (!form.calle.trim() || !form.numero.trim()) {
+      setError('Buscá y elegí tu dirección, con altura')
+      return
+    }
+    if (form.latitud === null || form.longitud === null) {
+      setError('Marcá la ubicación en el mapa')
       return
     }
 
@@ -147,9 +167,15 @@ function Address() {
                   </div>
                   <p className="mt-1 text-sm text-gray-600">
                     {direccion.calle} {direccion.numero}
-                    {direccion.piso && `, piso ${direccion.piso}`} — {direccion.ciudad} (
-                    {direccion.codigoPostal})
+                    {direccion.piso && `, piso ${direccion.piso}`} — {direccion.localidad}
+                    {direccion.provincia && `, ${direccion.provincia}`}
+                    {direccion.codigoPostal && ` (${direccion.codigoPostal})`}
                   </p>
+                  {direccion.latitud == null && (
+                    <p className="mt-1 text-xs font-semibold text-amber-600">
+                      ⚠️ Sin ubicación en el mapa. Editala para completarla.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-3">
@@ -179,8 +205,7 @@ function Address() {
         onClose={() => setModalAbierto(false)}
         title={editandoId ? 'Editar dirección' : 'Nueva dirección'}
       >
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-          <div>
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">          <div>
             <label className="text-sm text-gray-500">Alias (ej: Casa, Trabajo)</label>
             <input
               type="text"
@@ -190,56 +215,29 @@ function Address() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <label className="text-sm text-gray-500">Calle</label>
-              <input
-                type="text"
-                value={form.calle}
-                onChange={(e) => setForm({ ...form, calle: e.target.value })}
-                className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-500">Número</label>
-              <input
-                type="text"
-                value={form.numero}
-                onChange={(e) => setForm({ ...form, numero: e.target.value })}
-                className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-              />
-            </div>
-          </div>
-
+          <AddressPicker
+            value={{
+              calle: form.calle,
+              numero: form.numero,
+              localidad: form.localidad,
+              provincia: form.provincia,
+              codigoPostal: form.codigoPostal,
+              latitud: form.latitud,
+              longitud: form.longitud,
+            }}
+            onChange={(ubicacion) => setForm((prev) => ({ ...prev, ...ubicacion }))}
+          />
           <div>
-            <label className="text-sm text-gray-500">Piso / Depto (opcional)</label>
-            <input
-              type="text"
-              value={form.piso}
-              onChange={(e) => setForm({ ...form, piso: e.target.value })}
-              className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
+            <label className="text-sm text-gray-500">Observaciones (opcional)</label>
+            <textarea
+              value={form.observaciones}
+              maxLength={140}
+              rows={3}
+              onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+              placeholder="Ej: timbre roto, portón negro"
+              className="mt-1 w-full rounded-lg border border-brand-dark/20 p-2 focus:border-brand-red focus:outline-none"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-gray-500">Ciudad</label>
-              <input
-                type="text"
-                value={form.ciudad}
-                onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
-                className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-500">Código postal</label>
-              <input
-                type="text"
-                value={form.codigoPostal}
-                onChange={(e) => setForm({ ...form, codigoPostal: e.target.value })}
-                className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-              />
-            </div>
+            <p className="text-right text-xs text-gray-400">{form.observaciones.length}/140</p>
           </div>
 
           <label className="flex items-center gap-2 text-sm font-semibold text-brand-dark">
