@@ -7,7 +7,6 @@ import DefaultBranchBadge from '../components/home/DefaultBranchBadge'
 import GuestQuickAccessRow from '../components/home/GuestQuickAccessRow'
 import CompanySection from '../components/home/CompanySection'
 import ContactSection from '../components/home/ContactSection'
-import CareersSection from '../components/home/CareersSection'
 import { getCategories, getProducts } from '../services/productService'
 import { useAuth } from '../context/AuthContext'
 import type { Category, ProductoBackend } from '../types/product'
@@ -78,7 +77,6 @@ function Home() {
           <GuestQuickAccessRow />
           <CompanySection />
           <ContactSection />
-          <CareersSection />
         </>
       )}
     </div>

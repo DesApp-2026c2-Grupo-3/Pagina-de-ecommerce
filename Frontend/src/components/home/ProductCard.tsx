@@ -12,7 +12,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     <Link to={`/producto/${product.id}`} className="block h-full">
       <article
         className={`relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-md transition-transform ${
-          isUnavailable ? '' : 'hover:-translate-y-1 hover:shadow-xl'
+          isUnavailable ? '' : 'hover:scale-110 hover:shadow-xl'
         }`}
       >
         {isUnavailable && (

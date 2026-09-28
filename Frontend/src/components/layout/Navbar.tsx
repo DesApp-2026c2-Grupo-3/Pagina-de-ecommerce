@@ -10,13 +10,14 @@ function getNavLinks(isAuthenticated: boolean) {
     { label: 'Home', to: '/' },
     { label: 'Catalogo', to: '/catalogo' },
     { label: 'Promociones', to: '/promociones' },
+    { label: 'Conocenos', to: '/conocenos' }
   ]
 
-  if (!isAuthenticated) {
+  {/*if (!isAuthenticated) {
     links.push({ label: 'Trabajá acá', to: '/#trabaja-con-nosotros' })
     links.push({ label: 'Sobre nosotros', to: '/#sobre-nosotros' })
     links.push({ label: 'Contacto', to: '/#contacto' })
-  }
+  }*/}
 
   return links
 }

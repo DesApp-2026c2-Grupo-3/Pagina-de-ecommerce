@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { CarouselSlide } from '../../types/carousel'
+import { ArrowBigLeft, ArrowBigRight } from 'lucide-react'
 
 interface CarouselProps {
   slides: CarouselSlide[]
@@ -39,17 +40,30 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
   if (!slide) return null
 
   return (
-    <section className="relative overflow-hidden bg-brand-red text-white">
-      <div className="mx-auto flex min-h-[26rem] max-w-7xl flex-col items-center justify-center gap-6 px-4 py-12 md:min-h-[22rem] md:flex-row md:justify-between">
-        <div className="w-full max-w-xl text-center md:text-left">
+   <section
+      className="relative min-h-[26rem] overflow-hidden bg-cover bg-center text-white"
+      style={{ backgroundImage: `url(${slide.backgroundImage})` }}
+    >
+      {/* Capa oscura para mejorar la lectura del texto */}
+      <div className="absolute inset-0 bg-black/50" />
+
+      <div className="relative mx-auto flex min-h-[26rem] max-w-7xl items-center px-4 py-12 md:min-h-[22rem]">
+        <div className="w-full max-w-2xl text-center md:text-left">
           {slide.eyebrow && (
             <span className="mb-2 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wide">
               {slide.eyebrow}
             </span>
           )}
-          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">{slide.title}</h1>
-          <p className="mt-4 text-lg text-white/90">{slide.description}</p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
+
+          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+            {slide.title}
+          </h1>
+
+          <p className="mt-4 text-lg text-white/90">
+            {slide.description}
+          </p>
+
+          {/*<div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
             <Link
               to={slide.ctaTo}
               className={
@@ -60,23 +74,7 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
             >
               {slide.ctaLabel}
             </Link>
-          </div>
-        </div>
-
-        <div className="hidden h-72 w-72 shrink-0 place-items-center md:grid">          {slide.visualType === 'image' ? (
-            <img
-              src={slide.visual}
-              alt=""
-              className="h-full w-full object-contain drop-shadow-xl"
-            />
-          ) : (
-            <span
-              className="text-[7rem] leading-none drop-shadow-xl md:text-[9rem]"
-              aria-hidden="true"
-            >
-              {slide.visual}
-            </span>
-          )}
+          </div>*/}
         </div>
       </div>
 
@@ -88,18 +86,19 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
             onClick={() => goTo(index - 1)}
             className="absolute left-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-2xl leading-none text-white transition-colors hover:bg-black/40 md:block"
           >
-            ‹
+            <ArrowBigLeft size={18} />
           </button>
+
           <button
             type="button"
             aria-label="Slide siguiente"
             onClick={() => goTo(index + 1)}
             className="absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-2xl leading-none text-white transition-colors hover:bg-black/40 md:block"
           >
-            ›
+            <ArrowBigRight size={18} />
           </button>
 
-          <div className="flex justify-center gap-2 pb-4">
+          <div className="relative flex justify-center gap-2 pb-4">
             {slides.map((s, i) => (
               <button
                 key={s.id}

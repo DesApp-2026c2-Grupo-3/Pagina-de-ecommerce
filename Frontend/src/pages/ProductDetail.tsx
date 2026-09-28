@@ -78,21 +78,22 @@ function ProductDetail() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <Link
-        to="/"
+        to="/catalogo"
         className="inline-block font-semibold text-brand-red hover:underline"
       >
         ← Volver al catálogo
       </Link>
-      
-      <div className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-2">
-
+      <div className="mt-6 flex min-h-[70vh] items-center">
+      <div className="grid grid-cols-1 items-center justify-items-center gap-10 md:grid-cols-2">
+        
         <img
           src={product.imagen}
           alt={product.nombre}
-          className="h-72 w-full rounded-2xl bg-brand-cream object-cover md:h-96"
+          className="h-72 w-full rounded-2xl bg-brand-cream object-contain md:h-96"
         />
+        
 
-        <div className="flex flex-col">
+        <div className="flex flex-col items-center">
           {categoryName && (
             <span className="mr-auto rounded-full bg-brand-red px-3 py-1 text-sm font-bold text-white">
               {categoryName}
@@ -133,6 +134,7 @@ function ProductDetail() {
               </button>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>
