@@ -7,8 +7,7 @@ import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
 import { etiquetaTamanio } from "../config/combo";
-import { distanciaKm } from "../utils/distancia";
-import type { Order } from "../types/order";
+import { buscarSucursalCercana } from "../utils/sucursales";import type { Order } from "../types/order";
 import type { Address } from "../types/address";
 import type { Sucursal } from "../types/sucursal";
 
@@ -73,16 +72,8 @@ function Checkout() {
       ? { lat: Number(direccion.latitud), lng: Number(direccion.longitud) }
       : null;
 
-  const masCercana = coordsDireccion
-    ? sucursales
-        .map((sucursal) => ({
-          sucursal,
-          distancia: distanciaKm(coordsDireccion, { lat: sucursal.latitud, lng: sucursal.longitud }),
-        }))
-        .sort((a, b) => a.distancia - b.distancia)[0]
-    : undefined;
-
-  const dentroDeZona = masCercana ? masCercana.distancia <= masCercana.sucursal.radioEntregaKm : false;
+  const masCercana = buscarSucursalCercana(coordsDireccion, sucursales);
+  const dentroDeZona = masCercana?.dentroDeZona ?? false;
   const puedeConfirmar = Boolean(direccion && masCercana && dentroDeZona);
 
   async function handleConfirm() {

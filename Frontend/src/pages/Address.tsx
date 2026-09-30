@@ -269,6 +269,7 @@ function Address() {
         isOpen={modalAbierto}
         onClose={() => setModalAbierto(false)}
         title={editandoId ? 'Editar dirección' : 'Nueva dirección'}
+        tamanio="lg"
       >
         <div className="mb-4">
           <Stepper pasos={PASOS} actual={paso} onIrA={irAPaso} />

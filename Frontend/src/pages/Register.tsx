@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ErrorAlert from '../components/ErrorAlert'
 import { esEmailValido } from '../utils/validaciones'
+import CampoPassword from '../components/CampoPassword'
 
 function Register() {
   const { register, loading } = useAuth()
@@ -75,14 +76,15 @@ function Register() {
           <label htmlFor="password" className="text-sm font-semibold text-brand-dark">
             Contraseña
           </label>
-          <input
+          <CampoPassword
             id="password"
-            type="password"
             required
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
+            placeholder="Mínimo 6 caracteres"
+            autoComplete="new-password"
+            className="w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
           />
         </div>
 

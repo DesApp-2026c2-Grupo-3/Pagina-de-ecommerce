@@ -24,13 +24,24 @@ export default function ProductCard({ product }: ProductCardProps) {
           </span>
         )}
 
-        <img
-          src={product.imagen}
-          alt={product.nombre}
-          className={`h-40 w-full bg-brand-cream object-contain object-center ${
-            isUnavailable ? 'opacity-50 grayscale' : ''
-          }`}
-        />
+        {product.imagen ? (
+          <img
+            src={product.imagen}
+            alt={product.nombre}
+            className={`h-40 w-full bg-brand-cream object-contain object-center ${
+              isUnavailable ? 'opacity-50 grayscale' : ''
+            }`}
+          />
+        ) : (
+          <div
+            className={`grid h-40 w-full place-items-center bg-brand-cream text-5xl ${
+              isUnavailable ? 'opacity-50 grayscale' : ''
+            }`}
+            aria-hidden="true"
+          >
+            🍽️
+          </div>
+        )}
 
         <div className="flex flex-1 flex-col p-4">
           <h3 className="text-lg font-bold text-brand-dark">
@@ -41,8 +52,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.descripcion}
           </p>
 
-          <div className="mt-4 flex items-center justify-between">
-            {tieneTamanios && <span className="text-xs font-semibold text-gray-500">desde</span>}
+          <div className="mt-4 flex items-baseline gap-1">            {tieneTamanios && <span className="text-xs font-semibold text-gray-500">desde</span>}
             <span className={`text-xl font-extrabold ${isUnavailable ? 'text-gray-400' : 'text-brand-red'}`}>
               ${precioMostrado.toLocaleString('es-AR')}
             </span>

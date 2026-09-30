@@ -1,45 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getCategories, getProductoDetalle, getProducts } from '../services/productService'
-import type { Category, ProductIngredient, ProductoBackend } from '../types/product'
+import type { Category, ProductoBackend } from '../types/product'
 import { useCart } from '../context/CartContext'
 import { useToast } from '../context/ToastContext'
 import Stepper from '../components/Stepper'
+import PersonalizarIngredientes from '../components/PersonalizarIngredientes'
+import SelectorTamanio from '../components/SelectorTamanio'
 import { COMBO, SABORES, etiquetaTamanio, ordenarVariantes } from '../config/combo'
+import { formatearPrecio as precio, precioDe, precioDesde } from '../utils/precio'
+import {
+  personalizacionesDe,
+  precioExtras as calcularPrecioExtras,
+  textoPersonalizacion as textoDe,
+} from '../utils/personalizacion'
 
 const PASOS = ['Hamburguesa', 'Papas', 'Bebida', 'Resumen']
 
 interface Eleccion {
   id: number
   tamanio: string | null
-}
-
-function precio(n: number) {
-  return `$${n.toLocaleString('es-AR')}`
-}
-
-// Precio de un producto en el tamaño elegido (o su precio, si no tiene tamaños)
-function precioDe(producto: ProductoBackend, tamanio: string | null) {
-  const variante = producto.variantes?.find((v) => v.tamanio === tamanio)
-  return Number(variante?.precio ?? producto.precio)
-}
-
-// El precio más bajo, para mostrar "desde ..."
-function precioDesde(producto: ProductoBackend) {
-  const precios = producto.variantes?.map((v) => Number(v.precio)) ?? []
-  return precios.length > 0 ? Math.min(...precios) : Number(producto.precio)
-}
-
-// Cuánto suma un extra: 1 unidad, o la porción base si no es entera (ej. 0.5 kg)
-function pasoExtra(ing: ProductIngredient) {
-  return Number.isInteger(ing.cantidadBase) ? 1 : ing.cantidadBase
-}
-
-function alternar(conjunto: Set<number>, id: number) {
-  const nuevo = new Set(conjunto)
-  if (nuevo.has(id)) nuevo.delete(id)
-  else nuevo.add(id)
-  return nuevo
 }
 
 // ---------- Piezas visuales ----------
@@ -53,6 +33,7 @@ interface OpcionProps {
   icono: string
 }
 
+// Tarjeta seleccionable para papas y bebidas
 function Opcion({ elegida, onClick, titulo, detalle, imagen, icono }: OpcionProps) {
   return (
     <button
@@ -75,40 +56,6 @@ function Opcion({ elegida, onClick, titulo, detalle, imagen, icono }: OpcionProp
         {detalle && <span className="block text-sm text-gray-600">{detalle}</span>}
       </span>
     </button>
-  )
-}
-
-interface SelectorTamanioProps {
-  producto: ProductoBackend
-  valor: string | null
-  onChange: (tamanio: string) => void
-}
-
-function SelectorTamanio({ producto, valor, onChange }: SelectorTamanioProps) {
-  const variantes = ordenarVariantes(producto.variantes)
-  if (variantes.length === 0) return null
-
-  return (
-    <div>
-      <p className="text-sm font-bold text-brand-dark">Tamaño</p>
-      <div className="mt-2 grid grid-cols-3 gap-2">
-        {variantes.map((v) => (
-          <button
-            key={v.tamanio}
-            type="button"
-            onClick={() => onChange(v.tamanio)}
-            aria-pressed={valor === v.tamanio}
-            className={`rounded-xl border-2 px-2 py-2 text-center transition-colors ${
-              valor === v.tamanio ? 'border-brand-red bg-brand-red/5' : 'border-brand-dark/10 hover:border-brand-red/40'
-            }`}
-          >
-            <span className="block text-sm font-bold text-brand-dark">{etiquetaTamanio(v.tamanio)}</span>
-            {v.etiqueta && <span className="block text-xs text-gray-500">{v.etiqueta}</span>}
-            <span className="block text-sm font-semibold text-brand-red">{precio(Number(v.precio))}</span>
-          </button>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -158,6 +105,7 @@ function ProductDetail() {
 
   const { addItem } = useCart()
   const { showToast } = useToast()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!id) return
@@ -208,46 +156,16 @@ function ProductDetail() {
 
   // ---------- Hamburguesa ----------
   const ingredientes = product?.ingredientes ?? []
-  const fijos = ingredientes.filter((i) => !i.esRemovible && !i.esAgregable)
-  const removibles = ingredientes.filter((i) => i.esRemovible)
-  const agregables = ingredientes.filter((i) => i.esAgregable)
-
-  function cantidadFinal(ing: ProductIngredient) {
-    if (quitados.has(ing.insumoId)) return 0
-    return ing.cantidadBase + (extras.has(ing.insumoId) ? pasoExtra(ing) : 0)
-  }
-
-  function toggleQuitar(ing: ProductIngredient) {
-    setQuitados((prev) => alternar(prev, ing.insumoId))
-    // Si se quita un ingrediente, tampoco puede ir como extra
-    setExtras((prev) => {
-      const nuevo = new Set(prev)
-      nuevo.delete(ing.insumoId)
-      return nuevo
-    })
-  }
-
-  const tocados = ingredientes.filter((ing) => cantidadFinal(ing) !== ing.cantidadBase)
-  const precioExtras = tocados.reduce(
-    (suma, ing) => suma + Math.max(0, cantidadFinal(ing) - ing.cantidadBase) * ing.precioComercial,
-    0,
-  )
+  const eleccion = { quitados, extras }
 
   // ---------- Precios ----------
-  const precioHamburguesa = Number(product?.precio ?? 0) + precioExtras
+  const precioHamburguesa = Number(product?.precio ?? 0) + calcularPrecioExtras(ingredientes, eleccion)
   const precioPapa = papaProducto && papa ? precioDe(papaProducto, papa.tamanio) : 0
   const precioBebida = bebidaProducto && bebida ? precioDe(bebidaProducto, bebida.tamanio) : 0
   const total = precioHamburguesa + precioPapa + precioBebida
 
   // Texto para el carrito, ej: ["Sin Cebolla", "Extra Cheddar (+$500)"]
-  function textoPersonalizacion() {
-    return tocados.map((ing) => {
-      const cantidad = cantidadFinal(ing)
-      if (cantidad === 0) return `Sin ${ing.nombre}`
-      const costo = (cantidad - ing.cantidadBase) * ing.precioComercial
-      return `Extra ${ing.nombre}${costo > 0 ? ` (+${precio(costo)})` : ''}`
-    })
-  }
+  const textoPersonalizacion = () => textoDe(ingredientes, eleccion)
 
   function textoTamanio(producto: ProductoBackend, tamanio: string | null) {
     const etiqueta = producto.variantes?.find((v) => v.tamanio === tamanio)?.etiqueta
@@ -259,7 +177,7 @@ function ProductDetail() {
     if (!product?.disponible) return
     addItem(product, 1, textoPersonalizacion(), {
       unitPrice: precioHamburguesa,
-      personalizaciones: tocados.map((ing) => ({ insumoId: ing.insumoId, cantidad: cantidadFinal(ing) })),
+      personalizaciones: personalizacionesDe(ingredientes, eleccion),
     })
     if (papaProducto && papa) addItem(papaProducto, 1, [], { tamanio: papa.tamanio })
     if (bebidaProducto && bebida) addItem(bebidaProducto, 1, [], { tamanio: bebida.tamanio })
@@ -268,12 +186,14 @@ function ProductDetail() {
         ? `${product.nombre} y su combo se agregaron al carrito`
         : `${product.nombre} se agregó al carrito`,
     )
+    navigate('/carrito')
   }
 
   function agregarSimple(tamanio: string | null) {
     if (!product?.disponible) return
     addItem(product, 1, [], { tamanio })
     showToast(`${product.nombre} se agregó al carrito`)
+    navigate('/carrito')
   }
 
   if (loading) {
@@ -316,11 +236,20 @@ function ProductDetail() {
       <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-10">
         {/* Producto: en celular, compacto (foto chica al lado del nombre) */}
         <div className="flex items-center gap-4 md:flex-col md:items-stretch">
-          <img
-            src={product.imagen}
-            alt={product.nombre}
-            className="h-20 w-20 shrink-0 rounded-xl bg-brand-cream object-cover md:h-96 md:w-full md:rounded-2xl"
-          />
+          {product.imagen ? (
+            <img
+              src={product.imagen}
+              alt={product.nombre}
+              className="h-20 w-20 shrink-0 rounded-xl bg-brand-cream object-cover md:h-96 md:w-full md:rounded-2xl"
+            />
+          ) : (
+            <div
+              className="grid h-20 w-20 shrink-0 place-items-center rounded-xl bg-brand-cream text-3xl md:h-96 md:w-full md:rounded-2xl md:text-7xl"
+              aria-hidden="true"
+            >
+              🍽️
+            </div>
+          )}
           <div>
             {categoryName && (
               <span className="rounded-full bg-brand-red px-3 py-1 text-xs font-bold text-white md:text-sm">
@@ -368,70 +297,14 @@ function ProductDetail() {
               <Stepper pasos={PASOS} actual={paso} onIrA={setPaso} />
 
               {paso === 1 && (
-                <div className="flex flex-col gap-4">
-                  {fijos.length > 0 && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-bold text-brand-dark">Incluye: </span>
-                      {fijos.map((i) => i.nombre).join(', ')}
-                    </p>
-                  )}
-
-                  {removibles.length > 0 && (
-                    <fieldset>
-                      <legend className="text-sm font-bold text-brand-dark">Lo que trae</legend>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        {removibles.map((ing) => (
-                          <label key={ing.insumoId} className="flex items-center gap-2 text-sm text-brand-dark">
-                            <input
-                              type="checkbox"
-                              checked={!quitados.has(ing.insumoId)}
-                              onChange={() => toggleQuitar(ing)}
-                              className="h-4 w-4 accent-brand-red"
-                            />
-                            {ing.nombre}
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                  )}
-
-                  {agregables.length > 0 && (
-                    <fieldset>
-                      <legend className="text-sm font-bold text-brand-dark">Extras</legend>
-                      <div className="mt-2 flex flex-col gap-2">
-                        {agregables.map((ing) => {
-                          const quitado = quitados.has(ing.insumoId)
-                          return (
-                            <label
-                              key={ing.insumoId}
-                              className={`flex items-center justify-between gap-2 text-sm ${
-                                quitado ? 'text-gray-400' : 'text-brand-dark'
-                              }`}
-                            >
-                              <span className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={extras.has(ing.insumoId)}
-                                  disabled={quitado}
-                                  onChange={() => setExtras((prev) => alternar(prev, ing.insumoId))}
-                                  className="h-4 w-4 accent-brand-red"
-                                />
-                                {ing.nombre} extra
-                              </span>
-                              {ing.precioComercial > 0 && (
-                                <span className="font-semibold">+{precio(ing.precioComercial * pasoExtra(ing))}</span>
-                              )}
-                            </label>
-                          )
-                        })}
-                      </div>
-                    </fieldset>
-                  )}
-
-                  {removibles.length === 0 && agregables.length === 0 && (
-                    <p className="text-sm text-gray-600">Esta hamburguesa no tiene opciones para personalizar.</p>
-                  )}
-                </div>
+                <PersonalizarIngredientes
+                  ingredientes={ingredientes}
+                  eleccion={eleccion}
+                  onChange={(nueva) => {
+                    setQuitados(nueva.quitados)
+                    setExtras(nueva.extras)
+                  }}
+                />
               )}
 
               {paso === 2 && (

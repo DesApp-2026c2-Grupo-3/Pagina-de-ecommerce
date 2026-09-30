@@ -3,6 +3,7 @@ import { Link, useLocation,  useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { esEmailValido } from '../utils/validaciones'
 import ErrorAlert from '../components/ErrorAlert'
+import CampoPassword from '../components/CampoPassword'
 
 function Login() {
   const { login, loading } = useAuth()
@@ -66,13 +67,14 @@ async function handleSubmit(e: FormEvent) {
           <label htmlFor="password" className="text-sm font-semibold text-brand-dark">
             Contraseña
           </label>
-          <input
+          <CampoPassword
             id="password"
-            type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
+            placeholder="Tu contraseña"
+            autoComplete="current-password"
+            className="w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
           />
         </div>
 
