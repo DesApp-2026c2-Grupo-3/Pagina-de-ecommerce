@@ -28,15 +28,19 @@ export async function crearAdministrador(administrador: unknown) {
     },
     body: JSON.stringify(administrador),
   })
+  const datos = await respuesta.json();
 
   if (!respuesta.ok) {
-    throw new Error('Error al crear el administrador')
+    throw new Error(datos.code || datos.mensaje || "Error al crear el administrador");
   }
 
-  return respuesta.json()
+  return datos
 }
 
-export async function actualizarAdministrador(id: number,  administrador: unknown) {
+export async function actualizarAdministrador(
+  id: number,
+  administrador: unknown
+) {
   const respuesta = await fetch(
     `${API_URL}/administradores/editar/${id}`,
     {
@@ -51,10 +55,14 @@ export async function actualizarAdministrador(id: number,  administrador: unknow
   const datos = await respuesta.json()
 
   if (!respuesta.ok) {
-    throw new Error(datos.mensaje || 'Error al actualizar el administrador')
+    throw new Error(
+      datos.code ||
+      datos.mensaje ||
+      'Error al actualizar el administrador'
+    )
   }
 
-  return respuesta.json()
+  return datos
 }
 
 export async function eliminarAdministrador(id: number) {
