@@ -14,6 +14,10 @@ import NuevoAdministrador from '../pages/Administradores/NuevoAdministrador'
 import EditarAdministrador from '../pages/Administradores/EditarAdministrador'
 import NotFound from '../pages/NotFound'
 import type { AdministradorSesion } from '../App'
+import Sucursales from '../pages/Sucursales/Sucursales'
+import NuevaSucursal from '../pages/Sucursales/NuevaSucursal'
+import EditarSucursal from '../pages/Sucursales/EditarSucursal'
+import Stock from '../pages/Stock/Stock'
 
 interface AppRoutesProps {
   isAuthenticated: boolean
@@ -56,6 +60,15 @@ export default function AppRoutes({ isAuthenticated, administrador ,setAdministr
                 <Route path="/admin/administradores/nuevo" element={<NuevoAdministrador />}/>
 
                 <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />}/>
+
+                <Route path="/admin/sucursales" element={<Sucursales />}/>
+
+                <Route path="/admin/sucursales/nueva" element={<NuevaSucursal />}/>
+
+                <Route path="/admin/sucursales/editar/:id" element={<EditarSucursal />}/>
+
+                <Route path="/admin/sucursales/:id/stock" element={<Stock />}/>
+
                 
             </Route>
 

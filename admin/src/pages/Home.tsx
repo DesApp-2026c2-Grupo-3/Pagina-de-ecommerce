@@ -44,7 +44,7 @@ export default function Home({setAdministrador}:HomeProps) {
               JSON.stringify({
                 nombre: administrador.nombre,
                 email: administrador.email,
-                rol: 'MASTER',
+                rol: administrador.rol,
               })
           )
 

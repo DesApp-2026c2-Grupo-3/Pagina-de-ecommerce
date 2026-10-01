@@ -95,6 +95,8 @@ export default function Administradores() {
                 <tr>
                     <th className="text-left px-6 py-3">Nombre</th>
                     <th className="text-left px-6 py-3">Email</th>
+                    <th className="text-left px-6 py-3">Rol</th>
+                    <th className="text-left px-6 py-3">Sucursal</th>
                     <th className="text-right px-6 py-3">Acciones</th>
                 </tr>
             </thead>
@@ -102,7 +104,7 @@ export default function Administradores() {
             <tbody>
                 {administradoresPagina.length === 0 ? (
                     <tr>
-                        <td colSpan={3} className="px-6 py-10">
+                        <td colSpan={5} className="px-6 py-10">
                             <MensajeVacio mensaje="No hay administradores registrados." />
                         </td>
                     </tr>
@@ -112,6 +114,11 @@ export default function Administradores() {
                     id: number
                     nombre: string
                     email: string
+                    rol: string
+                    sucursal: {
+                        id: number
+                        nombre: string
+                    } | null
                 }) => (
                 <tr key={administrador.id} className="border-b border-t">
                     <td className="px-6 py-4">
@@ -120,6 +127,14 @@ export default function Administradores() {
 
                     <td className="px-6 py-4">
                         {administrador.email}
+                    </td>
+
+                    <td className="px-6 py-4">
+                        {administrador.rol}
+                    </td>
+                    
+                    <td className="px-6 py-4">
+                        {administrador.sucursal?.nombre ?? 'Sin sucursal'}
                     </td>
 
                     <td className="flex justify-end gap-2 px-6 py-4">

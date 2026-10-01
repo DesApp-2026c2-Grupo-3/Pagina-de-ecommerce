@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
 import { crearAdministrador } from '../../services/administradores'
+import { obtenerSucursales } from '../../services/sucursales'
 
 export default function NuevoAdministrador() {
   const [nombre, setNombre] = useState('')
@@ -10,6 +11,11 @@ export default function NuevoAdministrador() {
   const [errorNombre, setErrorNombre] = useState('');
   const [errorEmail, setErrorEmail] = useState('');
   const [errorPassword, setErrorPassword] = useState('');
+
+  const [sucursalId, setSucursalId] = useState('')
+  const [errorSucursal, setErrorSucursal] = useState('')
+  const [sucursales, setSucursales] = useState<any[]>([])
+
   const { mostrarToast } = useToast();
   const navigate = useNavigate()
 
@@ -53,6 +59,11 @@ export default function NuevoAdministrador() {
       hayErrores = true
     }
 
+    if (sucursalId === '') {
+      setErrorSucursal('Seleccioná una sucursal.')
+      hayErrores = true
+    }
+
     if (hayErrores) {
       return
     }
@@ -61,6 +72,7 @@ export default function NuevoAdministrador() {
       nombre,
       email,
       password,
+      sucursalId: Number(sucursalId),
     }
     
     try {
@@ -70,8 +82,24 @@ export default function NuevoAdministrador() {
       navigate('/admin/administradores')
     } catch (error) {
       console.error('Error al crear administrador:', error)
+      mostrarToast(
+    error instanceof Error ? error.message : "Error al crear administrador"
+  );
     }
   }
+
+  useEffect(() => {
+  const cargarSucursales = async () => {
+    try {
+      const datos = await obtenerSucursales()
+      setSucursales(datos)
+    } catch (error) {
+      console.error('Error al cargar sucursales:', error)
+    }
+  }
+
+  cargarSucursales()
+}, [])
 
   return (
     <main className="p-8">
@@ -121,6 +149,39 @@ export default function NuevoAdministrador() {
             {errorEmail}
           </p>
         )}
+
+
+        <div className="mb-4">
+          <label className="block mb-2 font-medium">
+            Sucursal
+          </label>
+
+        <select
+          value={sucursalId}
+          onChange={(e) => {
+            setSucursalId(e.target.value)
+            setErrorSucursal('')
+          }}
+          className="w-full border rounded px-3 py-2">
+
+          <option value="">Seleccionar sucursal</option>
+          
+          {sucursales
+            .filter((sucursal) => sucursal.activa)
+            .map((sucursal) => (
+            <option key={sucursal.id} value={sucursal.id}>
+                {sucursal.nombre}
+            </option>
+          ))}
+        </select>
+        </div>
+
+        {errorSucursal && (
+          <p className="text-red-600 text-sm m-1">
+            {errorSucursal}
+          </p>
+        )}
+
 
         <div className="mb-4">
           <label className="block mb-2 font-medium">

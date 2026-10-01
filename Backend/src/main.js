@@ -33,6 +33,8 @@ const sucursalRoutes = require('./routes/sucursalRoutes');
 app.use('/admin/productos', adminProductoRoutes);
 app.use('/admin/categorias', adminCategoriaRoutes);
 app.use('/admin/stock', adminStockRoutes);
+app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
+app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 app.use('/admin', adminRoutes);
 
 
@@ -42,8 +44,7 @@ app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
-app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
-app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
+
 
 //SINCRO CON BASE DE DATOS
 async function iniciarServidor() {

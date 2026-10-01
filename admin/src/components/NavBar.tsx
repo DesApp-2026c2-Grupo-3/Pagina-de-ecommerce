@@ -78,6 +78,15 @@ export default function Navbar({administrador, setAdministrador}:NavbarProps) {
                 </NavLink>
 
                 <NavLink
+                to="/admin/sucursales"
+                className={({ isActive }) => isActive
+                ? 'font-bold text-action drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]'
+                : 'hover:text-action-hover'
+                }>
+                Sucursales
+                </NavLink>
+
+                <NavLink
                 to="/admin/administradores"
                 className={({ isActive }) => isActive
                 ? 'font-bold text-action drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]'
@@ -127,6 +136,16 @@ export default function Navbar({administrador, setAdministrador}:NavbarProps) {
                 : 'hover:text-action-hover'
                 }>
                 Categorías
+                </NavLink>
+
+                <NavLink
+                to="/admin/sucursales"
+                onClick={() => setMenuAbierto(false)}
+                className={({ isActive }) => isActive
+                ? 'font-bold text-action drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]'
+                : 'hover:text-action-hover'
+                }>
+                Sucursales
                 </NavLink>
 
                 <NavLink
