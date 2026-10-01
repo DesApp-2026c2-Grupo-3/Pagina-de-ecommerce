@@ -15,10 +15,13 @@ import HistorialPedidos from './pages/HistorialPedidos'
 import Address from './pages/Address'
 import Seguridad from './pages/Seguridad'
 import Toast from './components/Toast'
+import SobreNosotros from './components/home/SobreNosotros'
+import ScrollToTop from './utils/scrollToTop'
 
 function App() {
   return (
-    <div className="flex flex-1 flex-col bg-brand-cream text-brand-dark">
+    <div className="flex flex-1 flex-col bg-black text-brand-dark">
+      <ScrollToTop />
       <Navbar />
       <main className="flex-1">
         <Routes>
@@ -35,6 +38,7 @@ function App() {
           <Route path="/historial" element={<HistorialPedidos />} />
           <Route path="/direcciones" element={<Address />} />
           <Route path="/seguridad" element={<Seguridad />} />
+          <Route path="/conocenos" element={<SobreNosotros />}/>
         </Routes>
       </main>
       <Footer />

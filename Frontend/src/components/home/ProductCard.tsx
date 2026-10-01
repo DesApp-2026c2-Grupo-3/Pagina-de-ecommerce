@@ -15,7 +15,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     <Link to={`/producto/${product.id}`} className="block h-full">
       <article
         className={`relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-md transition-transform ${
-          isUnavailable ? '' : 'hover:-translate-y-1 hover:shadow-xl'
+          isUnavailable ? '' : 'hover:scale-105 hover:shadow-xl'
         }`}
       >
         {isUnavailable && (
@@ -28,7 +28,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           <img
             src={product.imagen}
             alt={product.nombre}
-            className={`h-40 w-full bg-brand-cream object-contain object-center ${
+            className={`h-40 w-full object-contain object-center
+              bg-gradient-to-t from-orange-400 to-orange-100 ${
               isUnavailable ? 'opacity-50 grayscale' : ''
             }`}
           />
@@ -43,7 +44,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
 
-        <div className="flex flex-1 flex-col p-4">
+        <div className="flex flex-1 flex-col p-4 border-t-2
+        bg-gradient-to-t from-stone-300 to-stone-100">
           <h3 className="text-lg font-bold text-brand-dark">
             {product.nombre}
           </h3>

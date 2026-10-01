@@ -1,12 +1,10 @@
 export interface CarouselSlide {
-  id: string
+  id: number
   eyebrow?: string
   title: string
   description: string
+  backgroundImage: string
   ctaLabel: string
   ctaTo: string
   ctaVariant?: 'solid' | 'outline'
-  /** Emoji grande o ruta de imagen, según visualType. */
-  visual: string
-  visualType?: 'emoji' | 'image'
 }

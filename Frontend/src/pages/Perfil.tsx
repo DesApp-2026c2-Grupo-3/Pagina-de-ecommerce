@@ -165,7 +165,8 @@ function Perfil() {
   ]
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
+    <div className='bg-brand-cream'>
+    <div className="mx-auto max-w-2xl px-4 py-12 min-h-screen">
       <h1 className="text-3xl font-extrabold text-brand-dark">Datos personales</h1>
 
       <div className="mt-8 divide-y divide-brand-dark/10 rounded-2xl bg-white shadow-md">
@@ -330,6 +331,7 @@ function Perfil() {
           <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
+    </div>
     </div>
   )
 }

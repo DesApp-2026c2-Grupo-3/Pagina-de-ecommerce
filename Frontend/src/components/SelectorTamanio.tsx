@@ -27,8 +27,10 @@ function SelectorTamanio({ producto, valor, onChange }: SelectorTamanioProps) {
             }`}
           >
             <span className="block text-sm font-bold text-brand-dark">{etiquetaTamanio(v.tamanio)}</span>
-            {v.etiqueta && <span className="block text-xs text-gray-500">{v.etiqueta}</span>}
-            <span className="block text-sm font-semibold text-brand-red">{formatearPrecio(Number(v.precio))}</span>
+            {v.etiqueta && <span className="block text-xs text-gray-100">{v.etiqueta}</span>}
+            <span className="block text-sm font-semibold text-brand-red 
+            ">
+              {formatearPrecio(Number(v.precio))}</span>
           </button>
         ))}
       </div>

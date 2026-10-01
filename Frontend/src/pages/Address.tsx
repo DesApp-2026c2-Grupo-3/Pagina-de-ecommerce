@@ -191,12 +191,17 @@ function Address() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
+
+    <div className='bg-brand-cream '>
+    <div className="mx-auto max-w-2xl px-4 py-12 min-h-[80vh]">
+
+    
       {estado?.from && (
         <Link to={estado.from} className="mb-4 inline-block font-semibold text-brand-red hover:underline">
           ← Volver al pedido
         </Link>
       )}
+
 
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold text-brand-dark">Direcciones guardadas</h1>
@@ -379,6 +384,7 @@ function Address() {
           </div>
         </form>
       </Modal>
+    </div>
     </div>
   )
 }
