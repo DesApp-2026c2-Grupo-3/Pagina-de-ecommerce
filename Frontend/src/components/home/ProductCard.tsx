@@ -7,6 +7,9 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const isUnavailable = !product.disponible
+  const precios = product.variantes?.map((v) => Number(v.precio)) ?? []
+  const tieneTamanios = precios.length > 0
+  const precioMostrado = tieneTamanios ? Math.min(...precios) : Number(product.precio)
 
   return (
     <Link to={`/producto/${product.id}`} className="block h-full">
@@ -21,13 +24,24 @@ export default function ProductCard({ product }: ProductCardProps) {
           </span>
         )}
 
-        <img
-          src={product.imagen}
-          alt={product.nombre}
-          className={`h-40 w-full bg-brand-cream object-contain object-center ${
-            isUnavailable ? 'opacity-50 grayscale' : ''
-          }`}
-        />
+        {product.imagen ? (
+          <img
+            src={product.imagen}
+            alt={product.nombre}
+            className={`h-40 w-full bg-brand-cream object-contain object-center ${
+              isUnavailable ? 'opacity-50 grayscale' : ''
+            }`}
+          />
+        ) : (
+          <div
+            className={`grid h-40 w-full place-items-center bg-brand-cream text-5xl ${
+              isUnavailable ? 'opacity-50 grayscale' : ''
+            }`}
+            aria-hidden="true"
+          >
+            🍽️
+          </div>
+        )}
 
         <div className="flex flex-1 flex-col p-4">
           <h3 className="text-lg font-bold text-brand-dark">
@@ -38,13 +52,9 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.descripcion}
           </p>
 
-          <div className="mt-4 flex items-center justify-between">
-            <span
-              className={`text-xl font-extrabold ${
-                isUnavailable ? 'text-gray-400' : 'text-brand-red'
-              }`}
-            >
-              ${Number(product.precio).toLocaleString('es-AR')}
+          <div className="mt-4 flex items-baseline gap-1">            {tieneTamanios && <span className="text-xs font-semibold text-gray-500">desde</span>}
+            <span className={`text-xl font-extrabold ${isUnavailable ? 'text-gray-400' : 'text-brand-red'}`}>
+              ${precioMostrado.toLocaleString('es-AR')}
             </span>
           </div>
         </div>

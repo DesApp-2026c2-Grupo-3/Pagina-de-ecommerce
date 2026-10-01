@@ -7,6 +7,7 @@ import {
   type GeoResultado,
   type GeoSugerencia,
 } from '../services/geoService'
+import { LocateFixed } from 'lucide-react'
 
 // Datos de ubicación que maneja este componente.
 // Es reutilizable: direcciones de clientes y, más adelante, sucursales.
@@ -39,6 +40,10 @@ const ESPERA_MS = 400
 function nuevoSessionToken() {
   return crypto.randomUUID()
 }
+// Texto corto para mostrar en el buscador, ej: "Florida 2950, Merlo"
+function armarTexto(calle: string, numero: string, localidad: string) {
+  return [`${calle} ${numero}`.trim(), localidad].filter(Boolean).join(', ')
+}
 
 // Centra el mapa cuando cambian las coordenadas
 function CentrarMapa({ lat, lng }: { lat: number | null; lng: number | null }) {
@@ -52,7 +57,11 @@ function CentrarMapa({ lat, lng }: { lat: number | null; lng: number | null }) {
 }
 
 function AddressPicker({ value, onChange }: AddressPickerProps) {
-  const [busqueda, setBusqueda] = useState('')
+  const [busqueda, setBusqueda] = useState(() =>
+    value.calle ? armarTexto(value.calle, value.numero, value.localidad) : '',
+  )
+  // Cuando escribimos en el buscador desde el código (no el usuario), no hay que pedir sugerencias
+  const saltarBusquedaRef = useRef(Boolean(value.calle))  
   const [sugerencias, setSugerencias] = useState<GeoSugerencia[]>([])
   const [buscando, setBuscando] = useState(false)
   const [usandoGps, setUsandoGps] = useState(false)
@@ -64,8 +73,17 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
 
   const tieneUbicacion = value.latitud !== null && value.longitud !== null
 
+  function mostrarEnBuscador(texto: string) {
+    if (texto === busqueda) return
+    saltarBusquedaRef.current = true
+    setBusqueda(texto)
+  }
   // Sugerencias mientras escribe, esperando a que haga una pausa
   useEffect(() => {
+      if (saltarBusquedaRef.current) {
+        saltarBusquedaRef.current = false
+        return
+      }
     const q = busqueda.trim()
     if (q.length < MIN_CARACTERES) {
       setSugerencias([])
@@ -110,17 +128,19 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
   function mensajeSegunResultado(r: GeoResultado) {
     if (!r.calle) return 'Elegí una dirección con calle y altura.'
     if (r.altura == null) return 'Falta la altura: completala abajo.'
-    return 'Revisá que el marcador esté en tu puerta. Si no, arrastralo.'
+    return ''
   }
 
   async function elegirSugerencia(s: GeoSugerencia) {
     setSugerencias([])
-    setBusqueda('')
     setUsandoGps(false)
     setMensaje('Cargando dirección...')
     try {
       const r = await detalleDireccion(s.placeId, sessionTokenRef.current)
       aplicarResultado(r)
+      mostrarEnBuscador(
+        armarTexto(r.calle ?? '', r.altura != null ? String(r.altura) : '', r.localidad ?? r.departamento ?? ''),
+      )
       setMensaje(mensajeSegunResultado(r))
     } catch (err) {
       setMensaje(err instanceof Error ? err.message : 'No se pudo cargar la dirección')
@@ -152,19 +172,17 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
     }
 
     setSugerencias([])
-    setBusqueda('')
     setMensaje('Obteniendo tu ubicación...')
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
           const r = await direccionDesdeCoordenadas(coords.latitude, coords.longitude)
-          // Usamos las coordenadas del GPS, que son las reales del usuario
           aplicarResultado(r, coords.latitude, coords.longitude)
-          setMensaje(
-            coords.accuracy > 100
-              ? `Tu ubicación es aproximada (margen de ${Math.round(coords.accuracy / 1000 * 10) / 10} km). Buscá la dirección o mové el marcador a tu puerta.`
-              : mensajeSegunResultado(r),
+          mostrarEnBuscador(
+            armarTexto(r.calle ?? '', r.altura != null ? String(r.altura) : '', r.localidad ?? r.departamento ?? ''),
           )
+          setMensaje(coords.accuracy > 100 ? 'Tu ubicación es aproximada' : mensajeSegunResultado(r))
+          setUsandoGps(false)
         } catch (err) {
           setUsandoGps(false)
           setMensaje(err instanceof Error ? err.message : 'No pudimos obtener la dirección.')
@@ -193,65 +211,62 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
   return (
     <APIProvider apiKey={API_KEY} language="es" region="AR">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">Dirección</span>
-          <label className="flex items-center gap-2 text-sm font-semibold text-brand-dark">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
             <input
-              type="checkbox"
-              checked={usandoGps}
-              onChange={(e) => handleUbicacionActual(e.target.checked)}
-              className="h-4 w-4 accent-brand-red"
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Buscar y seleccionar dirección..."
+              autoComplete="off"
+              className="w-full rounded-lg border border-brand-dark/20 px-3 py-2 text-lg focus:border-brand-red focus:outline-none"
             />
-            Ubicación actual
-          </label>
-        </div>
+            {buscando && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                Buscando...
+              </span>
+            )}
 
-        <div className="relative">
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Buscar y seleccionar dirección..."
-            autoComplete="off"
-            className="w-full rounded-lg border border-brand-dark/20 px-3 py-2 text-lg focus:border-brand-red focus:outline-none"
-          />
-          {buscando && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-              Buscando...
-            </span>
-          )}
+            {sugerencias.length > 0 && (
+              <ul className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-brand-dark/10 bg-white shadow-lg">
+                {sugerencias.map((s) => (
+                  <li key={s.placeId} className="border-b border-brand-dark/10 last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => elegirSugerencia(s)}
+                      className="w-full px-3 py-2 text-left hover:bg-brand-cream"
+                    >
+                      <span className="block text-sm font-semibold text-brand-dark">{s.principal}</span>
+                      {s.secundario && (
+                        <span className="block text-xs text-gray-500">{s.secundario}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+                <li className="px-3 py-1 text-right text-[10px] text-gray-400">Google Maps</li>
+              </ul>
+            )}
+          </div>
 
-          {sugerencias.length > 0 && (
-            <ul className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-brand-dark/10 bg-white shadow-lg">
-              {sugerencias.map((s) => (
-                <li key={s.placeId} className="border-b border-brand-dark/10 last:border-b-0">
-                  <button
-                    type="button"
-                    onClick={() => elegirSugerencia(s)}
-                    className="w-full px-3 py-2 text-left hover:bg-brand-cream"
-                  >
-                    <span className="block text-sm font-semibold text-brand-dark">{s.principal}</span>
-                    {s.secundario && (
-                      <span className="block text-xs text-gray-500">{s.secundario}</span>
-                    )}
-                  </button>
-                </li>
-              ))}
-              <li className="px-3 py-1 text-right text-[10px] text-gray-400">Google Maps</li>
-            </ul>
-          )}
+          <button
+            type="button"
+            onClick={() => handleUbicacionActual(true)}
+            disabled={usandoGps}
+            aria-label="Usar mi ubicación actual"
+            title="Usar mi ubicación actual"
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-brand-dark/20 text-brand-dark transition-colors hover:border-brand-red hover:text-brand-red disabled:opacity-50 ${
+              usandoGps ? 'animate-pulse' : ''
+            }`}
+          >
+            <LocateFixed className="h-5 w-5" />
+          </button>
         </div>
 
         {mensaje && <p className="text-sm text-gray-600">{mensaje}</p>}
 
-        {value.calle && (
+        {value.calle && (!value.numero || !tieneUbicacion) && (
           <div className="rounded-lg bg-brand-cream px-3 py-2">
-            <p className="text-sm font-semibold text-brand-dark">
-              📍 {value.calle} {value.numero}
-              {value.localidad && `, ${value.localidad}`}
-              {value.provincia && `, ${value.provincia}`}
-            </p>
             {!value.numero && (
               <input
                 type="text"
@@ -259,7 +274,7 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
                 value={value.numero}
                 onChange={(e) => onChange({ ...value, numero: e.target.value })}
                 placeholder="Altura"
-                className="mt-2 w-32 border-b border-brand-dark/20 bg-transparent py-1 focus:border-brand-red focus:outline-none"
+                className="w-32 border-b border-brand-dark/20 bg-transparent py-1 focus:border-brand-red focus:outline-none"
               />
             )}
             {!tieneUbicacion && (
@@ -269,41 +284,42 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
             )}
           </div>
         )}
+        <div className="relative h-[32vh] min-h-44 overflow-hidden rounded-lg border border-brand-dark/20">
+          <Map
+            mapId={MAP_ID}
+            defaultCenter={
+              tieneUbicacion ? { lat: value.latitud!, lng: value.longitud! } : CENTRO_POR_DEFECTO
+            }
+            defaultZoom={tieneUbicacion ? ZOOM_DIRECCION : ZOOM_GENERAL}
+            disableDefaultUI
+            zoomControl
+            clickableIcons={false}
+            style={{ width: '100%', height: '100%' }}
+            onClick={(e) => {
+              const p = e.detail.latLng
+              if (p) moverMarcador(p.lat, p.lng)
+            }}
+          >
+            <CentrarMapa lat={value.latitud} lng={value.longitud} />
+            {tieneUbicacion && (
+              <AdvancedMarker
+                position={{ lat: value.latitud!, lng: value.longitud! }}
+                draggable
+                onDragEnd={(e) => {
+                  const p = e.latLng
+                  if (p) moverMarcador(p.lat(), p.lng())
+                }}
+              />
+            )}
+          </Map>
 
-        <div>
-          <p className="text-sm text-gray-500">Ubicación en el mapa:</p>
-          <div className="mt-1 h-48 overflow-hidden rounded-lg border border-brand-dark/20 sm:h-64">            <Map
-              mapId={MAP_ID}
-              defaultCenter={
-                tieneUbicacion ? { lat: value.latitud!, lng: value.longitud! } : CENTRO_POR_DEFECTO
-              }
-              defaultZoom={tieneUbicacion ? ZOOM_DIRECCION : ZOOM_GENERAL}
-              disableDefaultUI
-              zoomControl
-              clickableIcons={false}
-              style={{ width: '100%', height: '100%' }}
-              onClick={(e) => {
-                const p = e.detail.latLng
-                if (p) moverMarcador(p.lat, p.lng)
-              }}
-            >
-              <CentrarMapa lat={value.latitud} lng={value.longitud} />
-              {tieneUbicacion && (
-                <AdvancedMarker
-                  position={{ lat: value.latitud!, lng: value.longitud! }}
-                  draggable
-                  onDragEnd={(e) => {
-                    const p = e.latLng
-                    if (p) moverMarcador(p.lat(), p.lng())
-                  }}
-                />
-              )}
-            </Map>
-          </div>
-          <p className="mt-1 text-xs text-gray-500">
-            Si el marcador no quedó en tu puerta, arrastralo o tocá el mapa.
-          </p>
+          {tieneUbicacion && (
+            <p className="pointer-events-none absolute left-2 right-2 top-2 rounded-md bg-white/90 px-2 py-1 text-center text-xs text-gray-600 shadow">
+              Arrastrá el marcador o tocá el mapa para ajustar
+            </p>
+          )}
         </div>
+
       </div>
     </APIProvider>
   )

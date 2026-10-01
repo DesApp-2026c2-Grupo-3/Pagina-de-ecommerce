@@ -35,6 +35,17 @@ const loginSchema = Joi.object({
     password: Joi.string().min(6).max(20).required().messages(mensajesPassword)
 })
 
+const EDAD_MINIMA = 18
+
+// Valida la edad mínima con la fecha ya convertida por joi
+function validarEdadMinima(fecha, helpers) {
+    const limite = new Date()
+    limite.setFullYear(limite.getFullYear() - EDAD_MINIMA)
+    if (fecha > limite) {
+        return helpers.error('date.edadMinima')
+    }
+    return fecha
+}
 const updateSchema = Joi.object({
     nombre,
 
@@ -57,10 +68,11 @@ const updateSchema = Joi.object({
 
     // Se valida como fecha, pero se guarda como texto "AAAA-MM-DD" (.raw())
     // para evitar que la zona horaria la corra un día
-    fechaNacimiento: Joi.date().iso().max('now').allow('', null).raw().messages({
+    fechaNacimiento: Joi.date().iso().max('now').custom(validarEdadMinima).allow('', null).raw().messages({
         'date.base': 'La fecha de nacimiento no es válida',
         'date.format': 'La fecha de nacimiento no es válida',
-        'date.max': 'La fecha de nacimiento no puede ser futura'
+        'date.max': 'La fecha de nacimiento no puede ser futura',
+        'date.edadMinima': `Tenés que tener al menos ${EDAD_MINIMA} años`
     }),
 
     // Vacía = no cambiar la contraseña

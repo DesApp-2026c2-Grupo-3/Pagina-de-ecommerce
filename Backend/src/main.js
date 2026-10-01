@@ -42,6 +42,8 @@ app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
+app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
+app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 
 //SINCRO CON BASE DE DATOS
 async function iniciarServidor() {

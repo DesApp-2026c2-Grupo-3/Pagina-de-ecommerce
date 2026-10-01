@@ -1,5 +1,5 @@
 const Joi = require('joi')
-
+const { TAMANIOS } = require('./producto.schema')
 const pedidoSchema = Joi.object({
     usuarioId: Joi.number().integer().positive().required().messages({
         'number.base': 'El id de usuario debe ser un número',
@@ -16,7 +16,7 @@ const pedidoSchema = Joi.object({
         'any.required': 'Tenés que seleccionar una sucursal'
     }),
 
-    productos: Joi.array().items(
+        productos: Joi.array().items(
         Joi.object({
             productoId: Joi.number().integer().positive().required().messages({
                 'number.base': 'El id de producto debe ser un número',
@@ -26,6 +26,10 @@ const pedidoSchema = Joi.object({
                 'number.base': 'La cantidad debe ser un número',
                 'number.min': 'La cantidad debe ser al menos 1',
                 'any.required': 'La cantidad es obligatoria'
+            }),
+            // 👇 acá va: al mismo nivel que productoId y cantidad
+            tamanio: Joi.string().valid(...TAMANIOS).optional().messages({
+                'any.only': 'El tamaño debe ser regular, mediano o grande'
             }),
             personalizaciones: Joi.array().items(
                 Joi.object({
@@ -46,7 +50,7 @@ const pedidoSchema = Joi.object({
     ).min(1).required().messages({
         'array.min': 'El pedido debe contener al menos un producto',
         'any.required': 'El pedido debe contener productos'
-    })
+    })    
 })
 
 module.exports = { pedidoSchema }
