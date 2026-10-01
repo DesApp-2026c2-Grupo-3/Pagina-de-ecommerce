@@ -1,13 +1,14 @@
+import { BriefcaseBusiness } from "lucide-react"
 
 export default function SobreNosotros() {
   return (
 
-    <main className="bg-brand-cream">
+    <main className="bg-red-950">
 
       {/* Hero */}
       <section className="relative overflow-hidden bg-brand-dark text-white">
         <img
-          src="/homeImg/nosotros.jpg"
+          src="/Nosotros/1.jpg"
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-40"
         />
@@ -30,9 +31,10 @@ export default function SobreNosotros() {
       </section>
 
       {/* Quiénes somos */}
-      <section className="mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 md:grid-cols-2">
+      <section className="mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 md:grid-cols-2
+      bg-gradient-to-b from-red-950 via-red-700 to-red-950">
         <div>
-          <p className="text-sm font-bold uppercase tracking-widest text-brand-red">
+          <p className="text-sm font-bold uppercase tracking-widest text-brand-cream">
             Quiénes somos
           </p>
 
@@ -40,7 +42,7 @@ export default function SobreNosotros() {
             Una forma simple de disfrutar una buena hamburguesa
           </h2>
 
-          <p className="mt-5 text-gray-700">
+          <p className="mt-5 text-gray-100">
             Nuestro objetivo es hacer que pedir comida sea rápido,
             cómodo y accesible. Trabajamos para ofrecer productos
             preparados con ingredientes frescos y una experiencia
@@ -50,23 +52,24 @@ export default function SobreNosotros() {
         </div>
 
         <img
-          src="/homeImg/hamburguesa.jpg"
-          alt="Hamburguesa"
+          src="/Nosotros/4.png"
+          alt="mujer comprando en pagina"
           className="h-80 w-full rounded-2xl object-cover"
         />
       </section>
 
       {/* Misión */}
-      <section className="bg-white">
+      <section className="bg-gradient-to-l from-red-500 via-red-700 to-red-900
+      border-t-3 border-b-3">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 md:grid-cols-2">
           <img
-            src="/homeImg/mision.jpg"
-            alt=""
+            src="/Nosotros/3.jpg"
+            alt="entrega en casa"
             className="h-80 w-full rounded-2xl object-cover"
           />
 
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-brand-red">
+            <p className="text-sm font-bold uppercase tracking-widest text-brand-cream">
               Nuestra misión
             </p>
 
@@ -74,7 +77,7 @@ export default function SobreNosotros() {
               Calidad que llega hasta tu puerta
             </h2>
 
-            <p className="mt-5 text-gray-700">
+            <p className="mt-5 text-gray-100">
               Buscamos acercarte hamburguesas que disfrutes de verdad,
               combinando ingredientes frescos, preparación cuidadosa
               y rapidez en cada pedido.
@@ -84,9 +87,11 @@ export default function SobreNosotros() {
       </section>
 
       {/* Valores */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
+      <section className="mx-auto max-w-7xl px-6 py-16 
+      bg-gradient-to-r from-red-950 via-red-700 to-red-950
+      ">
         <div className="text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-brand-red">
+          <p className="text-sm font-bold uppercase tracking-widest text-brand-cream">
             Lo que nos importa
           </p>
 
@@ -96,32 +101,35 @@ export default function SobreNosotros() {
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">
-          <article className="rounded-2xl bg-white p-6 shadow-md">
-            <h3 className="text-2xl font-bold text-brand-dark">
+          <article className="rounded-2xl p-6 shadow-md 
+          bg-gradient-to-b from-red-700 to-red-900">
+            <h3 className="text-2xl font-bold text-brand-cream">
               Calidad
             </h3>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-3 text-gray-100">
               Seleccionamos nuestros ingredientes y cuidamos cada
               preparación para ofrecer productos que mantengan
               nuestro estándar en todas las sucursales.
             </p>
           </article>
 
-          <article className="rounded-2xl bg-white p-6 shadow-md">
-            <h3 className="text-2xl font-bold text-brand-dark">
+          <article className="rounded-2xl p-6 shadow-md
+          bg-gradient-to-b from-red-700 to-red-900">
+            <h3 className="text-2xl font-bold text-brand-cream">
               Rapidez
             </h3>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-3 text-gray-100">
               Queremos que pedir sea fácil y que recibas tu comida
               en el menor tiempo posible, sin dejar de lado la calidad.
             </p>
           </article>
 
-          <article className="rounded-2xl bg-white p-6 shadow-md">
-            <h3 className="text-2xl font-bold text-brand-dark">
+          <article className="rounded-2xl p-6 shadow-md
+          bg-gradient-to-b from-red-700 to-red-900">
+            <h3 className="text-2xl font-bold text-brand-cream">
               Sustentabilidad
             </h3>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-3 text-gray-100">
               Trabajamos para reducir desperdicios, utilizar
               packaging reciclable y priorizar proveedores locales
               cuando es posible.
@@ -130,7 +138,7 @@ export default function SobreNosotros() {
         </div>
       </section>
 
-      {/* Cierre */}
+      {/* 
       <section className="bg-brand-red px-6 py-16 text-center text-white">
         <h2 className="text-4xl font-extrabold">
           ¿Ya sabés qué vas a pedir?
@@ -141,32 +149,13 @@ export default function SobreNosotros() {
           tu próxima hamburguesa.
         </p>
 
-        <a
-          href="/"
+        <Link
+          to="/catalogo"
           className="mt-6 inline-block rounded-full bg-white px-7 py-3 font-bold text-brand-red"
         >
           Ver menú
-        </a>
-      </section>
-
-    
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        </Link>
+      </section>Cierre */}
 
 
  <section
@@ -174,10 +163,8 @@ export default function SobreNosotros() {
   className="scroll-mt-24 bg-brand-dark px-4 py-16 text-white"
 >
   <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 text-center">
-
-    <span className="text-4xl" aria-hidden="true">
-      💼
-    </span>
+    <div className="bg-stone-800 p-2 rounded-full text-red-800"><BriefcaseBusiness size={40} /></div>
+        
 
     <h2 className="text-3xl font-extrabold sm:text-4xl">
       Trabajá con nosotros

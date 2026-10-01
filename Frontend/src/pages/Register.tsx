@@ -39,6 +39,7 @@ function Register() {
   }
 
   return (
+    <div className='bg-brand-cream'>
     <div className="mx-auto flex max-w-md flex-col px-4 py-16">
       <h1 className="text-3xl font-extrabold text-brand-dark">Crear cuenta</h1>
       <p className="mt-2 text-gray-600">Registrate para poder confirmar tus pedidos.</p>
@@ -101,6 +102,7 @@ function Register() {
         <Link to="/login" state={{ from }} className="font-semibold text-brand-red hover:underline">          Iniciar sesión
         </Link>
       </p>
+    </div>
     </div>
   )
 }

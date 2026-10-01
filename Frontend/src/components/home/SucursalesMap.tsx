@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AdvancedMarker, APIProvider, InfoWindow, Map, useMap } from '@vis.gl/react-google-maps'
 import { getSucursales } from '../../services/sucursalService'
 import type { Sucursal } from '../../types/sucursal'
+import { MapPin, Clock} from 'lucide-react'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 const MAP_ID = 'DEMO_MAP_ID'
@@ -70,9 +71,11 @@ function SucursalesMap() {
   const seleccionada = sucursales.find((s) => s.id === seleccionadaId)
 
   return (
-    <section id="sucursales" className="mx-auto max-w-7xl scroll-mt-32 px-4 py-8">
-      <h2 className="mb-4 flex items-center gap-3 text-2xl font-extrabold text-brand-dark">
-        <span className="text-3xl">📍</span>
+    <section id="sucursales" className="mx-auto max-w-7xl scroll-mt-32 px-4 py-8 
+    bg-gradient-to-br from-red-700 via-red-800 to-red-900
+    border-6 border-red-950">
+      <h2 className="mb-4 flex items-center gap-3 text-2xl font-extrabold text-white">
+        < MapPin size={30}/>
         Nuestras sucursales
       </h2>
 
@@ -143,15 +146,24 @@ function SucursalesMap() {
                       type="button"
                       onClick={() => setSeleccionadaId(s.id)}
                       aria-pressed={activa}
-                      className={`w-full rounded-2xl border bg-white p-4 text-left shadow-sm transition-colors ${
+                      className={`w-full rounded-2xl border p-4 text-left shadow-sm transition-colors
+                        bg-white/20 border border-white/10 ${
                         activa
                           ? 'border-brand-red'
                           : 'border-transparent hover:border-brand-red/40'
                       }`}
                     >
-                      <p className="font-bold text-brand-dark">{s.nombre}</p>
-                      <p className="mt-1 text-sm text-gray-600">{direccionDe(s)}</p>
-                      {s.horario && <p className="mt-1 text-xs text-gray-500">🕒 {s.horario}</p>}
+                      <p className="font-bold text-white">{s.nombre}</p>
+                      <p className="mt-1 text-sm text-gray-100">{direccionDe(s)}</p>
+                      {s.horario && 
+                        <div className="mt-1 text-xs text-gray-100
+                        flex gap-2 items-center">
+                        <Clock size={20}/>
+                        <p >
+                         {s.horario}</p>
+                         </div>
+                      }
+                        
                     </button>
                   </li>
                 )

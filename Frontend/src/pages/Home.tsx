@@ -14,7 +14,7 @@ import type { Category, ProductoBackend } from '../types/product'
 
 function Home() {
   const { isAuthenticated } = useAuth()
-  const location = useLocation()
+ {/* const location = useLocation()
   const [products, setProducts] = useState<ProductoBackend[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,13 +46,13 @@ function Home() {
           .sort((a, b) => Number(b.disponible) - Number(a.disponible)),
       }))
       .filter((entry) => entry.products.length > 0)
-  }, [categories, products])
+  }, [categories, products])*/}
 
   return (
     <div id="menu">
       <Hero />
 
-      {isAuthenticated ? (
+      {/*{isAuthenticated ? (
         <>
           <DefaultBranchBadge />
 
@@ -75,15 +75,16 @@ function Home() {
 
        
         </>
-      ) : (
+      ) : (*/}
         <>
-          <GuestQuickAccessRow />
+          {isAuthenticated  && (<GuestQuickAccessRow />)}
           <CompanySection />
-          <ContactSection />
           <SucursalesMap />
+          <ContactSection />
+          
           
         </>
-      )}
+      
     </div>
   )
 }

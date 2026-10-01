@@ -24,7 +24,7 @@ function Promociones() {
   }, [promotions, selectedCategory])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
+    <div className="mx-auto max-w-7xl px-4 py-10 bg-red-800">
       <h1 className="text-3xl font-extrabold text-brand-dark sm:text-4xl">Promociones</h1>
       <p className="mt-2 text-gray-600">Aprovechá nuestros combos y descuentos de la semana.</p>
 

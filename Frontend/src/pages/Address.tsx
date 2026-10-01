@@ -131,7 +131,8 @@ function Address() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
+    <div className='bg-brand-cream '>
+    <div className="mx-auto max-w-2xl px-4 py-12 min-h-[80vh]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold text-brand-dark">Direcciones guardadas</h1>
         <button
@@ -261,6 +262,7 @@ function Address() {
           </button>
         </form>
       </Modal>
+    </div>
     </div>
   )
 }

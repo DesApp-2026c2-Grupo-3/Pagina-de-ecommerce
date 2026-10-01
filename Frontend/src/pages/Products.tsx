@@ -43,11 +43,13 @@ function Products() {
 }, [products, selectedCategory, search]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 ">
-      <h1 className="text-3xl font-extrabold text-brand-dark sm:text-4xl">
+    <div className="mx-auto px-10 py-10 min-h-screen
+    bg-gradient-to-b from-brand-cream via-yellow-800 to-red-800">
+      <h1 className="text-3xl font-extrabold sm:text-4xl
+      bg-gradient-to-r from-stone-900 via-gray-800 to-red-700 bg-clip-text text-transparent w-fit">
         Nuestro catálogo
       </h1>
-      <p className="mt-2 text-gray-600">
+      <p className="mt-2 text-gray-800">
         Elegí una categoría o buscá tu producto favorito.
       </p>
 
@@ -98,12 +100,13 @@ function Products() {
       </div>
 
       {filteredProducts.length === 0 ? (
-        <div className="mt-16 flex flex-col items-center gap-2 text-center">
-          <span className="text-4xl">🔍</span>
-          <p className="font-semibold text-brand-dark">
+        <div className="mt-16 flex flex-col items-center gap-2 text-center
+        text-[2rem]">
+          <img src="/Otros/notFound.png" alt="Buscado cosas" className="h-64" />
+          <p className="font-semibold text-white">
             No encontramos productos con ese criterio.
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-[1rem] text-gray-100">
             Probá con otra categoría o cambiá la búsqueda.
           </p>
         </div>

@@ -20,7 +20,7 @@ import ScrollToTop from './utils/scrollToTop'
 
 function App() {
   return (
-    <div className="flex flex-1 flex-col bg-brand-cream text-brand-dark">
+    <div className="flex flex-1 flex-col bg-black text-brand-dark">
       <ScrollToTop />
       <Navbar />
       <main className="flex-1">

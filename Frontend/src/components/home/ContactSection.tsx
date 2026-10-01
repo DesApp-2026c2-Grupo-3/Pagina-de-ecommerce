@@ -1,18 +1,6 @@
-import { useEffect, useState } from 'react'
-import BranchCard from '../contact/BranchCard'
-import { getSucursales } from '../../services/sucursalService'
-import type { Sucursal } from '../../types/sucursal'
 import { Mail, MessageCircleMore, PhoneCall } from 'lucide-react'
 
 function ContactSection() {
-  const [sucursales, setSucursales] = useState<Sucursal[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    getSucursales()
-      .then(setSucursales)
-      .finally(() => setLoading(false))
-  }, [])
 
   return (
     <section id="contacto" className=" flex items-center justify-center mx-auto 
@@ -61,17 +49,6 @@ function ContactSection() {
         </a>
       </div>
 
-      {/*<h3 className="mt-12 text-xl font-extrabold text-brand-dark">Nuestras sucursales</h3>
-
-      {loading ? (
-        <p className="mt-6 text-gray-600">Cargando sucursales...</p>
-      ) : (
-        <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {sucursales.map((sucursal) => (
-            <BranchCard key={sucursal.id} sucursal={sucursal} />
-          ))}
-        </div>
-      )}*/}
       </div>
     </section>
   )

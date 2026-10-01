@@ -40,6 +40,7 @@ async function handleSubmit(e: FormEvent) {
 }
 
   return (
+    <div className='bg-brand-cream'>
     <div className="mx-auto flex max-w-md flex-col px-4 py-16">
       <h1 className="text-3xl font-extrabold text-brand-dark">Iniciar sesión</h1>
       <p className="mt-2 text-gray-600">Ingresá tus datos para continuar con tu pedido.</p>
@@ -92,6 +93,7 @@ async function handleSubmit(e: FormEvent) {
           Registrate
         </Link>
       </p>
+    </div>
     </div>
   )
 }
