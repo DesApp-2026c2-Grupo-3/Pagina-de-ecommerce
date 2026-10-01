@@ -1,5 +1,6 @@
 const Joi = require('joi');
-
+const SABORES = ['cola', 'naranja', 'lima', 'agua'];
+const TAMANIOS = ['regular', 'mediano', 'grande'];
 const productoSchema = Joi.object({
     nombre: Joi.string()
         .trim()
@@ -54,12 +55,22 @@ const productoSchema = Joi.object({
             'number.base': 'El ID de la categoría debe ser un número',
             'number.integer': 'El ID de la categoría debe ser un número entero',
             'number.positive': 'El ID de la categoría debe ser positivo'
-        })
+        }),
+    sabor: Joi.string()
+        .valid(...SABORES)
+        .allow(null)
+        .optional()
+        .messages({
+            'any.only': 'El sabor debe ser cola, naranja, lima o agua'
+        }),
+
 });
 
 
 module.exports = {
-    productoSchema
+    productoSchema,
+    SABORES,
+    TAMANIOS
 };
 
 

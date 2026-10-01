@@ -29,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL,
       allowNull: false
     },
+    tamanio: { type: DataTypes.STRING, allowNull: true },
 
     // Insumos cuya cantidad final difiere de la receta base: [{ insumoId, cantidad }].
     // Si la cantidad final es menor a la base fue "sacado/reducido" (no cambia el precio);

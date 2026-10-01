@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { ProductoBackend } from '../types/product'
 import type { CartItem } from '../types/cart'
+import { ordenarVariantes } from '../config/combo'
 
 interface AddItemOptions {
   unitPrice?: number
   personalizaciones?: CartItem['personalizaciones']
+  tamanio?: string | null
 }
 
 interface CartContextType {
@@ -12,6 +14,12 @@ interface CartContextType {
   addItem: (
     product: ProductoBackend,
     quantity: number,
+    selectedOptions?: string[],
+    options?: AddItemOptions,
+  ) => void
+  reemplazarItem: (
+    idViejo: string,
+    product: ProductoBackend,
     selectedOptions?: string[],
     options?: AddItemOptions,
   ) => void
@@ -26,15 +34,42 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 const CART_STORAGE_KEY = 'cart'
 
-// El mismo producto con distinta personalización va en líneas separadas del carrito.
-// Ej: "12" (sin cambios), "12-5:0|8:2" (insumo 5 quitado, insumo 8 doble)
-function buildItemId(productId: number, personalizaciones: CartItem['personalizaciones'] = []) {
-  if (personalizaciones.length === 0) return String(productId)
+// El mismo producto con distinto tamaño o personalización va en líneas separadas.
+// Ej: "12" (sin cambios), "40-grande", "12-5:0|8:2" (insumo 5 quitado, insumo 8 doble)
+function buildItemId(
+  productId: number,
+  tamanio: string | null,
+  personalizaciones: CartItem['personalizaciones'] = [],
+) {
+  const base = tamanio ? `${productId}-${tamanio}` : String(productId)
+  if (personalizaciones.length === 0) return base
   const clave = [...personalizaciones]
     .sort((a, b) => a.insumoId - b.insumoId)
     .map((p) => `${p.insumoId}:${p.cantidad}`)
     .join('|')
-  return `${productId}-${clave}`
+  return `${base}-${clave}`
+}
+
+// Arma una línea del carrito: su id, su tamaño y su precio
+function crearLinea(
+  product: ProductoBackend,
+  quantity: number,
+  selectedOptions: string[] = [],
+  options?: AddItemOptions,
+): CartItem {
+  // Si el producto tiene tamaños y no se eligió ninguno, va el primero (regular)
+  const tamanio = options?.tamanio ?? ordenarVariantes(product.variantes)[0]?.tamanio ?? null
+  const variante = product.variantes?.find((v) => v.tamanio === tamanio)
+
+  return {
+    id: buildItemId(product.id, tamanio, options?.personalizaciones),
+    product,
+    quantity,
+    selectedOptions,
+    tamanio,
+    unitPrice: options?.unitPrice ?? Number(variante?.precio ?? product.precio),
+    personalizaciones: options?.personalizaciones,
+  }
 }
 
 function leerCarritoGuardado(): CartItem[] {
@@ -75,27 +110,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Un producto no disponible nunca entra al carrito, venga de donde venga
     if (!product.disponible) return
 
-    const id = buildItemId(product.id, options?.personalizaciones)
-    const unitPrice = options?.unitPrice ?? Number(product.precio)
+    const linea = crearLinea(product, quantity, selectedOptions, options)
 
     setItems((prev) => {
-      const existing = prev.find((item) => item.id === id)
-      if (existing) {
+      const existente = prev.find((item) => item.id === linea.id)
+      if (existente) {
         return prev.map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity + quantity } : item,
+          item.id === linea.id ? { ...item, quantity: item.quantity + quantity } : item,
         )
       }
-      return [
-        ...prev,
-        {
-          id,
-          product,
-          quantity,
-          selectedOptions,
-          unitPrice,
-          personalizaciones: options?.personalizaciones,
-        },
-      ]
+      return [...prev, linea]
+    })
+  }
+
+  // Cambia una línea por su versión editada, con la misma cantidad y en el mismo lugar.
+  // Si queda igual a otra línea que ya existe, se juntan.
+  function reemplazarItem(
+    idViejo: string,
+    product: ProductoBackend,
+    selectedOptions: string[] = [],
+    options?: AddItemOptions,
+  ) {
+    setItems((prev) => {
+      const indice = prev.findIndex((item) => item.id === idViejo)
+      if (indice === -1) return prev
+
+      const linea = crearLinea(product, prev[indice].quantity, selectedOptions, options)
+      const resto = prev.filter((item) => item.id !== idViejo)
+
+      const igual = resto.find((item) => item.id === linea.id)
+      if (igual) {
+        return resto.map((item) =>
+          item.id === linea.id ? { ...item, quantity: item.quantity + linea.quantity } : item,
+        )
+      }
+
+      return [...resto.slice(0, indice), linea, ...resto.slice(indice)]
     })
   }
 
@@ -120,7 +170,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}
+      value={{ items, addItem, reemplazarItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}
     >
       {children}
     </CartContext.Provider>

@@ -3,11 +3,48 @@ import { useAuth } from '../context/AuthContext'
 import { getPerfil, actualizarPerfil } from '../services/userService'
 import Modal from '../components/Modal'
 import ErrorAlert from '../components/ErrorAlert'
-import { esEmailValido } from '../utils/validaciones'
-import type { User } from '../types/user'
 import { formatearFecha } from '../utils/fechas'
+import {
+  hoyEnArgentina,
+  validarApellido,
+  validarDni,
+  validarFechaNacimiento,
+  validarNombre,
+  validarTelefono,
+  fechaLimiteEdad,
+} from '../utils/validacionesPerfil'
+import type { User } from '../types/user'
 
-type CampoEditable = 'nombre' | 'telefono' | 'fechaNacimiento' | 'dni' | 'email' | 'password' | null
+type CampoEditable = 'nombre' | 'telefono' | 'fechaNacimiento' | 'dni' | null
+
+const ESTILO_CAMPO =
+  'mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none'
+
+interface BotonesModalProps {
+  saving: boolean
+  onCancelar: () => void
+}
+
+function BotonesModal({ saving, onCancelar }: BotonesModalProps) {
+  return (
+    <div className="mt-2 flex justify-end gap-3">
+      <button
+        type="button"
+        onClick={onCancelar}
+        className="rounded-full border border-brand-dark/20 px-5 py-2 font-bold text-brand-dark transition-colors hover:border-brand-red hover:text-brand-red"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        {saving ? 'Guardando...' : 'Guardar'}
+      </button>
+    </div>
+  )
+}
 
 function Perfil() {
   const { user, setUser } = useAuth()
@@ -19,14 +56,12 @@ function Perfil() {
 
   const [campoAbierto, setCampoAbierto] = useState<CampoEditable>(null)
 
-  // valores temporales del form dentro del modal
+  // Valores temporales del formulario dentro del modal
   const [name, setName] = useState('')
   const [apellido, setApellido] = useState('')
-  const [email, setEmail] = useState('')
   const [telefono, setTelefono] = useState('')
   const [dni, setDni] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
-  const [password, setPassword] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -41,42 +76,56 @@ function Perfil() {
     if (!datos) return
     setName(datos.name)
     setApellido(datos.apellido ?? '')
-    setEmail(datos.email)
     setTelefono(datos.telefono ?? '')
     setDni(datos.dni ?? '')
     setFechaNacimiento(datos.fechaNacimiento ?? '')
-    setPassword('')
     setError('')
     setCampoAbierto(campo)
+  }
+
+  function cerrarModal() {
+    setCampoAbierto(null)
+  }
+
+  // Solo se valida el dato que se está editando
+  function validarCampo(campo: CampoEditable) {
+    switch (campo) {
+      case 'nombre':
+        return validarNombre(name) || validarApellido(apellido)
+      case 'telefono':
+        return validarTelefono(telefono)
+      case 'dni':
+        return validarDni(dni)
+      case 'fechaNacimiento':
+        return validarFechaNacimiento(fechaNacimiento)
+      default:
+        return ''
+    }
   }
 
   async function guardarCambios(e: FormEvent) {
     e.preventDefault()
     setError('')
 
-    if (!esEmailValido(email)) {
-      setError('El email no tiene un formato válido')
-      return
-    }
-    if (password && password.length < 6) {
-      setError('La nueva contraseña debe tener al menos 6 caracteres')
+    const errorCampo = validarCampo(campoAbierto)
+    if (errorCampo) {
+      setError(errorCampo)
       return
     }
 
     setSaving(true)
     try {
       const updated = await actualizarPerfil(user!.id, {
-        name,
-        apellido,
-        email,
-        telefono,
-        dni,
+        name: name.trim(),
+        apellido: apellido.trim(),
+        email: datos!.email,
+        telefono: telefono.trim(),
+        dni: dni.trim().replace(/\./g, ''),
         fechaNacimiento,
-        password: password || undefined,
       })
       setDatos(updated)
       setUser(updated)
-      setCampoAbierto(null)
+      cerrarModal()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar el perfil')
     } finally {
@@ -85,16 +134,14 @@ function Perfil() {
   }
 
   if (loading || !datos) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center text-gray-600">Cargando...</div>
-    )
+    return <div className="mx-auto max-w-md px-4 py-16 text-center text-gray-600">Cargando...</div>
   }
 
   const filas = [
     {
       campo: 'nombre' as const,
       icono: '👤',
-      titulo: 'Nombre y Apellido',
+      titulo: 'Nombre y apellido',
       valor: [datos.name, datos.apellido].filter(Boolean).join(' ') || 'Datos no proporcionados',
     },
     {
@@ -107,7 +154,8 @@ function Perfil() {
       campo: 'fechaNacimiento' as const,
       icono: '🎂',
       titulo: 'Fecha de nacimiento',
-      valor: formatearFecha(datos.fechaNacimiento) || 'Datos no proporcionados',    },
+      valor: formatearFecha(datos.fechaNacimiento) || 'Datos no proporcionados',
+    },
     {
       campo: 'dni' as const,
       icono: '🪪',
@@ -147,113 +195,140 @@ function Perfil() {
         ))}
       </div>
 
-      {/* Modal: Nombre y Apellido */}
+      {/* Nombre y apellido: dos campos, lado a lado en pantallas grandes */}
       <Modal
         isOpen={campoAbierto === 'nombre'}
-        onClose={() => setCampoAbierto(null)}
-        title="Nombre y Apellido"
-        subtitle="¿Cómo quisieras que te llamemos?"
+        onClose={cerrarModal}
+        title="Nombre y apellido"
+        subtitle="¿Cómo querés que te llamemos?"
       >
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
-          <div>
-            <label className="text-sm text-gray-500">Nombre</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-gray-500">Apellido</label>
-            <input
-              type="text"
-              value={apellido}
-              onChange={(e) => setApellido(e.target.value)}
-              className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="nombre" className="text-sm text-gray-500">
+                Nombre
+              </label>
+              <input
+                id="nombre"
+                type="text"
+                autoFocus
+                maxLength={20}
+                autoComplete="given-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ej: Juan"
+                className={ESTILO_CAMPO}
+              />
+            </div>
+            <div>
+              <label htmlFor="apellido" className="text-sm text-gray-500">
+                Apellido
+              </label>
+              <input
+                id="apellido"
+                type="text"
+                maxLength={20}
+                autoComplete="family-name"
+                value={apellido}
+                onChange={(e) => setApellido(e.target.value)}
+                placeholder="Ej: Pérez"
+                className={ESTILO_CAMPO}
+              />
+            </div>
           </div>
           <ErrorAlert message={error} />
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-2 self-end rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
+          <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
 
-      {/* Modal: Teléfono */}
+      {/* Teléfono: un solo dato, modal chico y teclado de teléfono */}
       <Modal
         isOpen={campoAbierto === 'telefono'}
-        onClose={() => setCampoAbierto(null)}
+        onClose={cerrarModal}
         title="Teléfono"
+        subtitle="Lo usamos para avisarte sobre tus pedidos."
+        tamanio="sm"
       >
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
-          <input
-            type="tel"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-          />
+          <div>
+            <label htmlFor="telefono" className="text-sm text-gray-500">
+              Número con código de área
+            </label>
+            <input
+              id="telefono"
+              type="tel"
+              inputMode="tel"
+              autoFocus
+              maxLength={20}
+              autoComplete="tel"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              placeholder="Ej: 11 1234-5678"
+              className={ESTILO_CAMPO}
+            />
+          </div>
           <ErrorAlert message={error} />
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-2 self-end rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
+          <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
 
-      {/* Modal: Fecha de nacimiento */}
+      {/* Fecha de nacimiento: no se puede elegir una fecha futura */}
       <Modal
         isOpen={campoAbierto === 'fechaNacimiento'}
-        onClose={() => setCampoAbierto(null)}
+        onClose={cerrarModal}
         title="Fecha de nacimiento"
+        subtitle="Para saludarte en tu cumpleaños 🎂"
+        tamanio="sm"
       >
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
-          <input
-            type="date"
-            value={fechaNacimiento}
-            onChange={(e) => setFechaNacimiento(e.target.value)}
-            className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-          />
+          <div>
+            <label htmlFor="fechaNacimiento" className="text-sm text-gray-500">
+              Fecha
+            </label>
+            <input
+              id="fechaNacimiento"
+              type="date"
+              autoFocus
+              min="1900-01-01"
+              max={fechaLimiteEdad()}
+              autoComplete="bday"
+              value={fechaNacimiento}
+              onChange={(e) => setFechaNacimiento(e.target.value)}
+              className={ESTILO_CAMPO}
+            />
+          </div>
           <ErrorAlert message={error} />
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-2 self-end rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
+          <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
 
-      {/* Modal: DNI */}
+      {/* DNI: teclado numérico, se aceptan los puntos */}
       <Modal
         isOpen={campoAbierto === 'dni'}
-        onClose={() => setCampoAbierto(null)}
+        onClose={cerrarModal}
         title="Documento de identidad"
+        subtitle="Lo pedimos para validar tus compras."
+        tamanio="sm"
       >
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
-          <input
-            type="text"
-            value={dni}
-            onChange={(e) => setDni(e.target.value)}
-            className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-          />
+          <div>
+            <label htmlFor="dni" className="text-sm text-gray-500">
+              Número de DNI
+            </label>
+            <input
+              id="dni"
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              maxLength={10}
+              value={dni}
+              onChange={(e) => setDni(e.target.value)}
+              placeholder="Ej: 30123456"
+              className={ESTILO_CAMPO}
+            />
+          </div>
           <ErrorAlert message={error} />
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-2 self-end rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
+          <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
     </div>

@@ -9,23 +9,12 @@ module.exports = (sequelize, DataTypes) => {
      * This method is not a part of Sequelize lifecycle.
      * The `models/index` file will call this method automatically.
      */
-    static associate(models) {
-      Pedido.hasMany(models.DetallePedido, {
-        foreignKey: 'pedidoId'
-      });
-      
-      Pedido.belongsTo(models.Usuario, {
-       foreignKey: 'usuarioId'
-      });
-
-      Pedido.belongsTo(models.Direccion, {
-      foreignKey: 'direccionId'
-      });
-
-     Pedido.belongsTo(models.Sucursal, {
-      foreignKey: 'sucursalId'
-      });
-    }
+  static associate(models) {
+    Pedido.hasMany(models.DetallePedido, { foreignKey: 'pedidoId' });
+    Pedido.belongsTo(models.Usuario, { foreignKey: 'usuarioId' });
+    Pedido.belongsTo(models.Direccion, { foreignKey: 'direccionId' });
+    Pedido.belongsTo(models.Sucursal, { foreignKey: 'sucursalId' });
+  }
   }
   Pedido.init({
     fecha: { type: DataTypes.DATE, allowNull: false },

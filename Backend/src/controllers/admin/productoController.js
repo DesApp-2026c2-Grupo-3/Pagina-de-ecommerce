@@ -29,15 +29,16 @@ const obtenerProductoPorId = async (req, res) => {
 
 const crearProducto = async (req, res) => {
     try {
-        const { nombre, descripcion, precio, imagen, disponible, categoriaId } = req.body;
-
+        const { nombre, descripcion, precio, imagen, disponible, categoriaId, sabor, tamanio } = req.body;
         const nuevoProducto = await Producto.create({
             nombre,
             descripcion,
             precio,
             imagen,
             disponible,
-            categoriaId
+            categoriaId,
+            sabor,
+            tamanio
         });
 
         return res.status(201).json({
@@ -61,15 +62,15 @@ const editarProductoPorId = async (req, res) => {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
 
-        const { nombre, descripcion, precio, imagen, disponible, categoriaId } = req.body;
-
+        const { nombre, descripcion, precio, imagen, disponible, categoriaId, sabor, tamanio } = req.body;
         const productoActualizado = await producto.update({
             nombre,
             descripcion,
             precio,
             imagen,
             disponible,
-            categoriaId
+            categoriaId,
+            sabor
         });
 
         return res.status(200).json({

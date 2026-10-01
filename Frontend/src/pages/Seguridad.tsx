@@ -5,6 +5,7 @@ import Modal from '../components/Modal'
 import ErrorAlert from '../components/ErrorAlert'
 import { esEmailValido } from '../utils/validaciones'
 import type { User } from '../types/user'
+import CampoPassword from '../components/CampoPassword'
 
 type CampoEditable = 'email' | 'password' | null
 
@@ -81,7 +82,6 @@ function Seguridad() {
     setError('La nueva contraseña debe tener al menos 6 caracteres')
     return
   }
-console.log('Mandando:', { passwordActual, passwordNueva })
   setSaving(true)
   try {
     const updated = await actualizarPerfil(user!.id, {
@@ -182,20 +182,22 @@ console.log('Mandando:', { passwordActual, passwordNueva })
         <form onSubmit={guardarPassword} noValidate className="flex flex-col gap-4">
           <div>
             <label className="text-sm text-gray-500">Contraseña actual</label>
-            <input
-              type="password"
+            <CampoPassword
               value={passwordActual}
               onChange={(e) => setPasswordActual(e.target.value)}
-              className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
+              placeholder="Tu contraseña actual"
+              autoComplete="current-password"
+              className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
             />
           </div>
           <div>
             <label className="text-sm text-gray-500">Nueva contraseña</label>
-            <input
-              type="password"
+            <CampoPassword
               value={passwordNueva}
               onChange={(e) => setPasswordNueva(e.target.value)}
-              className="mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
+              placeholder="Mínimo 6 caracteres"
+              autoComplete="new-password"
+              className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
             />
           </div>
           <ErrorAlert message={error} />

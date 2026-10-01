@@ -26,10 +26,20 @@ const mensajesPassword = {
     'any.required': 'La contraseña es obligatoria'
 }
 
+// La sucursal que gestiona el admin
+const sucursalId = Joi.number().integer().positive().messages({
+    'number.base': 'La sucursal debe ser un número',
+    'number.integer': 'La sucursal no es válida',
+    'number.positive': 'La sucursal no es válida',
+    'any.required': 'Elegí la sucursal que va a gestionar'
+})
+
+// Alta de un admin: siempre es de una sucursal
 const adminSchema = Joi.object({
     nombre,
     email,
-    password: passwordSegura.required().messages(mensajesPassword)
+    password: passwordSegura.required().messages(mensajesPassword),
+    sucursalId: sucursalId.required()
 })
 
 const loginSchema = Joi.object({
@@ -37,6 +47,7 @@ const loginSchema = Joi.object({
     password: passwordSegura.required().messages(mensajesPassword)
 })
 
+// Edición: la sucursal es opcional (si no viene, queda la que tenía)
 const updateSchema = Joi.object({
     nombre,
     email,
@@ -44,7 +55,8 @@ const updateSchema = Joi.object({
     password: passwordSegura.allow('', null).optional().messages(mensajesPassword),
     passwordActual: Joi.string().allow('', null).optional().messages({
         'string.base': 'La contraseña actual no es válida'
-    })
+    }),
+    sucursalId: sucursalId.optional()
 })
 
 module.exports = { adminSchema, loginSchema, updateSchema }

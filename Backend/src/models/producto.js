@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       Producto.hasMany(models.RecetaInsumo, {
         foreignKey: 'productoId'
       });
+      Producto.hasMany(models.ProductoVariante, { foreignKey: 'productoId', as: 'variantes' });
     }
   }
 
@@ -25,7 +26,8 @@ module.exports = (sequelize, DataTypes) => {
     precio: { type: DataTypes.DECIMAL, allowNull: false },
     imagen: { type: DataTypes.STRING, allowNull: true },
     disponible: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    categoriaId: { type: DataTypes.INTEGER, allowNull: true }
+    categoriaId: { type: DataTypes.INTEGER, allowNull: true },
+    sabor: { type: DataTypes.STRING, allowNull: true },
   }, {
     sequelize,
     modelName: 'Producto',

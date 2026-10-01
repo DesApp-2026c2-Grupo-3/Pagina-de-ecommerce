@@ -1,4 +1,4 @@
-const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, sequelize } = require("../models");
+const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, sequelize, ProductoVariante } = require("../models");
 //Solo para pruebas
 const obtenerPedidos = async (req,res) => {
     try{
@@ -107,8 +107,9 @@ const crearPedido = async (req,res) => {
                 });
             }
 
-            const productoBD = await Producto.findByPk(producto.productoId);
-
+            const productoBD = await Producto.findByPk(producto.productoId, {
+                include: [{ model: ProductoVariante, as: 'variantes' }]
+            });
             if (!productoBD) {
                 await t.rollback();
                 return res.status(404).json({
@@ -121,6 +122,22 @@ const crearPedido = async (req,res) => {
                 return res.status(400).json({
                     mensaje: `El producto ${productoBD.nombre} no está disponible`
                 });
+            }
+            // Si el producto tiene tamaños, el precio base es el del tamaño elegido
+            const variantes = productoBD.variantes ?? [];
+            let precioBase = Number(productoBD.precio);
+            let tamanio = null;
+
+            if (variantes.length > 0) {
+                const variante = variantes.find((v) => v.tamanio === producto.tamanio);
+                if (!variante) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        mensaje: `Elegí un tamaño válido para ${productoBD.nombre}`
+                    });
+                }
+                precioBase = Number(variante.precio);
+                tamanio = variante.tamanio;
             }
 
             // Cantidad final elegida por insumo (insumoId -> cantidad), solo para los insumos
@@ -209,7 +226,7 @@ const crearPedido = async (req,res) => {
             }
 
             // Calcular subtotal (precio base + extras agregados, la personalización de sacar no descuenta)
-            const precioUnitario = Number(productoBD.precio) + extraUnitario;
+            const precioUnitario = precioBase + extraUnitario;            
             const subtotal = precioUnitario * producto.cantidad;
 
             // Acumular al total
@@ -220,6 +237,7 @@ const crearPedido = async (req,res) => {
                 productoId: producto.productoId,
                 cantidad: producto.cantidad,
                 precio: precioUnitario,
+                tamanio: tamanio,
                 personalizaciones
             },{transaction: t});
         }
