@@ -14,6 +14,7 @@ import {
   precioExtras as calcularPrecioExtras,
   textoPersonalizacion as textoDe,
 } from '../utils/personalizacion'
+import { CornerDownLeft } from 'lucide-react'
 
 const PASOS = ['Hamburguesa', 'Papas', 'Bebida', 'Resumen']
 
@@ -206,7 +207,9 @@ function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="mx-auto flex max-w-xl flex-col items-center gap-6 px-4 py-24 text-center">
+      <div className='bg-brand-cream'>
+      <div className="mx-auto flex max-w-xl flex-col items-center gap-6 px-4 py-24 text-center
+      min-h-screen justify-center">
         <h1 className="text-3xl font-extrabold text-brand-dark">Producto no encontrado</h1>
         <p className="text-gray-600">El producto que buscás no existe o ya no está disponible.</p>
         <Link
@@ -215,6 +218,7 @@ function ProductDetail() {
         >
           Volver al catálogo
         </Link>
+      </div>
       </div>
     )
   }
@@ -228,22 +232,27 @@ function ProductDetail() {
   ]
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 md:py-12">
-      <Link to="/catalogo" className="inline-block font-semibold text-brand-red hover:underline">
-        ← Volver al catálogo
+    <div className='bg-gradient-to-b from-orange-200 via-yellow-800 to-red-900'>
+    <div className="mx-auto max-w-6xl px-4 py-6 md:py-12 min-h-screen  ">
+      
+      <Link to="/catalogo" 
+      className="inline-flex items-center gap-2 rounded-full bg-brand-red/10 
+      px-4 py-2 font-semibold text-brand-red transition-all hover:bg-brand-red hover:text-white">
+        <CornerDownLeft size={22}/> Volver al catálogo
       </Link>
-      <div className="mt-6 flex min-h-[70vh] items-center">
-      <div className="grid grid-cols-1 items-center justify-items-center gap-10 md:grid-cols-2">
-        
+      
+      <div className="w-full flex min-h-[80vh] items-center justify-center">
 
-      <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-10">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-10 
+      rounded p-4 max-w-5xl border
+      bg-gradient-to-b from-orange-700 via-orange-300 to-orange-300">
         {/* Producto: en celular, compacto (foto chica al lado del nombre) */}
         <div className="flex items-center gap-4 md:flex-col md:items-stretch">
           {product.imagen ? (
             <img
               src={product.imagen}
               alt={product.nombre}
-              className="h-20 w-20 shrink-0 rounded-xl bg-brand-cream object-cover md:h-96 md:w-full md:rounded-2xl"
+              className="h-20 w-20 shrink-0 rounded-xl  object-cover md:h-96 md:w-full md:rounded-2xl"
             />
           ) : (
             <div
@@ -259,8 +268,11 @@ function ProductDetail() {
                 {categoryName}
               </span>
             )}
-            <h1 className="mt-2 text-2xl font-extrabold text-brand-dark sm:text-4xl">{product.nombre}</h1>
-            <p className="mt-1 line-clamp-2 text-sm text-gray-600 md:line-clamp-none md:text-base">
+            <h1 className="mt-2 text-2xl font-extrabold sm:text-4xl
+            bg-gradient-to-r from-red-500 via-red-800 to-orange-700 bg-clip-text text-transparent w-fit">
+              {product.nombre}
+              </h1>
+            <p className="mt-1 line-clamp-2 text-sm text-gray-700 md:line-clamp-none md:text-base">
               {product.descripcion}
             </p>
           </div>
@@ -283,9 +295,12 @@ function ProductDetail() {
             // ---------- Producto suelto ----------
             <div className="flex flex-col gap-5">
               <SelectorTamanio producto={product} valor={tamanioElegido} onChange={setTamanioSimple} />
-              <span className="text-3xl font-extrabold text-brand-red">
+              <div>
+              <p className="text-md text-gray-800 font-bold">Total</p>
+              <span className="text-2xl font-extrabold text-brand-red [-webkit-text-stroke:1px_black]">
                 {precio(precioDe(product, tamanioElegido))}
               </span>
+              </div>
               <button
                 type="button"
                 onClick={() => agregarSimple(tamanioElegido)}
@@ -407,8 +422,10 @@ function ProductDetail() {
               {/* Total y navegación, siempre a la vista */}
               <div className="flex items-center justify-between gap-3 border-t border-brand-dark/10 pt-4">
                 <div>
-                  <p className="text-xs text-gray-500">Total</p>
-                  <p className="text-2xl font-extrabold text-brand-red">{precio(total)}</p>
+                  <p className="text-md text-gray-800 font-bold">Total</p>
+                  <p className="text-2xl font-extrabold text-brand-red
+                  [-webkit-text-stroke:1px_black]">
+                    {precio(total)}</p>
                 </div>
                 <div className="flex gap-2">
                   {paso > 1 && (
@@ -442,8 +459,8 @@ function ProductDetail() {
             </div>
           )}
         </div>
-        </div>
       </div>
+    </div>
     </div>
     </div>
   )

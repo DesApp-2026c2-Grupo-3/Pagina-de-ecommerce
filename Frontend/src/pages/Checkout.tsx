@@ -105,7 +105,9 @@ function Checkout() {
 
   if (confirmedOrder) {
     return (
-      <div className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-24 text-center">
+      <div className="bg-brand-cream">
+      <div className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-24 text-center
+      min-h-screen justify-center">
         <h1 className="text-3xl font-extrabold text-brand-dark">¡Pedido confirmado!</h1>
         <p className="text-gray-600">
           Tu pedido <span className="font-bold text-brand-red">#{confirmedOrder.id}</span> fue generado con éxito.
@@ -114,17 +116,19 @@ function Checkout() {
           Total: ${Number(confirmedOrder.total).toLocaleString("es-AR")}
         </p>
         <Link
-          to="/"
+          to="/historial"
           className="mt-4 rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
         >
-          Volver al catálogo
+          Ver pedido
         </Link>
+      </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
+    <div className="bg-brand-cream">
+    <div className="mx-auto max-w-2xl px-4 py-12 min-h-screen">
       <h1 className="text-3xl font-extrabold text-brand-dark">Confirmar pedido</h1>
       <p className="mt-2 text-gray-600">Revisá tu pedido antes de confirmar.</p>
 
@@ -305,6 +309,7 @@ function Checkout() {
           {loading ? "Confirmando..." : "Confirmar pedido"}
         </button>
       </div>
+    </div>
     </div>
   );
 }

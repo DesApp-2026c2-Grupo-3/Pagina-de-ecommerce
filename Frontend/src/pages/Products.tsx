@@ -44,7 +44,7 @@ function Products() {
 
   return (
     <div className="mx-auto px-10 py-10 min-h-screen
-    bg-gradient-to-b from-brand-cream via-yellow-800 to-red-800">
+    bg-gradient-to-b from-orange-200 via-yellow-800 to-red-800">
       <h1 className="text-3xl font-extrabold sm:text-4xl
       bg-gradient-to-r from-stone-900 via-gray-800 to-red-700 bg-clip-text text-transparent w-fit">
         Nuestro catálogo

@@ -43,6 +43,7 @@ function HistorialPedidos() {
 
   if (pedidos.length === 0) {
     return (
+      
       <div className="mx-auto flex flex-col items-center justify-center gap-6 px-4 py-24
        text-center bg-stone-900 min-h-screen">
         <div className="flex flex-col gap-4 p-6 rounded bg-stone-800 border-3 border-stone-500">
@@ -53,7 +54,7 @@ function HistorialPedidos() {
           to="/catalogo"
           className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
         >
-          Ver el menú
+          Ver el catalogo
         </Link>
       </div>
       </div>
@@ -62,7 +63,7 @@ function HistorialPedidos() {
 
   return (
     <div className='bg-brand-cream'>
-    <div className="mx-auto max-w-3xl px-4 py-12">
+    <div className="mx-auto max-w-3xl px-4 py-12 min-h-screen">
       <h1 className="text-3xl font-extrabold text-brand-dark">Historial de pedidos</h1>
 
       <div className="mt-8 flex flex-col gap-4">

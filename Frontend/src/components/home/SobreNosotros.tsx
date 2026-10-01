@@ -18,7 +18,8 @@ export default function SobreNosotros() {
             Conocenos
           </p>
 
-          <h1 className="mt-3 text-5xl font-extrabold">
+          <h1 className="mt-3 text-5xl font-extrabold
+          bg-gradient-to-r from-stone-300 via-yellow-800 to-red-500 bg-clip-text text-transparent">
             Más que una hamburguesa
           </h1>
 
@@ -38,7 +39,7 @@ export default function SobreNosotros() {
             Quiénes somos
           </p>
 
-          <h2 className="mt-2 text-4xl font-extrabold text-brand-dark">
+          <h2 className="mt-2 text-4xl font-extrabold text-brand-cream">
             Una forma simple de disfrutar una buena hamburguesa
           </h2>
 
@@ -73,7 +74,7 @@ export default function SobreNosotros() {
               Nuestra misión
             </p>
 
-            <h2 className="mt-2 text-4xl font-extrabold text-brand-dark">
+            <h2 className="mt-2 text-4xl font-extrabold text-brand-cream">
               Calidad que llega hasta tu puerta
             </h2>
 
@@ -95,7 +96,7 @@ export default function SobreNosotros() {
             Lo que nos importa
           </p>
 
-          <h2 className="mt-2 text-4xl font-extrabold text-brand-dark">
+          <h2 className="mt-2 text-4xl font-extrabold text-brand-cream">
             Nuestra forma de trabajar
           </h2>
         </div>
