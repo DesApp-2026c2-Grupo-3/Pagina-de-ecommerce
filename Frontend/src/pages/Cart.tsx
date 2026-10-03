@@ -53,7 +53,7 @@ function Cart() {
                   <p className="text-sm text-gray-600">
                     {etiquetaTamanio(
                       item.tamanio,
-                      item.product.variantes?.find((v) => v.tamanio === item.tamanio)?.etiqueta,
+                      item.product.tamanios?.find((v) => v.tamanio === item.tamanio)?.etiqueta,
                     )}
                   </p>
                 )}

@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { ProductoBackend } from '../types/product'
 import type { CartItem } from '../types/cart'
-import { ordenarVariantes } from '../config/combo'
+import { ordenarTamanios } from '../config/combo'
 
 interface AddItemOptions {
   unitPrice?: number
   personalizaciones?: CartItem['personalizaciones']
-  tamanio?: string | null
+  tamanioId?: number | null
+  combo?: CartItem['combo']
 }
 
 interface CartContextType {
@@ -28,19 +29,27 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 const CART_STORAGE_KEY = 'cart'
 
-// Ej: "12" (sin cambios), "40-grande", "12-5:0|8:2" (insumo 5 quitado, insumo 8 doble)
+// Ej: "12" (sin cambios), "40-t3" (tamaño 3), "12-5:0|8:2" (insumo 5 quitado, insumo 8 doble),
+// "20-t2-c1:31,2:40" (combo con el producto 31 en el grupo 1 y el 40 en el grupo 2)
 function buildItemId(
   productId: number,
-  tamanio: string | null,
+  tamanioId: number | null,
   personalizaciones: CartItem['personalizaciones'] = [],
+  combo?: CartItem['combo'],
 ) {
-  const base = tamanio ? `${productId}-${tamanio}` : String(productId)
-  if (personalizaciones.length === 0) return base
+  let id = tamanioId ? `${productId}-t${tamanioId}` : String(productId)
+  if (combo && combo.length > 0) {
+    id += `-c${[...combo]
+      .sort((a, b) => a.grupoId - b.grupoId)
+      .map((e) => `${e.grupoId}:${e.productoId}`)
+      .join(',')}`
+  }
+  if (personalizaciones.length === 0) return id
   const clave = [...personalizaciones]
     .sort((a, b) => a.insumoId - b.insumoId)
     .map((p) => `${p.insumoId}:${p.cantidad}`)
     .join('|')
-  return `${base}-${clave}`
+  return `${id}-${clave}`
 }
 
 function leerCarritoGuardado(): CartItem[] {
@@ -50,9 +59,16 @@ function leerCarritoGuardado(): CartItem[] {
     if (!Array.isArray(items)) return []
 
     return items
-      // Descarta ítems guardados con el formato viejo de producto (sin "nombre"),
-      // que romperían el render del carrito.
-      .filter((item: CartItem) => item?.product && 'nombre' in item.product)
+      // Descarta ítems guardados con el formato viejo de producto (sin "nombre", o con
+      // "variantes" en vez de "tamanios"), que romperían el render del carrito o el pedido.
+      .filter(
+        (item: CartItem) =>
+          item?.product && 'nombre' in item.product && !('variantes' in item.product),
+      )
+      // Descarta combos guardados con el formato anterior (acompanamientoId / bebidaId)
+      .filter((item: CartItem) => !item.combo || Array.isArray(item.combo))
+      // Un producto con tamaños tiene que tener elegido uno
+      .filter((item: CartItem) => !item.product.tamanios?.length || item.tamanioId)
       // Completa campos que pueden faltar en carritos de versiones anteriores
       .map((item: CartItem) => ({
         ...item,
@@ -82,10 +98,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!product.disponible) return
 
     // Si el producto tiene tamaños y no se eligió ninguno, va el primero (regular)
-    const tamanio = options?.tamanio ?? ordenarVariantes(product.variantes)[0]?.tamanio ?? null    
-    const variante = product.variantes?.find((v) => v.tamanio === tamanio)
-    const id = buildItemId(product.id, tamanio, options?.personalizaciones)
-    const unitPrice = options?.unitPrice ?? Number(variante?.precio ?? product.precio)
+    const tamanioElegido = options?.tamanioId
+      ? product.tamanios?.find((t) => t.tamanioId === options.tamanioId)
+      : ordenarTamanios(product.tamanios)[0]
+    const tamanio = tamanioElegido?.tamanio ?? null
+    const tamanioId = tamanioElegido?.tamanioId ?? null
+    const id = buildItemId(product.id, tamanioId, options?.personalizaciones, options?.combo)
+    const unitPrice = options?.unitPrice ?? Number(tamanioElegido?.precio ?? product.precio)
 
     setItems((prev) => {
       const existing = prev.find((item) => item.id === id)
@@ -104,6 +123,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           unitPrice,
           personalizaciones: options?.personalizaciones,
           tamanio,
+          tamanioId,
+          combo: options?.combo,
         },
       ]
     })

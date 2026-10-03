@@ -1,5 +1,4 @@
 const Joi = require('joi')
-const { TAMANIOS } = require('./producto.schema')
 const pedidoSchema = Joi.object({
     usuarioId: Joi.number().integer().positive().required().messages({
         'number.base': 'El id de usuario debe ser un número',
@@ -27,10 +26,23 @@ const pedidoSchema = Joi.object({
                 'number.min': 'La cantidad debe ser al menos 1',
                 'any.required': 'La cantidad es obligatoria'
             }),
-            // 👇 acá va: al mismo nivel que productoId y cantidad
-            tamanio: Joi.string().valid(...TAMANIOS).optional().messages({
-                'any.only': 'El tamaño debe ser regular, mediano o grande'
+            // Tamaño elegido (id de la tabla Tamanios), si el producto tiene tamaños
+            tamanioId: Joi.number().integer().positive().optional().messages({
+                'number.base': 'El id de tamaño debe ser un número'
             }),
+            // Solo combos: qué producto eligió el cliente en cada grupo (acompañamiento, bebida, ...)
+            elecciones: Joi.array().items(
+                Joi.object({
+                    grupoId: Joi.number().integer().positive().required().messages({
+                        'number.base': 'El id del grupo debe ser un número',
+                        'any.required': 'El id del grupo es obligatorio'
+                    }),
+                    productoId: Joi.number().integer().positive().required().messages({
+                        'number.base': 'El id del producto elegido debe ser un número',
+                        'any.required': 'El id del producto elegido es obligatorio'
+                    })
+                })
+            ).optional(),
             personalizaciones: Joi.array().items(
                 Joi.object({
                     insumoId: Joi.number().integer().positive().required().messages({

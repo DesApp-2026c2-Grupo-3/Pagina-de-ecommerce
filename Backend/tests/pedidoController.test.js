@@ -9,6 +9,7 @@ jest.mock('../src/models', () => {
         Direccion: { findOne: jest.fn() },
         Sucursal: { findByPk: jest.fn() },
         RecetaInsumo: { findAll: jest.fn() },
+        ComboGrupo: { findAll: jest.fn() },
         Insumo: {},
         StockSucursal: { findOne: jest.fn() },
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },
@@ -25,7 +26,7 @@ const {
 } = require('../src/controllers/pedidoController');
 
 const {
-    Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, StockSucursal, Direccion,
+    Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, StockSucursal, Direccion, ComboGrupo,
 } = models;
 const t = models.__t;
 
@@ -74,6 +75,8 @@ beforeEach(() => {
         { insumoId: 2, cantidadBase: '1', esRemovible: true, esAgregable: false, Insumo: { nombre: 'Cebolla', precioComercial: '0' } },
         { insumoId: 3, cantidadBase: '1', esRemovible: true, esAgregable: true, Insumo: { nombre: 'Cheddar', precioComercial: '500' } },
     ]);
+
+    ComboGrupo.findAll.mockResolvedValue([]); // un producto común no es un combo
 
     stocks = { 1: crearStock(50), 2: crearStock(50), 3: crearStock(50) };
     StockSucursal.findOne.mockImplementation(({ where }) => Promise.resolve(stocks[where.insumoId] ?? null));
