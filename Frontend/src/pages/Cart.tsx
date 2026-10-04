@@ -132,6 +132,13 @@ function Cart() {
                       >
                         <PencilSparkles size={20} />
                       </button>
+              <div className="flex-1">
+                <h3 className="font-bold text-brand-dark">{item.product.nombre}</h3>
+                {item.tamanio && (
+                  <p className="text-sm text-gray-600">
+                    {etiquetaTamanio(
+                      item.tamanio,
+                      item.product.tamanios?.find((v) => v.tamanio === item.tamanio)?.etiqueta,
                     )}
                     <button
                       type="button"

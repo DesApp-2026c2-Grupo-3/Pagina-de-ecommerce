@@ -13,8 +13,8 @@ export const createOrder = async (
     productoId: item.product.id,
     cantidad: item.quantity,
     personalizaciones: item.personalizaciones ?? [],
-     ...(item.tamanio ? { tamanio: item.tamanio } : {}),
-
+    ...(item.tamanioId ? { tamanioId: item.tamanioId } : {}),
+    ...(item.combo?.length ? { elecciones: item.combo } : {}),
   }))
 
   return httpClient<Order>('/pedido', {

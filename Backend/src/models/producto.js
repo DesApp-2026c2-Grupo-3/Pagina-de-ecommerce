@@ -16,7 +16,9 @@ module.exports = (sequelize, DataTypes) => {
       Producto.hasMany(models.RecetaInsumo, {
         foreignKey: 'productoId'
       });
-      Producto.hasMany(models.ProductoVariante, { foreignKey: 'productoId', as: 'variantes' });
+      Producto.hasMany(models.ProductoTamanio, { foreignKey: 'productoId', as: 'tamanios' });
+      // Solo combos: qué lugares elegibles tiene (acompañamiento, bebida, ...)
+      Producto.hasMany(models.ComboGrupo, { foreignKey: 'productoId', as: 'grupos' });
     }
   }
 

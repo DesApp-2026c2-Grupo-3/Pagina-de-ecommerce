@@ -17,8 +17,11 @@ function Hero() {
         ? "Volvé a pedir tus favoritos o descubrí algo nuevo en el menú."
         : "Pedí en minutos y seguí tu pedido en tiempo real.",
       ctaLabel: "Ver menú",
+
       ctaTo: "/productos",
-      backgroundImage: '/banners/publicidad1.jpg',
+      backgroundImage: "/banners/publicidad1.jpg",
+      visual: "/imagenes/turbo-bacon.png",
+      visualType: "image",
     },
     {
       id: 2,

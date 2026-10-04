@@ -1,29 +1,3 @@
-const { Producto, RecetaInsumo, Insumo, ProductoVariante, StockSucursal, Sucursal } = require('../models');
-const {
-    agruparPorProducto,
-    stockComoMapa,
-    productoDisponible,
-    pasoExtra,
-} = require('../utils/disponibilidad');
-
-const VARIANTES = { model: ProductoVariante, as: 'variantes', attributes: ['tamanio', 'precio', 'etiqueta'] };
-
-function mapIngredientes(producto) {
-    const receta = producto.RecetaInsumos || [];
-
-    return receta.map((item) => ({
-        insumoId: item.insumoId,
-        nombre: item.Insumo ? item.Insumo.nombre : null,
-        unidadMedida: item.Insumo ? item.Insumo.unidadMedida : null,
-        cantidadBase: Number(item.cantidadBase),
-        esRemovible: item.esRemovible,
-        esAgregable: item.esAgregable,
-        precioComercial: item.Insumo && item.Insumo.precioComercial != null
-            ? Number(item.Insumo.precioComercial)
-            : 0
-    }));
-}
-
 // Lee ?sucursalId de la URL:
 // - sin sucursalId → { sucursalId: null } (se responde como siempre)
 // - inválido o inexistente → { error } con el status y el mensaje
@@ -43,14 +17,61 @@ async function sucursalDesdeQuery(query) {
     return { sucursalId };
 }
 
+// Los tamaños de un producto, ordenados (regular, mediano, grande) y con el nombre del tamaño:
+// [{ tamanioId: 1, tamanio: 'regular', precio: '2100.00', etiqueta: null }]
+function mapTamanios(tamanios) {
+    return tamanios
+        .map((pt) => ({
+            tamanioId: pt.tamanioId,
+            tamanio: pt.Tamanio ? pt.Tamanio.nombre : null,
+            orden: pt.Tamanio ? pt.Tamanio.orden : 0,
+            precio: pt.precio,
+            etiqueta: pt.etiqueta
+        }))
+        .sort((a, b) => a.orden - b.orden)
+        .map(({ orden, ...resto }) => resto);
+}
+
+function incluirTamanios() {
+    return {
+        model: ProductoTamanio,
+        as: 'tamanios',
+        attributes: ['tamanioId', 'precio', 'etiqueta'],
+        include: [{ model: Tamanio, attributes: ['nombre', 'orden'] }]
+    };
+}
+
+// Solo combos: los grupos elegibles (acompañamiento, bebida, ...) del combo
+function incluirGrupos() {
+    return {
+        model: ComboGrupo,
+        as: 'grupos',
+        attributes: ['id', 'nombre', 'categoriaId', 'productoIncluidoId', 'obligatorio', 'orden', 'icono']
+    };
+}
+
+function aplanarProducto(producto) {
+    const json = typeof producto.toJSON === 'function' ? producto.toJSON() : producto;
+    const resultado = Array.isArray(json.tamanios)
+        ? { ...json, tamanios: mapTamanios(json.tamanios) }
+        : json;
+    return Array.isArray(resultado.grupos)
+        ? { ...resultado, grupos: [...resultado.grupos].sort((a, b) => a.orden - b.orden) }
+        : resultado;
+}
+
 // GET /productos                → catálogo con el "disponible" manual (como siempre)
 // GET /productos?sucursalId=2   → "disponible" calculado con el stock de esa sucursal
 const obtenerProductos = async (req, res) => {
     try {
-        const productos = await Producto.findAll({ include: [VARIANTES] });
-
         const { sucursalId, error } = await sucursalDesdeQuery(req.query);
         if (error) return res.status(error.status).json({ mensaje: error.mensaje });
+
+        const productos = (await Producto.findAll({
+            include: [incluirTamanios()],
+            order: [['id', 'ASC']]
+        })).map(aplanarProducto);
+
         if (!sucursalId) return res.json(productos);
 
         // Dos consultas en total, no una por producto
@@ -62,13 +83,10 @@ const obtenerProductos = async (req, res) => {
         const recetasPorProducto = agruparPorProducto(recetas);
         const stockPorInsumo = stockComoMapa(stock);
 
-        res.json(productos.map((producto) => {
-            const datos = producto.toJSON();
-            return {
-                ...datos,
-                disponible: productoDisponible(datos, recetasPorProducto.get(datos.id), stockPorInsumo),
-            };
-        }));
+        res.json(productos.map((datos) => ({
+            ...datos,
+            disponible: productoDisponible(datos, recetasPorProducto.get(datos.id), stockPorInsumo),
+        })));
     } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: 'Error al obtener los productos' });
@@ -80,7 +98,11 @@ const obtenerProductos = async (req, res) => {
 const obtenerProductoPorId = async (req, res) => {
     try {
         const producto = await Producto.findByPk(req.params.id, {
-            include: [{ model: RecetaInsumo, include: [Insumo] }, VARIANTES]
+            include: [
+                { model: RecetaInsumo, include: [Insumo] },
+                incluirTamanios(),
+                incluirGrupos()
+            ]
         });
 
         if (!producto) {
@@ -88,7 +110,8 @@ const obtenerProductoPorId = async (req, res) => {
         }
 
         const productoJson = producto.toJSON();
-        const { RecetaInsumos, ...datosProducto } = productoJson;
+        const { RecetaInsumos, ...resto } = productoJson;
+        const datosProducto = aplanarProducto(resto);
         const ingredientes = mapIngredientes(productoJson);
 
         const { sucursalId, error } = await sucursalDesdeQuery(req.query);
