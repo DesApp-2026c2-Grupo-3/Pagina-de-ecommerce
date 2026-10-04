@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import type { CarouselSlide } from '../../types/carousel'
 import { ArrowBigLeft, ArrowBigRight } from 'lucide-react'
 

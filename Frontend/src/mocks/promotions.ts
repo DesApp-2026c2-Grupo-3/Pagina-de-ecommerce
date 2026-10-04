@@ -1,6 +1,13 @@
-import type { Category, Product } from '../types/product'
+import type { Product } from '../types/product'
 
-export const promoCategories: Category[] = [
+// Categorías de ejemplo: Promociones todavía no está conectada al backend
+export interface CategoriaPromo {
+  id: number
+  name: string
+  icon: string
+}
+
+export const promoCategories: CategoriaPromo[] = [
   { id: 1, name: 'Box Familiar', icon: '📦' },
   { id: 2, name: 'Cajita Mágica', icon: '🎁' },
   { id: 3, name: 'Combos con Descuento', icon: '🍔' },
