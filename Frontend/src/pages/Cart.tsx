@@ -10,7 +10,7 @@ import type { CartItem } from "../types/cart";
 const botonCantidad =
   "flex h-8 w-8 items-center justify-center rounded-full border border-brand-dark/20 text-brand-dark transition-colors hover:border-brand-dark";
 const botonAccion =
-  "rounded-full p-2 text-gray-500 transition-colors hover:bg-brand-cream hover:text-brand-dark";
+  "rounded-full p-2 text-gray-500 transition-colors hover:bg-yellow-500 hover:text-brand-dark";
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice } = useCart();
@@ -70,13 +70,16 @@ function Cart() {
               .join(" · ");
 
             return (
-              <div key={item.id} className="rounded-2xl bg-white p-4 shadow-md">
+              <div key={item.id} className="rounded-2xl p-4 shadow-md
+              bg-gradient-to-r from-red-200 via-orange-300 to-yellow-200
+              border">
                 <div className="flex items-center gap-4">
                   {item.product.imagen ? (
                     <img
                       src={item.product.imagen}
                       alt={item.product.nombre}
-                      className="h-20 w-20 shrink-0 rounded-xl bg-brand-cream object-cover"
+                      className="h-20 w-20 shrink-0 rounded-xl object-cover
+                      bg-gradient-to-b from-orange-200 via-yellow-400 to-red-500 border"
                     />
                   ) : (
                     <div
@@ -189,14 +192,17 @@ function Cart() {
         </div>
 
         {/* Total y confirmar */}
-        <div className="mt-8 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-md sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col gap-4 rounded-2xl p-4 shadow-md 
+        sm:flex-row sm:items-center sm:justify-between border
+        bg-gradient-to-t from-red-400 from-10% to-yellow-200 ">
           <span className="text-xl font-extrabold text-brand-dark">
             Total: ${totalPrice.toLocaleString("es-AR")}
           </span>
           <button
             type="button"
             onClick={handleCheckout}
-            className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
+            className="rounded-full px-6 py-3 font-bold text-white transition-opacity hover:opacity-70
+            bg-gradient-to-t from-red-600 to-red-400 border border-black"
           >
             {isAuthenticated ? "Confirmar pedido" : "Iniciá sesión para confirmar"}
           </button>

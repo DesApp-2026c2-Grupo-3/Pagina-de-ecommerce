@@ -11,7 +11,7 @@ function Home() {
   return (
     <div id="menu">
       <Hero />
-      {isAuthenticated && <GuestQuickAccessRow />}
+      {!isAuthenticated && <GuestQuickAccessRow />}
       <CompanySection />
       <SucursalesMap />
       <ContactSection />
