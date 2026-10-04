@@ -1,8 +1,8 @@
 function CompanySection() {
   return (
     <section id="sobre-nosotros" className="mx-auto  scroll-mt-24 px-4 py-16 
-    bg-gradient-to-tl from-stone-900 via-stone-700 to-stone-900 ">
-      <div className="grid grid-cols-1 gap-10 md:grid-cols-1 p-2 ">
+    bg-radial from-stone-500  to-stone-900 ">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-1 p-2 ">
 
         <div className="relative overflow-hidden flex flex-col gap-4 p-2 bg-red-950
         rounded-2xl border-2 border-stone-700 min-h-[50vh]">

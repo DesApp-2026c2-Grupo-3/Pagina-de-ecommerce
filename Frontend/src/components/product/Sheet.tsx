@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { X } from 'lucide-react'
 
 interface SheetProps {
   title: string
@@ -38,7 +39,9 @@ function Sheet({ title, onClose, children, footer, alto = 'medio' }: SheetProps)
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl md:max-h-[85vh] md:max-w-lg md:rounded-3xl ${
+        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-t-3xl
+           shadow-xl md:max-h-[85vh] md:max-w-lg md:rounded-3xl
+           bg-radial-[at_50%_90%] from-yellow-200 via-orange-300 to-red-300 ${
           alto === 'completo' ? 'h-[calc(100dvh-2rem)] md:h-auto' : 'min-h-[60dvh] md:min-h-0'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -49,9 +52,10 @@ function Sheet({ title, onClose, children, footer, alto = 'medio' }: SheetProps)
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="-mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl leading-none text-brand-dark/60 transition-colors hover:bg-brand-cream hover:text-brand-red"
+            className="-mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl 
+            leading-none text-brand-dark/60 transition-colors hover:bg-brand-cream hover:text-brand-red"
           >
-            ✕
+            <X size={30}/>
           </button>
         </header>
 

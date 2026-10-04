@@ -71,8 +71,9 @@ function SucursalesMap() {
   const seleccionada = sucursales.find((s) => s.id === seleccionadaId)
 
   return (
+    <div className='bg-radial from-stone-500  to-stone-900 p-2'>
     <section id="sucursales" className="mx-auto max-w-7xl scroll-mt-32 px-4 py-8 
-    bg-gradient-to-br from-red-700 via-red-800 to-red-900
+    bg-gradient-to-br from-red-900 via-red-800 to-red-950
     border-6 border-red-950">
       <h2 className="mb-4 flex items-center gap-3 text-2xl font-extrabold text-white">
         < MapPin size={30}/>
@@ -173,6 +174,7 @@ function SucursalesMap() {
         </APIProvider>
       )}
     </section>
+    </div>
   )
 }
 

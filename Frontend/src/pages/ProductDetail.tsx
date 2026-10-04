@@ -10,6 +10,7 @@ import CustomizeSheet from '../components/product/CustomizeSheet'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
+import { MoveUpLeft } from 'lucide-react'
 
 function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
@@ -188,7 +189,7 @@ function DetalleProducto({ id }: { id: number }) {
 
   const filaGrupo = 'flex items-center gap-3 border-b border-brand-dark/10 py-4'
   const botonSeleccionar =
-    'shrink-0 rounded-md border border-brand-red px-3 py-1.5 text-sm font-bold text-brand-red transition-colors hover:bg-brand-red hover:text-white'
+    'shrink-0 rounded-md border border-stone-800 px-3 py-1.5 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-red hover:text-white'
 
   // Cantidad + total y los dos botones. En el celular los botones ocupan todo el ancho.
   const barraCompra = (movil: boolean) => (
@@ -219,13 +220,16 @@ function DetalleProducto({ id }: { id: number }) {
   )
 
    return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-200 via-yellow-800 to-red-800 px-4 py-6 md:py-10">
-      <div className="mx-auto max-w-5xl rounded-3xl bg-white p-4 shadow-xl md:p-8">      <Link
+    <div className="min-h-screen bg-gradient-to-b from-orange-200 via-yellow-800
+     to-red-800 px-4 py-6 md:py-10 flex items-center ">
+      <div className="mx-auto max-w-5xl rounded-3xl p-4 shadow-xl md:p-8
+      bg-radial from-orange-300 to-transparent">
+        <Link
         to="/catalogo"
         className="inline-flex items-center gap-2 text-base font-extrabold text-brand-dark hover:text-brand-red"
       >
-        <span aria-hidden="true" className="text-2xl leading-none">‹</span>
-        {categoryName || 'Volver al catálogo'}
+        
+        <MoveUpLeft size={30}/> Volver al catálogo
       </Link>
 
       {/* Centra la grilla del producto en la pantalla */}
@@ -249,9 +253,12 @@ function DetalleProducto({ id }: { id: number }) {
           </div>
 
           <div>
+            <span className="mr-auto rounded-full bg-brand-red px-3 py-1 text-sm font-bold text-white">
+              {categoryName}
+            </span>
             <h1 className="text-3xl font-extrabold text-brand-dark">{product.nombre}</h1>
             <p className="mt-2 text-xl font-extrabold text-brand-dark">{precio(precioBase)}</p>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-3 text-gray-800">
               {product.descripcion}
               {esCombo && tamanioActivo && (
                 <> Acompañamiento y bebida {tamanioActivo.tamanio} a elección.</>
@@ -298,7 +305,7 @@ function DetalleProducto({ id }: { id: number }) {
                             {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
                           </p>
                         ) : (
-                          <p className="text-sm italic text-gray-500">
+                          <p className="text-sm italic text-gray-800">
                             Elegí uno{grupo.obligatorio ? ' (Obligatorio)' : ' (Opcional)'}
                           </p>
                         )}

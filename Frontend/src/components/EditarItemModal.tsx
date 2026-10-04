@@ -118,10 +118,10 @@ function EditarItemModal({ item, onClose }: EditarItemModalProps) {
       ) : (
         producto &&
         item && (
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 ">
             {/* En un combo, cambiar el tamaño cambia las opciones y sus precios: se arma de nuevo */}
             {esCombo ? (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-800">
                 Para cambiar el tamaño o las opciones del combo, quitalo del carrito y armalo de nuevo.
               </p>
             ) : (
@@ -134,7 +134,7 @@ function EditarItemModal({ item, onClose }: EditarItemModalProps) {
               <div className="flex items-start justify-between gap-3 border-b border-brand-dark/10 pb-4">
                 <div className="min-w-0">
                   <p className="font-bold text-brand-dark">Ingredientes</p>
-                  <p className="text-sm text-gray-600">{textos.join(' · ') || 'Como viene'}</p>
+                  <p className="text-sm text-gray-800">{textos.join(' · ') || 'Como viene'}</p>
                 </div>
                 <button
                   type="button"
@@ -147,7 +147,7 @@ function EditarItemModal({ item, onClose }: EditarItemModalProps) {
             )}
 
             {!personalizable && (esCombo || tamanios.length === 0) && (
-              <p className="text-sm text-gray-600">Este producto no tiene opciones para cambiar.</p>
+              <p className="text-sm text-gray-800">Este producto no tiene opciones para cambiar.</p>
             )}
 
             {!producto.disponible && (
@@ -156,7 +156,7 @@ function EditarItemModal({ item, onClose }: EditarItemModalProps) {
 
             <div className="flex items-center justify-between gap-3 pt-2">
               <div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-800">
                   {item.quantity > 1 ? `${item.quantity} x ${formatearPrecio(unitPrice)}` : 'Precio'}
                 </p>
                 <p className="text-2xl font-extrabold text-brand-dark">{formatearPrecio(unitPrice * item.quantity)}</p>
@@ -165,7 +165,9 @@ function EditarItemModal({ item, onClose }: EditarItemModalProps) {
                 type="button"
                 onClick={guardar}
                 disabled={!producto.disponible}
-                className="rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="rounded-full px-6 py-2 font-bold text-white transition-opacity
+                 hover:opacity-90 disabled:opacity-50
+                 bg-gradient-to-t from-red-600 to-red-400 border border-black"
               >
                 Guardar
               </button>

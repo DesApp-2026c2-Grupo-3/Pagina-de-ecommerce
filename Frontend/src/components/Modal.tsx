@@ -1,4 +1,5 @@
 import { useEffect, useId, type ReactNode } from 'react'
+import { X } from 'lucide-react'
 
 // Ancho máximo según lo que contiene el modal
 const ANCHOS = {
@@ -40,7 +41,8 @@ function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = tr
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
-        className={`max-h-[90vh] w-full ${ANCHOS[tamanio]} overflow-y-auto rounded-2xl bg-white p-6 shadow-xl`}
+        className={`max-h-[90vh] w-full ${ANCHOS[tamanio]} overflow-y-auto rounded-2xl p-6 shadow-xl
+        bg-radial-[at_50%_90%] from-yellow-200 via-orange-300 to-red-300`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -48,7 +50,7 @@ function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = tr
             <h2 id={tituloId} className="text-2xl font-extrabold text-brand-dark">
               {title}
             </h2>
-            {subtitle && <p className="mt-1 text-sm text-gray-600">{subtitle}</p>}
+            {subtitle && <p className="mt-1 text-sm text-gray-800">{subtitle}</p>}
           </div>
           {cerrable && (
             <button
@@ -57,7 +59,7 @@ function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = tr
               aria-label="Cerrar"
               className="text-2xl leading-none text-brand-dark/50 hover:text-brand-red"
             >
-              ✕
+              <X size={30}/>
             </button>
           )}
         </div>

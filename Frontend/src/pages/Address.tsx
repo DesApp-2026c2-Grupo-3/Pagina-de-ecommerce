@@ -200,7 +200,8 @@ function Address() {
   return (
 
     <div className='bg-brand-cream '>
-    <div className="mx-auto max-w-2xl px-4 py-12 min-h-[80vh]">
+    <div className="mx-auto max-w-2xl px-4 py-12 min-h-screen 
+    flex flex-col gap-3">
 
     
       {estado?.from && (
@@ -210,12 +211,13 @@ function Address() {
       )}
 
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-6">
         <h1 className="text-3xl font-extrabold text-brand-dark">Direcciones guardadas</h1>
         <button
           type="button"
           onClick={abrirNueva}
-          className="rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
+          className="rounded-full bg-brand-red px-5 py-2 font-bold 
+          text-white transition-opacity hover:opacity-90 ml-auto"
         >
           + Agregar
         </button>

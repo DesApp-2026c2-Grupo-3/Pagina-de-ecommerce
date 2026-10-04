@@ -112,7 +112,7 @@ function Seguridad() {
 
   return (
     <div className='bg-brand-cream'>
-    <div className="mx-auto max-w-2xl px-4 py-12 min-h-[80vh]">
+    <div className="mx-auto max-w-2xl px-4 py-12 min-h-screen">
       <h1 className="text-3xl font-extrabold text-brand-dark">Inicio de sesión y seguridad</h1>
 
       <div className="mt-8 divide-y divide-brand-dark/10 rounded-2xl bg-white shadow-md">

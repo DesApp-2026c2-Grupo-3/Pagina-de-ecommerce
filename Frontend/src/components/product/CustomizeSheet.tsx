@@ -72,10 +72,12 @@ function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClo
           const sinStockExtra = agregable && ing.hayStockExtra === false
           
           return (
-            <li key={ing.insumoId} className="flex items-center gap-3 border-b border-brand-dark/10 py-3 last:border-b-0">
+            <li key={ing.insumoId} className="flex items-center gap-3 border-b 
+            border-brand-dark/10 py-3 last:border-b-0">
               <span
                 aria-hidden="true"
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-cream text-lg font-extrabold text-brand-red"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-full
+                 bg-orange-200 text-lg font-extrabold text-brand-red border"
               >
                 {ing.nombre.charAt(0).toUpperCase()}
               </span>
