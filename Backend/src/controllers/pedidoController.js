@@ -169,9 +169,7 @@ const crearPedido = async (req,res) => {
         if (distancia > Number(sucursal.radioEntregaKm)) {
             throw new ErrorPedido(400, `Tu dirección está fuera de la zona de entrega de ${sucursal.nombre}`);
         }
-        if (cantidad - base > EXTRA_MAX_INCREMENTO * pasoExtra(base)) {
-            throw new ErrorPedido(400, `No se pueden agregar más de ${EXTRA_MAX_INCREMENTO} ${item.Insumo?.nombre ?? 'unidades'} extra`);
-        }
+
          // Verificar que haya productos
         if (!Array.isArray(productos) || productos.length === 0) {
             await t.rollback();
@@ -252,6 +250,9 @@ const crearPedido = async (req,res) => {
                 }
                 if (cantidad > base && !item.esAgregable) {
                     throw new ErrorPedido(400, `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede aumentar en ${productoBD.nombre}`);
+                }
+                if (cantidad - base > EXTRA_MAX_INCREMENTO * pasoExtra(base)) {
+                    throw new ErrorPedido(400, `No se pueden agregar más de ${EXTRA_MAX_INCREMENTO} ${item.Insumo?.nombre ?? 'unidades'} extra`);
                 }
             }
 
