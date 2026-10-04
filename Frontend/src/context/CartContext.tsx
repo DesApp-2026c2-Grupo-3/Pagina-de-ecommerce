@@ -66,17 +66,20 @@ function crearLinea(
   options?: AddItemOptions,
 ): CartItem {
   // Si el producto tiene tamaños y no se eligió ninguno, va el primero (regular)
-  const tamanio = options?.tamanio ?? ordenarVariantes(product.variantes)[0]?.tamanio ?? null
-  const variante = product.variantes?.find((v) => v.tamanio === tamanio)
+  const tamanios = ordenarTamanios(product.tamanios)
+  const tamanioId = options?.tamanioId ?? tamanios[0]?.tamanioId ?? null
+  const elegido = tamanios.find((t) => t.tamanioId === tamanioId)
 
   return {
-    id: buildItemId(product.id, tamanio, options?.personalizaciones),
+    id: buildItemId(product.id, tamanioId, options?.personalizaciones, options?.combo),
     product,
     quantity,
     selectedOptions,
-    tamanio,
-    unitPrice: options?.unitPrice ?? Number(variante?.precio ?? product.precio),
+    tamanio: elegido?.tamanio ?? null,
+    tamanioId,
+    unitPrice: options?.unitPrice ?? Number(elegido?.precio ?? product.precio),
     personalizaciones: options?.personalizaciones,
+    combo: options?.combo,
   }
 }
 

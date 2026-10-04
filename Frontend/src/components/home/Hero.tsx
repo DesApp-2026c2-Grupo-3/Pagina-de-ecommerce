@@ -20,8 +20,6 @@ function Hero() {
 
       ctaTo: "/productos",
       backgroundImage: "/banners/publicidad1.jpg",
-      visual: "/imagenes/turbo-bacon.png",
-      visualType: "image",
     },
     {
       id: 2,

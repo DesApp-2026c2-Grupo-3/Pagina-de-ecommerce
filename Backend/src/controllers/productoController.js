@@ -1,3 +1,35 @@
+const {
+    Producto,
+    RecetaInsumo,
+    Insumo,
+    ProductoTamanio,
+    Tamanio,
+    ComboGrupo,
+    StockSucursal,
+    Sucursal,
+} = require('../models');
+const {
+    agruparPorProducto,
+    stockComoMapa,
+    productoDisponible,
+    pasoExtra,
+} = require('../utils/disponibilidad');
+
+function mapIngredientes(producto) {
+    const receta = producto.RecetaInsumos || [];
+
+    return receta.map((item) => ({
+        insumoId: item.insumoId,
+        nombre: item.Insumo ? item.Insumo.nombre : null,
+        unidadMedida: item.Insumo ? item.Insumo.unidadMedida : null,
+        cantidadBase: Number(item.cantidadBase),
+        esRemovible: item.esRemovible,
+        esAgregable: item.esAgregable,
+        precioComercial: item.Insumo && item.Insumo.precioComercial != null
+            ? Number(item.Insumo.precioComercial)
+            : 0
+    }));
+}
 // Lee ?sucursalId de la URL:
 // - sin sucursalId → { sucursalId: null } (se responde como siempre)
 // - inválido o inexistente → { error } con el status y el mensaje

@@ -7,7 +7,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const isUnavailable = !product.disponible
-  const precios = product.tamanios?.map((v) => Number(v.precio)) ?? []
+  const precios = product.tamanios?.map((t) => Number(t.precio)) ?? []  
   const tieneTamanios = precios.length > 0
   const precioMostrado = tieneTamanios ? Math.min(...precios) : Number(product.precio)
 

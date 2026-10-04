@@ -31,7 +31,6 @@ function DetalleProducto({ id }: { id: number }) {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const { showToast } = useToast()
-  const navigate = useNavigate()
 
   const [product, setProduct] = useState<ProductoBackend | null>(null)
   const [catalogo, setCatalogo] = useState<ProductoBackend[]>([])
@@ -214,7 +213,7 @@ function DetalleProducto({ id }: { id: number }) {
     </>
   )
 
-  return (
+   return (
     <div className="mx-auto max-w-5xl px-4 pt-4 md:pb-12 md:pt-8">
       <Link
         to="/catalogo"
@@ -223,112 +222,112 @@ function DetalleProducto({ id }: { id: number }) {
         <span aria-hidden="true" className="text-2xl leading-none">‹</span>
         {categoryName || 'Volver al catálogo'}
       </Link>
-      
-      <div className="w-full flex min-h-[80vh] items-center justify-center">
 
-      <div className="mt-4 grid gap-6 md:grid-cols-2 md:items-start md:gap-12">
-        <div className="md:sticky md:top-24">
-          {product.imagen ? (
-            <img
-              src={product.imagen}
-              alt={product.nombre}
-              className="mx-auto h-56 w-full max-w-sm object-contain sm:h-72 md:h-96 md:max-w-none"
-            />
-          ) : (
-            <div
-              aria-hidden="true"
-              className="mx-auto grid h-56 w-full max-w-sm place-items-center rounded-3xl bg-brand-cream text-7xl sm:h-72 md:h-96 md:max-w-none"
-            >
-              🍔
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h1 className="text-3xl font-extrabold text-brand-dark">{product.nombre}</h1>
-          <p className="mt-2 text-xl font-extrabold text-brand-dark">{precio(precioBase)}</p>
-          <p className="mt-3 text-gray-600">
-            {product.descripcion}
-            {esCombo && tamanioActivo && (
-              <> Acompañamiento y bebida {tamanioActivo.tamanio} a elección.</>
+      {/* Centra la grilla del producto en la pantalla */}
+      <div className="flex w-full items-center justify-center md:min-h-[80vh]">
+        <div className="mt-4 grid w-full gap-6 md:grid-cols-2 md:items-start md:gap-12">
+          <div className="md:sticky md:top-24">
+            {product.imagen ? (
+              <img
+                src={product.imagen}
+                alt={product.nombre}
+                className="mx-auto h-56 w-full max-w-sm object-contain sm:h-72 md:h-96 md:max-w-none"
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                className="mx-auto grid h-56 w-full max-w-sm place-items-center rounded-3xl bg-brand-cream text-7xl sm:h-72 md:h-96 md:max-w-none"
+              >
+                🍔
+              </div>
             )}
-          </p>
+          </div>
 
-          {!product.disponible && (
-            <p className="mt-4 rounded-2xl bg-brand-cream px-4 py-3 font-semibold text-brand-red">
-              Este producto no está disponible por el momento.
+          <div>
+            <h1 className="text-3xl font-extrabold text-brand-dark">{product.nombre}</h1>
+            <p className="mt-2 text-xl font-extrabold text-brand-dark">{precio(precioBase)}</p>
+            <p className="mt-3 text-gray-600">
+              {product.descripcion}
+              {esCombo && tamanioActivo && (
+                <> Acompañamiento y bebida {tamanioActivo.tamanio} a elección.</>
+              )}
             </p>
-          )}
 
-          <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
+            {!product.disponible && (
+              <p className="mt-4 rounded-2xl bg-brand-cream px-4 py-3 font-semibold text-brand-red">
+                Este producto no está disponible por el momento.
+              </p>
+            )}
 
-          {esCombo ? (
-            <section className="mt-6" aria-label="Armá tu combo">
-              <div className={filaGrupo}>
-                <div className="min-w-0 flex-1">
-                  <p className="font-extrabold text-brand-dark">{product.nombre}</p>
-                  {personalizable && (
+            <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
+
+            {esCombo ? (
+              <section className="mt-6" aria-label="Armá tu combo">
+                <div className={filaGrupo}>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-extrabold text-brand-dark">{product.nombre}</p>
+                    {personalizable && (
+                      <button
+                        type="button"
+                        onClick={() => setPersonalizando(true)}
+                        className="text-sm text-gray-600 underline hover:text-brand-red"
+                      >
+                        Personalizar
+                      </button>
+                    )}
+                    {tocados.length > 0 && (
+                      <p className="text-xs text-gray-500">{textoPersonalizacion().join(' · ')}</p>
+                    )}
+                  </div>
+                </div>
+
+                {grupos.map((grupo) => {
+                  const elegido = elegida(grupo)
+                  return (
+                    <div key={grupo.id} className={filaGrupo}>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-extrabold text-brand-dark">{grupo.nombre}</p>
+                        {elegido ? (
+                          <p className="text-sm text-gray-600">
+                            {elegido.nombre}
+                            {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
+                          </p>
+                        ) : (
+                          <p className="text-sm italic text-gray-500">
+                            Elegí uno{grupo.obligatorio ? ' (Obligatorio)' : ' (Opcional)'}
+                          </p>
+                        )}
+                      </div>
+                      <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
+                        {elegido ? 'Cambiar' : 'Seleccionar'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </section>
+            ) : (
+              personalizable && (
+                <section className="mt-6">
+                  <h2 className="text-lg font-extrabold text-brand-dark">Personaliza tu producto</h2>
+                  <div className="mt-3 border-b border-brand-dark/10 pb-4">
                     <button
                       type="button"
                       onClick={() => setPersonalizando(true)}
-                      className="text-sm text-gray-600 underline hover:text-brand-red"
+                      className="text-gray-600 underline hover:text-brand-red"
                     >
                       Personalizar
                     </button>
-                  )}
-                  {tocados.length > 0 && (
-                    <p className="text-xs text-gray-500">{textoPersonalizacion().join(' · ')}</p>
-                  )}
-                </div>
-              </div>
-
-              {grupos.map((grupo) => {
-                const elegido = elegida(grupo)
-                return (
-                  <div key={grupo.id} className={filaGrupo}>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-extrabold text-brand-dark">{grupo.nombre}</p>
-                      {elegido ? (
-                        <p className="text-sm text-gray-600">
-                          {elegido.nombre}
-                          {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
-                        </p>
-                      ) : (
-                        <p className="text-sm italic text-gray-500">
-                          Elegí uno{grupo.obligatorio ? ' (Obligatorio)' : ' (Opcional)'}
-                        </p>
-                      )}
-                    </div>
-                    <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
-                      {elegido ? 'Cambiar' : 'Seleccionar'}
-                    </button>
+                    {tocados.length > 0 && (
+                      <p className="mt-1 text-sm text-gray-500">{textoPersonalizacion().join(' · ')}</p>
+                    )}
                   </div>
-                )
-              })}
-            </section>
-          ) : (
-            personalizable && (
-              <section className="mt-6">
-                <h2 className="text-lg font-extrabold text-brand-dark">Personaliza tu producto</h2>
-                <div className="mt-3 border-b border-brand-dark/10 pb-4">
-                  <p className="font-extrabold text-brand-dark">Personalizar</p>
-                  <button
-                    type="button"
-                    onClick={() => setPersonalizando(true)}
-                    className="text-gray-600 underline hover:text-brand-red"
-                  >
-                    Personalizar
-                  </button>
-                  {tocados.length > 0 && (
-                    <p className="mt-1 text-sm text-gray-500">{textoPersonalizacion().join(' · ')}</p>
-                  )}
-                </div>
-              </section>
-            )
-          )}
+                </section>
+              )
+            )}
 
-          {/* En pantallas grandes la barra de compra va dentro de la columna */}
-          <div className="mt-8 hidden md:block">{barraCompra(false)}</div>
+            {/* En pantallas grandes la barra de compra va dentro de la columna */}
+            <div className="mt-8 hidden md:block">{barraCompra(false)}</div>
+          </div>
         </div>
       </div>
 
@@ -363,8 +362,6 @@ function DetalleProducto({ id }: { id: number }) {
           }}
         />
       )}
-    </div>
-    </div>
     </div>
   )
 }
