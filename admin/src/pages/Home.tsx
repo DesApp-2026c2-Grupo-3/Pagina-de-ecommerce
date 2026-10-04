@@ -33,21 +33,17 @@ export default function Home({setAdministrador}:HomeProps) {
         try {
           const administrador = await iniciarSesion(email, password)
 
-          setAdministrador({
+          const sesion: AdministradorSesion = {
+            id: administrador.id,
             nombre: administrador.nombre,
             email: administrador.email,
             rol: administrador.rol,
-          })
+            sucursalId: administrador.sucursalId ?? null,
+            sucursal: administrador.sucursal ?? null,
+          }
 
-          localStorage.setItem(
-            'administrador',
-              JSON.stringify({
-                nombre: administrador.nombre,
-                email: administrador.email,
-                rol: administrador.rol,
-              })
-          )
-
+          setAdministrador(sesion)
+          localStorage.setItem('administrador', JSON.stringify(sesion))
           navigate('/admin')
         } catch (error) {
           setError('Email o contraseña incorrectos')
