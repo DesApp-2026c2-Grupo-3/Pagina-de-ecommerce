@@ -45,9 +45,12 @@ export async function actualizarSucursal(id: number, sucursal: unknown) {
     body: JSON.stringify(sucursal),
   });
 
+  const datos = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) {
-    throw new Error("Error al actualizar la sucursal");
+    throw new Error(datos.code || datos.mensaje || "Error al actualizar la sucursal");
   }
+
+  return datos;
 
   return respuesta.json();
 }

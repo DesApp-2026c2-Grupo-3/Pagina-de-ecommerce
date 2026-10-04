@@ -83,7 +83,7 @@ async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t })
 const obtenerPedidos = async (req,res) => {
     try{
 
-        const pedidos = await Pedido.findAll({include: [{model: DetallePedido, include: [Producto]}]})
+        const pedidos = await Pedido.findAll({include: [{model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]})
 
         res.status(200).json(pedidos)
 
@@ -98,8 +98,7 @@ const obtenerPedidosPorUsuario = async (req, res) => {
   try {
     const pedidos = await Pedido.findAll({
       where: { usuarioId: req.params.usuarioId },
-      include: [{ model: DetallePedido, include: [Producto] }],
-      order: [['fecha', 'DESC']],
+include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }],      order: [['fecha', 'DESC']],
     });
 
     res.status(200).json(pedidos);
@@ -112,7 +111,7 @@ const obtenerPedidosPorUsuario = async (req, res) => {
 const obtenerPedidoId = async (req,res) => {
     try{
         const pedido = await Pedido.findByPk(req.params.id, {
-            include: [{ model: DetallePedido, include: [Producto]}]
+            include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]
         });
 
         if (!pedido) {

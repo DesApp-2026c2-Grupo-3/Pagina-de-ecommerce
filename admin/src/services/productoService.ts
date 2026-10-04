@@ -62,3 +62,10 @@ export async function obtenerTamanios() {
   if (!respuesta.ok) throw await errorDe(respuesta, "Error al obtener los tamaños");
   return respuesta.json();
 }
+
+// Por sucursal, cuántas unidades se pueden preparar con el stock actual
+export async function verStockProducto(id: number) {
+  const respuesta = await fetch(`${API_URL}/${id}/stock`);
+  if (!respuesta.ok) throw await errorDe(respuesta, "Error al obtener el stock del producto");
+  return respuesta.json();
+}

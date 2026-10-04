@@ -5,9 +5,11 @@ const {
     ProductoTamanio,
     Tamanio,
     ComboGrupo,
-    DetallePedido,
+    Sucursal,
+    StockSucursal,
     sequelize,
 } = require('../../models');
+const { factorMinimo } = require('../../utils/disponibilidad');
 
 // Todo lo que compone un producto
 const INCLUIR_PARTES = [
@@ -183,47 +185,96 @@ const editarProductoPorId = async (req, res) => {
     }
 };
 
-// Borra el producto y sus partes, salvo que ya tenga pedidos o esté incluido en un combo
+// Borrado lógico: el producto deja de verse en el panel y en la tienda,
+// pero se conserva para los pedidos que ya lo tienen
 const eliminarProducto = async (req, res) => {
-    const producto = await Producto.findByPk(req.params.id);
-    if (!producto) {
-        return res.status(404).json({ mensaje: 'Producto no encontrado' });
-    }
-
-    const [pedidos, enCombos] = await Promise.all([
-        DetallePedido.count({ where: { productoId: producto.id } }),
-        ComboGrupo.count({ where: { productoIncluidoId: producto.id } }),
-    ]);
-
-    if (pedidos > 0) {
-        return res.status(409).json({
-            mensaje: 'Este producto ya tiene pedidos, así que no se puede borrar. Podés desactivarlo para que no se venda más.'
-        });
-    }
-    if (enCombos > 0) {
-        return res.status(409).json({
-            mensaje: 'Este producto es la opción incluida de un combo. Cambiá ese combo antes de borrarlo.'
-        });
-    }
-
-    const t = await sequelize.transaction();
     try {
-        await guardarPartes(producto.id, { receta: [], tamanios: [], grupos: [] }, t);
-        await producto.destroy({ transaction: t });
-        await t.commit();
+        const producto = await Producto.findByPk(req.params.id);
+        if (!producto) {
+            return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        }
 
-        return res.status(200).json({ mensaje: 'Producto eliminado con éxito' });
+        // No se puede eliminar la opción incluida de un combo que sigue a la venta
+        const enCombos = await ComboGrupo.count({
+            where: { productoIncluidoId: producto.id },
+            include: [{ model: Producto, as: 'combo', required: true }],
+        });
+        if (enCombos > 0) {
+            return res.status(409).json({
+                mensaje: 'Este producto es la opción incluida de un combo. Cambiá ese combo antes de eliminarlo.'
+            });
+        }
+
+        await producto.destroy();
+        return res.status(200).json({ mensaje: 'Producto eliminado. Los pedidos anteriores lo conservan.' });
     } catch (error) {
-        await t.rollback();
         console.error(error);
         return res.status(500).json({ mensaje: 'Error al eliminar el producto' });
     }
 };
+// GET /admin/productos/:id/stock → por sucursal, cuántas unidades se pueden preparar con el stock actual
+const verStockProducto = async (req, res) => {
+    try {
+        const producto = await buscarCompleto(req.params.id);
+        if (!producto) {
+            return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        }
 
+        const datos = formatear(producto);
+        const sucursales = await Sucursal.findAll({
+            where: { activa: true },
+            attributes: ['id', 'nombre'],
+            order: [['nombre', 'ASC']],
+        });
+
+        const receta = datos.receta.filter((r) => r.cantidadBase > 0);
+        if (receta.length === 0) {
+            return res.json({
+                id: datos.id,
+                nombre: datos.nombre,
+                sinReceta: true,
+                sucursales: sucursales.map((s) => ({ id: s.id, nombre: s.nombre, unidades: null, limitante: null })),
+            });
+        }
+
+        // Igual que en la tienda: un combo no agranda su receta; el resto, por su tamaño más chico
+        const factor = datos.grupos.length > 0 ? 1 : factorMinimo(datos.tamanios);
+
+        const stock = await StockSucursal.findAll({
+            where: { insumoId: receta.map((r) => r.insumoId), sucursalId: sucursales.map((s) => s.id) },
+            attributes: ['insumoId', 'sucursalId', 'cantidad'],
+        });
+        const cantidadDe = (sucursalId, insumoId) =>
+            Number(stock.find((s) => s.sucursalId === sucursalId && s.insumoId === insumoId)?.cantidad ?? 0);
+
+        res.json({
+            id: datos.id,
+            nombre: datos.nombre,
+            sinReceta: false,
+            sucursales: sucursales.map((s) => {
+                // Lo que se puede preparar lo define el insumo que alcanza para menos unidades
+                let unidades = Infinity;
+                let limitante = null;
+                for (const r of receta) {
+                    const posibles = Math.floor(cantidadDe(s.id, r.insumoId) / (r.cantidadBase * factor));
+                    if (posibles < unidades) {
+                        unidades = posibles;
+                        limitante = r.nombre;
+                    }
+                }
+                return { id: s.id, nombre: s.nombre, unidades, limitante };
+            }),
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ mensaje: 'Error al obtener el stock del producto' });
+    }
+};
 module.exports = {
     obtenerProductos,
     obtenerProductoPorId,
     crearProducto,
     eliminarProducto,
     editarProductoPorId,
+    verStockProducto,
 };

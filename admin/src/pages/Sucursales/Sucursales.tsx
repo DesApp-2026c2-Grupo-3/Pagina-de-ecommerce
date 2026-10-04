@@ -1,228 +1,178 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { Pencil, Plus, Power, Package} from 'lucide-react'
+import { Eye, Boxes, Plus, Power, Search } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import MensajeVacio from '../../components/MensajeVacio'
 import { useToast } from '../../context/ToastContext'
-import {
-  obtenerSucursales,
-  cambiarEstadoSucursal
-} from '../../services/sucursalService'
+import { obtenerSucursales, cambiarEstadoSucursal } from '../../services/sucursalService'
+
+interface SucursalFila {
+  id: number
+  nombre: string
+  activa: boolean
+}
+
+const POR_PAGINA = 8
+
+function Estado({ activa }: { activa: boolean }) {
+  return activa ? (
+    <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Activa</span>
+  ) : (
+    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Inactiva</span>
+  )
+}
+
+const botonIcono = 'rounded border p-2 transition-colors'
 
 export default function Sucursales() {
   const navigate = useNavigate()
   const { mostrarToast } = useToast()
 
+  const [sucursales, setSucursales] = useState<SucursalFila[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [paginaActual, setPaginaActual] = useState(1)
-  const sucursalesPorPagina = 5
-
-  const [sucursales, setSucursales] = useState<any[]>([])
 
   useEffect(() => {
-    const cargarSucursales = async () => {
-      try {
-        const datos = await obtenerSucursales()
-        setSucursales(datos)
-      } catch (error) {
-        console.error('Error al cargar sucursales:', error)
-      }
-    }
-
-    cargarSucursales()
+    obtenerSucursales()
+      .then(setSucursales)
+      .catch((error) => console.error('Error al cargar sucursales:', error))
   }, [])
 
-  const cambiarEstado = async (id: number, activa: boolean) => {
+  const filtradas = sucursales.filter((s) => s.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
+  const pagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
+
+  async function cambiarEstado(sucursal: SucursalFila) {
     try {
-      const respuesta = await cambiarEstadoSucursal(id, !activa)
-
-      setSucursales(
-        sucursales.map((sucursal) =>
-          sucursal.id === id
-            ? respuesta.sucursal
-            : sucursal
-        )
-      )
-
-      mostrarToast(
-        activa
-          ? 'Sucursal desactivada'
-          : 'Sucursal activada'
-      )
+      const respuesta = await cambiarEstadoSucursal(sucursal.id, !sucursal.activa)
+      setSucursales((prev) => prev.map((s) => (s.id === sucursal.id ? respuesta.sucursal : s)))
+      mostrarToast(sucursal.activa ? 'Sucursal desactivada' : 'Sucursal activada')
     } catch (error) {
-      console.error('Error al cambiar estado:', error)
+      mostrarToast(error instanceof Error ? error.message : 'No se pudo cambiar el estado')
     }
   }
 
-  const indiceUltimaSucursal =
-    paginaActual * sucursalesPorPagina
-
-  const indicePrimeraSucursal =
-    indiceUltimaSucursal - sucursalesPorPagina
-
-  const sucursalesPagina = sucursales.slice(
-    indicePrimeraSucursal,
-    indiceUltimaSucursal
+  const acciones = (s: SucursalFila) => (
+    <div className="flex shrink-0 gap-2">
+      <button
+        type="button"
+        onClick={() => navigate(`/admin/sucursales/editar/${s.id}`)}
+        aria-label={`Ver detalles de ${s.nombre}`}
+        title="Ver detalles"
+        className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
+      >
+        <Eye size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => navigate(`/admin/sucursales/${s.id}/stock`)}
+        aria-label={`Ver stock de ${s.nombre}`}
+        title="Ver stock"
+        className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
+      >
+        <Boxes size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => cambiarEstado(s)}
+        aria-label={`${s.activa ? 'Desactivar' : 'Activar'} ${s.nombre}`}
+        title={s.activa ? 'Desactivar (deja de recibir pedidos)' : 'Activar'}
+        className={`${botonIcono} ${
+          s.activa ? 'bg-slate-200 text-gray-700 hover:text-danger' : 'bg-green-100 text-green-700 hover:text-green-900'
+        }`}
+      >
+        <Power size={18} />
+      </button>
+    </div>
   )
 
   return (
-    <main className="p-8">
-
-      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+    <main className="p-4 md:p-8">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
-            Sucursales
-          </h1>
-
-          <p className="text-gray-600 mt-2">
-            Gestioná las sucursales disponibles en el sistema.
-          </p>
+          <h1 className="text-3xl font-bold">Sucursales</h1>
+          <p className="mt-2 text-gray-600">Gestioná las sucursales y su estado.</p>
         </div>
-
         <button
+          type="button"
           onClick={() => navigate('/admin/sucursales/nueva')}
-          className="bg-action text-white px-4 py-4 rounded-full border
-          shadow-[0_0_10px_rgba(249,115,22,0.6)]
-          hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
-          transition-all
-          border-orange-400
-          hover:bg-action-hover w-fit ml-auto"
+          aria-label="Nueva sucursal"
+          title="Nueva sucursal"
+          className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
         >
           <Plus size={22} />
         </button>
       </div>
 
-      <div className="bg-white border rounded-lg overflow-x-auto">
-        <table className="min-w-max w-full border-collapse">
-
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left px-6 py-3">
-                Nombre
-              </th>
-
-              <th className="text-left px-6 py-3">
-                Dirección
-              </th>
-
-              <th className="text-left px-6 py-3">
-                Localidad
-              </th>
-
-              <th className="text-left px-6 py-3">
-                Teléfono
-              </th>
-
-              <th className="text-left px-6 py-3">
-                Horario
-              </th>
-
-              <th className="text-left px-6 py-3">
-                Radio de entrega
-              </th>
-
-              <th className="text-left px-6 py-3">
-                Estado
-              </th>
-
-              <th className="text-right px-6 py-3">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {sucursalesPagina.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-6 py-10">
-                  <MensajeVacio mensaje="No hay sucursales registradas." />
-                </td>
-              </tr>
-            ) : (
-              sucursalesPagina.map((sucursal: any) => (
-                <tr
-                  key={sucursal.id}
-                  className="border-t border-b"
-                >
-                  <td className="px-6 py-4">
-                    {sucursal.nombre}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {sucursal.calle} {sucursal.numero}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {sucursal.localidad}, {sucursal.provincia}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {sucursal.telefono || 'Sin teléfono'}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {sucursal.horario || 'Sin horario'}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {sucursal.radioEntregaKm} km
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {sucursal.activa
-                      ? 'Activa'
-                      : 'Inactiva'}
-                  </td>
-
-                  <td className="flex justify-end gap-2 px-6 py-4">
-
-                    <button
-                      onClick={() =>
-                        navigate(
-                          `/admin/sucursales/editar/${sucursal.id}`
-                        )
-                      }
-                      className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
-                      hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
-                    >
-                      <Pencil size={18} />
-                    </button>
-
-                    <button onClick={() =>
-                    navigate(`/admin/sucursales/${sucursal.id}/stock`)}
-                    className="bg-blue-200 text-blue-700 hover:text-blue-900 p-2 border rounded 
-                    hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                      <Package size={18} />
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        cambiarEstado(
-                          sucursal.id,
-                          sucursal.activa
-                        )
-                      }
-                      className="bg-slate-200 text-secondary hover:text-secondary-hover p-2 border rounded
-                      hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
-                    >
-                      <Power size={18} />
-                    </button>
-
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-
-        </table>
+      <div className="relative mb-4 w-full md:w-80">
+        <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => {
+            setBusqueda(e.target.value)
+            setPaginaActual(1)
+          }}
+          placeholder="Buscar sucursal..."
+          aria-label="Buscar sucursal"
+          className="w-full rounded border bg-white py-2 pl-10 pr-3"
+        />
       </div>
+
+      {pagina.length === 0 ? (
+        <div className="rounded-lg border bg-white px-6 py-10">
+          <MensajeVacio mensaje={busqueda ? 'No hay sucursales con ese nombre.' : 'No hay sucursales registradas.'} />
+        </div>
+      ) : (
+        <>
+          {/* Celular: tarjetas */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {pagina.map((s) => (
+              <li key={s.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{s.nombre}</p>
+                  <div className="mt-2">
+                    <Estado activa={s.activa} />
+                  </div>
+                </div>
+                {acciones(s)}
+              </li>
+            ))}
+          </ul>
+
+          {/* Escritorio: tabla */}
+          <div className="hidden rounded-lg border bg-white md:block">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-6 py-3 text-left">Nombre</th>
+                  <th className="px-6 py-3 text-left">Estado</th>
+                  <th className="px-6 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagina.map((s) => (
+                  <tr key={s.id} className="border-t">
+                    <td className="px-6 py-4 font-medium">{s.nombre}</td>
+                    <td className="px-6 py-4">
+                      <Estado activa={s.activa} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end">{acciones(s)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       <Paginacion
         paginaActual={paginaActual}
-        totalElementos={sucursales.length}
-        elementosPorPagina={sucursalesPorPagina}
+        totalElementos={filtradas.length}
+        elementosPorPagina={POR_PAGINA}
         cambiarPagina={setPaginaActual}
       />
-
     </main>
   )
 }

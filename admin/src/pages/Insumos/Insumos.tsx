@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Search, Trash2 } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
 import { useToast } from '../../context/ToastContext'
@@ -11,13 +11,17 @@ import {
   type Insumo,
 } from '../../services/insumoService'
 
-const UNIDADES = ['unidad', 'kg', 'g', 'litro', 'ml']
+const formularioVacio = { nombre: '', precioComercial: '' }
 
-const formularioVacio = { nombre: '', unidadMedida: 'unidad', precioComercial: '' }
+const precioTexto = (insumo: Insumo) =>
+  insumo.precioComercial != null && Number(insumo.precioComercial) > 0
+    ? `$${Number(insumo.precioComercial).toLocaleString('es-AR')}`
+    : 'Sin cargo'
 
 export default function Insumos() {
   const { mostrarToast } = useToast()
   const [insumos, setInsumos] = useState<Insumo[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [form, setForm] = useState(formularioVacio)
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const [aEliminar, setAEliminar] = useState<Insumo | null>(null)
@@ -32,11 +36,12 @@ export default function Insumos() {
 
   useEffect(cargar, [])
 
+  const filtrados = insumos.filter((i) => i.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
+
   function editar(insumo: Insumo) {
     setEditandoId(insumo.id)
     setForm({
       nombre: insumo.nombre,
-      unidadMedida: insumo.unidadMedida,
       precioComercial: insumo.precioComercial != null ? String(insumo.precioComercial) : '',
     })
     setError('')
@@ -61,9 +66,10 @@ export default function Insumos() {
       return
     }
 
+    // Por ahora, todos los insumos se miden en unidades
     const datos = {
       nombre: form.nombre.trim(),
-      unidadMedida: form.unidadMedida,
+      unidadMedida: 'unidad',
       precioComercial: form.precioComercial === '' ? null : Number(form.precioComercial),
     }
 
@@ -98,21 +104,41 @@ export default function Insumos() {
     }
   }
 
-  // Si el insumo usa una unidad que no está en la lista, se suma para no perderla
-  const unidades = UNIDADES.includes(form.unidadMedida) ? UNIDADES : [...UNIDADES, form.unidadMedida]
+  const acciones = (insumo: Insumo) => (
+    <div className="flex shrink-0 gap-2">
+      <button
+        type="button"
+        onClick={() => editar(insumo)}
+        aria-label={`Editar ${insumo.nombre}`}
+        title="Editar"
+        className="rounded border bg-emerald-200 p-2 text-success hover:text-success-hover"
+      >
+        <Pencil size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setAEliminar(insumo)}
+        aria-label={`Eliminar ${insumo.nombre}`}
+        title="Eliminar"
+        className="rounded border bg-red-200 p-2 text-danger hover:text-danger-hover"
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  )
 
   return (
-    <main className="p-8">
+    <main className="p-4 md:p-8">
       <h1 className="text-3xl font-bold">Insumos</h1>
       <p className="mt-2 text-gray-600">
         Los ingredientes con los que se arman las recetas. Al crear uno, se agrega con stock 0 en todas las sucursales.
       </p>
 
       {/* ---------- Crear o editar ---------- */}
-      <form onSubmit={guardar} noValidate className="mt-6 max-w-3xl rounded-lg border bg-white p-5">
+      <form onSubmit={guardar} noValidate className="mt-6 max-w-2xl rounded-lg border bg-white p-5">
         <h2 className="mb-4 text-xl font-bold">{editandoId ? 'Editar insumo' : 'Nuevo insumo'}</h2>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="font-medium">Nombre</label>
             <input
@@ -126,21 +152,6 @@ export default function Insumos() {
               className="w-full rounded border p-2"
               placeholder="Ej: Pepinillos"
             />
-          </div>
-
-          <div>
-            <label className="font-medium">Unidad de medida</label>
-            <select
-              value={form.unidadMedida}
-              onChange={(e) => setForm({ ...form, unidadMedida: e.target.value })}
-              className="w-full rounded border p-2"
-            >
-              {unidades.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div>
@@ -162,7 +173,7 @@ export default function Insumos() {
 
         {error && <p className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-        <div className="mt-4 flex justify-end gap-3">
+        <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           {editandoId && (
             <button
               type="button"
@@ -182,58 +193,69 @@ export default function Insumos() {
         </div>
       </form>
 
-      {/* ---------- Lista ---------- */}
-      <div className="mt-8 overflow-x-auto rounded-lg border bg-white">
-        <table className="w-full min-w-max border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left">Nombre</th>
-              <th className="px-6 py-3 text-left">Unidad</th>
-              <th className="px-6 py-3 text-left">Precio por extra</th>
-              <th className="px-6 py-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {insumos.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-6 py-10">
-                  <MensajeVacio mensaje="No hay insumos registrados." />
-                </td>
-              </tr>
-            ) : (
-              insumos.map((insumo) => (
-                <tr key={insumo.id} className={`border-t ${editandoId === insumo.id ? 'bg-orange-50' : ''}`}>
-                  <td className="px-6 py-4 font-medium">{insumo.nombre}</td>
-                  <td className="px-6 py-4">{insumo.unidadMedida}</td>
-                  <td className="px-6 py-4">
-                    {insumo.precioComercial != null && Number(insumo.precioComercial) > 0
-                      ? `$${Number(insumo.precioComercial).toLocaleString('es-AR')}`
-                      : 'Sin cargo'}
-                  </td>
-                  <td className="flex justify-end gap-2 px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => editar(insumo)}
-                      aria-label={`Editar ${insumo.nombre}`}
-                      className="rounded border bg-emerald-200 p-2 text-success hover:text-success-hover"
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAEliminar(insumo)}
-                      aria-label={`Eliminar ${insumo.nombre}`}
-                      className="rounded border bg-red-200 p-2 text-danger hover:text-danger-hover"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {/* ---------- Buscador ---------- */}
+      <div className="relative mb-4 mt-8 w-full md:w-80">
+        <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar insumo..."
+          aria-label="Buscar insumo"
+          className="w-full rounded border bg-white py-2 pl-10 pr-3"
+        />
       </div>
+
+      {/* ---------- Lista ---------- */}
+      {filtrados.length === 0 ? (
+        <div className="rounded-lg border bg-white px-6 py-10">
+          <MensajeVacio mensaje={busqueda ? 'No hay insumos con ese nombre.' : 'No hay insumos registrados.'} />
+        </div>
+      ) : (
+        <>
+          {/* Celular: tarjetas */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {filtrados.map((insumo) => (
+              <li
+                key={insumo.id}
+                className={`flex items-center justify-between gap-3 rounded-lg border p-4 ${
+                  editandoId === insumo.id ? 'bg-orange-50' : 'bg-white'
+                }`}
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{insumo.nombre}</p>
+                  <p className="text-sm text-gray-600">Extra: {precioTexto(insumo)}</p>
+                </div>
+                {acciones(insumo)}
+              </li>
+            ))}
+          </ul>
+
+          {/* Escritorio: tabla */}
+          <div className="hidden rounded-lg border bg-white md:block">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-6 py-3 text-left">Nombre</th>
+                  <th className="px-6 py-3 text-left">Precio por extra</th>
+                  <th className="px-6 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtrados.map((insumo) => (
+                  <tr key={insumo.id} className={`border-t ${editandoId === insumo.id ? 'bg-orange-50' : ''}`}>
+                    <td className="px-6 py-4 font-medium">{insumo.nombre}</td>
+                    <td className="px-6 py-4">{precioTexto(insumo)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end">{acciones(insumo)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}

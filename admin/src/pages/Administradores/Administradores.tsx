@@ -1,179 +1,183 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Paginacion from '../../components/Paginacion';
-import { Pencil, Trash2, Plus } from 'lucide-react'
-import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
-import { useToast } from '../../context/ToastContext'
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import Paginacion from '../../components/Paginacion'
+import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
-import { obtenerAdministradores } from '../../services/administradorService'
-import { eliminarAdministrador as eliminarAdministradorAPI } from '../../services/administradorService'
+import { useToast } from '../../context/ToastContext'
+import {
+  obtenerAdministradores,
+  eliminarAdministrador as eliminarAdministradorAPI,
+} from '../../services/administradorService'
+
+interface AdminFila {
+  id: number
+  nombre: string
+  email: string
+  rol: string
+  sucursal: { id: number; nombre: string } | null
+}
+
+const POR_PAGINA = 8
+
+const rolTexto = (rol: string) => (rol === 'MASTER' ? 'General' : 'Sucursal')
+const botonIcono = 'rounded border p-2 transition-colors'
 
 export default function Administradores() {
-    const { mostrarToast } = useToast();
-    const navigate = useNavigate();
-    const [paginaActual, setPaginaActual] = useState(1);
-    const adminsPorPagina = 5;
-    const [adminAEliminar, setAdminAEliminar] = useState<number | null>(null);
+  const navigate = useNavigate()
+  const { mostrarToast } = useToast()
 
-    const [administradores, setAdministradores] = useState<any[]>([])
+  const [administradores, setAdministradores] = useState<AdminFila[]>([])
+  const [busqueda, setBusqueda] = useState('')
+  const [paginaActual, setPaginaActual] = useState(1)
+  const [aEliminar, setAEliminar] = useState<AdminFila | null>(null)
 
-    useEffect(() => {
-        const cargarAdministradores = async () => {
-            try {
-                const datos = await obtenerAdministradores()
-                setAdministradores(datos)
-            } catch (error) {
-                console.error('Error al cargar administradores:', error)
-            }
-        }
+  useEffect(() => {
+    obtenerAdministradores()
+      .then(setAdministradores)
+      .catch((error) => console.error('Error al cargar administradores:', error))
+  }, [])
 
-        cargarAdministradores()
-    }, [])
+  const texto = busqueda.trim().toLowerCase()
+  const filtrados = administradores.filter(
+    (a) => a.nombre.toLowerCase().includes(texto) || a.email.toLowerCase().includes(texto),
+  )
+  const pagina = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
 
-    const eliminarAdministrador = async (id: number) => {
-        try {
-            await eliminarAdministradorAPI(id)
-
-            const administradoresActualizados = administradores.filter(
-                (administrador: any) => administrador.id !== id
-            )
-
-            setAdministradores(administradoresActualizados)
-
-            const ultimaPagina = Math.max(1,
-                Math.ceil(administradoresActualizados.length / adminsPorPagina)
-            )
-
-            if (paginaActual > ultimaPagina) {
-                setPaginaActual(ultimaPagina)
-            }
-
-            mostrarToast('Administrador eliminado!')
-        } catch (error) {
-            console.error('Error al eliminar administrador:', error)
-        }
+  async function eliminar() {
+    if (!aEliminar) return
+    try {
+      await eliminarAdministradorAPI(aEliminar.id)
+      setAdministradores((prev) => prev.filter((a) => a.id !== aEliminar.id))
+      mostrarToast('Administrador eliminado!')
+    } catch (error) {
+      mostrarToast(error instanceof Error ? error.message : 'No se pudo eliminar el administrador')
+    } finally {
+      setAEliminar(null)
     }
+  }
 
-    const indiceUltimoAdmin = 
-    paginaActual * adminsPorPagina
+  const acciones = (a: AdminFila) => (
+    <div className="flex shrink-0 gap-2">
+      <button
+        type="button"
+        onClick={() => navigate(`/admin/administradores/editar/${a.id}`)}
+        aria-label={`Editar ${a.nombre}`}
+        title="Editar"
+        className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
+      >
+        <Pencil size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setAEliminar(a)}
+        aria-label={`Eliminar ${a.nombre}`}
+        title="Eliminar"
+        className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  )
 
-    const indicePrimerAdmin =
-    indiceUltimoAdmin - adminsPorPagina
-
-    const administradoresPagina = administradores.slice(
-    indicePrimerAdmin,
-    indiceUltimoAdmin
-    )
-
-    return (
-    <main className="p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-                <h1 className="text-3xl font-bold">
-                    Administradores
-                </h1>
-
-                <p className="mt-2 text-gray-600">
-                    Gestión de administradores del sistema.
-                </p>
-            </div>
-
-            <button onClick={() => navigate('/admin/administradores/nuevo')}
-            className="bg-action text-white px-4 py-4 rounded-full border 
-            shadow-[0_0_10px_rgba(249,115,22,0.6)]
-            hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
-            transition-all
-            border-orange-400 
-            hover:bg-action-hover w-fit ml-auto">
-                <Plus size={22} />
-            </button>
+  return (
+    <main className="p-4 md:p-8">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Administradores</h1>
+          <p className="mt-2 text-gray-600">Gestión de administradores del sistema.</p>
         </div>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/administradores/nuevo')}
+          aria-label="Nuevo administrador"
+          title="Nuevo administrador"
+          className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
+        >
+          <Plus size={22} />
+        </button>
+      </div>
 
-        <div className="bg-white border rounded-lg overflow-x-auto">
-        <table className="w-full">
-            <thead className="bg-gray-100">
+      <div className="relative mb-4 w-full md:w-80">
+        <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => {
+            setBusqueda(e.target.value)
+            setPaginaActual(1)
+          }}
+          placeholder="Buscar por nombre o email..."
+          aria-label="Buscar administrador"
+          className="w-full rounded border bg-white py-2 pl-10 pr-3"
+        />
+      </div>
+
+      {pagina.length === 0 ? (
+        <div className="rounded-lg border bg-white px-6 py-10">
+          <MensajeVacio mensaje={busqueda ? 'No hay administradores que coincidan.' : 'No hay administradores registrados.'} />
+        </div>
+      ) : (
+        <>
+          {/* Celular: tarjetas */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {pagina.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{a.nombre}</p>
+                  <p className="truncate text-sm text-gray-600">{a.email}</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {rolTexto(a.rol)} · {a.sucursal?.nombre ?? 'Sin sucursal'}
+                  </p>
+                </div>
+                {acciones(a)}
+              </li>
+            ))}
+          </ul>
+
+          {/* Escritorio: tabla */}
+          <div className="hidden rounded-lg border bg-white md:block">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100">
                 <tr>
-                    <th className="text-left px-6 py-3">Nombre</th>
-                    <th className="text-left px-6 py-3">Email</th>
-                    <th className="text-left px-6 py-3">Rol</th>
-                    <th className="text-left px-6 py-3">Sucursal</th>
-                    <th className="text-right px-6 py-3">Acciones</th>
+                  <th className="px-6 py-3 text-left">Nombre</th>
+                  <th className="px-6 py-3 text-left">Email</th>
+                  <th className="px-6 py-3 text-left">Rol</th>
+                  <th className="px-6 py-3 text-left">Sucursal</th>
+                  <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
-            </thead>
-
-            <tbody>
-                {administradoresPagina.length === 0 ? (
-                    <tr>
-                        <td colSpan={5} className="px-6 py-10">
-                            <MensajeVacio mensaje="No hay administradores registrados." />
-                        </td>
-                    </tr>
-                ) : (
-                administradoresPagina.map(
-                    (administrador: {
-                    id: number
-                    nombre: string
-                    email: string
-                    rol: string
-                    sucursal: {
-                        id: number
-                        nombre: string
-                    } | null
-                }) => (
-                <tr key={administrador.id} className="border-b border-t">
+              </thead>
+              <tbody>
+                {pagina.map((a) => (
+                  <tr key={a.id} className="border-t">
+                    <td className="px-6 py-4 font-medium">{a.nombre}</td>
+                    <td className="px-6 py-4">{a.email}</td>
+                    <td className="px-6 py-4">{rolTexto(a.rol)}</td>
+                    <td className="px-6 py-4">{a.sucursal?.nombre ?? 'Sin sucursal'}</td>
                     <td className="px-6 py-4">
-                        {administrador.nombre}
+                      <div className="flex justify-end">{acciones(a)}</div>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
-                    <td className="px-6 py-4">
-                        {administrador.email}
-                    </td>
+      <Paginacion
+        paginaActual={paginaActual}
+        totalElementos={filtrados.length}
+        elementosPorPagina={POR_PAGINA}
+        cambiarPagina={setPaginaActual}
+      />
 
-                    <td className="px-6 py-4">
-                        {administrador.rol}
-                    </td>
-                    
-                    <td className="px-6 py-4">
-                        {administrador.sucursal?.nombre ?? 'Sin sucursal'}
-                    </td>
-
-                    <td className="flex justify-end gap-2 px-6 py-4">
-                        <button onClick={() => navigate(`/admin/administradores/editar/${administrador.id}`)}
-                        className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
-                        hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                            <Pencil size={18} />
-                        </button>
-
-                        <button onClick={() => setAdminAEliminar(administrador.id)}
-                        className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
-                        hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                            <Trash2 size={18} />
-                        </button>
-                    </td>
-                </tr>
-                )))}
-            </tbody>
-        </table>
-        </div>
-
-        <ConfirmarEliminacion
-            abierto={adminAEliminar !== null}
-            mensaje="¿Estás seguro de que querés eliminar este administrador?"
-            onConfirmar={() => {
-              if (adminAEliminar !== null) {
-                eliminarAdministrador(adminAEliminar)
-                setAdminAEliminar(null)
-
-                  }
-                }
-              }
-            onCancelar={() => setAdminAEliminar(null)}/>
-
-        <Paginacion
-            paginaActual={paginaActual}
-            totalElementos={administradores.length}
-            elementosPorPagina={adminsPorPagina}
-            cambiarPagina={setPaginaActual} />
+      <ConfirmarEliminacion
+        abierto={aEliminar !== null}
+        mensaje={`¿Seguro que querés eliminar a ${aEliminar?.nombre ?? 'este administrador'}?`}
+        onConfirmar={eliminar}
+        onCancelar={() => setAEliminar(null)}
+      />
     </main>
   )
 }

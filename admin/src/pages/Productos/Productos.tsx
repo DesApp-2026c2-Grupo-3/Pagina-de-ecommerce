@@ -1,205 +1,251 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { Boxes, Eye, Plus, Search, Trash2 } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
-import { Pencil, Trash2, Plus, DollarSign } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
-import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
-import { obtenerProductos } from '../../services/productoService'
-import { obtenerCategorias } from '../../services/categoriaService'
-import { eliminarProducto as eliminarProductoAPI } from '../../services/productoService'
+import { useToast } from '../../context/ToastContext'
+import {
+  obtenerProductos,
+  eliminarProducto as eliminarProductoAPI,
+  verStockProducto,
+} from '../../services/productoService'
+
+interface ProductoFila {
+  id: number
+  nombre: string
+  disponible: boolean
+}
+
+interface StockDeProducto {
+  nombre: string
+  sinReceta: boolean
+  sucursales: { id: number; nombre: string; unidades: number | null; limitante: string | null }[]
+}
+
+const POR_PAGINA = 8
+
+function Disponibilidad({ disponible }: { disponible: boolean }) {
+  return disponible ? (
+    <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Disponible</span>
+  ) : (
+    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Pausado</span>
+  )
+}
+
+const botonIcono = 'rounded border p-2 transition-colors'
 
 export default function Productos() {
-  const navigate = useNavigate();
-  const [paginaActual, setPaginaActual] = useState(1);
-  const productosPorPagina = 5;
-  const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
-  const { mostrarToast } = useToast();
+  const navigate = useNavigate()
+  const { mostrarToast } = useToast()
 
-  const [productos, setProductos] = useState<any[]>([])
+  const [productos, setProductos] = useState<ProductoFila[]>([])
+  const [busqueda, setBusqueda] = useState('')
+  const [paginaActual, setPaginaActual] = useState(1)
+  const [aEliminar, setAEliminar] = useState<ProductoFila | null>(null)
+  const [stockVisto, setStockVisto] = useState<StockDeProducto | null>(null)
 
-  const [categorias, setCategorias] = useState<any[]>([])
+  useEffect(() => {
+    obtenerProductos()
+      .then(setProductos)
+      .catch((error) => console.error('Error al cargar productos:', error))
+  }, [])
 
-  const eliminarProducto = async (id: number) => {
+  const filtrados = productos.filter((p) => p.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
+  const pagina = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
+
+  async function eliminar() {
+    if (!aEliminar) return
     try {
-      await eliminarProductoAPI(id)
-
-      const productosActualizados = productos.filter(
-        (producto: any) => producto.id !== id
-      )
-
-      setProductos(productosActualizados)
-
-      const ultimaPagina = Math.max(1, Math.ceil(productosActualizados.length / productosPorPagina))
-
-      if (paginaActual > ultimaPagina) {
-        setPaginaActual(ultimaPagina)
-      }
-
+      await eliminarProductoAPI(aEliminar.id)
+      setProductos((prev) => prev.filter((p) => p.id !== aEliminar.id))
       mostrarToast('Producto eliminado!')
-        } catch (error) {
+    } catch (error) {
       mostrarToast(error instanceof Error ? error.message : 'No se pudo eliminar el producto')
+    } finally {
+      setAEliminar(null)
     }
   }
 
-  useEffect(() => {
-    const cargarProductos = async () => {
-      try {
-        const datos = await obtenerProductos()
-        setProductos(datos)
-      } catch (error) {
-        console.error('Error al cargar productos:', error)
-      }
+  async function verStock(producto: ProductoFila) {
+    try {
+      setStockVisto(await verStockProducto(producto.id))
+    } catch (error) {
+      mostrarToast(error instanceof Error ? error.message : 'No se pudo cargar el stock')
     }
+  }
 
-    cargarProductos()
-  }, [])
-
-  useEffect(() => {
-    const cargarCategorias = async () => {
-      try {
-        const datos = await obtenerCategorias()
-        setCategorias(datos)
-      } catch (error) {
-        console.error('Error al cargar categorías:', error)
-      }
-    }
-
-    cargarCategorias()
-  }, [])
-  
-  const indiceUltimoProducto = 
-  paginaActual * productosPorPagina
-
-  const indicePrimerProducto =
-  indiceUltimoProducto - productosPorPagina
-
-  const productosPagina = productos.slice(
-    indicePrimerProducto,
-    indiceUltimoProducto
+  // Los tres botones, iguales en celular y escritorio
+  const acciones = (p: ProductoFila) => (
+    <div className="flex shrink-0 gap-2">
+      <button
+        type="button"
+        onClick={() => navigate(`/admin/productos/editar/${p.id}`)}
+        aria-label={`Ver detalles de ${p.nombre}`}
+        title="Ver detalles"
+        className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
+      >
+        <Eye size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => verStock(p)}
+        aria-label={`Ver stock de ${p.nombre}`}
+        title="Ver stock"
+        className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
+      >
+        <Boxes size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setAEliminar(p)}
+        aria-label={`Eliminar ${p.nombre}`}
+        title="Eliminar"
+        className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
   )
 
   return (
-    <main className="p-8 ">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <main className="p-4 md:p-8">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
-            Productos
-          </h1>
-
-          <p className="text-gray-600 mt-2">
-            Gestioná los productos disponibles en el sistema.
-          </p>
+          <h1 className="text-3xl font-bold">Productos</h1>
+          <p className="mt-2 text-gray-600">Gestioná los productos de la tienda.</p>
         </div>
-
         <button
-        onClick={() => navigate('/admin/productos/nuevo')}
-        className="bg-action text-white px-4 py-4 rounded-full border 
-        shadow-[0_0_10px_rgba(249,115,22,0.6)]
-        hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
-        transition-all
-        border-orange-400 
-        hover:bg-action-hover w-fit ml-auto">
+          type="button"
+          onClick={() => navigate('/admin/productos/nuevo')}
+          aria-label="Nuevo producto"
+          title="Nuevo producto"
+          className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
+        >
           <Plus size={22} />
         </button>
       </div>
 
-      <div className="bg-white border rounded-lg overflow-x-auto">
-        <table className="min-w-max w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left px-6 py-3">Nombre</th>
-              <th className="text-left px-6 py-3">Descripcion</th>
-              <th className="text-left px-6 py-3">Categoria</th>
-              <th className="text-left px-6 py-3">Precio</th>
-              <th className="text-left px-6 py-3">Imagen</th>
-              <th className="text-left px-6 py-3">Disponibilidad</th>
-              <th className="text-right px-6 py-3">Acciones</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {productosPagina.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-10">
-                  <MensajeVacio mensaje="No hay productos registrados." />
-                </td>
-              </tr>
-            ) : (
-            productosPagina.map((producto: any) => {
-              const categoria = categorias.find(
-                (categoria: { id: number }) =>
-                  categoria.id === producto.categoriaId
-              )
-              return(
-
-
-              <tr key={producto.id} className="border-t border-b">
-                <td className="px-6 py-4">
-                  {producto.nombre}
-                </td>
-
-                <td className="px-6 py-4">
-                  {producto.descripcion}
-                </td>
-
-                <td className="px-6 py-4">
-                  {categoria?.nombre || 'Sin categoria'}
-                </td>
-
-                <td className="px-6 py-4">
-                  <div className='flex items-center gap-1'>
-                    <DollarSign size={18} />{producto.precio}
-                  </div>
-                </td>
-
-                <td className="px-6 py-4">
-                  {producto.imagen}
-                </td>
-
-                <td className="px-6 py-4">
-                  {producto.disponible ? 'Disponible' : 'No disponible'}
-                </td>
-
-                <td className="flex justify-end gap-2 px-6 py-4">
-                    <button onClick={() => navigate(`/admin/productos/editar/${producto.id}`)}
-                    className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
-                    hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                        <Pencil size={18} />
-                    </button>
-
-                    <button onClick={() =>  setProductoAEliminar(producto.id)}
-                    className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
-                    hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                        <Trash2 size={18} />
-                    </button>
-                </td>
-              </tr>
-              )
-              })
-            )}
-          </tbody>
-        </table>
+      {/* Buscador */}
+      <div className="relative mb-4 w-full md:w-80">
+        <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => {
+            setBusqueda(e.target.value)
+            setPaginaActual(1)
+          }}
+          placeholder="Buscar producto..."
+          aria-label="Buscar producto"
+          className="w-full rounded border bg-white py-2 pl-10 pr-3"
+        />
       </div>
 
-      <ConfirmarEliminacion
-      abierto={productoAEliminar !== null}
-      mensaje="¿Estás seguro de que querés eliminar este producto?"
-      onConfirmar={() => {
-        if (productoAEliminar !== null) {
-          eliminarProducto(productoAEliminar)
-          setProductoAEliminar(null)
-          }
-        }
-      }
-      onCancelar={() => setProductoAEliminar(null)}/>
+      {pagina.length === 0 ? (
+        <div className="rounded-lg border bg-white px-6 py-10">
+          <MensajeVacio mensaje={busqueda ? 'No hay productos con ese nombre.' : 'No hay productos registrados.'} />
+        </div>
+      ) : (
+        <>
+          {/* Celular: tarjetas */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {pagina.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{p.nombre}</p>
+                  <div className="mt-2">
+                    <Disponibilidad disponible={p.disponible} />
+                  </div>
+                </div>
+                {acciones(p)}
+              </li>
+            ))}
+          </ul>
+
+          {/* Escritorio: tabla */}
+          <div className="hidden rounded-lg border bg-white md:block">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-6 py-3 text-left">Nombre</th>
+                  <th className="px-6 py-3 text-left">Disponibilidad</th>
+                  <th className="px-6 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagina.map((p) => (
+                  <tr key={p.id} className="border-t">
+                    <td className="px-6 py-4 font-medium">{p.nombre}</td>
+                    <td className="px-6 py-4">
+                      <Disponibilidad disponible={p.disponible} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end">{acciones(p)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       <Paginacion
         paginaActual={paginaActual}
-        totalElementos={productos.length}
-        elementosPorPagina={productosPorPagina}
-        cambiarPagina={setPaginaActual} />
-        
+        totalElementos={filtrados.length}
+        elementosPorPagina={POR_PAGINA}
+        cambiarPagina={setPaginaActual}
+      />
+
+      <ConfirmarEliminacion
+        abierto={aEliminar !== null}
+        mensaje={`¿Eliminar ${aEliminar?.nombre ?? 'este producto'}? Deja de verse en la tienda, pero los pedidos anteriores lo conservan.`}
+        onConfirmar={eliminar}
+        onCancelar={() => setAEliminar(null)}
+      />
+
+      {/* Modal: stock del producto por sucursal */}
+      {stockVisto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-bold">Stock de {stockVisto.nombre}</h2>
+            <p className="mt-1 text-sm text-gray-600">Cuántas unidades se pueden preparar con el stock de cada sucursal.</p>
+
+            {stockVisto.sinReceta ? (
+              <p className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                Este producto no tiene receta, así que no descuenta stock. Cargale una en "Ver detalles".
+              </p>
+            ) : (
+              <ul className="mt-4 flex flex-col divide-y">
+                {stockVisto.sucursales.map((s) => (
+                  <li key={s.id} className="flex items-start justify-between gap-3 py-3">
+                    <span className="font-medium">{s.nombre}</span>
+                    {s.unidades && s.unidades > 0 ? (
+                      <span className="shrink-0 font-bold text-green-700">{s.unidades} unidades</span>
+                    ) : (
+                      <span className="shrink-0 text-right text-sm font-semibold text-red-700">
+                        Sin stock
+                        {s.limitante && <span className="block font-normal text-gray-500">Falta {s.limitante}</span>}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setStockVisto(null)}
+                className="rounded border px-4 py-2 font-semibold hover:bg-gray-50"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
