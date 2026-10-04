@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Boxes, Plus, Power, Search } from 'lucide-react'
+import { Eye, Boxes, Plus, Power } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import MensajeVacio from '../../components/MensajeVacio'
+import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
 import { obtenerSucursales, cambiarEstadoSucursal } from '../../services/sucursalService'
 
@@ -29,8 +30,11 @@ export default function Sucursales() {
   const { mostrarToast } = useToast()
 
   const [sucursales, setSucursales] = useState<SucursalFila[]>([])
-  const [busqueda, setBusqueda] = useState('')
   const [paginaActual, setPaginaActual] = useState(1)
+
+  // Filtros
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('todas')
 
   useEffect(() => {
     obtenerSucursales()
@@ -38,8 +42,19 @@ export default function Sucursales() {
       .catch((error) => console.error('Error al cargar sucursales:', error))
   }, [])
 
-  const filtradas = sucursales.filter((s) => s.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
+  // Al cambiar un filtro, se vuelve a la primera página
+  const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
+    cambiar(valor)
+    setPaginaActual(1)
+  }
+
+  const filtradas = sucursales.filter(
+    (s) =>
+      s.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) &&
+      (filtroEstado === 'todas' || (filtroEstado === 'activas') === s.activa),
+  )
   const pagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
+  const hayFiltros = busqueda !== '' || filtroEstado !== 'todas'
 
   async function cambiarEstado(sucursal: SucursalFila) {
     try {
@@ -51,6 +66,7 @@ export default function Sucursales() {
     }
   }
 
+  // Los tres botones, iguales en celular y escritorio
   const acciones = (s: SucursalFila) => (
     <div className="flex shrink-0 gap-2">
       <button
@@ -103,24 +119,23 @@ export default function Sucursales() {
         </button>
       </div>
 
-      <div className="relative mb-4 w-full md:w-80">
-        <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={busqueda}
-          onChange={(e) => {
-            setBusqueda(e.target.value)
-            setPaginaActual(1)
-          }}
-          placeholder="Buscar sucursal..."
-          aria-label="Buscar sucursal"
-          className="w-full rounded border bg-white py-2 pl-10 pr-3"
+      <BarraFiltros>
+        <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar sucursal..." />
+        <SelectFiltro
+          valor={filtroEstado}
+          onChange={conReinicio(setFiltroEstado)}
+          etiqueta="Filtrar por estado"
+          opciones={[
+            { valor: 'todas', etiqueta: 'Todas' },
+            { valor: 'activas', etiqueta: 'Activas' },
+            { valor: 'inactivas', etiqueta: 'Inactivas' },
+          ]}
         />
-      </div>
+      </BarraFiltros>
 
       {pagina.length === 0 ? (
         <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio mensaje={busqueda ? 'No hay sucursales con ese nombre.' : 'No hay sucursales registradas.'} />
+          <MensajeVacio mensaje={hayFiltros ? 'No hay sucursales con esos filtros.' : 'No hay sucursales registradas.'} />
         </div>
       ) : (
         <>

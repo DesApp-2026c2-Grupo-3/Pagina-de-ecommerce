@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
+import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
 import {
   obtenerAdministradores,
@@ -28,9 +29,13 @@ export default function Administradores() {
   const { mostrarToast } = useToast()
 
   const [administradores, setAdministradores] = useState<AdminFila[]>([])
-  const [busqueda, setBusqueda] = useState('')
   const [paginaActual, setPaginaActual] = useState(1)
   const [aEliminar, setAEliminar] = useState<AdminFila | null>(null)
+
+  // Filtros
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroRol, setFiltroRol] = useState('todos')
+  const [filtroSucursal, setFiltroSucursal] = useState('todas')
 
   useEffect(() => {
     obtenerAdministradores()
@@ -38,11 +43,28 @@ export default function Administradores() {
       .catch((error) => console.error('Error al cargar administradores:', error))
   }, [])
 
+  // Al cambiar un filtro, se vuelve a la primera página
+  const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
+    cambiar(valor)
+    setPaginaActual(1)
+  }
+
+  // Las sucursales que aparecen en la lista, sin repetir
+  const sucursalesDeLaLista = [
+    ...new Map(
+      administradores.filter((a) => a.sucursal).map((a) => [a.sucursal!.id, a.sucursal!]),
+    ).values(),
+  ].sort((x, y) => x.nombre.localeCompare(y.nombre))
+
   const texto = busqueda.trim().toLowerCase()
   const filtrados = administradores.filter(
-    (a) => a.nombre.toLowerCase().includes(texto) || a.email.toLowerCase().includes(texto),
+    (a) =>
+      (a.nombre.toLowerCase().includes(texto) || a.email.toLowerCase().includes(texto)) &&
+      (filtroRol === 'todos' || a.rol === filtroRol) &&
+      (filtroSucursal === 'todas' || String(a.sucursal?.id) === filtroSucursal),
   )
   const pagina = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
+  const hayFiltros = busqueda !== '' || filtroRol !== 'todos' || filtroSucursal !== 'todas'
 
   async function eliminar() {
     if (!aEliminar) return
@@ -98,24 +120,32 @@ export default function Administradores() {
         </button>
       </div>
 
-      <div className="relative mb-4 w-full md:w-80">
-        <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={busqueda}
-          onChange={(e) => {
-            setBusqueda(e.target.value)
-            setPaginaActual(1)
-          }}
-          placeholder="Buscar por nombre o email..."
-          aria-label="Buscar administrador"
-          className="w-full rounded border bg-white py-2 pl-10 pr-3"
+      <BarraFiltros>
+        <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar por nombre o email..." />
+        <SelectFiltro
+          valor={filtroRol}
+          onChange={conReinicio(setFiltroRol)}
+          etiqueta="Filtrar por rol"
+          opciones={[
+            { valor: 'todos', etiqueta: 'Todos los roles' },
+            { valor: 'MASTER', etiqueta: 'General' },
+            { valor: 'ADMIN', etiqueta: 'Sucursal' },
+          ]}
         />
-      </div>
+        <SelectFiltro
+          valor={filtroSucursal}
+          onChange={conReinicio(setFiltroSucursal)}
+          etiqueta="Filtrar por sucursal"
+          opciones={[
+            { valor: 'todas', etiqueta: 'Todas las sucursales' },
+            ...sucursalesDeLaLista.map((s) => ({ valor: String(s.id), etiqueta: s.nombre })),
+          ]}
+        />
+      </BarraFiltros>
 
       {pagina.length === 0 ? (
         <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio mensaje={busqueda ? 'No hay administradores que coincidan.' : 'No hay administradores registrados.'} />
+          <MensajeVacio mensaje={hayFiltros ? 'No hay administradores con esos filtros.' : 'No hay administradores registrados.'} />
         </div>
       ) : (
         <>

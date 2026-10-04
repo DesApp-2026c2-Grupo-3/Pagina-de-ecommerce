@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { getHistorialPedidos } from '../services/orderService'
 import type { Order } from '../types/order'
 import { formatearFechaHora } from '../utils/fechas'
+import BotonRepetirPedido from '../components/BotonRepetirPedido'
 
 const estadoColores: Record<string, string> = {
   pendiente: 'bg-brand-red/10 text-brand-red',
@@ -103,6 +104,7 @@ function HistorialPedidos() {
                 ${Number(pedido.total).toLocaleString('es-AR')}
               </span>
             </div>
+            <BotonRepetirPedido pedidoId={pedido.id} />
           </div>
         ))}
       </div>

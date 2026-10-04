@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Boxes, Eye, Plus, Search, Trash2 } from 'lucide-react'
+import { Boxes, Eye, Plus, Trash2 } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
+import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
+import { obtenerCategorias } from '../../services/categoriaService'
 import {
   obtenerProductos,
   eliminarProducto as eliminarProductoAPI,
@@ -15,6 +17,7 @@ interface ProductoFila {
   id: number
   nombre: string
   disponible: boolean
+  categoriaId: number | null
 }
 
 interface StockDeProducto {
@@ -40,19 +43,40 @@ export default function Productos() {
   const { mostrarToast } = useToast()
 
   const [productos, setProductos] = useState<ProductoFila[]>([])
-  const [busqueda, setBusqueda] = useState('')
+  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
   const [paginaActual, setPaginaActual] = useState(1)
   const [aEliminar, setAEliminar] = useState<ProductoFila | null>(null)
   const [stockVisto, setStockVisto] = useState<StockDeProducto | null>(null)
+
+  // Filtros
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroCategoria, setFiltroCategoria] = useState('todas')
+  const [filtroDisponibilidad, setFiltroDisponibilidad] = useState('todas')
 
   useEffect(() => {
     obtenerProductos()
       .then(setProductos)
       .catch((error) => console.error('Error al cargar productos:', error))
+    obtenerCategorias()
+      .then(setCategorias)
+      .catch(() => setCategorias([]))
   }, [])
 
-  const filtrados = productos.filter((p) => p.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
+  // Al cambiar un filtro, se vuelve a la primera página
+  const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
+    cambiar(valor)
+    setPaginaActual(1)
+  }
+
+  const texto = busqueda.trim().toLowerCase()
+  const filtrados = productos.filter(
+    (p) =>
+      p.nombre.toLowerCase().includes(texto) &&
+      (filtroCategoria === 'todas' || String(p.categoriaId) === filtroCategoria) &&
+      (filtroDisponibilidad === 'todas' || (filtroDisponibilidad === 'disponibles') === p.disponible),
+  )
   const pagina = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
+  const hayFiltros = busqueda !== '' || filtroCategoria !== 'todas' || filtroDisponibilidad !== 'todas'
 
   async function eliminar() {
     if (!aEliminar) return
@@ -126,25 +150,32 @@ export default function Productos() {
         </button>
       </div>
 
-      {/* Buscador */}
-      <div className="relative mb-4 w-full md:w-80">
-        <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={busqueda}
-          onChange={(e) => {
-            setBusqueda(e.target.value)
-            setPaginaActual(1)
-          }}
-          placeholder="Buscar producto..."
-          aria-label="Buscar producto"
-          className="w-full rounded border bg-white py-2 pl-10 pr-3"
+      <BarraFiltros>
+        <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar producto..." />
+        <SelectFiltro
+          valor={filtroCategoria}
+          onChange={conReinicio(setFiltroCategoria)}
+          etiqueta="Filtrar por categoría"
+          opciones={[
+            { valor: 'todas', etiqueta: 'Todas las categorías' },
+            ...categorias.map((c) => ({ valor: String(c.id), etiqueta: c.nombre })),
+          ]}
         />
-      </div>
+        <SelectFiltro
+          valor={filtroDisponibilidad}
+          onChange={conReinicio(setFiltroDisponibilidad)}
+          etiqueta="Filtrar por disponibilidad"
+          opciones={[
+            { valor: 'todas', etiqueta: 'Todos' },
+            { valor: 'disponibles', etiqueta: 'Disponibles' },
+            { valor: 'pausados', etiqueta: 'Pausados' },
+          ]}
+        />
+      </BarraFiltros>
 
       {pagina.length === 0 ? (
         <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio mensaje={busqueda ? 'No hay productos con ese nombre.' : 'No hay productos registrados.'} />
+          <MensajeVacio mensaje={hayFiltros ? 'No hay productos con esos filtros.' : 'No hay productos registrados.'} />
         </div>
       ) : (
         <>

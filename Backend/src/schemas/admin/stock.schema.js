@@ -36,10 +36,20 @@ const bajaStockSchema = Joi.object({
         'any.required': 'Contá brevemente el motivo de la baja'
     })
 });
-
+// Valor de alerta: si el stock llega a este número, se avisa (null = sin alerta)
+const minimoStockSchema = Joi.object({
+    stockMinimo: Joi.number().integer().min(0).max(CANTIDAD_MAXIMA).allow(null).required().messages({
+        'number.base': 'El mínimo debe ser un número',
+        'number.integer': 'El mínimo debe ser un número entero',
+        'number.min': 'El mínimo no puede ser negativo',
+        'number.max': `El mínimo no puede superar ${CANTIDAD_MAXIMA}`,
+        'any.required': 'Indicá el mínimo'
+    })
+});
 module.exports = {
     cargaStockSchema,
     bajaStockSchema,
+    minimoStockSchema,
     CANTIDAD_MAXIMA,
     MOTIVOS_BAJA
 };

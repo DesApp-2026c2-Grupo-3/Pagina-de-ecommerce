@@ -48,3 +48,7 @@ export function cargarAumento(id: number, cantidad: number) {
 export function registrarBaja(id: number, datos: { cantidad: number; motivo: string; detalle: string }) {
   return pedir(`${API_URL}/${id}/bajar`, patch({ ...datos, adminId: adminIdSesion() }), "Error al registrar la baja");
 }
+// null = sin alerta
+export function definirMinimo(id: number, stockMinimo: number | null) {
+  return pedir(`${API_URL}/${id}/minimo`, patch({ stockMinimo }), "Error al definir el mínimo");
+}

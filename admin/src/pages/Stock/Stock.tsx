@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Plus, MinusCircle } from 'lucide-react'
+import { Bell, MinusCircle, Plus, TriangleAlert } from 'lucide-react'
 import MensajeVacio from '../../components/MensajeVacio'
+import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { obtenerSucursalPorId } from '../../services/sucursalService'
 import {
   obtenerStockPorSucursal,
   obtenerMovimientos,
   cargarAumento,
   registrarBaja,
+  definirMinimo,
   MOTIVOS_BAJA,
 } from '../../services/stockService'
 import { useToast } from '../../context/ToastContext'
@@ -15,8 +17,8 @@ import { useToast } from '../../context/ToastContext'
 interface ItemStock {
   id: number
   nombre: string
-  unidadMedida: string
   cantidad: number
+  stockMinimo: number | null
   bajoMinimo: boolean
 }
 
@@ -25,7 +27,6 @@ interface Movimiento {
   fecha: string
   tipo: 'aumento' | 'baja'
   insumo: string
-  unidadMedida: string
   cantidad: number
   motivo: string | null
   detalle: string | null
@@ -40,8 +41,10 @@ function formatearFechaHora(valor: string) {
   })
 }
 
-const etiquetaMotivo = (motivo: string | null) =>
-  MOTIVOS_BAJA.find((m) => m.valor === motivo)?.etiqueta ?? '—'
+const etiquetaMotivo = (motivo: string | null) => MOTIVOS_BAJA.find((m) => m.valor === motivo)?.etiqueta ?? '—'
+
+// Un insumo está "en alerta" si se quedó sin stock o llegó a su mínimo
+const enAlerta = (item: ItemStock) => item.cantidad <= 0 || item.bajoMinimo
 
 function Estado({ item }: { item: ItemStock }) {
   if (item.cantidad <= 0) {
@@ -54,8 +57,11 @@ function Estado({ item }: { item: ItemStock }) {
 }
 
 const fondoModal = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4'
-const cajaModal = 'w-full max-w-md rounded-lg bg-white p-6 shadow-xl'
+const cajaModal = 'max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl'
 const campo = 'w-full rounded border px-3 py-2'
+const botonSecundario = 'rounded border px-4 py-2 font-semibold hover:bg-gray-50'
+const botonPrincipal =
+  'rounded border border-orange-300 bg-action px-4 py-2 font-semibold text-white hover:bg-action-hover'
 
 export default function StockSucursal() {
   const { id } = useParams()
@@ -66,36 +72,60 @@ export default function StockSucursal() {
   const [stock, setStock] = useState<ItemStock[]>([])
   const [movimientos, setMovimientos] = useState<Movimiento[]>([])
 
+  // Filtros
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('todos')
+  const [filtroTipo, setFiltroTipo] = useState('todos')
+
   // Aumentar
   const [aAumentar, setAAumentar] = useState<ItemStock | null>(null)
   const [cantidadAumento, setCantidadAumento] = useState('')
+
+  // Mínimo (valor de alerta)
+  const [aDefinirMinimo, setADefinirMinimo] = useState<ItemStock | null>(null)
+  const [valorMinimo, setValorMinimo] = useState('')
 
   // Reportar baja
   const [reportandoBaja, setReportandoBaja] = useState(false)
   const [baja, setBaja] = useState({ stockId: '', cantidad: '', motivo: '', detalle: '' })
   const [errorBaja, setErrorBaja] = useState('')
 
-  async function recargar() {
+  // Ventana de alerta: insumos en o por debajo del mínimo
+  const [alerta, setAlerta] = useState<ItemStock[]>([])
+
+  async function recargar(): Promise<ItemStock[]> {
     const [datosStock, datosMovimientos] = await Promise.all([
       obtenerStockPorSucursal(sucursalId),
       obtenerMovimientos(sucursalId),
     ])
     setStock(datosStock)
     setMovimientos(datosMovimientos)
+    return datosStock
   }
 
   useEffect(() => {
     obtenerSucursalPorId(sucursalId)
       .then(setSucursal)
       .catch(() => setSucursal(null))
-    recargar().catch((error) => console.error('Error al cargar stock:', error))
+
+    recargar()
+      .then((datos) => {
+        // La alerta se muestra una sola vez por sesión y por sucursal
+        const clave = `alertaStockVista-${sucursalId}`
+        const enRiesgo = datos.filter(enAlerta)
+        if (enRiesgo.length > 0 && !sessionStorage.getItem(clave)) {
+          setAlerta(enRiesgo)
+          sessionStorage.setItem(clave, 'si')
+        }
+      })
+      .catch((error) => console.error('Error al cargar stock:', error))
   }, [id])
 
   async function confirmarAumento() {
     if (!aAumentar) return
     const cantidad = Number(cantidadAumento)
-    if (!cantidad || cantidad <= 0) {
-      mostrarToast('Ingresá una cantidad válida')
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+      mostrarToast('Ingresá una cantidad entera mayor a 0')
       return
     }
     try {
@@ -109,20 +139,45 @@ export default function StockSucursal() {
     }
   }
 
+  async function confirmarMinimo() {
+    if (!aDefinirMinimo) return
+    const minimo = valorMinimo === '' ? null : Number(valorMinimo)
+    if (minimo !== null && (!Number.isInteger(minimo) || minimo < 0)) {
+      mostrarToast('El mínimo debe ser un número entero, 0 o más')
+      return
+    }
+    try {
+      await definirMinimo(aDefinirMinimo.id, minimo)
+      await recargar()
+      setADefinirMinimo(null)
+      mostrarToast(minimo === null ? 'Alerta desactivada' : 'Mínimo actualizado!')
+    } catch (error) {
+      mostrarToast(error instanceof Error ? error.message : 'Error al definir el mínimo')
+    }
+  }
+
   async function confirmarBaja() {
     const cantidad = Number(baja.cantidad)
     if (!baja.stockId) return setErrorBaja('Elegí el insumo.')
-    if (!cantidad || cantidad <= 0) return setErrorBaja('Ingresá una cantidad válida.')
+    if (!Number.isInteger(cantidad) || cantidad <= 0) return setErrorBaja('Ingresá una cantidad entera mayor a 0.')
     if (!baja.motivo) return setErrorBaja('Elegí el motivo de la baja.')
     if (baja.motivo === 'otro' && baja.detalle.trim().length < 5) {
       return setErrorBaja('Contá brevemente el motivo (al menos 5 caracteres).')
     }
 
+    const antes = stock.find((s) => String(s.id) === baja.stockId)
+
     try {
       await registrarBaja(Number(baja.stockId), { cantidad, motivo: baja.motivo, detalle: baja.detalle.trim() })
-      await recargar()
+      const actualizado = await recargar()
       cerrarBaja()
       mostrarToast('Baja registrada!')
+
+      // Si con esta baja el insumo entró en alerta, se avisa en el momento
+      const despues = actualizado.find((s) => String(s.id) === baja.stockId)
+      if (antes && despues && !enAlerta(antes) && enAlerta(despues)) {
+        setAlerta([despues])
+      }
     } catch (error) {
       setErrorBaja(error instanceof Error ? error.message : 'No se pudo registrar la baja.')
     }
@@ -134,11 +189,48 @@ export default function StockSucursal() {
     setErrorBaja('')
   }
 
-  const insumoBaja = stock.find((s) => String(s.id) === baja.stockId)
+  const stockFiltrado = stock.filter(
+    (item) =>
+      item.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) &&
+      (filtroEstado === 'todos' ||
+        (filtroEstado === 'sin' && item.cantidad <= 0) ||
+        (filtroEstado === 'bajo' && item.cantidad > 0 && item.bajoMinimo)),
+  )
+  const movimientosFiltrados = movimientos.filter((m) => filtroTipo === 'todos' || m.tipo === filtroTipo)
+
+  // Botones de cada insumo
+  const acciones = (item: ItemStock) => (
+    <div className="flex shrink-0 gap-2">
+      <button
+        type="button"
+        onClick={() => {
+          setADefinirMinimo(item)
+          setValorMinimo(item.stockMinimo != null ? String(item.stockMinimo) : '')
+        }}
+        aria-label={`Definir mínimo de ${item.nombre}`}
+        title="Definir mínimo (alerta)"
+        className="rounded border bg-slate-100 p-2 text-gray-700 hover:text-amber-700"
+      >
+        <Bell size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setAAumentar(item)
+          setCantidadAumento('')
+        }}
+        aria-label={`Aumentar ${item.nombre}`}
+        title="Aumentar stock"
+        className="inline-flex items-center gap-1 rounded border border-orange-300 bg-action p-2 text-sm font-semibold text-white hover:bg-action-hover md:px-3"
+      >
+        <Plus size={18} /> <span className="hidden md:inline">Aumentar</span>
+      </button>
+    </div>
+  )
 
   return (
-    <main className="p-4 md:p-8">      
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <main className="p-4 md:p-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Stock</h1>
           <p className="mt-2 text-gray-600">{sucursal ? sucursal.nombre : 'Cargando sucursal...'}</p>
@@ -146,41 +238,48 @@ export default function StockSucursal() {
         <button
           type="button"
           onClick={() => setReportandoBaja(true)}
-          className="inline-flex w-full justify-center sm:w-fit items-center gap-2 rounded border border-red-300 bg-danger px-4 py-2 font-semibold text-white hover:bg-danger-hover"
+          className="inline-flex w-full items-center justify-center gap-2 rounded border border-red-300 bg-danger px-4 py-2 font-semibold text-white hover:bg-danger-hover sm:w-fit"
         >
           <MinusCircle size={18} /> Reportar baja
         </button>
       </div>
 
+      <BarraFiltros>
+        <Buscador valor={busqueda} onChange={setBusqueda} placeholder="Buscar insumo..." />
+        <SelectFiltro
+          valor={filtroEstado}
+          onChange={setFiltroEstado}
+          etiqueta="Filtrar por estado"
+          opciones={[
+            { valor: 'todos', etiqueta: 'Todos los estados' },
+            { valor: 'bajo', etiqueta: 'Stock bajo' },
+            { valor: 'sin', etiqueta: 'Sin stock' },
+          ]}
+        />
+      </BarraFiltros>
+
       {/* ---------- Grilla ---------- */}
-      {stock.length === 0 ? (
+      {stockFiltrado.length === 0 ? (
         <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio mensaje="No hay stock registrado para esta sucursal." />
+          <MensajeVacio
+            mensaje={stock.length === 0 ? 'No hay stock registrado para esta sucursal.' : 'No hay insumos con esos filtros.'}
+          />
         </div>
       ) : (
         <>
-          {/* Celular: una tarjeta por insumo */}
+          {/* Celular: tarjetas */}
           <ul className="flex flex-col gap-3 md:hidden">
-            {stock.map((item) => (
+            {stockFiltrado.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{item.nombre}</p>
-                  <div className="mt-1 flex items-center gap-2">
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className="text-lg font-bold">{item.cantidad.toLocaleString('es-AR')}</span>
                     <Estado item={item} />
                   </div>
+                  {item.stockMinimo != null && <p className="mt-1 text-xs text-gray-500">Mínimo: {item.stockMinimo}</p>}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAAumentar(item)
-                    setCantidadAumento('')
-                  }}
-                  aria-label={`Aumentar ${item.nombre}`}
-                  className="shrink-0 rounded border border-orange-300 bg-action p-3 text-white hover:bg-action-hover"
-                >
-                  <Plus size={18} />
-                </button>
+                {acciones(item)}
               </li>
             ))}
           </ul>
@@ -193,28 +292,24 @@ export default function StockSucursal() {
                   <th className="px-6 py-3 text-left">Insumo</th>
                   <th className="px-6 py-3 text-left">Cantidad</th>
                   <th className="px-6 py-3 text-left">Estado</th>
-                  <th className="px-6 py-3 text-right">Acción</th>
+                  <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {stock.map((item) => (
+                {stockFiltrado.map((item) => (
                   <tr key={item.id} className="border-t">
                     <td className="px-6 py-4 font-medium">{item.nombre}</td>
-                    <td className="px-6 py-4">{item.cantidad.toLocaleString('es-AR')}</td>
+                    <td className="px-6 py-4">
+                      {item.cantidad.toLocaleString('es-AR')}
+                      {item.stockMinimo != null && (
+                        <span className="ml-2 text-xs text-gray-500">(mín. {item.stockMinimo})</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <Estado item={item} />
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAAumentar(item)
-                          setCantidadAumento('')
-                        }}
-                        className="inline-flex items-center gap-1 rounded border border-orange-300 bg-action px-3 py-2 text-sm font-semibold text-white hover:bg-action-hover"
-                      >
-                        <Plus size={16} /> Aumentar
-                      </button>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end">{acciones(item)}</div>
                     </td>
                   </tr>
                 ))}
@@ -223,18 +318,31 @@ export default function StockSucursal() {
           </div>
         </>
       )}
-      {/* ---------- Historial ---------- */}
-      <h2 className="mb-3 mt-10 text-xl font-bold">Últimos movimientos</h2>
 
-      {movimientos.length === 0 ? (
+      {/* ---------- Historial ---------- */}
+      <div className="mb-3 mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-bold">Últimos movimientos</h2>
+        <SelectFiltro
+          valor={filtroTipo}
+          onChange={setFiltroTipo}
+          etiqueta="Filtrar movimientos"
+          opciones={[
+            { valor: 'todos', etiqueta: 'Todos los movimientos' },
+            { valor: 'aumento', etiqueta: 'Solo aumentos' },
+            { valor: 'baja', etiqueta: 'Solo bajas' },
+          ]}
+        />
+      </div>
+
+      {movimientosFiltrados.length === 0 ? (
         <p className="rounded-lg border bg-white px-4 py-8 text-center text-gray-500">
-          Todavía no hay movimientos registrados.
+          {movimientos.length === 0 ? 'Todavía no hay movimientos registrados.' : 'No hay movimientos de ese tipo.'}
         </p>
       ) : (
         <>
-          {/* Celular: una tarjeta por movimiento */}
+          {/* Celular: tarjetas */}
           <ul className="flex flex-col gap-3 md:hidden">
-            {movimientos.map((m) => (
+            {movimientosFiltrados.map((m) => (
               <li key={m.id} className="rounded-lg border bg-white p-4 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 truncate font-medium">{m.insumo}</p>
@@ -268,7 +376,7 @@ export default function StockSucursal() {
                 </tr>
               </thead>
               <tbody>
-                {movimientos.map((m) => (
+                {movimientosFiltrados.map((m) => (
                   <tr key={m.id} className="border-t">
                     <td className="whitespace-nowrap px-4 py-3">{formatearFechaHora(m.fecha)}</td>
                     <td className="px-4 py-3">{m.insumo}</td>
@@ -299,6 +407,54 @@ export default function StockSucursal() {
         </>
       )}
 
+      {/* ---------- Modal: alerta de stock bajo ---------- */}
+      {alerta.length > 0 && (
+        <div className={fondoModal} role="alertdialog" aria-labelledby="titulo-alerta">
+          <div className={cajaModal}>
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700">
+                <TriangleAlert size={22} />
+              </span>
+              <h2 id="titulo-alerta" className="text-xl font-bold">
+                {alerta.length === 1 ? 'Insumo con stock bajo' : `${alerta.length} insumos con stock bajo`}
+              </h2>
+            </div>
+            <p className="mt-2 text-sm text-gray-600">Conviene reponer estos insumos para no quedarse sin productos para vender.</p>
+
+            <ul className="mt-4 flex flex-col divide-y">
+              {alerta.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3 py-2">
+                  <span className="font-medium">{item.nombre}</span>
+                  <span className={`shrink-0 text-sm font-semibold ${item.cantidad <= 0 ? 'text-red-700' : 'text-amber-700'}`}>
+                    {item.cantidad <= 0
+                      ? 'Sin stock'
+                      : `Quedan ${item.cantidad}${item.stockMinimo != null ? ` (mín. ${item.stockMinimo})` : ''}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setAlerta([])} className={botonSecundario}>
+                Entendido
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFiltroEstado('todos')
+                  setBusqueda('')
+                  setFiltroEstado(alerta.every((i) => i.cantidad <= 0) ? 'sin' : 'bajo')
+                  setAlerta([])
+                }}
+                className={botonPrincipal}
+              >
+                Ver en la lista
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ---------- Modal: aumentar ---------- */}
       {aAumentar && (
         <div className={fondoModal}>
@@ -311,8 +467,8 @@ export default function StockSucursal() {
             <label className="mt-4 block font-medium">Cantidad a agregar</label>
             <input
               type="number"
-              min="0"
-              step="0.01"
+              min="1"
+              step="1"
               autoFocus
               value={cantidadAumento}
               onChange={(e) => setCantidadAumento(e.target.value)}
@@ -321,19 +477,45 @@ export default function StockSucursal() {
             />
 
             <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setAAumentar(null)}
-                className="rounded border px-4 py-2 font-semibold hover:bg-gray-50"
-              >
+              <button type="button" onClick={() => setAAumentar(null)} className={botonSecundario}>
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={confirmarAumento}
-                className="rounded border border-orange-300 bg-action px-4 py-2 font-semibold text-white hover:bg-action-hover"
-              >
+              <button type="button" onClick={confirmarAumento} className={botonPrincipal}>
                 Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Modal: mínimo ---------- */}
+      {aDefinirMinimo && (
+        <div className={fondoModal}>
+          <div className={cajaModal}>
+            <h2 className="text-xl font-bold">Stock mínimo</h2>
+            <p className="mt-1 text-gray-600">
+              {aDefinirMinimo.nombre} · hay {aDefinirMinimo.cantidad.toLocaleString('es-AR')}
+            </p>
+
+            <label className="mt-4 block font-medium">Avisar cuando queden</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              autoFocus
+              value={valorMinimo}
+              onChange={(e) => setValorMinimo(e.target.value)}
+              className={campo}
+              placeholder="Ej: 10 (vacío = sin alerta)"
+            />
+            <p className="mt-1 text-sm text-gray-500">Si el stock llega a este número o menos, se muestra una alerta.</p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" onClick={() => setADefinirMinimo(null)} className={botonSecundario}>
+                Cancelar
+              </button>
+              <button type="button" onClick={confirmarMinimo} className={botonPrincipal}>
+                Guardar
               </button>
             </div>
           </div>
@@ -361,7 +543,8 @@ export default function StockSucursal() {
                   <option value="">Elegir insumo</option>
                   {stock.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.nombre} (hay {s.cantidad.toLocaleString('es-AR')})                    </option>
+                      {s.nombre} (hay {s.cantidad.toLocaleString('es-AR')})
+                    </option>
                   ))}
                 </select>
               </div>
@@ -370,8 +553,8 @@ export default function StockSucursal() {
                 <label className="block font-medium">Cantidad a bajar</label>
                 <input
                   type="number"
-                  min="0"
-                  step="0.01"
+                  min="1"
+                  step="1"
                   value={baja.cantidad}
                   onChange={(e) => {
                     setBaja({ ...baja, cantidad: e.target.value })
@@ -422,7 +605,7 @@ export default function StockSucursal() {
             {errorBaja && <p className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{errorBaja}</p>}
 
             <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={cerrarBaja} className="rounded border px-4 py-2 font-semibold hover:bg-gray-50">
+              <button type="button" onClick={cerrarBaja} className={botonSecundario}>
                 Cancelar
               </button>
               <button

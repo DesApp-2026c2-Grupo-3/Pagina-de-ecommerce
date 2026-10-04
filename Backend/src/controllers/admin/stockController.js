@@ -32,8 +32,7 @@ const obtenerStockPorSucursal = async (req, res) => {
                 unidadMedida: item.Insumo?.unidadMedida,
                 cantidad,
                 stockMinimo,
-                bajoMinimo: stockMinimo !== null && cantidad < stockMinimo,
-            };
+                bajoMinimo: stockMinimo !== null && cantidad <= stockMinimo,            };
         });
 
         return res.status(200).json(stockConIndicador);
@@ -162,10 +161,26 @@ const obtenerMovimientos = async (req, res) => {
         return res.status(500).json({ mensaje: 'Error del servidor' });
     }
 };
+// PATCH /admin/stock/:id/minimo → define el valor de alerta de un insumo en la sucursal
+const definirMinimo = async (req, res) => {
+    try {
+        const stock = await StockSucursal.findByPk(req.params.id);
+        if (!stock) {
+            return res.status(404).json({ mensaje: 'Registro de stock no encontrado' });
+        }
+
+        await stock.update({ stockMinimo: req.body.stockMinimo });
+        return res.status(200).json({ mensaje: 'Mínimo actualizado', stock });
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        return res.status(500).json({ mensaje: 'Error del servidor' });
+    }
+};
 
 module.exports = {
     obtenerStockPorSucursal,
     cargarAumento,
     registrarBaja,
     obtenerMovimientos,
+    definirMinimo,
 };
