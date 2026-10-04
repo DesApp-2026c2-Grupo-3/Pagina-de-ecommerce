@@ -14,14 +14,14 @@ interface ModalProps {
   subtitle?: string
   tamanio?: keyof typeof ANCHOS
   children: ReactNode
+  cerrable?: boolean // false = sin ✕ y sin Esc (hay que completar algo para seguir)
 }
 
-function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', children }: ModalProps) {
-  const tituloId = useId()
+function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = true, children }: ModalProps) {  const tituloId = useId()
 
   // Se cierra con la tecla Esc
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || !cerrable) return    
     function alPresionar(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
     }
@@ -50,14 +50,16 @@ function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', children }: M
             </h2>
             {subtitle && <p className="mt-1 text-sm text-gray-600">{subtitle}</p>}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="text-2xl leading-none text-brand-dark/50 hover:text-brand-red"
-          >
-            ✕
-          </button>
+          {cerrable && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="text-2xl leading-none text-brand-dark/50 hover:text-brand-red"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <div className="mt-6">{children}</div>

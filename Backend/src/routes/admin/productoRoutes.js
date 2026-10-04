@@ -10,5 +10,6 @@ router.get('/:id', esIdValido, adminController.obtenerProductoPorId);
 router.post('/nuevo', validarProducto, adminController.crearProducto);
 router.patch('/editar/:id', validarProducto, esIdValido, adminController.editarProductoPorId);
 router.delete('/eliminar/:id', esIdValido, adminController.eliminarProducto);
+router.get('/:id/stock', esIdValido, adminController.verStockProducto);
 
 module.exports = router;

@@ -15,6 +15,10 @@ export interface ProductIngredient {
   esAgregable: boolean
   /** Lo que se le cobra de más al cliente por sumar una unidad de este insumo. */
   precioComercial: number
+    /** Solo con sucursal: si hay stock para la receta */
+  hayStock?: boolean
+  /** Solo con sucursal: si además alcanza para pedirlo extra */
+  hayStockExtra?: boolean
 }
 
 export interface Product {
@@ -35,10 +39,24 @@ export interface Product {
 }
 
 /** Un tamaño de un producto, con su precio (ej: papas grandes $2600) */
-export interface ProductoVariante {
+export interface ProductoTamanio {
+  tamanioId: number // id de la tabla Tamanios: 1 regular, 2 mediano, 3 grande
   tamanio: string // regular, mediano, grande
   precio: number | string // DECIMAL: Postgres lo devuelve como texto
   etiqueta: string | null // ej: "354 ml"
+}
+
+/** Solo combos: un lugar donde el cliente elige un producto (ej: Acompañamiento, Una bebida). */
+export interface ComboGrupo {
+  id: number
+  nombre: string
+  /** Se elige un producto de esta categoría */
+  categoriaId: number
+  /** Opción ya incluida en el precio del combo: las demás cobran la diferencia */
+  productoIncluidoId: number
+  obligatorio: boolean
+  orden: number
+  icono?: string | null
 }
 
 export interface ProductoBackend {
@@ -51,7 +69,9 @@ export interface ProductoBackend {
   categoriaId: number
   ingredientes?: ProductIngredient[]
   sabor?: string | null
-  variantes?: ProductoVariante[]
+  tamanios?: ProductoTamanio[]
+  /** Solo combos: sus grupos elegibles. Si viene con elementos, el producto es un combo. */
+  grupos?: ComboGrupo[]
 }
 
 export interface Category {

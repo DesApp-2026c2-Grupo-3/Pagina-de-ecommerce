@@ -36,7 +36,12 @@ function Address() {
   const navigate = useNavigate()
 
   // Si viene desde el checkout: a dónde volver y qué abrir al entrar
-  const estado = location.state as { from?: string; abrirNueva?: boolean; editarId?: number } | null
+  const estado = location.state as {
+    from?: string
+    abrirNueva?: boolean
+    editarId?: number
+    prefill?: Partial<AddressFormData>
+  } | null  
   const accionInicialHecha = useRef(false)
 
   const [direcciones, setDirecciones] = useState<AddressData[]>([])
@@ -61,6 +66,8 @@ function Address() {
 
     if (estado.abrirNueva) {
       abrirNueva()
+      // Viene con una ubicación ya elegida (por ejemplo, la de la zona): solo falta ponerle nombre
+    if (estado.prefill) setForm({ ...formVacio, ...estado.prefill })
     } else if (estado.editarId) {
       const aEditar = direcciones.find((d) => d.id === estado.editarId)
       if (aEditar) abrirEditar(aEditar)

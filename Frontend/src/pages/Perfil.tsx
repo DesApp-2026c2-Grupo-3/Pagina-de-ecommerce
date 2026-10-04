@@ -5,7 +5,6 @@ import Modal from '../components/Modal'
 import ErrorAlert from '../components/ErrorAlert'
 import { formatearFecha } from '../utils/fechas'
 import {
-  hoyEnArgentina,
   validarApellido,
   validarDni,
   validarFechaNacimiento,

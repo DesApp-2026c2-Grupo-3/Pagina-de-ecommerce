@@ -3,15 +3,18 @@
 const PAPAS = 'Papas Fritas';
 const BEBIDAS = 'Bebidas';
 
-// Precios por tamaño; las bebidas llevan además la medida para mostrar
-function tamanios([regular, mediano, grande], etiquetas = [null, null, null]) {
+// Precios por tamaño; las bebidas llevan además la medida para mostrar.
+// factores: cuánto stock consume cada tamaño respecto de la receta (regular = 1).
+function tamanios([regular, mediano, grande], etiquetas = [null, null, null], factores = [1, 1.5, 2]) {
   return [
-    { tamanio: 'regular', precio: regular, etiqueta: etiquetas[0] },
-    { tamanio: 'mediano', precio: mediano, etiqueta: etiquetas[1] },
-    { tamanio: 'grande', precio: grande, etiqueta: etiquetas[2] },
+    { tamanio: 'regular', precio: regular, etiqueta: etiquetas[0], factorStock: factores[0] },
+    { tamanio: 'mediano', precio: mediano, etiqueta: etiquetas[1], factorStock: factores[1] },
+    { tamanio: 'grande', precio: grande, etiqueta: etiquetas[2], factorStock: factores[2] },
   ];
 }
 const MEDIDAS = ['354 ml', '500 ml', '1 L'];
+// Las bebidas consumen stock en proporción a su medida (354 ml, 500 ml, 1 L)
+const FACTORES_BEBIDA = [1, 1.4, 2.8];
 
 const PRODUCTOS = [
   {
@@ -46,7 +49,7 @@ const PRODUCTOS = [
     descripcion: 'Bebida gaseosa helada.',
     imagen: '/imagenes/coca-cola.png',
     sabor: 'cola',
-    variantes: tamanios([1400, 1800, 2600], MEDIDAS),
+    variantes: tamanios([1400, 1800, 2600], MEDIDAS, FACTORES_BEBIDA),
   },
   {
     categoria: BEBIDAS,
@@ -54,7 +57,7 @@ const PRODUCTOS = [
     descripcion: 'Gaseosa sabor naranja helada.',
     imagen: '',
     sabor: 'naranja',
-    variantes: tamanios([1400, 1800, 2600], MEDIDAS),
+    variantes: tamanios([1400, 1800, 2600], MEDIDAS, FACTORES_BEBIDA),
   },
   {
     categoria: BEBIDAS,
@@ -63,7 +66,7 @@ const PRODUCTOS = [
     descripcion: 'Gaseosa lima-limón helada.',
     imagen: '/imagenes/limonada.png',
     sabor: 'lima',
-    variantes: tamanios([1400, 1800, 2600], MEDIDAS),
+    variantes: tamanios([1400, 1800, 2600], MEDIDAS, FACTORES_BEBIDA),
   },
   {
     categoria: BEBIDAS,
@@ -71,7 +74,7 @@ const PRODUCTOS = [
     descripcion: 'Agua mineral sin gas.',
     imagen: '',
     sabor: 'agua',
-    variantes: tamanios([1100, 1400, 2000], MEDIDAS),
+    variantes: tamanios([1100, 1400, 2000], MEDIDAS, FACTORES_BEBIDA),
   },
 ];
 
@@ -92,6 +95,13 @@ module.exports = {
 
     if (!idCategoria[PAPAS] || !idCategoria[BEBIDAS]) {
       throw new Error(`Faltan las categorías "${PAPAS}" o "${BEBIDAS}": corré primero el seeder de categorías`);
+    }
+
+    const [tamaniosBD] = await queryInterface.sequelize.query('SELECT id, nombre FROM "Tamanios"');
+    const idTamanio = Object.fromEntries(tamaniosBD.map((t) => [t.nombre, t.id]));
+
+    if (!idTamanio.regular || !idTamanio.mediano || !idTamanio.grande) {
+      throw new Error('Faltan los tamaños (regular, mediano, grande): corré primero las migraciones');
     }
 
     await queryInterface.sequelize.transaction(async (transaction) => {
@@ -132,14 +142,15 @@ module.exports = {
           productoId = insertados[0].id;
         }
 
-        // 2. Sus variantes (si ya existen, no se duplican)
+        // 2. Sus tamaños (si ya existen, no se duplican)
         await queryInterface.bulkInsert(
-          'ProductoVariantes',
+          'ProductoTamanios',
           p.variantes.map((v) => ({
             productoId,
-            tamanio: v.tamanio,
+            tamanioId: idTamanio[v.tamanio],
             precio: v.precio,
             etiqueta: v.etiqueta,
+            factorStock: v.factorStock,
             createdAt: ahora,
             updatedAt: ahora,
           })),
@@ -154,9 +165,9 @@ module.exports = {
     const reutilizados = Object.keys(ORIGINALES);
 
     await queryInterface.sequelize.transaction(async (transaction) => {
-      // Las variantes de todos estos productos
+      // Los tamaños de todos estos productos
       await queryInterface.sequelize.query(
-        'DELETE FROM "ProductoVariantes" WHERE "productoId" IN (SELECT id FROM "Productos" WHERE nombre IN (:nombres))',
+        'DELETE FROM "ProductoTamanios" WHERE "productoId" IN (SELECT id FROM "Productos" WHERE nombre IN (:nombres))',
         { replacements: { nombres }, transaction }
       );
 

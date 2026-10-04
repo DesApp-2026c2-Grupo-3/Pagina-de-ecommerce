@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
-import { crearAdministrador } from '../../services/administradores'
-import { obtenerSucursales } from '../../services/sucursales'
+import { crearAdministrador } from '../../services/administradorService'
+import { obtenerSucursales } from '../../services/sucursalService'
 
 export default function NuevoAdministrador() {
   const [nombre, setNombre] = useState('')

@@ -35,6 +35,7 @@ app.use('/admin/categorias', adminCategoriaRoutes);
 app.use('/admin/stock', adminStockRoutes);
 app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
 app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
+app.use('/admin/insumos', require('./routes/admin/insumoRoutes')); 
 app.use('/admin', adminRoutes);
 
 
@@ -44,24 +45,20 @@ app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
+app.use('/tamanios', require('./routes/tamanioRoutes'));  
 
-
-//SINCRO CON BASE DE DATOS
+// Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
 async function iniciarServidor() {
     try {
-        console.log('Sincronizando base de datos...');
-
-        await db.sequelize.sync({ force: false });
-
-        console.log('Base de datos sincronizada');
+        await db.sequelize.authenticate();
+        console.log('Conexión con la base de datos OK');
 
         app.listen(PORT, () => {
-
             console.log(`Servidor corriendo en http://localhost:${PORT}`);
-        })
-
+        });
     } catch (error) {
-        console.error('Error conectando con la base de datos:', error.message);
+        console.error('No se pudo conectar con la base de datos:', error.message);
+        process.exit(1);
     }
 }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
-import { crearCategoria } from '../../services/categorias'
+import { crearCategoria } from '../../services/categoriaService'
 
 export default function NuevaCategoria() {
   const [nombre, setNombre] = useState('')

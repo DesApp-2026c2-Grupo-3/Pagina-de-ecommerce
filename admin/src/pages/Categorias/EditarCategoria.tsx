@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "../../context/ToastContext";
-import { obtenerCategorias, actualizarCategoria } from "../../services/categorias";
+import { obtenerCategorias, actualizarCategoria } from "../../services/categoriaService";
 
 export default function EditarCategoria() {
   const { id } = useParams();

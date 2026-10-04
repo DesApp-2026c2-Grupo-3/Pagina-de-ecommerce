@@ -1,9 +1,89 @@
-const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, sequelize, ProductoVariante } = require("../models");
+const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, ComboGrupo, ProductoTamanio, sequelize } = require("../models");
+const { distanciaKm } = require('../utils/distancia');
+const { pasoExtra } = require('../utils/disponibilidad');
+
+// Cuántas unidades de más se pueden pedir de un ingrediente (igual que el front)
+const EXTRA_MAX_INCREMENTO = 3;
+
+// Error "esperable" (datos inválidos, sin stock...): corta el pedido y responde con este estado
+class ErrorPedido extends Error {
+    constructor(status, mensaje) {
+        super(mensaje);
+        this.status = status;
+    }
+}
+
+const redondear = (n) => Math.round(n * 1000) / 1000;
+
+// Descuenta stock de un insumo en la sucursal, con lock de fila dentro de la transacción
+async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, t }) {
+    if (cantidad <= 0) return;
+
+    const stock = await StockSucursal.findOne({
+        where: { insumoId, sucursalId },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+    });
+
+    if (!stock) {
+        throw new ErrorPedido(400, `No hay stock cargado para un insumo de ${nombreProducto} en esta sucursal`);
+    }
+
+    if (Number(stock.cantidad) < cantidad) {
+        throw new ErrorPedido(400, `Stock insuficiente para preparar ${nombreProducto} en esta sucursal`);
+    }
+
+    await stock.update({ cantidad: redondear(Number(stock.cantidad) - cantidad) }, { transaction: t });
+}
+
+// Valida lo que el cliente eligió para un grupo del combo y calcula su recargo y su consumo de stock.
+// El recargo es la diferencia contra la opción incluida en el precio del combo (grupo.productoIncluidoId).
+async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t }) {
+    if (!tamanioId) {
+        throw new ErrorPedido(400, `Elegí un tamaño válido para ${combo.nombre}`);
+    }
+
+    const elegido = await Producto.findByPk(productoId, {
+        include: [{ model: ProductoTamanio, as: 'tamanios' }],
+        transaction: t
+    });
+
+    if (!elegido) {
+        throw new ErrorPedido(404, `No existe el producto con id ${productoId}`);
+    }
+    if (!elegido.disponible) {
+        throw new ErrorPedido(400, `El producto ${elegido.nombre} no está disponible`);
+    }
+    if (elegido.categoriaId !== grupo.categoriaId) {
+        throw new ErrorPedido(400, `${elegido.nombre} no es una opción válida de ${grupo.nombre} para ${combo.nombre}`);
+    }
+
+    const tamanio = (elegido.tamanios ?? []).find((pt) => pt.tamanioId === Number(tamanioId));
+    if (!tamanio) {
+        throw new ErrorPedido(400, `${elegido.nombre} no está disponible en ese tamaño`);
+    }
+
+    let recargo = 0;
+    if (elegido.id !== grupo.productoIncluidoId) {
+        const incluido = await Producto.findByPk(grupo.productoIncluidoId, {
+            include: [{ model: ProductoTamanio, as: 'tamanios' }],
+            transaction: t
+        });
+        const tamanioIncluido = (incluido?.tamanios ?? []).find((pt) => pt.tamanioId === tamanio.tamanioId);
+        if (tamanioIncluido) {
+            recargo = Math.max(0, Number(tamanio.precio) - Number(tamanioIncluido.precio));
+        }
+    }
+
+    const receta = await RecetaInsumo.findAll({ where: { productoId: elegido.id }, transaction: t });
+
+    return { elegido, tamanio, recargo, receta };
+}
 //Solo para pruebas
 const obtenerPedidos = async (req,res) => {
     try{
 
-        const pedidos = await Pedido.findAll({include: [{model: DetallePedido, include: [Producto]}]})
+        const pedidos = await Pedido.findAll({include: [{model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]})
 
         res.status(200).json(pedidos)
 
@@ -18,8 +98,7 @@ const obtenerPedidosPorUsuario = async (req, res) => {
   try {
     const pedidos = await Pedido.findAll({
       where: { usuarioId: req.params.usuarioId },
-      include: [{ model: DetallePedido, include: [Producto] }],
-      order: [['fecha', 'DESC']],
+include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }],      order: [['fecha', 'DESC']],
     });
 
     res.status(200).json(pedidos);
@@ -32,7 +111,7 @@ const obtenerPedidosPorUsuario = async (req, res) => {
 const obtenerPedidoId = async (req,res) => {
     try{
         const pedido = await Pedido.findByPk(req.params.id, {
-            include: [{ model: DetallePedido, include: [Producto]}]
+            include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]
         });
 
         if (!pedido) {
@@ -75,6 +154,20 @@ const crearPedido = async (req,res) => {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Dirección no encontrada' });
         }        
+                // La sucursal tiene que estar activa y llegar a la dirección
+        if (!sucursal.activa) {
+            throw new ErrorPedido(400, `${sucursal.nombre} no está tomando pedidos en este momento`);
+        }
+        if (direccion.latitud == null || direccion.longitud == null) {
+            throw new ErrorPedido(400, 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.');
+        }
+        const distancia = distanciaKm(
+            { lat: Number(direccion.latitud), lng: Number(direccion.longitud) },
+            { lat: Number(sucursal.latitud), lng: Number(sucursal.longitud) }
+        );
+        if (distancia > Number(sucursal.radioEntregaKm)) {
+            throw new ErrorPedido(400, `Tu dirección está fuera de la zona de entrega de ${sucursal.nombre}`);
+        }
 
          // Verificar que haya productos
         if (!Array.isArray(productos) || productos.length === 0) {
@@ -94,51 +187,37 @@ const crearPedido = async (req,res) => {
         for ( const producto of productos){
             
             if (!producto.productoId || !producto.cantidad) {
-                await t.rollback();
-                return res.status(400).json({
-                    mensaje: 'Cada producto debe tener productoId y cantidad'
-                });
+                throw new ErrorPedido(400, 'Cada producto debe tener productoId y cantidad');
             }
 
             if (producto.cantidad <= 0) {
-                await t.rollback();
-                return res.status(400).json({
-                    mensaje: 'La cantidad debe ser mayor a 0'
-                });
+                throw new ErrorPedido(400, 'La cantidad debe ser mayor a 0');
             }
 
             const productoBD = await Producto.findByPk(producto.productoId, {
-                include: [{ model: ProductoVariante, as: 'variantes' }]
+                include: [{ model: ProductoTamanio, as: 'tamanios' }]
             });
             if (!productoBD) {
-                await t.rollback();
-                return res.status(404).json({
-                    mensaje: `No existe el producto con id ${producto.productoId}`
-                });
+                throw new ErrorPedido(404, `No existe el producto con id ${producto.productoId}`);
             }
 
             if (!productoBD.disponible) {
-                await t.rollback();
-                return res.status(400).json({
-                    mensaje: `El producto ${productoBD.nombre} no está disponible`
-                });
+                throw new ErrorPedido(400, `El producto ${productoBD.nombre} no está disponible`);
             }
-            // Si el producto tiene tamaños, el precio base es el del tamaño elegido
-            const variantes = productoBD.variantes ?? [];
-            let precioBase = Number(productoBD.precio);
-            let tamanio = null;
 
-            if (variantes.length > 0) {
-                const variante = variantes.find((v) => v.tamanio === producto.tamanio);
-                if (!variante) {
-                    await t.rollback();
-                    return res.status(400).json({
-                        mensaje: `Elegí un tamaño válido para ${productoBD.nombre}`
-                    });
+            // Si el producto tiene tamaños, el precio base es el del tamaño elegido
+            const tamanios = productoBD.tamanios ?? [];
+            let precioBase = Number(productoBD.precio);
+            let tamanioElegido = null;
+
+            if (tamanios.length > 0) {
+                tamanioElegido = tamanios.find((pt) => pt.tamanioId === Number(producto.tamanioId));
+                if (!tamanioElegido) {
+                    throw new ErrorPedido(400, `Elegí un tamaño válido para ${productoBD.nombre}`);
                 }
-                precioBase = Number(variante.precio);
-                tamanio = variante.tamanio;
+                precioBase = Number(tamanioElegido.precio);
             }
+            const factorTamanio = tamanioElegido ? Number(tamanioElegido.factorStock ?? 1) : 1;
 
             // Cantidad final elegida por insumo (insumoId -> cantidad), solo para los insumos
             // que el cliente tocó respecto de la receta base.
@@ -162,23 +241,59 @@ const crearPedido = async (req,res) => {
             for (const [insumoId, cantidad] of cantidadElegidaPorInsumo) {
                 const item = recetaPorInsumo.get(insumoId);
                 if (!item) {
-                    await t.rollback();
-                    return res.status(400).json({
-                        mensaje: `El insumo ${insumoId} no pertenece a la receta de ${productoBD.nombre}`
-                    });
+                    throw new ErrorPedido(400, `El insumo ${insumoId} no pertenece a la receta de ${productoBD.nombre}`);
                 }
                 const base = Number(item.cantidadBase);
                 if (cantidad < base && !item.esRemovible) {
-                    await t.rollback();
-                    return res.status(400).json({
-                        mensaje: `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede sacar de ${productoBD.nombre}`
-                    });
+                    throw new ErrorPedido(400, `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede sacar de ${productoBD.nombre}`);
                 }
                 if (cantidad > base && !item.esAgregable) {
-                    await t.rollback();
-                    return res.status(400).json({
-                        mensaje: `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede aumentar en ${productoBD.nombre}`
-                    });
+                    throw new ErrorPedido(400, `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede aumentar en ${productoBD.nombre}`);
+                }
+                if (cantidad - base > EXTRA_MAX_INCREMENTO * pasoExtra(base)) {
+                    throw new ErrorPedido(400, `No se pueden agregar más de ${EXTRA_MAX_INCREMENTO} ${item.Insumo?.nombre ?? 'unidades'} extra`);
+                }
+            }
+
+            // Combos: la tabla ComboGrupos dice qué lugares tiene (acompañamiento, bebida, ...).
+            // El producto elegido en cada uno, en el tamaño del combo, aporta su propia receta.
+            const grupos = await ComboGrupo.findAll({
+                where: { productoId: producto.productoId },
+                order: [['orden', 'ASC']],
+                transaction: t
+            });
+            const eleccionesPedidas = Array.isArray(producto.elecciones) ? producto.elecciones : [];
+
+            if (grupos.length === 0 && eleccionesPedidas.length > 0) {
+                throw new ErrorPedido(400, `${productoBD.nombre} no es un combo`);
+            }
+
+            const elecciones = [];
+            const gruposElegidos = new Set();
+            for (const pedida of eleccionesPedidas) {
+                const grupo = grupos.find((g) => g.id === Number(pedida.grupoId));
+                if (!grupo) {
+                    throw new ErrorPedido(400, `El grupo ${pedida.grupoId} no pertenece a ${productoBD.nombre}`);
+                }
+                if (gruposElegidos.has(grupo.id)) {
+                    throw new ErrorPedido(400, `Elegiste dos veces ${grupo.nombre} en ${productoBD.nombre}`);
+                }
+                gruposElegidos.add(grupo.id);
+                elecciones.push({
+                    grupo,
+                    ...(await resolverEleccionCombo({
+                        grupo,
+                        productoId: pedida.productoId,
+                        tamanioId: producto.tamanioId,
+                        combo: productoBD,
+                        t
+                    }))
+                });
+            }
+
+            for (const grupo of grupos) {
+                if (grupo.obligatorio && !gruposElegidos.has(grupo.id)) {
+                    throw new ErrorPedido(400, `Elegí ${grupo.nombre} para ${productoBD.nombre}`);
                 }
             }
 
@@ -190,43 +305,42 @@ const crearPedido = async (req,res) => {
                     ? cantidadElegidaPorInsumo.get(item.insumoId)
                     : base;
 
-                const cantidadNecesaria = cantidadFinal * producto.cantidad;
+                // En un combo el tamaño agranda solo lo elegido (acompañamiento, bebida); en el resto, toda la receta
+                const factor = grupos.length > 0 ? 1 : factorTamanio;
+                const cantidadNecesaria = redondear(cantidadFinal * factor * producto.cantidad);
                 const extra = Math.max(0, cantidadFinal - base);
 
                 if (extra > 0 && item.Insumo && item.Insumo.precioComercial != null) {
                     extraUnitario += extra * Number(item.Insumo.precioComercial);
                 }
 
-                if (cantidadNecesaria <= 0) continue;
-
-                const stock = await StockSucursal.findOne({
-                    where: { insumoId: item.insumoId, sucursalId },
-                    transaction: t,
-                    lock: t.LOCK.UPDATE
+                await descontarStock({
+                    insumoId: item.insumoId,
+                    cantidad: cantidadNecesaria,
+                    sucursalId,
+                    nombreProducto: productoBD.nombre,
+                    t
                 });
-
-                if (!stock) {
-                    await t.rollback();
-                    return res.status(400).json({
-                        mensaje: `No hay stock cargado para un insumo de ${productoBD.nombre} en esta sucursal`
-                    });
-                }
-
-                if (Number(stock.cantidad) < cantidadNecesaria) {
-                    await t.rollback();
-                    return res.status(400).json({
-                        mensaje: `Stock insuficiente para preparar ${productoBD.nombre} en esta sucursal`
-                    });
-                }
-
-                await stock.update(
-                    { cantidad: Number(stock.cantidad) - cantidadNecesaria },
-                    { transaction: t }
-                );
             }
 
-            // Calcular subtotal (precio base + extras agregados, la personalización de sacar no descuenta)
-            const precioUnitario = precioBase + extraUnitario;            
+            // Stock y recargo de lo elegido en el combo (según el tamaño de cada producto elegido)
+            let recargoCombo = 0;
+            for (const { elegido, tamanio, recargo, receta: recetaElegido } of elecciones) {
+                recargoCombo += recargo;
+                for (const item of recetaElegido) {
+                    await descontarStock({
+                        insumoId: item.insumoId,
+                        cantidad: redondear(Number(item.cantidadBase) * Number(tamanio.factorStock ?? 1) * producto.cantidad),
+                        sucursalId,
+                        nombreProducto: elegido.nombre,
+                        t
+                    });
+                }
+            }
+
+            // Calcular subtotal (precio base + extras agregados + recargos del combo;
+            // la personalización de sacar no descuenta)
+            const precioUnitario = precioBase + extraUnitario + recargoCombo;
             const subtotal = precioUnitario * producto.cantidad;
 
             // Acumular al total
@@ -237,8 +351,18 @@ const crearPedido = async (req,res) => {
                 productoId: producto.productoId,
                 cantidad: producto.cantidad,
                 precio: precioUnitario,
-                tamanio: tamanio,
-                personalizaciones
+                tamanioId: tamanioElegido ? tamanioElegido.tamanioId : null,
+                personalizaciones,
+                combo: elecciones.length > 0
+                    ? {
+                        elecciones: elecciones.map((e) => ({
+                            grupoId: e.grupo.id,
+                            productoId: e.elegido.id,
+                            recargo: e.recargo
+                        })),
+                        recargo: recargoCombo
+                    }
+                    : null
             },{transaction: t});
         }
 
@@ -251,6 +375,10 @@ const crearPedido = async (req,res) => {
     } catch (error){
 
         await t.rollback();
+
+        if (error instanceof ErrorPedido) {
+            return res.status(error.status).json({ mensaje: error.message });
+        }
 
         console.error('Algo salio mal', error.message)
 

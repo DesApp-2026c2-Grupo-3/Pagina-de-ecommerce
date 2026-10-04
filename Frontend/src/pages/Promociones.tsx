@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ProductCard from '../components/home/ProductCard'
 import { getPromoCategories, getPromotions } from '../services/promotionService'
 import type { Category, Product } from '../types/product'
-
+import type { CategoriaPromo } from '../mocks/promotions'
 const ALL_TAB = 'Todas'
 
 function Promociones() {
@@ -45,15 +45,15 @@ function Promociones() {
           <button
             key={category.id}
             type="button"
-            onClick={() => setSelectedCategory(category.name)}
-            aria-pressed={selectedCategory === category.name}
+            onClick={() => setSelectedCategory(category.nombre)}
+            aria-pressed={selectedCategory === category.nombre}
             className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-              selectedCategory === category.name
+              selectedCategory === category.nombre
                 ? 'border-brand-red bg-brand-red text-white'
                 : 'border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red'
             }`}
           >
-            {category.icon} {category.name}
+           {category.nombre}
           </button>
         ))}
       </div>
@@ -67,8 +67,18 @@ function Promociones() {
       ) : (
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredPromotions.map((promo) => (
-            <ProductCard key={promo.id} product={promo} />
-          ))}
+            <ProductCard
+              key={promo.id}
+              product={{
+                id: promo.id,
+                nombre: promo.name,
+                descripcion: promo.description,
+                precio: promo.price,
+                imagen: promo.image,
+                disponible: promo.available,
+                categoriaId: 0,
+              }}
+            />          ))}
         </div>
       )}
     </div>

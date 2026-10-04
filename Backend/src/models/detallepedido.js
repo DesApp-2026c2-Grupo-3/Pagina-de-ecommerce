@@ -17,6 +17,9 @@ module.exports = (sequelize, DataTypes) => {
       DetallePedido.belongsTo(models.Producto, {
         foreignKey: 'productoId'
       });
+      DetallePedido.belongsTo(models.Tamanio, {
+        foreignKey: 'tamanioId'
+      });
   }
 }
   DetallePedido.init({
@@ -29,7 +32,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL,
       allowNull: false
     },
-    tamanio: { type: DataTypes.STRING, allowNull: true },
+    // Tamaño elegido (regular, mediano, grande), si el producto tiene tamaños
+    tamanioId: { type: DataTypes.INTEGER, allowNull: true },
+
+    // Si es un combo: { elecciones: [{ grupoId, productoId, recargo }], recargo } con lo que eligió el cliente
+    combo: { type: DataTypes.JSON, allowNull: true },
 
     // Insumos cuya cantidad final difiere de la receta base: [{ insumoId, cantidad }].
     // Si la cantidad final es menor a la base fue "sacado/reducido" (no cambia el precio);
