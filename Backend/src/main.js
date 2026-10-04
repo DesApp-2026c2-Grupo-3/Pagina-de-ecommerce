@@ -35,6 +35,7 @@ app.use('/admin/categorias', adminCategoriaRoutes);
 app.use('/admin/stock', adminStockRoutes);
 app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
 app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
+app.use('/admin/insumos', require('./routes/admin/insumoRoutes')); 
 app.use('/admin', adminRoutes);
 
 
@@ -44,7 +45,7 @@ app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
-
+app.use('/tamanios', require('./routes/tamanioRoutes'));  
 
 //SINCRO CON BASE DE DATOS
 async function iniciarServidor() {
