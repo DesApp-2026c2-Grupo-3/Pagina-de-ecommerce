@@ -18,6 +18,7 @@ import Sucursales from '../pages/Sucursales/Sucursales'
 import NuevaSucursal from '../pages/Sucursales/NuevaSucursal'
 import EditarSucursal from '../pages/Sucursales/EditarSucursal'
 import Stock from '../pages/Stock/Stock'
+import Insumos from '../pages/Insumos/Insumos'
 
 interface AppRoutesProps {
   isAuthenticated: boolean
@@ -68,7 +69,7 @@ export default function AppRoutes({ isAuthenticated, administrador ,setAdministr
                 <Route path="/admin/sucursales/editar/:id" element={<EditarSucursal />}/>
 
                 <Route path="/admin/sucursales/:id/stock" element={<Stock />}/>
-
+                <Route path="/admin/insumos" element={<Insumos />}/>
                 
             </Route>
 

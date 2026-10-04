@@ -15,6 +15,10 @@ export interface ProductIngredient {
   esAgregable: boolean
   /** Lo que se le cobra de más al cliente por sumar una unidad de este insumo. */
   precioComercial: number
+    /** Solo con sucursal: si hay stock para la receta */
+  hayStock?: boolean
+  /** Solo con sucursal: si además alcanza para pedirlo extra */
+  hayStockExtra?: boolean
 }
 
 export interface Product {

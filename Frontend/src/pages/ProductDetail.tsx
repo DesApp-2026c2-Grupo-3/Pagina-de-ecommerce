@@ -9,6 +9,7 @@ import ChoiceSheet, { type OpcionElegible } from '../components/product/ChoiceSh
 import CustomizeSheet from '../components/product/CustomizeSheet'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
+import { useZona } from '../context/ZonaContext'
 
 function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
@@ -31,7 +32,7 @@ function DetalleProducto({ id }: { id: number }) {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const { showToast } = useToast()
-
+  const { zona } = useZona()
   const [product, setProduct] = useState<ProductoBackend | null>(null)
   const [catalogo, setCatalogo] = useState<ProductoBackend[]>([])
   const [categorias, setCategorias] = useState<Category[]>([])
@@ -46,8 +47,10 @@ function DetalleProducto({ id }: { id: number }) {
   const [eleccion, setEleccion] = useState<Record<number, number>>({})
   const [grupoAbierto, setGrupoAbierto] = useState<number | null>(null)
 
+  // Se vuelve a pedir si el cliente cambia de zona: la disponibilidad depende de la sucursal
   useEffect(() => {
-    Promise.all([getProductoDetalle(id), getCategories(), getProducts()])
+    setLoading(true)
+    Promise.all([getProductoDetalle(id, zona?.sucursalId), getCategories(), getProducts(zona?.sucursalId)])
       .then(([detalle, cats, productos]) => {
         setProduct(detalle)
         setCategorias(cats)
@@ -57,7 +60,7 @@ function DetalleProducto({ id }: { id: number }) {
       // Si el producto no existe, el backend responde 404 y se muestra "Producto no encontrado"
       .catch(() => setProduct(null))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, zona?.sucursalId])
 
   const nombreCategoria = (categoriaId?: number | null) =>
     categorias.find((c) => c.id === categoriaId)?.nombre ?? ''

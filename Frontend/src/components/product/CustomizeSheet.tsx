@@ -66,7 +66,9 @@ function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClo
           const removible = ing.esRemovible
           const entero = Number.isInteger(ing.cantidadBase)
           const paso = entero ? 1 : ing.cantidadBase
-
+          // Con sucursal elegida, el backend avisa si no alcanza el stock para pedirlo extra
+          const sinStockExtra = agregable && ing.hayStockExtra === false
+          
           return (
             <li key={ing.insumoId} className="flex items-center gap-3 border-b border-brand-dark/10 py-3 last:border-b-0">
               <span
@@ -78,8 +80,13 @@ function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClo
 
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-brand-dark">{ing.nombre}</p>
-                {agregable && ing.precioComercial > 0 && (
-                  <p className="text-xs text-gray-500">+{precio(ing.precioComercial)} cada extra</p>
+                {sinStockExtra ? (
+                  <p className="text-xs font-semibold text-gray-500">Sin stock para extras</p>
+                ) : (
+                  agregable &&
+                  ing.precioComercial > 0 && (
+                    <p className="text-xs text-gray-500">+{precio(ing.precioComercial)} cada extra</p>
+                  )
                 )}
                 {!agregable && !removible && <p className="text-xs text-gray-500">Incluido</p>}
               </div>
@@ -88,8 +95,7 @@ function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClo
                 <QuantityStepper
                   value={cantidad}
                   min={removible ? 0 : ing.cantidadBase}
-                  max={ing.cantidadBase + EXTRA_MAX_INCREMENTO * paso}
-                  step={paso}
+                  max={sinStockExtra ? ing.cantidadBase : ing.cantidadBase + EXTRA_MAX_INCREMENTO * paso}                  step={paso}
                   label={ing.nombre}
                   onChange={(n) => cambiar(ing.insumoId, n)}
                 />

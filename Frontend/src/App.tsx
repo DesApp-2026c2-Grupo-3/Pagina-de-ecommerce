@@ -17,9 +17,12 @@ import Seguridad from './pages/Seguridad'
 import Toast from './components/Toast'
 import SobreNosotros from './components/home/SobreNosotros'
 import ScrollToTop from './utils/scrollToTop'
+import { ZonaProvider } from './context/ZonaContext'
+import ElegirZonaModal from './components/ElegirZonaModal'
 
 function App() {
   return (
+    <ZonaProvider>
     <div className="flex flex-1 flex-col bg-black text-brand-dark">
       <ScrollToTop />
       <Navbar />
@@ -32,18 +35,20 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
           <Route path="/carrito" element={<Cart />} />
-          <Route path="*" element={<NotFound />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/historial" element={<HistorialPedidos />} />
           <Route path="/direcciones" element={<Address />} />
           <Route path="/seguridad" element={<Seguridad />} />
           <Route path="/conocenos" element={<SobreNosotros />}/>
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
       <Toast />
+      <ElegirZonaModal />
     </div>
+    </ZonaProvider>
   )
 }
 

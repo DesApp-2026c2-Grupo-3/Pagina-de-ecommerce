@@ -3,15 +3,21 @@ import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
 import { Search } from "lucide-react";
+import { useZona } from "../context/ZonaContext";
 
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const { zona } = useZona();
+
+  // Los productos se vuelven a pedir si el cliente cambia de zona
+  useEffect(() => {
+    getProducts(zona?.sucursalId).then(setProducts);
+  }, [zona?.sucursalId]);
 
   useEffect(() => {
-    getProducts().then(setProducts);
     getCategories().then(setCategories);
   }, []);
 
@@ -52,7 +58,11 @@ function Products() {
       <p className="mt-2 text-gray-800">
         Elegí una categoría o buscá tu producto favorito.
       </p>
-
+            {zona && (
+        <p className="mt-1 text-sm font-semibold text-gray-800">
+          📍 Mostrando lo disponible en {zona.sucursalNombre}
+        </p>
+      )}
       <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:px-0 md:pb-0">
           <button

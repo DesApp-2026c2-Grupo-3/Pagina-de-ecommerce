@@ -10,6 +10,8 @@ interface IngredienteBackend {
   esRemovible: boolean
   esAgregable: boolean
   precioComercial: number
+  hayStock?: boolean
+  hayStockExtra?: boolean
 }
 
 // GET /productos/:id = el producto de siempre + su receta, tal como viene del backend
@@ -17,9 +19,12 @@ type ProductoDetalleBackend = Omit<ProductoBackend, 'ingredientes'> & {
   ingredientes?: IngredienteBackend[]
 }
 
-export const getProducts = async (): Promise<ProductoBackend[]> => {
-  const productos = await httpClient<ProductoBackend[]>('/productos')
-  return productos
+// Con sucursalId, el backend calcula la disponibilidad con el stock de esa sucursal
+const conSucursal = (ruta: string, sucursalId?: number | null) =>
+  sucursalId ? `${ruta}?sucursalId=${sucursalId}` : ruta
+
+export const getProducts = async (sucursalId?: number | null): Promise<ProductoBackend[]> => {
+  return httpClient<ProductoBackend[]>(conSucursal('/productos', sucursalId))
 }
 
 function mapIngrediente(i: IngredienteBackend): ProductIngredient {
@@ -31,13 +36,13 @@ function mapIngrediente(i: IngredienteBackend): ProductIngredient {
     esRemovible: i.esRemovible,
     esAgregable: i.esAgregable,
     precioComercial: Number(i.precioComercial) || 0,
+    hayStock: i.hayStock,
+    hayStockExtra: i.hayStockExtra,
   }
 }
 
-// Detalle de un producto, incluyendo su receta (insumos removibles/agregables)
-// para poder personalizarlo antes de agregarlo al carrito.
-export const getProductoDetalle = async (id: number): Promise<ProductoBackend> => {
-  const producto = await httpClient<ProductoDetalleBackend>(`/productos/${id}`)
+export const getProductoDetalle = async (id: number, sucursalId?: number | null): Promise<ProductoBackend> => {
+  const producto = await httpClient<ProductoDetalleBackend>(conSucursal(`/productos/${id}`, sucursalId))
   return {
     ...producto,
     ingredientes: (producto.ingredientes ?? []).map(mapIngrediente),

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { obtenerCategorias } from '../services/categoriaService'
 import { obtenerProductos, obtenerInsumos, obtenerTamanios } from '../services/productoService'
+import { crearInsumo } from '../services/insumoService'
 
 // ---------- Tipos del formulario (los números van como texto mientras se escriben) ----------
 
@@ -203,6 +204,10 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
   const [categorias, setCategorias] = useState<Opcion[]>([])
   const [insumos, setInsumos] = useState<InsumoOpcion[]>([])
   const [productos, setProductos] = useState<ProductoOpcion[]>([])
+  // Alta rápida de un insumo nuevo, sin salir del producto
+  const [creandoInsumo, setCreandoInsumo] = useState(false)
+  const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', unidadMedida: 'unidad', precioComercial: '' })
+  const [errorInsumo, setErrorInsumo] = useState('')
 
   // Carga las listas para los selects, y arma una fila por cada tamaño que existe
   useEffect(() => {
@@ -245,6 +250,30 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     setError('')
   }
 
+    // Crea el insumo (con su stock en 0 en todas las sucursales) y lo suma a la receta, ya elegido
+  async function guardarInsumoNuevo() {
+    if (nuevoInsumo.nombre.trim().length < 2) {
+      setErrorInsumo('El nombre debe tener al menos 2 caracteres.')
+      return
+    }
+    try {
+      const { insumo } = await crearInsumo({
+        nombre: nuevoInsumo.nombre.trim(),
+        unidadMedida: nuevoInsumo.unidadMedida,
+        precioComercial: nuevoInsumo.precioComercial === '' ? null : Number(nuevoInsumo.precioComercial),
+      })
+      setInsumos((prev) => [...prev, insumo].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+      cambiar('receta', [
+        ...datos.receta,
+        { insumoId: String(insumo.id), cantidadBase: '1', esRemovible: false, esAgregable: false },
+      ])
+      setNuevoInsumo({ nombre: '', unidadMedida: 'unidad', precioComercial: '' })
+      setCreandoInsumo(false)
+      setErrorInsumo('')
+    } catch (err) {
+      setErrorInsumo(err instanceof Error ? err.message : 'No se pudo crear el insumo.')
+    }
+  }
   const nombreTamanio = (id: number) => ['', 'Regular', 'Mediano', 'Grande'][id] ?? `Tamaño ${id}`
 
   async function enviar(e: FormEvent) {
@@ -464,18 +493,100 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
           })}
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            cambiar('receta', [
-              ...datos.receta,
-              { insumoId: '', cantidadBase: '1', esRemovible: false, esAgregable: false },
-            ])
-          }
-          className={`${botonAgregar} mt-3`}
-        >
-          <Plus size={16} /> Agregar ingrediente
-        </button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              cambiar('receta', [
+                ...datos.receta,
+                { insumoId: '', cantidadBase: '1', esRemovible: false, esAgregable: false },
+              ])
+            }
+            className={botonAgregar}
+          >
+            <Plus size={16} /> Agregar ingrediente
+          </button>
+          {!creandoInsumo && (
+            <button
+              type="button"
+              onClick={() => setCreandoInsumo(true)}
+              className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <Plus size={16} /> Crear insumo nuevo
+            </button>
+          )}
+        </div>
+
+        {/* Alta rápida: no es un <form> propio porque ya está dentro del formulario del producto */}
+        {creandoInsumo && (
+          <div className="mt-3 rounded border border-orange-200 bg-orange-50 p-4">
+            <p className="mb-3 font-semibold">Nuevo insumo</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <input
+                type="text"
+                maxLength={50}
+                autoFocus
+                value={nuevoInsumo.nombre}
+                onChange={(e) => {
+                  setNuevoInsumo({ ...nuevoInsumo, nombre: e.target.value })
+                  setErrorInsumo('')
+                }}
+                // Enter crea el insumo, en lugar de enviar el formulario del producto
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    guardarInsumoNuevo()
+                  }
+                }}
+                className={campo}
+                placeholder="Ej: Pepinillos"
+                aria-label="Nombre del insumo nuevo"
+              />
+              <select
+                value={nuevoInsumo.unidadMedida}
+                onChange={(e) => setNuevoInsumo({ ...nuevoInsumo, unidadMedida: e.target.value })}
+                className={campo}
+                aria-label="Unidad de medida del insumo nuevo"
+              >
+                {['unidad', 'kg', 'g', 'litro', 'ml'].map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={nuevoInsumo.precioComercial}
+                onChange={(e) => setNuevoInsumo({ ...nuevoInsumo, precioComercial: e.target.value })}
+                className={campo}
+                placeholder="Precio por extra (opcional)"
+                aria-label="Precio por extra del insumo nuevo"
+              />
+            </div>
+            {errorInsumo && <p className="mt-2 text-sm text-red-700">{errorInsumo}</p>}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreandoInsumo(false)
+                  setErrorInsumo('')
+                }}
+                className="rounded border px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={guardarInsumoNuevo}
+                className="rounded border border-orange-300 bg-action px-3 py-1.5 text-sm font-semibold text-white hover:bg-action-hover"
+              >
+                Crear y agregar a la receta
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ---------- Tamaños (productos con tamaños y combos) ---------- */}

@@ -1,26 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ChevronDown, MapPin, ShoppingCart } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
-import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, ShoppingCart } from 'lucide-react'
+import { useZona } from '../../context/ZonaContext'
 import { LogoConEco } from '../logoEcoDestello'
 
-function getNavLinks(isAuthenticated: boolean) {
-  const links = [
-    { label: 'Home', to: '/' },
-    { label: 'Catálogo', to: '/catalogo' },
-    { label: 'Promociones', to: '/promociones' },
-    { label: 'Conocenos', to: '/conocenos' }
-  ]
-
-  {/*if (!isAuthenticated) {
-    links.push({ label: 'Trabajá acá', to: '/#trabaja-con-nosotros' })
-    links.push({ label: 'Sobre nosotros', to: '/#sobre-nosotros' })
-    links.push({ label: 'Contacto', to: '/#contacto' })
-  }*/}
-
-  return links
-}
+const navLinks = [
+  { label: 'Home', to: '/' },
+  { label: 'Catálogo', to: '/catalogo' },
+  { label: 'Promociones', to: '/promociones' },
+  { label: 'Conocenos', to: '/conocenos' },
+]
 
 const profileLinks = [
   { label: 'Datos personales', to: '/perfil', icon: '👤' },
@@ -35,10 +26,11 @@ function Navbar() {
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
   const { totalItems, clearCart } = useCart()
+  const { zona, abrirSelector } = useZona()
   const navigate = useNavigate()
   const menuRef = useRef<HTMLLIElement>(null)
-  const navLinks = getNavLinks(isAuthenticated)
 
+  // Cierra el menú de perfil (escritorio) al hacer clic afuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -54,51 +46,32 @@ function Navbar() {
     logout()
     clearCart()
     setMenuOpen(false)
-    setMobileProfileOpen(false) 
+    setMobileProfileOpen(false)
     setOpen(false)
     navigate('/')
   }
 
-  // Si el link es "Home" (to === '/') y ya estás en esa ruta, React Router no
-  // navega (misma URL) y por lo tanto no hay ningún trigger que suba el scroll.
-  // Forzamos el scroll arriba manualmente en ese caso.
+  // Si el link es "Home" y ya estás ahí, React Router no navega (misma URL),
+  // así que se fuerza el scroll arriba a mano
   function handleNavLinkClick(to: string) {
     if (to === '/') {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
+
   function closeMobileMenu() {
-  setOpen(false)
-  setMobileProfileOpen(false)
+    setOpen(false)
+    setMobileProfileOpen(false)
   }
 
   return (
     <header className="sticky top-0 z-20 bg-brand-dark shadow-md" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold text-white">
-         {/*
-           <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-red text-white">
-            B
-          </span>
-          <span>
-            Burger<span className="text-brand-red">Fast</span>
-          </span> 
-         */}
-        {/*<div className="flex-1 flex justify-center items-center">
-          <a href="/" className="flex items-center">
-            <img 
-              src={logo} 
-              alt="Logotipo de la empresa" 
-              className="h-24 w-auto object-contain"
-            />
-          </a>
-        </div>*/} 
-        <LogoConEco isAuthenticated={isAuthenticated} />
-
+          <LogoConEco isAuthenticated={isAuthenticated} />
         </Link>
 
-        
-
+        {/* ---------- Escritorio ---------- */}
         <ul className="hidden items-center gap-0.5 lg:flex xl:gap-1">
           {navLinks.map((link) => (
             <li key={link.label}>
@@ -111,20 +84,35 @@ function Navbar() {
               </Link>
             </li>
           ))}
-            <li>
-              <Link
-                to="/carrito"
-                aria-label="Ver carrito"
-                className="relative flex items-center rounded-lg p-2 text-white transition-colors hover:bg-brand-red"
-              >
-                <ShoppingCart className="h-6 w-6" />
-                {totalItems > 0 && (
-                  <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-red text-xs font-bold text-white">
-                    {totalItems}
-                   </span>
-                )}
-              </Link>
-            </li> 
+
+          {/* Dónde recibe el pedido: define la sucursal y su stock */}
+          <li>
+            <button
+              type="button"
+              onClick={abrirSelector}
+              title="Cambiar dónde recibís tu pedido"
+              className="flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span className="max-w-[10rem] truncate">{zona ? zona.sucursalNombre : 'Elegí tu zona'}</span>
+            </button>
+          </li>
+
+          <li>
+            <Link
+              to="/carrito"
+              aria-label="Ver carrito"
+              className="relative flex items-center rounded-lg p-2 text-white transition-colors hover:bg-brand-red"
+            >
+              <ShoppingCart className="h-6 w-6" />
+              {totalItems > 0 && (
+                <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-red text-xs font-bold text-white">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          </li>
+
           <li className="relative ml-2" ref={menuRef}>
             {isAuthenticated ? (
               <>
@@ -138,37 +126,22 @@ function Navbar() {
                 </button>
 
                 {menuOpen && (
-                <div className="absolute right-0 mt-2 w-max overflow-hidden rounded-xl border border-white/10 bg-brand-dark shadow-xl">                    <Link
-                      to="/perfil"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"                    >
-                      <span>👤</span> Datos personales
-                    </Link>
-                    <Link
-                      to="/direcciones"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                    >
-                      <span>📍</span> Direcciones guardadas
-                    </Link>
-                    <Link
-                      to="/historial"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                    >
-                      <span>🧾</span> Historial de pedidos
-                    </Link>
-                    <Link
-                      to="/seguridad"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"
-                    >
-                      <span>🔒</span> Seguridad
-                    </Link>
+                  <div className="absolute right-0 mt-2 w-max overflow-hidden rounded-xl border border-white/10 bg-brand-dark shadow-xl">
+                    {profileLinks.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 whitespace-nowrap px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                      >
+                        <span>{item.icon}</span> {item.label}
+                      </Link>
+                    ))}
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-2 whitespace-nowrap border-t border-white/10 px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-red hover:text-white"                    >
+                      className="flex w-full items-center gap-2 whitespace-nowrap border-t border-white/10 px-4 py-2 text-left font-semibold text-white hover:bg-brand-red"
+                    >
                       <span>🚪</span> Cerrar sesión
                     </button>
                   </div>
@@ -196,85 +169,103 @@ function Navbar() {
         </button>
       </nav>
 
-     {open && (
-  <ul className="flex flex-col gap-1 border-t border-white/10 bg-brand-dark px-4 pb-4 lg:hidden">
-    {navLinks.map((link) => (
-      <li key={link.label}>
-        <Link
-          to={link.to}
-          onClick={() => {
-            handleNavLinkClick(link.to)
-            closeMobileMenu()
-          }}
-          className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-        >
-          {link.label}
-        </Link>
-      </li>
-    ))}
+      {/* ---------- Celular ---------- */}
+      {open && (
+        <ul className="flex flex-col gap-1 border-t border-white/10 bg-brand-dark px-4 pb-4 lg:hidden">
+          {navLinks.map((link) => (
+            <li key={link.label}>
+              <Link
+                to={link.to}
+                onClick={() => {
+                  handleNavLinkClick(link.to)
+                  closeMobileMenu()
+                }}
+                className="block rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
 
-    <li>
-      <Link
-        to="/carrito"
-        onClick={closeMobileMenu}
-        className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
-      >
-        <ShoppingCart className="h-5 w-5" />
-        Carrito
-        {totalItems > 0 && (
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-brand-red">
-            {totalItems}
-          </span>
-        )}
-      </Link>
-    </li>
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                abrirSelector()
+                closeMobileMenu()
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-left font-semibold text-white hover:bg-brand-red"
+            >
+              <MapPin className="h-5 w-5 shrink-0" />
+              {zona ? `Pedís desde ${zona.sucursalNombre}` : 'Elegí tu zona'}
+            </button>
+          </li>
 
-    <li className="mt-2">
-      {isAuthenticated ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setMobileProfileOpen((v) => !v)}
-            aria-expanded={mobileProfileOpen}
-            className="flex w-full items-center justify-between rounded-full bg-brand-red px-5 py-2 font-bold text-white"
-          >
-            Hola, {user?.name}
-            <ChevronDown
-              className={`h-5 w-5 transition-transform ${mobileProfileOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
+          <li>
+            <Link
+              to="/carrito"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white hover:bg-brand-red"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              Carrito
+              {totalItems > 0 && (
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-bold text-brand-red">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          </li>
 
-          {mobileProfileOpen && (
-            <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-brand-dark">              {profileLinks.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={closeMobileMenu}
-                      className="flex items-center gap-2 px-4 py-2 font-semibold text-white hover:bg-brand-red"                >
-                  <span>{item.icon}</span> {item.label}
-                </Link>
-              ))}
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-2 border-t border-white/10 px-4 py-2 text-left font-semibold text-brand-red hover:bg-brand-red hover:text-white"              >
-                <span>🚪</span> Cerrar sesión
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <Link
-          to="/login"
-          onClick={closeMobileMenu}
-          className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
-        >
-          Iniciar Sesión
-        </Link>
+          <li className="mt-2">
+            {isAuthenticated ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMobileProfileOpen((v) => !v)}
+                  aria-expanded={mobileProfileOpen}
+                  className="flex w-full items-center justify-between rounded-full bg-brand-red px-5 py-2 font-bold text-white"
+                >
+                  Hola, {user?.name}
+                  <ChevronDown
+                    className={`h-5 w-5 transition-transform ${mobileProfileOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {mobileProfileOpen && (
+                  <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-brand-dark">
+                    {profileLinks.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-2 px-4 py-2 font-semibold text-white hover:bg-brand-red"
+                      >
+                        <span>{item.icon}</span> {item.label}
+                      </Link>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2 border-t border-white/10 px-4 py-2 text-left font-semibold text-white hover:bg-brand-red"
+                    >
+                      <span>🚪</span> Cerrar sesión
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <Link
+                to="/login"
+                onClick={closeMobileMenu}
+                className="block rounded-full bg-brand-red px-5 py-2 text-center font-bold text-white"
+              >
+                Iniciar Sesión
+              </Link>
+            )}
+          </li>
+        </ul>
       )}
-    </li>
-  </ul>
-)} 
     </header>
   )
 }

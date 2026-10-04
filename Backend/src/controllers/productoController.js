@@ -12,6 +12,7 @@ const {
     agruparPorProducto,
     stockComoMapa,
     productoDisponible,
+    factorMinimo,
     pasoExtra,
 } = require('../utils/disponibilidad');
 
@@ -30,6 +31,7 @@ function mapIngredientes(producto) {
             : 0
     }));
 }
+
 // Lee ?sucursalId de la URL:
 // - sin sucursalId → { sucursalId: null } (se responde como siempre)
 // - inválido o inexistente → { error } con el status y el mensaje
@@ -50,7 +52,7 @@ async function sucursalDesdeQuery(query) {
 }
 
 // Los tamaños de un producto, ordenados (regular, mediano, grande) y con el nombre del tamaño:
-// [{ tamanioId: 1, tamanio: 'regular', precio: '2100.00', etiqueta: null }]
+// [{ tamanioId: 1, tamanio: 'regular', precio: '2100.00', etiqueta: null, factorStock: 1 }]
 function mapTamanios(tamanios) {
     return tamanios
         .map((pt) => ({
@@ -58,7 +60,8 @@ function mapTamanios(tamanios) {
             tamanio: pt.Tamanio ? pt.Tamanio.nombre : null,
             orden: pt.Tamanio ? pt.Tamanio.orden : 0,
             precio: pt.precio,
-            etiqueta: pt.etiqueta
+            etiqueta: pt.etiqueta,
+            factorStock: Number(pt.factorStock ?? 1),
         }))
         .sort((a, b) => a.orden - b.orden)
         .map(({ orden, ...resto }) => resto);
@@ -68,7 +71,7 @@ function incluirTamanios() {
     return {
         model: ProductoTamanio,
         as: 'tamanios',
-        attributes: ['tamanioId', 'precio', 'etiqueta'],
+        attributes: ['tamanioId', 'precio', 'etiqueta', 'factorStock'],
         include: [{ model: Tamanio, attributes: ['nombre', 'orden'] }]
     };
 }
@@ -92,6 +95,12 @@ function aplanarProducto(producto) {
         : resultado;
 }
 
+// El factor con el que se mide la disponibilidad: un combo no agranda su propia receta
+// por tamaño (igual que en crearPedido); el resto usa su tamaño más chico
+function factorDe(producto) {
+    return producto.grupos?.length ? 1 : factorMinimo(producto.tamanios);
+}
+
 // GET /productos                → catálogo con el "disponible" manual (como siempre)
 // GET /productos?sucursalId=2   → "disponible" calculado con el stock de esa sucursal
 const obtenerProductos = async (req, res) => {
@@ -100,7 +109,7 @@ const obtenerProductos = async (req, res) => {
         if (error) return res.status(error.status).json({ mensaje: error.mensaje });
 
         const productos = (await Producto.findAll({
-            include: [incluirTamanios()],
+            include: [incluirTamanios(), incluirGrupos()],
             order: [['id', 'ASC']]
         })).map(aplanarProducto);
 
@@ -115,10 +124,22 @@ const obtenerProductos = async (req, res) => {
         const recetasPorProducto = agruparPorProducto(recetas);
         const stockPorInsumo = stockComoMapa(stock);
 
-        res.json(productos.map((datos) => ({
-            ...datos,
-            disponible: productoDisponible(datos, recetasPorProducto.get(datos.id), stockPorInsumo),
-        })));
+        // Primero, cada producto por su propia receta
+        const porReceta = new Map(productos.map((p) => [
+            p.id,
+            productoDisponible(p, recetasPorProducto.get(p.id), stockPorInsumo, factorDe(p)),
+        ]));
+
+        // Un combo, además, necesita al menos una opción disponible en cada lugar obligatorio
+        res.json(productos.map((p) => {
+            let disponible = porReceta.get(p.id);
+            if (disponible && p.grupos?.length) {
+                disponible = p.grupos
+                    .filter((g) => g.obligatorio)
+                    .every((g) => productos.some((o) => o.categoriaId === g.categoriaId && porReceta.get(o.id)));
+            }
+            return { ...p, disponible };
+        }));
     } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: 'Error al obtener los productos' });
@@ -159,7 +180,7 @@ const obtenerProductoPorId = async (req, res) => {
 
         res.json({
             ...datosProducto,
-            disponible: productoDisponible(datosProducto, ingredientes, stockPorInsumo),
+            disponible: productoDisponible(datosProducto, ingredientes, stockPorInsumo, factorDe(datosProducto)),
             ingredientes: ingredientes.map((ing) => {
                 const hay = stockPorInsumo.get(ing.insumoId) ?? 0;
                 return {
