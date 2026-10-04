@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
-import { crearSucursal } from "../../services/sucursales";
+import { crearSucursal } from "../../services/sucursalService";
 
 export default function NuevaSucursal() {
   const [nombre, setNombre] = useState("");

@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext'
 import {
   obtenerSucursales,
   cambiarEstadoSucursal
-} from '../../services/sucursales'
+} from '../../services/sucursalService'
 
 export default function Sucursales() {
   const navigate = useNavigate()

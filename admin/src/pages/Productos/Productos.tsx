@@ -5,9 +5,9 @@ import { Pencil, Trash2, Plus, DollarSign } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
-import { obtenerProductos } from '../../services/productos'
-import { obtenerCategorias } from '../../services/categorias'
-import { eliminarProducto as eliminarProductoAPI } from '../../services/productos'
+import { obtenerProductos } from '../../services/productoService'
+import { obtenerCategorias } from '../../services/categoriaService'
+import { eliminarProducto as eliminarProductoAPI } from '../../services/productoService'
 
 export default function Productos() {
   const navigate = useNavigate();
@@ -37,8 +37,8 @@ export default function Productos() {
       }
 
       mostrarToast('Producto eliminado!')
-    } catch (error) {
-      console.error('Error al eliminar producto:', error)
+        } catch (error) {
+      mostrarToast(error instanceof Error ? error.message : 'No se pudo eliminar el producto')
     }
   }
 

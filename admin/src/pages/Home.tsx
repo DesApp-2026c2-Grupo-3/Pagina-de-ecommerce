@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import type { AdministradorSesion } from '../App'
 import { useState } from 'react';
-import { iniciarSesion } from '../services/auth';
+import { iniciarSesion } from '../services/authService';
 
 interface HomeProps {
   setAdministrador: React.Dispatch<

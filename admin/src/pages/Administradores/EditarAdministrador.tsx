@@ -4,8 +4,8 @@ import { useToast } from '../../context/ToastContext'
 import {
   obtenerAdministradorPorId,
   actualizarAdministrador
-} from '../../services/administradores'
-import { obtenerSucursales } from '../../services/sucursales'
+} from '../../services/administradorService'
+import { obtenerSucursales } from '../../services/sucursalService'
 
 export default function EditarAdministrador() {
   const { id } = useParams()

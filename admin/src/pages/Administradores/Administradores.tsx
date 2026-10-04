@@ -5,8 +5,8 @@ import { Pencil, Trash2, Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
 import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
-import { obtenerAdministradores } from '../../services/administradores'
-import { eliminarAdministrador as eliminarAdministradorAPI } from '../../services/administradores'
+import { obtenerAdministradores } from '../../services/administradorService'
+import { eliminarAdministrador as eliminarAdministradorAPI } from '../../services/administradorService'
 
 export default function Administradores() {
     const { mostrarToast } = useToast();

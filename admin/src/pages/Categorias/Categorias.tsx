@@ -5,8 +5,8 @@ import { Pencil, Trash2, Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
 import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
-import { obtenerCategorias } from '../../services/categorias';
-import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categorias'
+import { obtenerCategorias } from '../../services/categoriaService';
+import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categoriaService'
 
 export default function Categorias() {
   const navigate = useNavigate();

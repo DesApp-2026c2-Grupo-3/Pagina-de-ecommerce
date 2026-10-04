@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import MensajeVacio from '../../components/MensajeVacio'
-import { obtenerSucursalPorId } from '../../services/sucursales'
-import { obtenerStockPorSucursal } from '../../services/stock'
+import { obtenerSucursalPorId } from '../../services/sucursalService'
+import { obtenerStockPorSucursal } from '../../services/stockService'
 import { useToast } from '../../context/ToastContext'
-import { cargarAumento } from '../../services/stock'
+import { cargarAumento } from '../../services/stockService'
 
 export default function StockSucursal() {
   const { id } = useParams()

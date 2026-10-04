@@ -4,7 +4,7 @@ import { useToast } from "../../context/ToastContext";
 import {
   obtenerSucursalPorId,
   actualizarSucursal,
-} from "../../services/sucursales";
+} from "../../services/sucursalService";
 
 export default function EditarSucursal() {
   const { id } = useParams();
