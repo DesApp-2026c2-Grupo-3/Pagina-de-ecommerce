@@ -1,4 +1,18 @@
-const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, ComboGrupo, ProductoTamanio, sequelize } = require("../models");
+const {
+    Pedido,
+    DetallePedido,
+    Producto,
+    Usuario,
+    Direccion,
+    Sucursal,
+    RecetaInsumo,
+    ComboGrupo,
+    Insumo,
+    ProductoTamanio,
+    StockSucursal,
+    MovimientoStock,
+    sequelize,
+} = require('../models');
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 
@@ -15,8 +29,9 @@ class ErrorPedido extends Error {
 
 const redondear = (n) => Math.round(n * 1000) / 1000;
 
-// Descuenta stock de un insumo en la sucursal, con lock de fila dentro de la transacción
-async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, t }) {
+// Descuenta stock de un insumo en la sucursal, con lock de fila dentro de la transacción,
+// y lo registra en el historial como venta del pedido
+async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, pedidoId, t }) {
     if (cantidad <= 0) return;
 
     const stock = await StockSucursal.findOne({
@@ -29,11 +44,22 @@ async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, 
         throw new ErrorPedido(400, `No hay stock cargado para un insumo de ${nombreProducto} en esta sucursal`);
     }
 
-    if (Number(stock.cantidad) < cantidad) {
+    const anterior = Number(stock.cantidad);
+    if (anterior < cantidad) {
         throw new ErrorPedido(400, `Stock insuficiente para preparar ${nombreProducto} en esta sucursal`);
     }
 
-    await stock.update({ cantidad: redondear(Number(stock.cantidad) - cantidad) }, { transaction: t });
+    const nueva = redondear(anterior - cantidad);
+    await stock.update({ cantidad: nueva }, { transaction: t });
+    await MovimientoStock.create({
+        sucursalId,
+        insumoId,
+        tipo: 'venta',
+        cantidad,
+        cantidadAnterior: anterior,
+        cantidadNueva: nueva,
+        pedidoId,
+    }, { transaction: t });
 }
 
 // Valida lo que el cliente eligió para un grupo del combo y calcula su recargo y su consumo de stock.
@@ -319,6 +345,7 @@ const crearPedido = async (req,res) => {
                     cantidad: cantidadNecesaria,
                     sucursalId,
                     nombreProducto: productoBD.nombre,
+                    pedidoId: nuevoPedido.id,
                     t
                 });
             }
@@ -333,6 +360,7 @@ const crearPedido = async (req,res) => {
                         cantidad: redondear(Number(item.cantidadBase) * Number(tamanio.factorStock ?? 1) * producto.cantidad),
                         sucursalId,
                         nombreProducto: elegido.nombre,
+                        pedidoId: nuevoPedido.id,
                         t
                     });
                 }

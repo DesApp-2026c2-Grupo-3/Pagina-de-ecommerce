@@ -155,6 +155,7 @@ const obtenerMovimientos = async (req, res) => {
             motivo: m.motivo,
             detalle: m.detalle,
             admin: m.Admin?.nombre ?? null,
+            pedidoId: m.pedidoId,
         })));
     } catch (error) {
         console.error('Algo salió mal', error.message);

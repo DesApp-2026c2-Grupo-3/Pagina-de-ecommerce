@@ -25,12 +25,13 @@ interface ItemStock {
 interface Movimiento {
   id: number
   fecha: string
-  tipo: 'aumento' | 'baja'
+  tipo: 'aumento' | 'baja' | 'venta' | 'devolucion'
   insumo: string
   cantidad: number
   motivo: string | null
   detalle: string | null
   admin: string | null
+  pedidoId: number | null
 }
 
 function formatearFechaHora(valor: string) {
@@ -42,6 +43,17 @@ function formatearFechaHora(valor: string) {
 }
 
 const etiquetaMotivo = (motivo: string | null) => MOTIVOS_BAJA.find((m) => m.valor === motivo)?.etiqueta ?? '—'
+
+// Qué se muestra en "Motivo" según el tipo de movimiento
+function descripcion(m: Movimiento) {
+  if (m.tipo === 'baja') return etiquetaMotivo(m.motivo)
+  if (m.tipo === 'venta') return `Venta · pedido #${m.pedidoId}`
+  if (m.tipo === 'devolucion') return `Pedido #${m.pedidoId} cancelado`
+  return 'Carga de stock'
+}
+
+// Las bajas y las ventas restan; los aumentos y las devoluciones suman
+const resta = (m: Movimiento) => m.tipo === 'baja' || m.tipo === 'venta'
 
 // Un insumo está "en alerta" si se quedó sin stock o llegó a su mínimo
 const enAlerta = (item: ItemStock) => item.cantidad <= 0 || item.bajoMinimo
@@ -330,6 +342,8 @@ export default function StockSucursal() {
             { valor: 'todos', etiqueta: 'Todos los movimientos' },
             { valor: 'aumento', etiqueta: 'Solo aumentos' },
             { valor: 'baja', etiqueta: 'Solo bajas' },
+            { valor: 'venta', etiqueta: 'Solo ventas' },
+            { valor: 'devolucion', etiqueta: 'Solo devoluciones' },
           ]}
         />
       </div>
@@ -346,13 +360,13 @@ export default function StockSucursal() {
               <li key={m.id} className="rounded-lg border bg-white p-4 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 truncate font-medium">{m.insumo}</p>
-                  <span className={`shrink-0 font-bold ${m.tipo === 'baja' ? 'text-red-700' : 'text-green-700'}`}>
-                    {m.tipo === 'baja' ? '−' : '+'}
+                  <span className={`shrink-0 font-bold ${resta(m) ? 'text-red-700' : 'text-green-700'}`}>
+                    {resta(m) ? '−' : '+'}
                     {m.cantidad.toLocaleString('es-AR')}
                   </span>
                 </div>
                 <p className="mt-1 text-gray-700">
-                  {m.tipo === 'baja' ? etiquetaMotivo(m.motivo) : 'Carga de stock'}
+                  {descripcion(m)}
                   {m.detalle && <span className="block text-gray-500">{m.detalle}</span>}
                 </p>
                 <p className="mt-2 text-xs text-gray-500">
@@ -382,21 +396,15 @@ export default function StockSucursal() {
                     <td className="px-4 py-3">{m.insumo}</td>
                     <td
                       className={`whitespace-nowrap px-4 py-3 font-semibold ${
-                        m.tipo === 'baja' ? 'text-red-700' : 'text-green-700'
+                        resta(m) ? 'text-red-700' : 'text-green-700'
                       }`}
                     >
-                      {m.tipo === 'baja' ? '−' : '+'}
+                      {resta(m) ? '−' : '+'}
                       {m.cantidad.toLocaleString('es-AR')}
                     </td>
                     <td className="px-4 py-3">
-                      {m.tipo === 'baja' ? (
-                        <>
-                          {etiquetaMotivo(m.motivo)}
-                          {m.detalle && <span className="block text-gray-500">{m.detalle}</span>}
-                        </>
-                      ) : (
-                        <span className="text-gray-500">Carga de stock</span>
-                      )}
+                      {descripcion(m)}
+                      {m.detalle && <span className="block text-gray-500">{m.detalle}</span>}
                     </td>
                     <td className="px-4 py-3">{m.admin ?? '—'}</td>
                   </tr>
@@ -441,7 +449,6 @@ export default function StockSucursal() {
               <button
                 type="button"
                 onClick={() => {
-                  setFiltroEstado('todos')
                   setBusqueda('')
                   setFiltroEstado(alerta.every((i) => i.cantidad <= 0) ? 'sin' : 'bajo')
                   setAlerta([])

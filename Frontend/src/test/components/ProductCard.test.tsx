@@ -68,10 +68,10 @@ describe('ProductCard', () => {
         producto({
           nombre: 'Papas con cheddar',
           precio: 2400,
-          variantes: [
-            { tamanio: 'grande', precio: '3500', etiqueta: null },
-            { tamanio: 'regular', precio: '2400', etiqueta: null },
-            { tamanio: 'mediano', precio: '2900', etiqueta: null },
+          tamanios: [
+            { tamanioId: 3, tamanio: 'grande', precio: '3500', etiqueta: null },
+            { tamanioId: 1, tamanio: 'regular', precio: '2400', etiqueta: null },
+            { tamanioId: 2, tamanio: 'mediano', precio: '2900', etiqueta: null },
           ],
         }),
       )

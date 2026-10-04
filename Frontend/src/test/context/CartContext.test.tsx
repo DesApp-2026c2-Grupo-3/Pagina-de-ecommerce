@@ -23,7 +23,7 @@ const hamburguesa: ProductoBackend = {
   categoriaId: 1,
 }
 
-// Las variantes vienen desordenadas a propósito
+// Los tamaños vienen desordenados a propósito (1 regular, 3 grande)
 const papas: ProductoBackend = {
   id: 40,
   nombre: 'Papas con cheddar',
@@ -32,9 +32,9 @@ const papas: ProductoBackend = {
   imagen: '',
   disponible: true,
   categoriaId: 3,
-  variantes: [
-    { tamanio: 'grande', precio: '3500', etiqueta: null },
-    { tamanio: 'regular', precio: '2400', etiqueta: null },
+  tamanios: [
+    { tamanioId: 3, tamanio: 'grande', precio: '3500', etiqueta: null },
+    { tamanioId: 1, tamanio: 'regular', precio: '2400', etiqueta: null },
   ],
 }
 
@@ -72,17 +72,15 @@ describe('CartContext', () => {
     expect(result.current.totalPrice).toBe(10000)
   })
 
-    test('ignora un producto no disponible', () => {
-      // Preparar: la misma hamburguesa, pero no disponible
-      const noDisponible = { ...hamburguesa, disponible: false }
-      const { result } = usarCarrito()
+  test('ignora un producto no disponible', () => {
+    const noDisponible = { ...hamburguesa, disponible: false }
+    const { result } = usarCarrito()
 
-      // Actuar: intentar agregarla
-      act(() => result.current.addItem(noDisponible, 1))
+    act(() => result.current.addItem(noDisponible, 1))
 
-      // Verificar: el carrito sigue vacío
-      expect(result.current.items).toEqual([])
-    })
+    expect(result.current.items).toEqual([])
+  })
+
   describe('personalización', () => {
     test('una hamburguesa personalizada va en otra línea, con su precio', () => {
       const { result } = usarCarrito()
@@ -122,9 +120,9 @@ describe('CartContext', () => {
     test('cobra el precio del tamaño elegido', () => {
       const { result } = usarCarrito()
 
-      act(() => result.current.addItem(papas, 1, [], { tamanio: 'grande' }))
+      act(() => result.current.addItem(papas, 1, [], { tamanioId: 3 }))
 
-      expect(result.current.items[0].tamanio).toBe('grande')
+      expect(result.current.items[0].tamanioId).toBe(3)
       expect(result.current.items[0].unitPrice).toBe(3500)
     })
 
@@ -133,15 +131,15 @@ describe('CartContext', () => {
 
       act(() => result.current.addItem(papas, 1))
 
-      expect(result.current.items[0].tamanio).toBe('regular')
+      expect(result.current.items[0].tamanioId).toBe(1)
       expect(result.current.items[0].unitPrice).toBe(2400)
     })
 
     test('tamaños distintos van en líneas distintas', () => {
       const { result } = usarCarrito()
 
-      act(() => result.current.addItem(papas, 1, [], { tamanio: 'regular' }))
-      act(() => result.current.addItem(papas, 1, [], { tamanio: 'grande' }))
+      act(() => result.current.addItem(papas, 1, [], { tamanioId: 1 }))
+      act(() => result.current.addItem(papas, 1, [], { tamanioId: 3 }))
 
       expect(result.current.items).toHaveLength(2)
       expect(result.current.totalPrice).toBe(5900)
@@ -210,10 +208,7 @@ describe('CartContext', () => {
     })
 
     test('completa el precio si falta en un carrito guardado', () => {
-      localStorage.setItem(
-        'cart',
-        JSON.stringify([{ id: '1', product: hamburguesa, quantity: 2 }]),
-      )
+      localStorage.setItem('cart', JSON.stringify([{ id: '1', product: hamburguesa, quantity: 2 }]))
 
       const { result } = usarCarrito()
 
@@ -221,6 +216,7 @@ describe('CartContext', () => {
       expect(result.current.totalPrice).toBe(10000)
     })
   })
+
   describe('editar una línea', () => {
     test('cambia la personalización y el precio, y mantiene la cantidad', () => {
       const { result } = usarCarrito()
@@ -243,11 +239,11 @@ describe('CartContext', () => {
 
     test('cambia el tamaño y su precio', () => {
       const { result } = usarCarrito()
-      act(() => result.current.addItem(papas, 1, [], { tamanio: 'regular' }))
+      act(() => result.current.addItem(papas, 1, [], { tamanioId: 1 }))
 
-      act(() => result.current.reemplazarItem(result.current.items[0].id, papas, [], { tamanio: 'grande' }))
+      act(() => result.current.reemplazarItem(result.current.items[0].id, papas, [], { tamanioId: 3 }))
 
-      expect(result.current.items[0].tamanio).toBe('grande')
+      expect(result.current.items[0].tamanioId).toBe(3)
       expect(result.current.items[0].unitPrice).toBe(3500)
     })
 

@@ -135,22 +135,24 @@ const obtenerProductoPorId = async (req, res) => {
 // Crea el producto con todas sus partes, o nada si algo falla
 const crearProducto = async (req, res) => {
     const { receta = [], tamanios = [], grupos = [], ...datos } = req.body;
-
-    const errorPartes = await validarPartes({ receta, tamanios, grupos });
-    if (errorPartes) {
-        return res.status(400).json({ code: errorPartes });
-    }
-
-    const t = await sequelize.transaction();
+    let t;
+    let confirmado = false;
     try {
+        const errorPartes = await validarPartes({ receta, tamanios, grupos });
+        if (errorPartes) {
+            return res.status(400).json({ code: errorPartes });
+        }
+
+        t = await sequelize.transaction();
         const nuevo = await Producto.create(datos, { transaction: t });
         await guardarPartes(nuevo.id, { receta, tamanios, grupos }, t);
         await t.commit();
+        confirmado = true;
 
         const completo = await buscarCompleto(nuevo.id);
         return res.status(201).json({ mensaje: 'Producto creado con éxito', producto: formatear(completo) });
     } catch (error) {
-        await t.rollback();
+        if (t && !confirmado) await t.rollback();
         console.error(error);
         return res.status(500).json({ mensaje: 'Error al crear el producto' });
     }
@@ -159,27 +161,29 @@ const crearProducto = async (req, res) => {
 // Edita los datos, y reemplaza solo las partes que vienen en el pedido
 const editarProductoPorId = async (req, res) => {
     const { receta, tamanios, grupos, ...datos } = req.body;
-
-    const producto = await Producto.findByPk(req.params.id);
-    if (!producto) {
-        return res.status(404).json({ mensaje: 'Producto no encontrado' });
-    }
-
-    const errorPartes = await validarPartes({ receta, tamanios, grupos }, producto.id);
-    if (errorPartes) {
-        return res.status(400).json({ code: errorPartes });
-    }
-
-    const t = await sequelize.transaction();
+    let t;
+    let confirmado = false;
     try {
+        const producto = await Producto.findByPk(req.params.id);
+        if (!producto) {
+            return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        }
+
+        const errorPartes = await validarPartes({ receta, tamanios, grupos }, producto.id);
+        if (errorPartes) {
+            return res.status(400).json({ code: errorPartes });
+        }
+
+        t = await sequelize.transaction();
         await producto.update(datos, { transaction: t });
         await guardarPartes(producto.id, { receta, tamanios, grupos }, t);
         await t.commit();
+        confirmado = true;
 
         const completo = await buscarCompleto(producto.id);
         return res.status(200).json({ mensaje: 'Producto editado con éxito', producto: formatear(completo) });
     } catch (error) {
-        await t.rollback();
+        if (t && !confirmado) await t.rollback();
         console.error(error);
         return res.status(500).json({ mensaje: 'Error al editar el producto' });
     }

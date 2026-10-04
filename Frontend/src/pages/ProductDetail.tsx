@@ -10,7 +10,11 @@ import CustomizeSheet from '../components/product/CustomizeSheet'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
+<<<<<<< Updated upstream
 import { MoveUpLeft } from 'lucide-react'
+=======
+import type { CartItem } from '../types/cart'
+>>>>>>> Stashed changes
 
 function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
@@ -131,34 +135,52 @@ function DetalleProducto({ id }: { id: number }) {
     })
   }
 
-  function agregar(): boolean {
-    if (!product || !puedeAgregar) return false
-
+  // Lo que eligió el cliente, listo para el carrito o para una compra directa
+  function armarEleccion() {
     const textos = textoPersonalizacion()
     const opcionesCombo = grupos.map((g) => {
       const o = elegida(g)
       return o ? `${o.nombre}${o.recargo > 0 ? ` (+${precio(o.recargo)})` : ''}` : ''
     })
 
-    addItem(product, cantidad, [...opcionesCombo, ...textos].filter(Boolean), {
-      unitPrice: precioUnitario,
-      personalizaciones: tocados.map((ing) => ({ insumoId: ing.insumoId, cantidad: cantidadFinal(ing) })),
-      tamanioId,
-      combo: esCombo
-        ? grupos
-            .filter((g) => eleccion[g.id] !== undefined)
-            .map((g) => ({ grupoId: g.id, productoId: eleccion[g.id] }))
-        : undefined,
-    })
-    return true
+    return {
+      opciones: [...opcionesCombo, ...textos].filter(Boolean),
+      extras: {
+        unitPrice: precioUnitario,
+        personalizaciones: tocados.map((ing) => ({ insumoId: ing.insumoId, cantidad: cantidadFinal(ing) })),
+        tamanioId,
+        combo: esCombo
+          ? grupos
+              .filter((g) => eleccion[g.id] !== undefined)
+              .map((g) => ({ grupoId: g.id, productoId: eleccion[g.id] }))
+          : undefined,
+      },
+    }
   }
 
   function anadirAlCarrito() {
-    if (agregar()) showToast(`${product?.nombre} agregado al carrito`)
+    if (!product || !puedeAgregar) return
+    const { opciones, extras } = armarEleccion()
+    addItem(product, cantidad, opciones, extras)
+    showToast(`${product.nombre} agregado al carrito`)
   }
 
+  // Compra directa: va al checkout solo con este producto, sin tocar el carrito
   function pagarAhora() {
-    if (agregar()) navigate('/carrito')
+    if (!product || !puedeAgregar) return
+    const { opciones, extras } = armarEleccion()
+    const compraDirecta: CartItem = {
+      id: `directa-${product.id}`,
+      product,
+      quantity: cantidad,
+      selectedOptions: opciones,
+      unitPrice: extras.unitPrice,
+      tamanioId: extras.tamanioId,
+      tamanio: tamanioActivo?.tamanio ?? null,
+      personalizaciones: extras.personalizaciones,
+      combo: extras.combo,
+    }
+    navigate('/checkout', { state: { compraDirecta } })
   }
 
   if (loading) {

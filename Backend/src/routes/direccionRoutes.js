@@ -9,5 +9,6 @@ router.get('/usuario/:usuarioId', direccionController.obtenerDireccionesPorUsuar
 router.post('/', validarCrearDireccion, direccionController.crearDireccion);
 router.put('/:id', esIdValido, validarActualizarDireccion, direccionController.actualizarDireccion);
 router.delete('/:id', esIdValido, direccionController.eliminarDireccion);
+router.patch('/:id/predeterminada', esIdValido, direccionController.marcarPredeterminada);
 
 module.exports = router;

@@ -7,6 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       MovimientoStock.belongsTo(models.Insumo, { foreignKey: 'insumoId' });
       MovimientoStock.belongsTo(models.Sucursal, { foreignKey: 'sucursalId' });
       MovimientoStock.belongsTo(models.Admin, { foreignKey: 'adminId' });
+            MovimientoStock.belongsTo(models.Pedido, { foreignKey: 'pedidoId' });
     }
   }
 
@@ -20,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     motivo: { type: DataTypes.STRING, allowNull: true },
     detalle: { type: DataTypes.STRING(200), allowNull: true },
     adminId: { type: DataTypes.INTEGER, allowNull: true },
+    pedidoId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     sequelize,
     modelName: 'MovimientoStock',
