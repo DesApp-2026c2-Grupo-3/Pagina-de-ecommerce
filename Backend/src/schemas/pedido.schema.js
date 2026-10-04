@@ -21,9 +21,10 @@ const pedidoSchema = Joi.object({
                 'number.base': 'El id de producto debe ser un número',
                 'any.required': 'El id de producto es obligatorio'
             }),
-            cantidad: Joi.number().integer().min(1).required().messages({
+            cantidad: Joi.number().integer().min(1).max(20).required().messages({
                 'number.base': 'La cantidad debe ser un número',
                 'number.min': 'La cantidad debe ser al menos 1',
+                'number.max': 'No se pueden pedir más de 20 unidades de un mismo producto',
                 'any.required': 'La cantidad es obligatoria'
             }),
             // Tamaño elegido (id de la tabla Tamanios), si el producto tiene tamaños

@@ -1,4 +1,9 @@
 const { Pedido, DetallePedido, Producto, Usuario, Sucursal, Direccion, RecetaInsumo, Insumo, StockSucursal, ComboGrupo, ProductoTamanio, sequelize } = require("../models");
+const { distanciaKm } = require('../utils/distancia');
+const { pasoExtra } = require('../utils/disponibilidad');
+
+// Cuántas unidades de más se pueden pedir de un ingrediente (igual que el front)
+const EXTRA_MAX_INCREMENTO = 3;
 
 // Error "esperable" (datos inválidos, sin stock...): corta el pedido y responde con este estado
 class ErrorPedido extends Error {
@@ -150,7 +155,23 @@ const crearPedido = async (req,res) => {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Dirección no encontrada' });
         }        
-
+                // La sucursal tiene que estar activa y llegar a la dirección
+        if (!sucursal.activa) {
+            throw new ErrorPedido(400, `${sucursal.nombre} no está tomando pedidos en este momento`);
+        }
+        if (direccion.latitud == null || direccion.longitud == null) {
+            throw new ErrorPedido(400, 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.');
+        }
+        const distancia = distanciaKm(
+            { lat: Number(direccion.latitud), lng: Number(direccion.longitud) },
+            { lat: Number(sucursal.latitud), lng: Number(sucursal.longitud) }
+        );
+        if (distancia > Number(sucursal.radioEntregaKm)) {
+            throw new ErrorPedido(400, `Tu dirección está fuera de la zona de entrega de ${sucursal.nombre}`);
+        }
+        if (cantidad - base > EXTRA_MAX_INCREMENTO * pasoExtra(base)) {
+            throw new ErrorPedido(400, `No se pueden agregar más de ${EXTRA_MAX_INCREMENTO} ${item.Insumo?.nombre ?? 'unidades'} extra`);
+        }
          // Verificar que haya productos
         if (!Array.isArray(productos) || productos.length === 0) {
             await t.rollback();
