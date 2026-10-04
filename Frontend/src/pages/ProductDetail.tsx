@@ -58,8 +58,10 @@ function DetalleProducto({ id }: { id: number }) {
         setTamanioId(ordenarTamanios(detalle.tamanios)[0]?.tamanioId ?? null)
       })
       // Si el producto no existe, el backend responde 404 y se muestra "Producto no encontrado"
-      .catch(() => setProduct(null))
-      .finally(() => setLoading(false))
+      .catch((error) => {
+        console.error('No se pudo cargar el detalle:', error)
+        setProduct(null)
+      })      .finally(() => setLoading(false))
   }, [id, zona?.sucursalId])
 
   const nombreCategoria = (categoriaId?: number | null) =>
@@ -160,8 +162,8 @@ function DetalleProducto({ id }: { id: number }) {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-24 text-center">
-        <p className="text-gray-600">Cargando...</p>
+      <div className="min-h-screen bg-gradient-to-b from-orange-200 via-yellow-800 to-red-800 px-4 py-24 text-center">
+        <p className="font-semibold text-brand-dark">Cargando...</p>
       </div>
     )
   }
@@ -217,8 +219,8 @@ function DetalleProducto({ id }: { id: number }) {
   )
 
    return (
-    <div className="mx-auto max-w-5xl px-4 pt-4 md:pb-12 md:pt-8">
-      <Link
+    <div className="min-h-screen bg-gradient-to-b from-orange-200 via-yellow-800 to-red-800 px-4 py-6 md:py-10">
+      <div className="mx-auto max-w-5xl rounded-3xl bg-white p-4 shadow-xl md:p-8">      <Link
         to="/catalogo"
         className="inline-flex items-center gap-2 text-base font-extrabold text-brand-dark hover:text-brand-red"
       >
@@ -227,8 +229,8 @@ function DetalleProducto({ id }: { id: number }) {
       </Link>
 
       {/* Centra la grilla del producto en la pantalla */}
-      <div className="flex w-full items-center justify-center md:min-h-[80vh]">
-        <div className="mt-4 grid w-full gap-6 md:grid-cols-2 md:items-start md:gap-12">
+      <div className="w-full">        
+        <div className="mt-2 grid w-full gap-6 md:grid-cols-2 md:items-start md:gap-12">
           <div className="md:sticky md:top-24">
             {product.imagen ? (
               <img
@@ -365,6 +367,7 @@ function DetalleProducto({ id }: { id: number }) {
           }}
         />
       )}
+    </div>
     </div>
   )
 }

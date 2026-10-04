@@ -22,6 +22,8 @@ function precio(n: number) {
 // Modal "¿Cómo quieres personalizar?": lo que solo se puede sacar va con tilde,
 // lo que se puede aumentar va con − / +. Sacar no baja el precio; sumar cobra el precio del extra.
 function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClose }: CustomizeSheetProps) {
+    // Solo se muestran los ingredientes que el cliente puede tocar (el pan o el medallón, no)
+  const editables = ingredientes.filter((i) => i.esRemovible || i.esAgregable)
   const [borrador, setBorrador] = useState<Record<number, number>>(() =>
     Object.fromEntries(ingredientes.map((i) => [i.insumoId, cantidades[i.insumoId] ?? i.cantidadBase])),
   )
@@ -60,7 +62,7 @@ function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClo
     >
       <h3 className="mt-1 text-xl font-extrabold text-brand-dark">Personalizar</h3>
       <ul className="mt-2 flex flex-col">
-        {ingredientes.map((ing) => {
+        {editables.map((ing) => {          
           const cantidad = borrador[ing.insumoId]
           const agregable = ing.esAgregable
           const removible = ing.esRemovible
@@ -88,7 +90,6 @@ function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClo
                     <p className="text-xs text-gray-500">+{precio(ing.precioComercial)} cada extra</p>
                   )
                 )}
-                {!agregable && !removible && <p className="text-xs text-gray-500">Incluido</p>}
               </div>
 
               {agregable ? (

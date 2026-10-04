@@ -14,6 +14,11 @@ function stockComoMapa(stock) {
     return new Map(stock.map((s) => [s.insumoId, Number(s.cantidad)]));
 }
 
+// Cuánto suma un extra: 1 unidad, o la porción base si no es entera (igual que el front)
+function pasoExtra(cantidadBase) {
+    return Number.isInteger(cantidadBase) ? 1 : cantidadBase;
+}
+
 // Un producto está disponible si:
 // 1. está activo (el "disponible" que maneja el admin), y
 // 2. la sucursal tiene stock de TODOS los insumos de su receta para preparar una unidad.
@@ -38,4 +43,4 @@ function factorMinimo(tamanios = []) {
     return Math.min(...tamanios.map((t) => Number(t.factorStock ?? 1)));
 }
 
-module.exports = { agruparPorProducto, stockComoMapa, productoDisponible, factorMinimo };
+module.exports = { agruparPorProducto, stockComoMapa, productoDisponible, factorMinimo, pasoExtra };
