@@ -10,11 +10,8 @@ import CustomizeSheet from '../components/product/CustomizeSheet'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
-<<<<<<< Updated upstream
 import { MoveUpLeft } from 'lucide-react'
-=======
 import type { CartItem } from '../types/cart'
->>>>>>> Stashed changes
 
 function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
@@ -86,11 +83,11 @@ function DetalleProducto({ id }: { id: number }) {
   const cantidadFinal = (ing: ProductIngredient) => cantidades[ing.insumoId] ?? ing.cantidadBase
 
   // Opciones de un grupo del combo, con lo que cuestan de más que la opción incluida.
-  // La opción incluida es grupo.productoIncluidoId; si no existe en este tamaño, no hay recargo.
   function opcionesDe(grupo: ComboGrupo): OpcionElegible[] {
     const delGrupo = catalogo.filter((p) => p.categoriaId === grupo.categoriaId)
-    const incluido = catalogo.find((p) => p.id === grupo.productoIncluidoId)
-    const referencia = incluido ? precioEn(incluido, tamanioId) : null
+    // La opción más barata del lugar (en este tamaño) va incluida: las demás cobran la diferencia
+    const precios = delGrupo.map((p) => precioEn(p, tamanioId)).filter((x): x is number => x !== null)
+    const referencia = precios.length > 0 ? Math.min(...precios) : null
 
     return delGrupo
       .filter((p) => p.disponible && precioEn(p, tamanioId) !== null)

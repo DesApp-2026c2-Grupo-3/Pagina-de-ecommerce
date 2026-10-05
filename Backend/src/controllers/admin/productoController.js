@@ -1,3 +1,4 @@
+const { tamaniosDesdePrecio } = require('../../utils/tamanios');
 const {
     Producto,
     RecetaInsumo,
@@ -7,6 +8,7 @@ const {
     ComboGrupo,
     Sucursal,
     StockSucursal,
+    Categoria,
     sequelize,
 } = require('../../models');
 const { factorMinimo } = require('../../utils/disponibilidad');
@@ -132,20 +134,30 @@ const obtenerProductoPorId = async (req, res) => {
     }
 };
 
+// Nombre de la categoría, para las medidas estándar de los tamaños
+async function nombreCategoria(categoriaId) {
+    const categoria = await Categoria.findByPk(categoriaId, { attributes: ['nombre'] });
+    return categoria?.nombre ?? null;
+}
+
 // Crea el producto con todas sus partes, o nada si algo falla
 const crearProducto = async (req, res) => {
     const { receta = [], tamanios = [], grupos = [], ...datos } = req.body;
     let t;
     let confirmado = false;
     try {
-        const errorPartes = await validarPartes({ receta, tamanios, grupos });
+        // Con tamaños, los tres se arman solos: precio, consumo y medida
+        const tamaniosFinales =
+            tamanios.length > 0 ? tamaniosDesdePrecio(datos.precio, await nombreCategoria(datos.categoriaId)) : [];
+
+        const errorPartes = await validarPartes({ receta, tamanios: tamaniosFinales, grupos });
         if (errorPartes) {
             return res.status(400).json({ code: errorPartes });
         }
 
         t = await sequelize.transaction();
         const nuevo = await Producto.create(datos, { transaction: t });
-        await guardarPartes(nuevo.id, { receta, tamanios, grupos }, t);
+        await guardarPartes(nuevo.id, { receta, tamanios: tamaniosFinales, grupos }, t);
         await t.commit();
         confirmado = true;
 
@@ -169,14 +181,29 @@ const editarProductoPorId = async (req, res) => {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
 
-        const errorPartes = await validarPartes({ receta, tamanios, grupos }, producto.id);
+        // Los tamaños se rearman si vienen en el pedido, o si cambió el precio o la categoría
+        // de un producto que ya los tiene. Si vienen vacíos (pasó a Simple), se borran.
+        let tamaniosFinales = tamanios;
+        const cambioBase = datos.precio !== undefined || datos.categoriaId !== undefined;
+        if ((tamanios !== undefined && tamanios.length > 0) || (tamanios === undefined && cambioBase)) {
+            const tieneTamanios =
+                tamanios !== undefined || (await ProductoTamanio.count({ where: { productoId: producto.id } })) > 0;
+            if (tieneTamanios) {
+                tamaniosFinales = tamaniosDesdePrecio(
+                    datos.precio ?? producto.precio,
+                    await nombreCategoria(datos.categoriaId ?? producto.categoriaId),
+                );
+            }
+        }
+
+        const errorPartes = await validarPartes({ receta, tamanios: tamaniosFinales, grupos }, producto.id);
         if (errorPartes) {
             return res.status(400).json({ code: errorPartes });
         }
 
         t = await sequelize.transaction();
         await producto.update(datos, { transaction: t });
-        await guardarPartes(producto.id, { receta, tamanios, grupos }, t);
+        await guardarPartes(producto.id, { receta, tamanios: tamaniosFinales, grupos }, t);
         await t.commit();
         confirmado = true;
 
@@ -198,11 +225,6 @@ const eliminarProducto = async (req, res) => {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
 
-        // No se puede eliminar la opción incluida de un combo que sigue a la venta
-        const enCombos = await ComboGrupo.count({
-            where: { productoIncluidoId: producto.id },
-            include: [{ model: Producto, as: 'combo', required: true }],
-        });
         if (enCombos > 0) {
             return res.status(409).json({
                 mensaje: 'Este producto es la opción incluida de un combo. Cambiá ese combo antes de eliminarlo.'

@@ -1,3 +1,4 @@
+const { precioMasBarato } = require('../utils/combo');
 const {
     Pedido,
     DetallePedido,
@@ -89,17 +90,8 @@ async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t })
         throw new ErrorPedido(400, `${elegido.nombre} no está disponible en ese tamaño`);
     }
 
-    let recargo = 0;
-    if (elegido.id !== grupo.productoIncluidoId) {
-        const incluido = await Producto.findByPk(grupo.productoIncluidoId, {
-            include: [{ model: ProductoTamanio, as: 'tamanios' }],
-            transaction: t
-        });
-        const tamanioIncluido = (incluido?.tamanios ?? []).find((pt) => pt.tamanioId === tamanio.tamanioId);
-        if (tamanioIncluido) {
-            recargo = Math.max(0, Number(tamanio.precio) - Number(tamanioIncluido.precio));
-        }
-    }
+    const referencia = await precioMasBarato(grupo.categoriaId, tamanio.tamanioId, t);
+    const recargo = referencia === null ? 0 : Math.max(0, Number(tamanio.precio) - referencia);
 
     const receta = await RecetaInsumo.findAll({ where: { productoId: elegido.id }, transaction: t });
 

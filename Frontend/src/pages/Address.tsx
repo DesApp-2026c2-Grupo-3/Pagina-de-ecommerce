@@ -212,8 +212,7 @@ function Address() {
 
   return (
     <div className="bg-brand-cream">
-      <div className="mx-auto min-h-[80vh] max-w-2xl px-4 py-12">
-        {estado?.from && (
+      <div className="mx-auto min-h-screen max-w-2xl px-4 py-12">        {estado?.from && (
           <Link
             to={estado.from}
             state={{ compraDirecta: estado.compraDirecta }}
@@ -223,45 +222,15 @@ function Address() {
           </Link>
         )}
 
-<<<<<<< Updated upstream
-    <div className='bg-brand-cream '>
-    <div className="mx-auto max-w-2xl px-4 py-12 min-h-screen 
-    flex flex-col gap-3">
-
-    
-      {estado?.from && (
-        <Link to={estado.from} className="mb-4 inline-block font-semibold text-brand-red hover:underline">
-          ← Volver al pedido
-        </Link>
-      )}
-
-
-      <div className="flex items-center gap-6">
-        <h1 className="text-3xl font-extrabold text-brand-dark">Direcciones guardadas</h1>
-        <button
-          type="button"
-          onClick={abrirNueva}
-          className="rounded-full bg-brand-red px-5 py-2 font-bold 
-          text-white transition-opacity hover:opacity-90 ml-auto"
-        >
-          + Agregar
-        </button>
-      </div>
-
-      {error && !modalAbierto && (
-        <div className="mt-4">
-          <ErrorAlert message={error} />
-=======
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <h1 className="text-3xl font-extrabold text-brand-dark">Direcciones guardadas</h1>
           <button
             type="button"
             onClick={abrirNueva}
-            className="shrink-0 rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
+            className="ml-auto shrink-0 rounded-full bg-brand-red px-5 py-2 font-bold text-white transition-opacity hover:opacity-90"
           >
             + Agregar
           </button>
->>>>>>> Stashed changes
         </div>
 
         {error && !modalAbierto && (

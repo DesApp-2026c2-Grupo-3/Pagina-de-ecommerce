@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     // El cliente elige un producto de esta categoría
     categoriaId: { type: DataTypes.INTEGER, allowNull: false },
     // Opción incluida en el precio del combo; las demás cobran la diferencia de precio
-    productoIncluidoId: { type: DataTypes.INTEGER, allowNull: false },
+    productoIncluidoId: { type: DataTypes.INTEGER, allowNull: true },
     obligatorio: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     orden: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     icono: { type: DataTypes.STRING, allowNull: true },
