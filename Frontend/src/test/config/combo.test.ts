@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { etiquetaTamanio, ordenarVariantes } from '../../config/combo'
+import { etiquetaTamanio, ordenarTamanios } from '../../config/combo'
+import type { ProductoTamanio } from '../../types/product'
+
+const tamanio = (tamanioId: number, nombre: string): ProductoTamanio => ({
+  tamanioId,
+  tamanio: nombre,
+  precio: 1000,
+  etiqueta: null,
+})
 
 describe('etiquetaTamanio', () => {
   test('junta el tamaño con la medida', () => {
@@ -10,24 +18,27 @@ describe('etiquetaTamanio', () => {
     expect(etiquetaTamanio('grande')).toBe('Grande')
   })
 
-  test.each([null, undefined, 'gigante'])('devuelve vacío para %s', (tamanio) => {
-    expect(etiquetaTamanio(tamanio)).toBe('')
+  test.each([null, undefined, 'gigante'])('devuelve vacío para %s', (valor) => {
+    expect(etiquetaTamanio(valor)).toBe('')
   })
 })
 
-describe('ordenarVariantes', () => {
+describe('ordenarTamanios', () => {
   test('ordena de regular a grande, vengan como vengan', () => {
-    const desordenadas = [{ tamanio: 'grande' }, { tamanio: 'regular' }, { tamanio: 'mediano' }]
-    expect(ordenarVariantes(desordenadas).map((v) => v.tamanio)).toEqual(['regular', 'mediano', 'grande'])
+    const desordenados = [tamanio(3, 'grande'), tamanio(1, 'regular'), tamanio(2, 'mediano')]
+
+    expect(ordenarTamanios(desordenados).map((t) => t.tamanio)).toEqual(['regular', 'mediano', 'grande'])
   })
 
   test('no modifica la lista original', () => {
-    const original = [{ tamanio: 'grande' }, { tamanio: 'regular' }]
-    ordenarVariantes(original)
+    const original = [tamanio(3, 'grande'), tamanio(1, 'regular')]
+
+    ordenarTamanios(original)
+
     expect(original[0].tamanio).toBe('grande')
   })
 
-  test('sin variantes, devuelve una lista vacía', () => {
-    expect(ordenarVariantes(undefined)).toEqual([])
+  test('sin tamaños, devuelve una lista vacía', () => {
+    expect(ordenarTamanios(undefined)).toEqual([])
   })
 })

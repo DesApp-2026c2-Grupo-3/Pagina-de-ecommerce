@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest'
-import { formatearPrecio } from '../../utils/precio'
-import { precioDe, precioDesde } from '../../utils/precio'
+import { formatearPrecio, precioDe, precioDesde } from '../../utils/precio'
 import type { ProductoBackend } from '../../types/product'
 
-const papas = {
+// Los tamaños vienen desordenados y con el precio como texto, como los devuelve el backend
+const papas: ProductoBackend = {
   id: 40,
   nombre: 'Papas',
   descripcion: '',
@@ -11,29 +11,33 @@ const papas = {
   imagen: '',
   disponible: true,
   categoriaId: 3,
-  variantes: [
-    { tamanio: 'grande', precio: '3500', etiqueta: null },
-    { tamanio: 'regular', precio: '2400', etiqueta: null },
+  tamanios: [
+    { tamanioId: 3, tamanio: 'grande', precio: '3500', etiqueta: null },
+    { tamanioId: 1, tamanio: 'regular', precio: '2400', etiqueta: null },
   ],
-} satisfies ProductoBackend
+}
 
 describe('precioDe', () => {
   test('usa el precio del tamaño elegido', () => {
-    expect(precioDe(papas, 'grande')).toBe(3500)
+    expect(precioDe(papas, 3)).toBe(3500)
   })
 
   test('sin tamaños, usa el precio del producto', () => {
-    expect(precioDe({ ...papas, variantes: [] }, null)).toBe(2400)
+    expect(precioDe({ ...papas, tamanios: [] }, null)).toBe(2400)
   })
 
   test('con un tamaño que no existe, usa el precio del producto', () => {
-    expect(precioDe(papas, 'gigante')).toBe(2400)
+    expect(precioDe(papas, 9)).toBe(2400)
   })
 })
 
 describe('precioDesde', () => {
   test('es el precio más bajo de los tamaños', () => {
     expect(precioDesde(papas)).toBe(2400)
+  })
+
+  test('sin tamaños, es el precio del producto', () => {
+    expect(precioDesde({ ...papas, tamanios: [] })).toBe(2400)
   })
 })
 

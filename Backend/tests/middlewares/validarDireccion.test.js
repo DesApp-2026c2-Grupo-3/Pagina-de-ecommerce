@@ -1,7 +1,7 @@
 const {
     validarCrearDireccion,
     validarActualizarDireccion,
-} = require('../src/middleware/validarDireccion');
+} = require('../../src/middleware/validarDireccion');
 
 function crearRes() {
     const res = {};

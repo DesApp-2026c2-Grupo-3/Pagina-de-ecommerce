@@ -37,8 +37,6 @@ app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
 app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 app.use('/admin/insumos', require('./routes/admin/insumoRoutes')); 
 app.use('/admin', adminRoutes);
-
-
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
@@ -46,6 +44,7 @@ app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));  
+app.use('/categorias', require('./routes/categoriaRoutes'));
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
 async function iniciarServidor() {

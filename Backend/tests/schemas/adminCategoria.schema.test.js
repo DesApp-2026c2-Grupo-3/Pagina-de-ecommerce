@@ -1,5 +1,4 @@
-const { categoriaSchema } = require('../src/schemas/admin/adminCategoria.schema');
-
+const { categoriaSchema } = require('../../src/schemas/admin/adminCategoria.schema');
 function mensajeDe(datos) {
     return categoriaSchema.validate(datos).error?.details[0].message;
 }

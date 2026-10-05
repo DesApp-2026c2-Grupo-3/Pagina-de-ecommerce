@@ -1,5 +1,5 @@
 // Tamaños y combos en crearPedido: el precio y el stock los calcula el backend.
-jest.mock('../src/models', () => {
+jest.mock('../../src/models', () => {
     const t = { commit: jest.fn(), rollback: jest.fn(), LOCK: { UPDATE: 'UPDATE' } };
     return {
         Pedido: { create: jest.fn() },
@@ -13,13 +13,14 @@ jest.mock('../src/models', () => {
         Insumo: {},
         ProductoTamanio: {},
         StockSucursal: { findOne: jest.fn() },
+        MovimientoStock: { create: jest.fn() },
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },
         __t: t,
     };
 });
 
-const models = require('../src/models');
-const { crearPedido } = require('../src/controllers/pedidoController');
+const models = require('../../src/models');
+const { crearPedido } = require('../../src/controllers/pedidoController');
 
 const { Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, ComboGrupo, StockSucursal, Direccion } = models;
 const t = models.__t;
@@ -61,6 +62,10 @@ const gruposDelCombo = [
     { id: 2, productoId: 20, nombre: 'Una bebida', categoriaId: 5, productoIncluidoId: 40, obligatorio: true, orden: 2 },
 ];
 
+// La sucursal y la dirección están en el mismo lugar: siempre dentro de la zona de entrega
+const sucursal = { id: 2, nombre: 'Morón', activa: true, latitud: -34.65, longitud: -58.62, radioEntregaKm: 5 };
+const direccion = { id: 3, usuarioId: 1, latitud: -34.65, longitud: -58.62 };
+
 let stocks;
 
 function pedidoCon(items) {
@@ -72,8 +77,8 @@ beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     Usuario.findByPk.mockResolvedValue({ id: 1 });
-    Sucursal.findByPk.mockResolvedValue({ id: 2 });
-    Direccion.findOne.mockResolvedValue({ id: 3, usuarioId: 1 });
+    Sucursal.findByPk.mockResolvedValue(sucursal);
+    Direccion.findOne.mockResolvedValue(direccion);
     Pedido.create.mockResolvedValue({ id: 100, update: jest.fn() });
 
     Producto.findByPk.mockImplementation((id) => Promise.resolve(productos[id] ?? null));
@@ -113,7 +118,6 @@ describe('crearPedido con combos', () => {
     test('cobra el recargo de lo elegido y descuenta el stock del producto elegido', async () => {
         const res = crearRes();
 
-        // Combo mediano x2, con papas con cheddar (incluidas: Papas, 2100 en mediano) y la cola incluida
         await crearPedido(pedidoCon([{
             productoId: 20, cantidad: 2, tamanioId: 2,
             elecciones: [{ grupoId: 1, productoId: 31 }, { grupoId: 2, productoId: 40 }],
@@ -134,10 +138,10 @@ describe('crearPedido con combos', () => {
             }),
             expect.anything()
         );
-        expect(stocks[1].cantidad).toBe(98);    // pan: la receta fija no depende del tamaño
-        expect(stocks[10].cantidad).toBe(97);   // papas: 1 x 1.5 x 2 unidades
-        expect(stocks[11].cantidad).toBe(94);   // cheddar de las papas elegidas: 2 x 1.5 x 2
-        expect(stocks[15].cantidad).toBe(97.2); // cola: 1 x 1.4 x 2 unidades = 2.8
+        expect(stocks[1].cantidad).toBe(98);
+        expect(stocks[10].cantidad).toBe(97);
+        expect(stocks[11].cantidad).toBe(94);
+        expect(stocks[15].cantidad).toBe(97.2);
     });
 
     test('exige elegir los grupos obligatorios', async () => {

@@ -1,14 +1,14 @@
-jest.mock('../src/models', () => ({
+jest.mock('../../../src/models', () => ({
     Categoria: { findAll: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
 }));
 
-const { Categoria } = require('../src/models');
+const { Categoria } = require('../../../src/models');
 const {
     obtenerCategorias,
     crearCategoria,
     editarCategoriaPorId,
     eliminarCategorias,
-} = require('../src/controllers/admin/categoriaController');
+} = require('../../../src/controllers/admin/categoriaController');
 
 function crearRes() {
     const res = {};

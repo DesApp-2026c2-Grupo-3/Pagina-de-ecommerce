@@ -1,4 +1,4 @@
-const { cargaStockSchema } = require('../src/schemas/admin/stock.schema');
+const { cargaStockSchema } = require('../../src/schemas/admin/stock.schema');
 
 // Devuelve el mensaje de error, o undefined si los datos son válidos
 function mensajeDe(datos) {
@@ -39,14 +39,14 @@ describe('cargaStockSchema', () => {
         });
 
         test.each([0, -3])('rechaza la cantidad %s', (cantidad) => {
-            expect(mensajeDe({ cantidad })).toBe('La cantidad a cargar debe ser un valor positivo');
+            expect(mensajeDe({ cantidad })).toBe('La cantidad debe ser un valor positivo');
         });
 
         test('rechaza campos extra', () => {
             expect(mensajeDe({ cantidad: 5, sucursalId: 1 })).toMatch(/not allowed/);
         });
         test('rechaza una cantidad mayor al máximo (ej. un cero de más)', () => {
-            expect(mensajeDe({ cantidad: 10000 })).toBe('La cantidad a cargar no puede superar 1000');
+            expect(mensajeDe({ cantidad: 10000 })).toBe('La cantidad no puede superar 1000');
         });
         
     });

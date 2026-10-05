@@ -1,4 +1,4 @@
-const { validarCargaStock } = require('../src/middleware/admin/validarStock');
+const { validarCargaStock } = require('../../src/middleware/admin/validarStock');
 
 function crearRes() {
     const res = {};
@@ -27,8 +27,7 @@ describe('validarCargaStock', () => {
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({
-            code: 'La cantidad a cargar debe ser un valor positivo',
-        });
+            code: 'La cantidad debe ser un valor positivo',        });
         expect(next).not.toHaveBeenCalled();
     });
 });

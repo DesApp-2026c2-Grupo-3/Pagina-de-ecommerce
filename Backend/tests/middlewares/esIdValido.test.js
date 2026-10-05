@@ -1,4 +1,4 @@
-const { esIdValido } = require('../src/middleware/esIdValido');
+const { esIdValido } = require('../../src/middleware/esIdValido');
 
 // Un "res" falso: guarda con qué se llamó a status() y a json()
 function crearRes() {

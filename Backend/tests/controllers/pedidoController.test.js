@@ -1,5 +1,5 @@
 // Modelos falsos. La transacción también es falsa: solo registra si se hizo commit o rollback.
-jest.mock('../src/models', () => {
+jest.mock('../../src/models', () => {
     const t = { commit: jest.fn(), rollback: jest.fn(), LOCK: { UPDATE: 'UPDATE' } };
     return {
         Pedido: { create: jest.fn(), findAll: jest.fn(), findByPk: jest.fn() },
@@ -11,22 +11,24 @@ jest.mock('../src/models', () => {
         RecetaInsumo: { findAll: jest.fn() },
         ComboGrupo: { findAll: jest.fn() },
         Insumo: {},
+        ProductoTamanio: {},
         StockSucursal: { findOne: jest.fn() },
+        MovimientoStock: { create: jest.fn() },
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },
-        __t: t, // para poder revisar la transacción desde los tests
+        __t: t,
     };
 });
 
-const models = require('../src/models');
+const models = require('../../src/models');
 const {
     crearPedido,
     obtenerPedidos,
     obtenerPedidosPorUsuario,
     obtenerPedidoId,
-} = require('../src/controllers/pedidoController');
+} = require('../../src/controllers/pedidoController');
 
 const {
-    Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, StockSucursal, Direccion, ComboGrupo,
+    Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, StockSucursal, Direccion, ComboGrupo, MovimientoStock,
 } = models;
 const t = models.__t;
 
@@ -52,6 +54,10 @@ function pedidoCon(productos) {
     return { body: { usuarioId: 1, direccionId: 3, sucursalId: 2, productos } };
 }
 
+// La sucursal y la dirección están en el mismo lugar: siempre dentro de la zona de entrega
+const sucursalMoron = { id: 2, nombre: 'Morón', activa: true, latitud: -34.65, longitud: -58.62, radioEntregaKm: 5 };
+const direccionCercana = { id: 3, usuarioId: 1, latitud: -34.65, longitud: -58.62 };
+
 let pedidoCreado;
 let stocks;
 
@@ -62,13 +68,13 @@ beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     Usuario.findByPk.mockResolvedValue({ id: 1 });
-    Sucursal.findByPk.mockResolvedValue({ id: 2 });
-    Direccion.findOne.mockResolvedValue({ id: 3, usuarioId: 1 });
+    Sucursal.findByPk.mockResolvedValue(sucursalMoron);
+    Direccion.findOne.mockResolvedValue(direccionCercana);
 
     pedidoCreado = { id: 100, update: jest.fn() };
     Pedido.create.mockResolvedValue(pedidoCreado);
 
-    Producto.findByPk.mockResolvedValue({ id: 10, nombre: 'Clásica', precio: '5000', disponible: true });
+    Producto.findByPk.mockResolvedValue({ id: 10, nombre: 'Clásica', precio: '5000', disponible: true, tamanios: [] });
 
     RecetaInsumo.findAll.mockResolvedValue([
         { insumoId: 1, cantidadBase: '1', esRemovible: false, esAgregable: false, Insumo: { nombre: 'Pan', precioComercial: null } },
@@ -76,7 +82,7 @@ beforeEach(() => {
         { insumoId: 3, cantidadBase: '1', esRemovible: true, esAgregable: true, Insumo: { nombre: 'Cheddar', precioComercial: '500' } },
     ]);
 
-    ComboGrupo.findAll.mockResolvedValue([]); // un producto común no es un combo
+    ComboGrupo.findAll.mockResolvedValue([]);
 
     stocks = { 1: crearStock(50), 2: crearStock(50), 3: crearStock(50) };
     StockSucursal.findOne.mockImplementation(({ where }) => Promise.resolve(stocks[where.insumoId] ?? null));
@@ -87,19 +93,16 @@ describe('crearPedido', () => {
         test('calcula el precio en el backend, con los extras', async () => {
             const res = crearRes();
 
-            // 2 Clásicas, sin cebolla y con doble cheddar
             await crearPedido(pedidoCon([{
                 productoId: 10,
                 cantidad: 2,
                 personalizaciones: [{ insumoId: 2, cantidad: 0 }, { insumoId: 3, cantidad: 2 }],
             }]), res);
 
-            // $5000 + 1 cheddar extra ($500) = $5500 por unidad
             expect(DetallePedido.create).toHaveBeenCalledWith(
                 expect.objectContaining({ productoId: 10, cantidad: 2, precio: 5500 }),
                 expect.anything()
             );
-            // 2 x $5500 = $11000
             expect(pedidoCreado.update).toHaveBeenCalledWith({ total: 11000 }, expect.anything());
             expect(t.commit).toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(201);
@@ -112,9 +115,21 @@ describe('crearPedido', () => {
                 personalizaciones: [{ insumoId: 2, cantidad: 0 }, { insumoId: 3, cantidad: 2 }],
             }]), crearRes());
 
-            expect(stocks[1].cantidad).toBe(48); // pan: 1 x 2 unidades
-            expect(stocks[2].cantidad).toBe(50); // cebolla: se quitó, no se descuenta
-            expect(stocks[3].cantidad).toBe(46); // cheddar: 2 x 2 unidades
+            expect(stocks[1].cantidad).toBe(48);
+            expect(stocks[2].cantidad).toBe(50);
+            expect(stocks[3].cantidad).toBe(46);
+        });
+
+        test('registra cada descuento como venta del pedido en el historial de stock', async () => {
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 2 }]), crearRes());
+
+            expect(MovimientoStock.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    tipo: 'venta', insumoId: 1, sucursalId: 2, cantidad: 2,
+                    cantidadAnterior: 50, cantidadNueva: 48, pedidoId: 100,
+                }),
+                expect.anything()
+            );
         });
 
         test('sin personalizar, cobra el precio base', async () => {
@@ -157,6 +172,7 @@ describe('crearPedido', () => {
             expect(res.status).toHaveBeenCalledWith(404);
             expect(t.rollback).toHaveBeenCalled();
         });
+
         test('busca la dirección del propio usuario', async () => {
             await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), crearRes());
 
@@ -176,9 +192,45 @@ describe('crearPedido', () => {
         });
     });
 
+    describe('sucursal y zona de entrega', () => {
+        test('rechaza una sucursal desactivada', async () => {
+            Sucursal.findByPk.mockResolvedValue({ ...sucursalMoron, activa: false });
+            const res = crearRes();
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ mensaje: 'Morón no está tomando pedidos en este momento' });
+            expect(Pedido.create).not.toHaveBeenCalled();
+        });
+
+        test('rechaza una dirección sin ubicación en el mapa', async () => {
+            Direccion.findOne.mockResolvedValue({ id: 3, usuarioId: 1, latitud: null, longitud: null });
+            const res = crearRes();
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                mensaje: 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.',
+            });
+        });
+
+        test('rechaza una dirección fuera del radio de entrega', async () => {
+            Direccion.findOne.mockResolvedValue({ id: 3, usuarioId: 1, latitud: -38.0, longitud: -57.55 });
+            const res = crearRes();
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ mensaje: 'Tu dirección está fuera de la zona de entrega de Morón' });
+            expect(t.rollback).toHaveBeenCalled();
+        });
+    });
+
     describe('reglas del producto y la receta', () => {
         test('rechaza un producto no disponible', async () => {
-            Producto.findByPk.mockResolvedValue({ id: 10, nombre: 'Clásica', precio: '5000', disponible: false });
+            Producto.findByPk.mockResolvedValue({ id: 10, nombre: 'Clásica', precio: '5000', disponible: false, tamanios: [] });
             const res = crearRes();
 
             await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
@@ -216,6 +268,17 @@ describe('crearPedido', () => {
 
             expect(res.json).toHaveBeenCalledWith({ mensaje: 'El insumo Cebolla no se puede aumentar en Clásica' });
         });
+
+        test('no permite más de 3 extras de un ingrediente', async () => {
+            const res = crearRes();
+
+            await crearPedido(pedidoCon([{
+                productoId: 10, cantidad: 1, personalizaciones: [{ insumoId: 3, cantidad: 5 }],
+            }]), res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ mensaje: 'No se pueden agregar más de 3 Cheddar extra' });
+        });
     });
 
     describe('stock de la sucursal', () => {
@@ -232,7 +295,7 @@ describe('crearPedido', () => {
         });
 
         test('rechaza si no alcanza el stock, y no guarda nada', async () => {
-            stocks[1] = crearStock(1); // queda 1 pan, y se piden 2 hamburguesas
+            stocks[1] = crearStock(1);
             const res = crearRes();
 
             await crearPedido(pedidoCon([{ productoId: 10, cantidad: 2 }]), res);
@@ -245,7 +308,19 @@ describe('crearPedido', () => {
             expect(DetallePedido.create).not.toHaveBeenCalled();
         });
     });
-    describe('obtenerPedidos', () => {
+
+    test('si falla la base de datos, deshace todo y responde 500', async () => {
+        Usuario.findByPk.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
+
+        expect(t.rollback).toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('obtenerPedidos', () => {
     test('devuelve todos los pedidos', async () => {
         const pedidos = [{ id: 1 }, { id: 2 }];
         Pedido.findAll.mockResolvedValue(pedidos);
@@ -316,17 +391,6 @@ describe('obtenerPedidoId', () => {
 
         await obtenerPedidoId({ params: { id: '7' } }, res);
 
-        expect(res.status).toHaveBeenCalledWith(500);
-    });
-});
-
-    test('si falla la base de datos, deshace todo y responde 500', async () => {
-        Usuario.findByPk.mockRejectedValue(new Error('Base caída'));
-        const res = crearRes();
-
-        await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
-
-        expect(t.rollback).toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
     });
 });

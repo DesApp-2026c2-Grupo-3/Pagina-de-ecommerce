@@ -1,4 +1,4 @@
-const { userSchema, loginSchema, updateSchema } = require('../src/schemas/usuario.schema');
+const { userSchema, loginSchema, updateSchema } = require('../../src/schemas/usuario.schema');
 
 // Devuelve el mensaje de error, o undefined si los datos son válidos
 function mensajeDe(schema, datos) {

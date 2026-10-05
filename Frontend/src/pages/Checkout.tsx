@@ -13,6 +13,7 @@ import { distanciaKm } from "../utils/distancia";
 import type { Order } from "../types/order";
 import type { Address } from "../types/address";
 import type { Sucursal } from "../types/sucursal";
+import type { CartItem } from "../types/cart";
 
 function formatearKm(km: number) {
   return km.toLocaleString("es-AR", { maximumFractionDigits: 1 });
@@ -27,8 +28,17 @@ function Checkout() {
   const { zona, elegirUbicacion } = useZona();
   const location = useLocation();
 
+  const estadoNav = location.state as { direccionId?: number; compraDirecta?: CartItem } | null;
   // Si vuelve de agregar o editar una dirección, llega con su id para dejarla elegida
-  const direccionDeRegreso = (location.state as { direccionId?: number } | null)?.direccionId;
+  const direccionDeRegreso = estadoNav?.direccionId;
+  // "Pagar ahora": se compra solo ese producto y el carrito no se toca
+  const compraDirecta = estadoNav?.compraDirecta ?? null;
+
+  const lineas = compraDirecta ? [compraDirecta] : items;
+  const total = compraDirecta ? compraDirecta.unitPrice * compraDirecta.quantity : totalPrice;
+
+  // Al ir a direcciones y volver, la compra directa viaja con la navegación
+  const volverAlCheckout = { from: "/checkout", compraDirecta };
 
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
@@ -75,12 +85,12 @@ function Checkout() {
       .finally(() => setSucursalesLoading(false));
   }, []);
 
-  // Si no está logueado o no hay items, no debería estar acá
+  // Si no está logueado o no hay nada para comprar, no debería estar acá
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (items.length === 0 && !confirmedOrder) {
+  if (lineas.length === 0 && !confirmedOrder) {
     return <Navigate to="/carrito" replace />;
   }
 
@@ -94,7 +104,7 @@ function Checkout() {
   const masCercana = buscarSucursalCercana(coordsDireccion, sucursales);
   const dentroDeZona = masCercana?.dentroDeZona ?? false;
 
-  // El carrito se armó con el stock de la sucursal de la zona: la dirección tiene que ser de esa sucursal
+  // El pedido se armó con el stock de la sucursal de la zona: la dirección tiene que ser de esa sucursal
   const sucursalDistinta = Boolean(zona && masCercana && dentroDeZona && masCercana.sucursal.id !== zona.sucursalId);
   const puedeConfirmar = Boolean(direccion && masCercana && dentroDeZona && !sucursalDistinta);
 
@@ -146,9 +156,10 @@ function Checkout() {
     setError("");
     setLoading(true);
     try {
-      const order = await createOrder(user!.id, items, direccion.id, masCercana.sucursal.id);
+      const order = await createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id);
       setConfirmedOrder(order);
-      clearCart();
+      // En una compra directa, el carrito queda como estaba
+      if (!compraDirecta) clearCart();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al confirmar el pedido");
     } finally {
@@ -173,6 +184,11 @@ function Checkout() {
           >
             Ver pedido
           </Link>
+          {compraDirecta && items.length > 0 && (
+            <Link to="/carrito" className="text-sm font-bold text-brand-dark underline hover:text-brand-red">
+              Tu carrito sigue guardado ({items.length} {items.length === 1 ? "producto" : "productos"})
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -182,11 +198,15 @@ function Checkout() {
     <div className="bg-brand-cream">
       <div className="mx-auto min-h-screen max-w-2xl px-4 py-12">
         <h1 className="text-3xl font-extrabold text-brand-dark">Confirmar pedido</h1>
-        <p className="mt-2 text-gray-600">Revisá tu pedido antes de confirmar.</p>
+        <p className="mt-2 text-gray-600">
+          {compraDirecta
+            ? "Compra directa: estás pagando solo este producto, tu carrito no se modifica."
+            : "Revisá tu pedido antes de confirmar."}
+        </p>
 
         {/* ---------- Productos ---------- */}
         <div className="mt-8 flex flex-col gap-3">
-          {items.map((item) => (
+          {lineas.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-md">
               <div className="min-w-0">
                 <p className="font-bold text-brand-dark">
@@ -221,7 +241,7 @@ function Checkout() {
               <Link
                 to="/direcciones"
                 state={{
-                  from: "/checkout",
+                  ...volverAlCheckout,
                   abrirNueva: true,
                   prefill: {
                     calle: zona.calle,
@@ -248,7 +268,7 @@ function Checkout() {
                 <p className="text-sm font-semibold text-brand-dark">Todavía no tenés direcciones guardadas.</p>
                 <Link
                   to="/direcciones"
-                  state={{ from: "/checkout", abrirNueva: true }}
+                  state={{ ...volverAlCheckout, abrirNueva: true }}
                   className="mt-2 inline-block text-sm font-bold text-brand-dark underline hover:text-brand-red"
                 >
                   Agregar una dirección →
@@ -267,7 +287,7 @@ function Checkout() {
               <div className="flex shrink-0 gap-3">
                 <Link
                   to="/direcciones"
-                  state={{ from: "/checkout", editarId: direccion.id }}
+                  state={{ ...volverAlCheckout, editarId: direccion.id }}
                   className="text-sm font-semibold text-brand-dark hover:text-brand-red"
                 >
                   Editar
@@ -321,7 +341,7 @@ function Checkout() {
               ))}
               <Link
                 to="/direcciones"
-                state={{ from: "/checkout", abrirNueva: true }}
+                state={{ ...volverAlCheckout, abrirNueva: true }}
                 className="rounded-xl border border-dashed border-brand-dark/20 p-4 text-center text-sm font-bold text-brand-dark transition-colors hover:border-brand-dark"
               >
                 + Agregar dirección
@@ -347,7 +367,7 @@ function Checkout() {
               <p className="text-sm font-semibold text-amber-700">Esta dirección no tiene ubicación en el mapa.</p>
               <Link
                 to="/direcciones"
-                state={{ from: "/checkout", editarId: direccion.id }}
+                state={{ ...volverAlCheckout, editarId: direccion.id }}
                 className="mt-1 inline-block text-sm font-bold text-amber-700 hover:underline"
               >
                 Marcarla en el mapa →
@@ -366,10 +386,10 @@ function Checkout() {
           ) : sucursalDistinta && zona ? (
             <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
               <p className="text-sm font-semibold text-amber-800">
-                Tu carrito es de {zona.sucursalNombre}, pero esta dirección le corresponde a {masCercana.sucursal.nombre}.
+                Tu pedido es de {zona.sucursalNombre}, pero esta dirección le corresponde a {masCercana.sucursal.nombre}.
               </p>
               <p className="mt-1 text-sm text-amber-800">
-                Si cambiás tu zona, revisá el carrito: algunos productos pueden no estar disponibles en esa sucursal.
+                Si cambiás tu zona, revisá el pedido: algunos productos pueden no estar disponibles en esa sucursal.
               </p>
               <button
                 type="button"
@@ -400,7 +420,7 @@ function Checkout() {
 
         {/* ---------- Total y confirmar ---------- */}
         <div className="mt-6 flex items-center justify-between border-t border-brand-dark/10 pt-6">
-          <span className="text-xl font-extrabold text-brand-dark">Total: ${totalPrice.toLocaleString("es-AR")}</span>
+          <span className="text-xl font-extrabold text-brand-dark">Total: ${total.toLocaleString("es-AR")}</span>
           <button
             type="button"
             onClick={handleConfirm}

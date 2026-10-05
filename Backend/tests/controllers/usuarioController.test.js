@@ -3,13 +3,13 @@ jest.mock('bcrypt', () => ({
     compare: jest.fn(),
     hashSync: jest.fn(() => 'hash-falso'),
 }));
-jest.mock('../src/models', () => ({
+jest.mock('../../src/models', () => ({
     Usuario: { findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
     Sucursal: { findByPk: jest.fn() },
 }));
 
 const bcrypt = require('bcrypt');
-const { Usuario, Sucursal } = require('../src/models');
+const { Usuario, Sucursal } = require('../../src/models');
 const {
     verUsuarios,
     crearUsuario,
@@ -17,7 +17,7 @@ const {
     obtenerUsuarioPorId,
     actualizarSucursalPredeterminada,
     actualizarUsuario,
-} = require('../src/controllers/usuarioController');
+} = require('../../src/controllers/usuarioController');
 
 function crearRes() {
     const res = {};

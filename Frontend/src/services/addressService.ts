@@ -30,3 +30,8 @@ export const eliminarDireccion = async (id: number): Promise<void> => {
     method: 'DELETE',
   })
 }
+
+// La marca como predeterminada (el backend desmarca las demás)
+export const marcarPredeterminada = async (id: number): Promise<Address> => {
+  return httpClient<Address>(`/direcciones/${id}/predeterminada`, { method: 'PATCH' })
+}

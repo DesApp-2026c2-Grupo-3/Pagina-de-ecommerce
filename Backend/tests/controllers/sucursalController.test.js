@@ -1,9 +1,9 @@
-jest.mock('../src/models', () => ({
+jest.mock('../../src/models', () => ({
     Sucursal: { findAll: jest.fn() },
 }));
 
-const { Sucursal } = require('../src/models');
-const { obtenerSucursales } = require('../src/controllers/sucursalController');
+const { Sucursal } = require('../../src/models');
+const { obtenerSucursales } = require('../../src/controllers/sucursalController');
 
 function crearRes() {
     const res = {};

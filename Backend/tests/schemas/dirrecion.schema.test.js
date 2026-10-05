@@ -1,7 +1,7 @@
 const {
     crearDireccionSchema,
     actualizarDireccionSchema,
-} = require('../src/schemas/direccion.schema');
+} = require('../../src/schemas/direccion.schema');
 
 // Una dirección válida de base. Cada test cambia solo lo que quiere probar.
 const direccionValida = {
