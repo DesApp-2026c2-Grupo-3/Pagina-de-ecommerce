@@ -1,5 +1,8 @@
 const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
+require('dotenv').config()
+const jwt = require('jsonwebtoken');
+
 
 const { Admin, Sucursal } = require('../../models')
 
@@ -101,8 +104,15 @@ const login = async (req, res) => {
         if (!passwordCorrecta) {
             return res.status(401).json({ code: "email-password-incorrectos" });
         }
+        const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
 
-        return res.status(200).json(datosDe(admin))
+        const token = jwt.sign({ id: admin.id, nombre: admin.nombre, rol: admin.rol }, SECRET_JWT_TOKEN, { expiresIn: "1h" })
+
+        return res.cookie("access_token", token, {
+            httpOnly: true,
+            sameSite: "strict",
+            maxAge: 1000 * 60 * 60
+        }).status(200).json(datosDe(admin));
     } catch (error) {
         console.error('Error al loguear:', error.message);
         return res.status(500).json({ mensaje: 'Error al loguear' })

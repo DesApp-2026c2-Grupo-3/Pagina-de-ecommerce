@@ -6,18 +6,19 @@ const { validarLoginAdmin } = require('../../middleware/admin/validarLoginAdmin'
 const { validarAdmin } = require('../../middleware/admin/validarAdmin');
 const { validarUpdateAdmin } = require('../../middleware/admin/validarUpdateAdmin');
 const { esIdValido } = require('../../middleware/esIdValido');
+const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
 
 router.post('/login', validarLoginAdmin, adminController.login)
 
-router.get('/administradores', adminController.verAdmins)
+router.get('/administradores', esMasterJwt, adminController.verAdmins)
 
-router.get('/:id', esIdValido, adminController.obtenerAdminPorId)
+router.get('/:id', esMasterJwt, esIdValido, adminController.obtenerAdminPorId)
 
-router.post('/administradores/nuevo', validarAdmin, adminController.crearAdmin)
+router.post('/administradores/nuevo', esMasterJwt, validarAdmin, adminController.crearAdmin)
 
-router.put('/administradores/editar/:id', validarUpdateAdmin, esIdValido, adminController.actualizarAdmin)
+router.put('/administradores/editar/:id', esMasterJwt, validarUpdateAdmin, esIdValido, adminController.actualizarAdmin)
 
-router.delete('/eliminar/:id', esIdValido, adminController.eliminarAdmin);
+router.delete('/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminarAdmin);
 
 
 module.exports = router;
