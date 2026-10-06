@@ -1,5 +1,8 @@
 const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
+require('dotenv').config()
+const jwt = require('jsonwebtoken');
+
 
 const { Admin, Sucursal } = require('../../models')
 
@@ -101,11 +104,34 @@ const login = async (req, res) => {
         if (!passwordCorrecta) {
             return res.status(401).json({ code: "email-password-incorrectos" });
         }
+        const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
 
-        return res.status(200).json(datosDe(admin))
+        const token = jwt.sign({ id: admin.id, nombre: admin.nombre, rol: admin.rol }, SECRET_JWT_TOKEN, { expiresIn: "4h" })
+
+        return res.cookie("access_token", token, {
+            httpOnly: true,
+            sameSite: "strict",
+            path: '/',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 1000 * 60 * 60 * 4
+        }).status(200).json(datosDe(admin));
     } catch (error) {
         console.error('Error al loguear:', error.message);
         return res.status(500).json({ mensaje: 'Error al loguear' })
+    }
+}
+
+const logout = async (req, res) => {
+    try {
+        return res.clearCookie("access_token", {
+            httpOnly: true,
+            sameSite: "strict",
+            path: '/',
+            secure: process.env.NODE_ENV === 'production'
+        }).status(200).json({ mensaje: "Sesión cerrada" })
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error.message);
+        return res.status(500).json({ mensaje: 'Error al cerrar sesión' })
     }
 }
 
@@ -195,4 +221,4 @@ const eliminarAdmin = async (req, res) => {
     }
 };
 
-module.exports = { verAdmins, crearAdmin, login, obtenerAdminPorId, actualizarAdmin, eliminarAdmin };
+module.exports = { verAdmins, crearAdmin, login, logout, obtenerAdminPorId, actualizarAdmin, eliminarAdmin };

@@ -1,15 +1,24 @@
 const express = require('express');
-require('dotenv').config()
-
-const db = require('./models')
-const cors = require('cors')
+require('dotenv').config();
+let cookieParser = require('cookie-parser');
+const db = require('./models');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const origenesPermitidos = [
+    'http://localhost:5173',
+    'http://localhost:5174'
+];
 
-app.use(cors())
+app.use(cors({
+    origin: origenesPermitidos,
+    credentials: true
+}));
+
 app.use(express.json());
+app.use(cookieParser());
 
 //RUTAS
 app.get('/', (req, res) => {
@@ -35,7 +44,7 @@ app.use('/admin/categorias', adminCategoriaRoutes);
 app.use('/admin/stock', adminStockRoutes);
 app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
 app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
-app.use('/admin/insumos', require('./routes/admin/insumoRoutes')); 
+app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
 app.use('/admin', adminRoutes);
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
@@ -43,12 +52,15 @@ app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
-app.use('/tamanios', require('./routes/tamanioRoutes'));  
+app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
+
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
 async function iniciarServidor() {
     try {
+
+
         await db.sequelize.authenticate();
         console.log('Conexión con la base de datos OK');
 

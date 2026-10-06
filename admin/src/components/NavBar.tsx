@@ -1,62 +1,75 @@
-import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
-import { Menu, LogOut, X } from 'lucide-react'
-import type { AdministradorSesion } from '../App'
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Menu, LogOut, X } from "lucide-react";
+import type { AdministradorSesion } from "../App";
+import { cerrarSesionService } from "../services/authService";
 
 interface NavbarProps {
-  administrador: AdministradorSesion | null
-  setAdministrador: React.Dispatch<React.SetStateAction<AdministradorSesion | null>>
+  administrador: AdministradorSesion | null;
+  setAdministrador: React.Dispatch<
+    React.SetStateAction<AdministradorSesion | null>
+  >;
 }
 
 interface Enlace {
-  to: string
-  label: string
-  end?: boolean // true = activo solo con la ruta exacta (para "Inicio")
+  to: string;
+  label: string;
+  end?: boolean; // true = activo solo con la ruta exacta (para "Inicio")
 }
 
 // Qué ve cada rol en el menú
 function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
-  if (administrador?.rol === 'MASTER') {
+  if (administrador?.rol === "MASTER") {
     return [
-      { to: '/admin', label: 'Inicio', end: true },
-      { to: '/admin/productos', label: 'Productos' },
-      { to: '/admin/insumos', label: 'Insumos' },
-      { to: '/admin/categorias', label: 'Categorías' },
-      { to: '/admin/sucursales', label: 'Sucursales' },
-      { to: '/admin/administradores', label: 'Administradores' },
-    ]
+      { to: "/admin", label: "Inicio", end: true },
+      { to: "/admin/productos", label: "Productos" },
+      { to: "/admin/insumos", label: "Insumos" },
+      { to: "/admin/categorias", label: "Categorías" },
+      { to: "/admin/sucursales", label: "Sucursales" },
+      { to: "/admin/administradores", label: "Administradores" },
+    ];
   }
 
-  const id = administrador?.sucursalId
+  const id = administrador?.sucursalId;
   return [
-    { to: '/admin', label: 'Inicio', end: true },
+    { to: "/admin", label: "Inicio", end: true },
     ...(id
       ? [
-          { to: `/admin/sucursales/${id}/stock`, label: 'Stock' },
-          { to: `/admin/sucursales/editar/${id}`, label: 'Mi sucursal' },
+          { to: `/admin/sucursales/${id}/stock`, label: "Stock" },
+          { to: `/admin/sucursales/editar/${id}`, label: "Mi sucursal" },
         ]
       : []),
-  ]
+  ];
 }
 
 const claseEnlace = ({ isActive }: { isActive: boolean }) =>
-  isActive ? 'font-bold text-action drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]' : 'hover:text-action-hover'
+  isActive
+    ? "font-bold text-action drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]"
+    : "hover:text-action-hover";
 
-export default function Navbar({ administrador, setAdministrador }: NavbarProps) {
-  const [menuAbierto, setMenuAbierto] = useState(false)
-  const navigate = useNavigate()
+export default function Navbar({
+  administrador,
+  setAdministrador,
+}: NavbarProps) {
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const navigate = useNavigate();
 
-  const enlaces = enlacesDe(administrador)
+  const enlaces = enlacesDe(administrador);
   const rolTexto =
-    administrador?.rol === 'MASTER'
-      ? 'Administrador general'
-      : `Sucursal ${administrador?.sucursal?.nombre ?? 'sin asignar'}`
+    administrador?.rol === "MASTER"
+      ? "Administrador general"
+      : `Sucursal ${administrador?.sucursal?.nombre ?? "sin asignar"}`;
 
-  const cerrarSesion = () => {
-    setAdministrador(null)
-    localStorage.removeItem('administrador')
-    navigate('/')
-  }
+  const cerrarSesion = async () => {
+    try {
+      await cerrarSesionService();
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+    setAdministrador(null);
+    localStorage.removeItem("administrador");
+    navigate("/");
+  };
 
   // Nombre, rol y botón de salir (se repite en escritorio y celular)
   const usuario = (
@@ -75,7 +88,7 @@ export default function Navbar({ administrador, setAdministrador }: NavbarProps)
         <LogOut size={18} />
       </button>
     </div>
-  )
+  );
 
   return (
     <nav className="bg-gray-900 text-white">
@@ -87,7 +100,7 @@ export default function Navbar({ administrador, setAdministrador }: NavbarProps)
           type="button"
           onClick={() => setMenuAbierto(!menuAbierto)}
           className="text-2xl md:hidden"
-          aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
+          aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={menuAbierto}
         >
           {menuAbierto ? <X size={20} /> : <Menu size={20} />}
@@ -108,7 +121,13 @@ export default function Navbar({ administrador, setAdministrador }: NavbarProps)
       {menuAbierto && (
         <div className="flex flex-col gap-4 px-6 pb-4 md:hidden">
           {enlaces.map((e) => (
-            <NavLink key={e.to} to={e.to} end={e.end} onClick={() => setMenuAbierto(false)} className={claseEnlace}>
+            <NavLink
+              key={e.to}
+              to={e.to}
+              end={e.end}
+              onClick={() => setMenuAbierto(false)}
+              className={claseEnlace}
+            >
               {e.label}
             </NavLink>
           ))}
@@ -116,5 +135,5 @@ export default function Navbar({ administrador, setAdministrador }: NavbarProps)
         </div>
       )}
     </nav>
-  )
+  );
 }
