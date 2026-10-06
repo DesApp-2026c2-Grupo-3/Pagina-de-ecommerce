@@ -51,7 +51,7 @@ const itemGrupo = Joi.object({
         'number.base': 'Elegí la categoría del grupo',
         'any.required': 'Cada grupo necesita una categoría'
     }),
-    productoIncluidoId: Joi.number().integer().positive().required().messages({
+    productoIncluidoId: Joi.number().integer().positive().allow(null).optional().messages({
         'number.base': 'Elegí la opción incluida del grupo',
         'any.required': 'Cada grupo necesita una opción incluida'
     }),

@@ -1,4 +1,4 @@
-const { validarPedido } = require('../src/middleware/validarPedido');
+const { validarPedido } = require('../../src/middleware/validarPedido');
 
 function crearRes() {
     const res = {};

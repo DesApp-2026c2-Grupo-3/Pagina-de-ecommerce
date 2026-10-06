@@ -11,7 +11,7 @@ const {
     Sucursal,
 } = require('../models');
 const { productoDisponible, stockComoMapa, pasoExtra } = require('../utils/disponibilidad');
-
+const { precioMasBarato } = require('../utils/combo');
 // Igual que en crearPedido y en el front
 const EXTRA_MAX_INCREMENTO = 3;
 
@@ -105,13 +105,9 @@ async function reconstruirLinea(detalle, obtener, stockPorInsumo) {
             return { nombre, motivo: `No hay stock de ${elegido.nombre} en tu sucursal` };
         }
 
-        // El recargo se calcula con los precios de hoy, contra la opción incluida
-        let recargo = 0;
-        if (elegido.id !== grupo.productoIncluidoId) {
-            const incluido = await obtener(grupo.productoIncluidoId);
-            const tamanioIncluido = (incluido?.tamanios ?? []).find((t) => t.tamanioId === detalle.tamanioId);
-            if (tamanioIncluido) recargo = Math.max(0, Number(tamanioElegido.precio) - Number(tamanioIncluido.precio));
-        }
+        // El recargo se calcula con los precios de hoy, contra la opción más barata del lugar
+        const referencia = await precioMasBarato(grupo.categoriaId, detalle.tamanioId);
+        const recargo = referencia === null ? 0 : Math.max(0, Number(tamanioElegido.precio) - referencia);
 
         recargoCombo += recargo;
         combo.push({ grupoId: grupo.id, productoId: elegido.id });

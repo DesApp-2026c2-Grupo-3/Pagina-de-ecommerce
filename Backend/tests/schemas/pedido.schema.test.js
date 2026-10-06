@@ -1,4 +1,4 @@
-const { pedidoSchema } = require('../src/schemas/pedido.schema');
+const { pedidoSchema } = require('../../src/schemas/pedido.schema');
 
 const pedidoValido = {
     usuarioId: 1,

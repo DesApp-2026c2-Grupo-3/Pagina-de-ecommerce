@@ -1,4 +1,4 @@
-const { Direccion } = require('../models');
+const { Direccion, sequelize } = require('../models');
 
 // Campos que el usuario puede enviar al crear o editar una dirección
 const CAMPOS = [
@@ -106,10 +106,36 @@ const eliminarDireccion = async (req, res) => {
         res.status(500).json({ mensaje: 'Error del servidor' });
     }
 };
+// PATCH /direcciones/:id/predeterminada → la marca como predeterminada, y desmarca las otras del usuario
+const marcarPredeterminada = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const direccion = await Direccion.findByPk(req.params.id, { transaction: t });
+        if (!direccion) {
+            await t.rollback();
+            return res.status(404).json({ mensaje: 'Dirección no encontrada' });
+        }
+
+        // Solo puede haber una predeterminada por usuario
+        await Direccion.update(
+            { predeterminada: false },
+            { where: { usuarioId: direccion.usuarioId }, transaction: t }
+        );
+        await direccion.update({ predeterminada: true }, { transaction: t });
+
+        await t.commit();
+        return res.status(200).json(direccion);
+    } catch (error) {
+        await t.rollback();
+        console.error('Algo salió mal', error.message);
+        return res.status(500).json({ mensaje: 'No se pudo marcar la dirección como predeterminada' });
+    }
+};
 
 module.exports = {
     obtenerDireccionesPorUsuario,
     crearDireccion,
     actualizarDireccion,
     eliminarDireccion,
+    marcarPredeterminada,
 };

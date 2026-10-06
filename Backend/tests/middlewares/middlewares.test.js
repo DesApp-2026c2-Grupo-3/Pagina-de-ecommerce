@@ -1,13 +1,13 @@
-const { validarProducto } = require('../src/middleware/validarProducto');
+const { validarProducto } = require('../../src/middleware/validarProducto');
 const {
     validarUsuario,
     validarLogin,
     validarActualizarUsuario,
-} = require('../src/middleware/validarUsuario');
-const { validarAdmin } = require('../src/middleware/admin/validarAdmin');
-const { validarLoginAdmin } = require('../src/middleware/admin/validarLoginAdmin');
-const { validarUpdateAdmin } = require('../src/middleware/admin/validarUpdateAdmin');
-const { validarCategoria } = require('../src/middleware/admin/validarCategoria');
+} = require('../../src/middleware/validarUsuario');
+const { validarAdmin } = require('../../src/middleware/admin/validarAdmin');
+const { validarLoginAdmin } = require('../../src/middleware/admin/validarLoginAdmin');
+const { validarUpdateAdmin } = require('../../src/middleware/admin/validarUpdateAdmin');
+const { validarCategoria } = require('../../src/middleware/admin/validarCategoria');
 
 function crearRes() {
     const res = {};
@@ -54,7 +54,7 @@ const casos = [
     {
         nombre: 'validarAdmin',
         middleware: validarAdmin,
-        valido: { nombre: 'Admin Central', email: 'Admin@Burger.com', password: 'Segura123' },
+        valido: { nombre: 'Admin Central', email: 'Admin@Burger.com', password: 'Segura123', sucursalId: 1, },
         verificarLimpio: (body) => expect(body.email).toBe('admin@burger.com'),
         invalido: { nombre: 'Admin Central', email: 'admin@burger.com', password: 'debil' },
         mensaje: 'La contraseña debe tener al menos 8 caracteres',

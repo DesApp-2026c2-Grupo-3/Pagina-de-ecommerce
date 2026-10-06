@@ -50,6 +50,6 @@ export const getProductoDetalle = async (id: number, sucursalId?: number | null)
 }
 
 export const getCategories = async (): Promise<Category[]> => {
-  const categorias = await httpClient<Category[]>('/admin/categorias')
+  const categorias = await httpClient<Category[]>('/categorias')  
   return categorias
 }

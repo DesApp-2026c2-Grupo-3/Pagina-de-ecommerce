@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { obtenerCategorias } from '../services/categoriaService'
-import { obtenerProductos, obtenerInsumos, obtenerTamanios } from '../services/productoService'
+import { obtenerInsumos, obtenerTamanios } from '../services/productoService'
 import { crearInsumo } from '../services/insumoService'
+import { TAMANIOS_AUTO, precioTamanio } from '../config/tamanios'
 
 // ---------- Tipos del formulario (los números van como texto mientras se escriben) ----------
 
@@ -13,18 +14,15 @@ export interface FilaReceta {
   esAgregable: boolean
 }
 
+// Precio, consumo y medida de cada tamaño son estándar: el panel solo sabe cuáles existen
 export interface FilaTamanio {
   tamanioId: number
-  activo: boolean
-  precio: string
-  etiqueta: string
-  factorStock: string
 }
 
+// Un lugar del combo: de qué categoría elige el cliente. La más barata va incluida.
 export interface FilaGrupo {
   nombre: string
   categoriaId: string
-  productoIncluidoId: string
   obligatorio: boolean
 }
 
@@ -45,19 +43,11 @@ interface Opcion {
   nombre: string
 }
 
-interface InsumoOpcion extends Opcion {
-  unidadMedida: string
-}
-
-interface ProductoOpcion extends Opcion {
-  categoriaId: number | null
-}
-
 type TipoProducto = 'simple' | 'tamanios' | 'combo'
 
 const TIPOS: { valor: TipoProducto; titulo: string; detalle: string }[] = [
   { valor: 'simple', titulo: 'Simple', detalle: 'Hamburguesas, postres: un solo precio' },
-  { valor: 'tamanios', titulo: 'Con tamaños', detalle: 'Papas, bebidas: un precio por tamaño' },
+  { valor: 'tamanios', titulo: 'Con tamaños', detalle: 'Papas, bebidas: regular, mediano y grande' },
   { valor: 'combo', titulo: 'Combo', detalle: 'Con tamaños y lugares para elegir (papas, bebida)' },
 ]
 
@@ -75,10 +65,12 @@ export const productoVacio: DatosProducto = {
 
 // Del producto que devuelve el backend (GET /admin/productos/:id) al formulario
 export function desdeProducto(p: any): DatosProducto {
+  // Si tiene tamaños, el precio que se edita es el del regular
+  const regular = (p.tamanios ?? []).find((t: any) => t.tamanioId === 1)
   return {
     nombre: p.nombre ?? '',
     descripcion: p.descripcion ?? '',
-    precio: String(p.precio ?? ''),
+    precio: String(regular?.precio ?? p.precio ?? ''),
     imagen: p.imagen ?? '',
     disponible: Boolean(p.disponible),
     categoriaId: p.categoriaId ? String(p.categoriaId) : '',
@@ -88,28 +80,23 @@ export function desdeProducto(p: any): DatosProducto {
       esRemovible: Boolean(r.esRemovible),
       esAgregable: Boolean(r.esAgregable),
     })),
-    tamanios: (p.tamanios ?? []).map((t: any) => ({
-      tamanioId: t.tamanioId,
-      activo: true,
-      precio: String(t.precio),
-      etiqueta: t.etiqueta ?? '',
-      factorStock: String(t.factorStock ?? 1),
-    })),
+    tamanios: (p.tamanios ?? []).map((t: any) => ({ tamanioId: t.tamanioId })),
     grupos: (p.grupos ?? []).map((g: any) => ({
-      nombre: g.nombre,
+      nombre: g.nombre ?? '',
       categoriaId: String(g.categoriaId),
-      productoIncluidoId: String(g.productoIncluidoId),
       obligatorio: Boolean(g.obligatorio),
     })),
   }
 }
 
-// Del formulario a lo que espera el backend
+// Del formulario a lo que espera el backend.
+// Los precios y consumos de los tamaños son una vista previa: el backend los vuelve a calcular.
 export function aPedido(d: DatosProducto) {
+  const precio = Number(d.precio)
   return {
     nombre: d.nombre.trim(),
     descripcion: d.descripcion.trim(),
-    precio: Number(d.precio),
+    precio,
     imagen: d.imagen.trim(),
     disponible: d.disponible,
     categoriaId: Number(d.categoriaId),
@@ -119,18 +106,15 @@ export function aPedido(d: DatosProducto) {
       esRemovible: r.esRemovible,
       esAgregable: r.esAgregable,
     })),
-    tamanios: d.tamanios
-      .filter((t) => t.activo)
-      .map((t) => ({
-        tamanioId: t.tamanioId,
-        precio: Number(t.precio),
-        etiqueta: t.etiqueta.trim() || null,
-        factorStock: Number(t.factorStock) || 1,
-      })),
+    tamanios: d.tamanios.map((t) => ({
+      tamanioId: t.tamanioId,
+      precio: precioTamanio(precio, t.tamanioId),
+      etiqueta: null,
+      factorStock: TAMANIOS_AUTO[t.tamanioId]?.factorStock ?? 1,
+    })),
     grupos: d.grupos.map((g, i) => ({
       nombre: g.nombre.trim(),
       categoriaId: Number(g.categoriaId),
-      productoIncluidoId: Number(g.productoIncluidoId),
       obligatorio: g.obligatorio,
       orden: i + 1,
     })),
@@ -148,35 +132,31 @@ function validar(d: DatosProducto, tipo: TipoProducto): string {
 
   for (const [i, r] of d.receta.entries()) {
     if (r.insumoId === '') return `Elegí el insumo del ingrediente ${i + 1} de la receta.`
-    if (r.cantidadBase === '' || Number(r.cantidadBase) < 0) {
-      return `Revisá la cantidad del ingrediente ${i + 1} de la receta.`
+    const cantidad = Number(r.cantidadBase)
+    if (r.cantidadBase === '' || !Number.isInteger(cantidad) || cantidad < 0) {
+      return `La cantidad del ingrediente ${i + 1} debe ser un número entero, 0 o más.`
     }
   }
   const insumos = d.receta.map((r) => r.insumoId)
   if (new Set(insumos).size !== insumos.length) return 'Un insumo no puede repetirse en la receta.'
 
-  // Los productos con tamaños y los combos necesitan al menos un tamaño con precio
-  if (tipo !== 'simple') {
-    const activos = d.tamanios.filter((t) => t.activo)
-    if (activos.length === 0) {
-      return 'En "Tamaños", tildá al menos uno (Regular, Mediano o Grande) y ponele precio.'
-    }
-    if (activos.some((t) => t.precio === '' || Number(t.precio) <= 0)) {
-      return 'Cada tamaño tildado necesita un precio mayor a 0.'
-    }
+  if (tipo !== 'simple' && d.tamanios.length === 0) {
+    return 'No se pudieron cargar los tamaños. Revisá que el backend esté funcionando y recargá la página.'
   }
 
   if (tipo === 'combo') {
-    if (d.grupos.length === 0) return 'Agregá al menos un lugar al combo (por ejemplo, Bebida).'
-    for (const [i, g] of d.grupos.entries()) {
-      if (g.nombre.trim().length < 2) return `Poné un nombre al lugar ${i + 1} del combo.`
-      if (g.categoriaId === '') return `Elegí la categoría de "${g.nombre}".`
-      if (g.productoIncluidoId === '') return `Elegí la opción incluida de "${g.nombre}".`
+    if (d.grupos.length === 0) return 'Agregá al menos un lugar al combo (por ejemplo, Bebidas).'
+    if (d.grupos.some((g) => g.categoriaId === '')) return 'Elegí la categoría de cada lugar del combo.'
+    const categoriasDeLugares = d.grupos.map((g) => g.categoriaId)
+    if (new Set(categoriasDeLugares).size !== categoriasDeLugares.length) {
+      return 'Dos lugares del combo no pueden ser de la misma categoría.'
     }
   }
 
   return ''
 }
+
+const formatearPrecio = (n: number) => `$${n.toLocaleString('es-AR')}`
 
 // ---------- Estilos compartidos ----------
 const campo = 'w-full rounded border p-2'
@@ -202,33 +182,19 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
   const [guardando, setGuardando] = useState(false)
 
   const [categorias, setCategorias] = useState<Opcion[]>([])
-  const [insumos, setInsumos] = useState<InsumoOpcion[]>([])
-  const [productos, setProductos] = useState<ProductoOpcion[]>([])
-  // Alta rápida de un insumo nuevo, sin salir del producto
+  const [insumos, setInsumos] = useState<Opcion[]>([])
+  // Alta rápida de un insumo nuevo, sin salir del producto (siempre en unidades)
   const [creandoInsumo, setCreandoInsumo] = useState(false)
-  const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', unidadMedida: 'unidad', precioComercial: '' })
+  const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', precioComercial: '' })
   const [errorInsumo, setErrorInsumo] = useState('')
 
-  // Carga las listas para los selects, y arma una fila por cada tamaño que existe
+  // Carga las listas para los selects, y los tamaños que existen
   useEffect(() => {
-    Promise.all([obtenerCategorias(), obtenerInsumos(), obtenerTamanios(), obtenerProductos()])
-      .then(([cats, ins, tams, prods]) => {
+    Promise.all([obtenerCategorias(), obtenerInsumos(), obtenerTamanios()])
+      .then(([cats, ins, tams]) => {
         setCategorias(cats)
         setInsumos(ins)
-        setProductos(prods)
-        setDatos((prev) => ({
-          ...prev,
-          tamanios: tams.map(
-            (t: Opcion) =>
-              prev.tamanios.find((x) => x.tamanioId === t.id) ?? {
-                tamanioId: t.id,
-                activo: false,
-                precio: '',
-                etiqueta: '',
-                factorStock: '1',
-              },
-          ),
-        }))
+        setDatos((prev) => ({ ...prev, tamanios: tams.map((t: Opcion) => ({ tamanioId: t.id })) }))
       })
       .catch(() => setError('No se pudieron cargar las listas del formulario. Revisá que el backend esté funcionando.'))
   }, [])
@@ -238,11 +204,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     setError('')
   }
 
-  function cambiarFila<K extends 'receta' | 'tamanios' | 'grupos'>(
-    lista: K,
-    indice: number,
-    cambios: Partial<DatosProducto[K][number]>,
-  ) {
+  function cambiarFila<K extends 'receta' | 'grupos'>(lista: K, indice: number, cambios: Partial<DatosProducto[K][number]>) {
     setDatos((prev) => ({
       ...prev,
       [lista]: prev[lista].map((fila, i) => (i === indice ? { ...fila, ...cambios } : fila)),
@@ -250,7 +212,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     setError('')
   }
 
-    // Crea el insumo (con su stock en 0 en todas las sucursales) y lo suma a la receta, ya elegido
+  // Crea el insumo (con su stock en 0 en todas las sucursales) y lo suma a la receta, ya elegido
   async function guardarInsumoNuevo() {
     if (nuevoInsumo.nombre.trim().length < 2) {
       setErrorInsumo('El nombre debe tener al menos 2 caracteres.')
@@ -259,7 +221,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     try {
       const { insumo } = await crearInsumo({
         nombre: nuevoInsumo.nombre.trim(),
-        unidadMedida: nuevoInsumo.unidadMedida,
+        unidadMedida: 'unidad',
         precioComercial: nuevoInsumo.precioComercial === '' ? null : Number(nuevoInsumo.precioComercial),
       })
       setInsumos((prev) => [...prev, insumo].sort((a, b) => a.nombre.localeCompare(b.nombre)))
@@ -267,14 +229,16 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
         ...datos.receta,
         { insumoId: String(insumo.id), cantidadBase: '1', esRemovible: false, esAgregable: false },
       ])
-      setNuevoInsumo({ nombre: '', unidadMedida: 'unidad', precioComercial: '' })
+      setNuevoInsumo({ nombre: '', precioComercial: '' })
       setCreandoInsumo(false)
       setErrorInsumo('')
     } catch (err) {
       setErrorInsumo(err instanceof Error ? err.message : 'No se pudo crear el insumo.')
     }
   }
-  const nombreTamanio = (id: number) => ['', 'Regular', 'Mediano', 'Grande'][id] ?? `Tamaño ${id}`
+
+  const precioRegular = Number(datos.precio) || 0
+  const nombreCategoria = (id: string) => categorias.find((c) => String(c.id) === id)?.nombre ?? ''
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
@@ -285,11 +249,15 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
       return
     }
 
-    // Lo que no corresponde al tipo se manda vacío, así se borra en el backend
+    // Lo que no corresponde al tipo se manda vacío, así se borra en el backend.
+    // El nombre de cada lugar del combo es el de su categoría.
     const aGuardar: DatosProducto = {
       ...datos,
-      tamanios: tipo === 'simple' ? datos.tamanios.map((t) => ({ ...t, activo: false })) : datos.tamanios,
-      grupos: tipo === 'combo' ? datos.grupos : [],
+      tamanios: tipo === 'simple' ? [] : datos.tamanios,
+      grupos:
+        tipo === 'combo'
+          ? datos.grupos.map((g) => ({ ...g, nombre: nombreCategoria(g.categoriaId) || 'Opción' }))
+          : [],
     }
 
     setGuardando(true)
@@ -349,7 +317,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
             </div>
 
             <div>
-              <label className="font-medium">{tipo === 'simple' ? 'Precio' : 'Precio de referencia'}</label>
+              <label className="font-medium">{tipo === 'simple' ? 'Precio' : 'Precio regular'}</label>
               <input
                 type="number"
                 min="0"
@@ -359,6 +327,13 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                 className={campo}
                 placeholder="Ej: 9500"
               />
+              {tipo !== 'simple' && precioRegular > 0 && (
+                <p className="mt-1 text-sm text-gray-600">
+                  Mediano {formatearPrecio(precioTamanio(precioRegular, 2))} · Grande{' '}
+                  {formatearPrecio(precioTamanio(precioRegular, 3))}{' '}
+                  <span className="text-gray-400">(se calculan solos)</span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -417,7 +392,9 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
       <section className={tarjeta}>
         <h2 className="text-xl font-bold">Receta</h2>
         <p className="mb-4 text-sm text-gray-600">
-          Los insumos que lleva, y cuánto. Con esto se descuenta el stock y el cliente puede personalizar.
+          {tipo === 'combo'
+            ? 'Lo que el combo trae siempre (por ejemplo, la hamburguesa). Lo que elige el cliente va en "Lugares del combo".'
+            : `Los insumos que lleva, y cuántas unidades${tipo === 'tamanios' ? ' en el tamaño regular' : ''}. Con esto se descuenta el stock y el cliente puede personalizar.`}
         </p>
 
         {datos.receta.length === 0 && (
@@ -427,70 +404,64 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
         )}
 
         <div className="flex flex-col gap-3">
-          {datos.receta.map((fila, i) => {
-            const unidad = insumos.find((x) => String(x.id) === fila.insumoId)?.unidadMedida
-            return (
-              <div
-                key={i}
-                className="grid items-center gap-2 rounded border p-3 sm:grid-cols-[1fr_8rem_auto_auto_auto]"
+          {datos.receta.map((fila, i) => (
+            <div
+              key={i}
+              className="grid items-center gap-2 rounded border p-3 sm:grid-cols-[1fr_6rem_auto_auto_auto]"
+            >
+              <select
+                value={fila.insumoId}
+                onChange={(e) => cambiarFila('receta', i, { insumoId: e.target.value })}
+                className={campo}
+                aria-label={`Insumo del ingrediente ${i + 1}`}
               >
-                <select
-                  value={fila.insumoId}
-                  onChange={(e) => cambiarFila('receta', i, { insumoId: e.target.value })}
-                  className={campo}
-                  aria-label={`Insumo del ingrediente ${i + 1}`}
-                >
-                  <option value="">Elegir insumo</option>
-                  {insumos.map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.nombre}
-                    </option>
-                  ))}
-                </select>
+                <option value="">Elegir insumo</option>
+                {insumos.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.nombre}
+                  </option>
+                ))}
+              </select>
 
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value={fila.cantidadBase}
-                    onChange={(e) => cambiarFila('receta', i, { cantidadBase: e.target.value })}
-                    className={campo}
-                    aria-label={`Cantidad del ingrediente ${i + 1}`}
-                    placeholder="Ej: 1"
-                  />
-                  {unidad && <span className="text-xs text-gray-500">{unidad}</span>}
-                </div>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={fila.cantidadBase}
+                onChange={(e) => cambiarFila('receta', i, { cantidadBase: e.target.value })}
+                className={campo}
+                aria-label={`Cantidad del ingrediente ${i + 1}`}
+                placeholder="Ej: 1"
+              />
 
-                <label className="flex items-center gap-1 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={fila.esRemovible}
-                    onChange={(e) => cambiarFila('receta', i, { esRemovible: e.target.checked })}
-                  />
-                  Se puede quitar
-                </label>
+              <label className="flex items-center gap-1 text-sm">
+                <input
+                  type="checkbox"
+                  checked={fila.esRemovible}
+                  onChange={(e) => cambiarFila('receta', i, { esRemovible: e.target.checked })}
+                />
+                Se puede quitar
+              </label>
 
-                <label className="flex items-center gap-1 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={fila.esAgregable}
-                    onChange={(e) => cambiarFila('receta', i, { esAgregable: e.target.checked })}
-                  />
-                  Se puede agregar
-                </label>
+              <label className="flex items-center gap-1 text-sm">
+                <input
+                  type="checkbox"
+                  checked={fila.esAgregable}
+                  onChange={(e) => cambiarFila('receta', i, { esAgregable: e.target.checked })}
+                />
+                Se puede agregar
+              </label>
 
-                <button
-                  type="button"
-                  onClick={() => cambiar('receta', datos.receta.filter((_, j) => j !== i))}
-                  className={botonQuitar}
-                  aria-label={`Quitar ingrediente ${i + 1}`}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            )
-          })}
+              <button
+                type="button"
+                onClick={() => cambiar('receta', datos.receta.filter((_, j) => j !== i))}
+                className={botonQuitar}
+                aria-label={`Quitar ingrediente ${i + 1}`}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -521,7 +492,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
         {creandoInsumo && (
           <div className="mt-3 rounded border border-orange-200 bg-orange-50 p-4">
             <p className="mb-3 font-semibold">Nuevo insumo</p>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <input
                 type="text"
                 maxLength={50}
@@ -542,18 +513,6 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                 placeholder="Ej: Pepinillos"
                 aria-label="Nombre del insumo nuevo"
               />
-              <select
-                value={nuevoInsumo.unidadMedida}
-                onChange={(e) => setNuevoInsumo({ ...nuevoInsumo, unidadMedida: e.target.value })}
-                className={campo}
-                aria-label="Unidad de medida del insumo nuevo"
-              >
-                {['unidad', 'kg', 'g', 'litro', 'ml'].map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
               <input
                 type="number"
                 min="0"
@@ -589,160 +548,54 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
         )}
       </section>
 
-      {/* ---------- Tamaños (productos con tamaños y combos) ---------- */}
-      {tipo !== 'simple' && (
-        <section className={tarjeta}>
-          <h2 className="text-xl font-bold">Tamaños</h2>
-          <p className="mb-4 text-sm text-gray-600">
-            {tipo === 'combo'
-              ? 'El tamaño del combo define el tamaño de las papas y la bebida. Tildá los que se venden, con su precio.'
-              : 'Tildá los tamaños que se venden, cada uno con su precio. El factor de stock indica cuánto gasta respecto de la receta (1.5 = 50% más).'}
-          </p>
-
-          {datos.tamanios.length === 0 ? (
-            <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-              No se pudieron cargar los tamaños (regular, mediano, grande). Revisá que el backend esté funcionando y
-              recargá la página.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {datos.tamanios.map((t, i) => (
-                <div
-                  key={t.tamanioId}
-                  className="grid items-center gap-2 rounded border p-3 sm:grid-cols-[8rem_1fr_1fr_1fr]"
-                >
-                  <label className="flex items-center gap-2 font-medium">
-                    <input
-                      type="checkbox"
-                      checked={t.activo}
-                      onChange={(e) => cambiarFila('tamanios', i, { activo: e.target.checked })}
-                    />
-                    {nombreTamanio(t.tamanioId)}
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    disabled={!t.activo}
-                    value={t.precio}
-                    onChange={(e) => cambiarFila('tamanios', i, { precio: e.target.value })}
-                    className={`${campo} disabled:bg-gray-100`}
-                    placeholder="Precio"
-                    aria-label={`Precio ${nombreTamanio(t.tamanioId)}`}
-                  />
-                  <input
-                    type="text"
-                    maxLength={30}
-                    disabled={!t.activo}
-                    value={t.etiqueta}
-                    onChange={(e) => cambiarFila('tamanios', i, { etiqueta: e.target.value })}
-                    className={`${campo} disabled:bg-gray-100`}
-                    placeholder="Ej: 500 ml (opcional)"
-                    aria-label={`Etiqueta ${nombreTamanio(t.tamanioId)}`}
-                  />
-                  <input
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    disabled={!t.activo}
-                    value={t.factorStock}
-                    onChange={(e) => cambiarFila('tamanios', i, { factorStock: e.target.value })}
-                    className={`${campo} disabled:bg-gray-100`}
-                    placeholder="Factor de stock"
-                    aria-label={`Factor de stock ${nombreTamanio(t.tamanioId)}`}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
       {/* ---------- Lugares del combo ---------- */}
       {tipo === 'combo' && (
         <section className={tarjeta}>
           <h2 className="text-xl font-bold">Lugares del combo</h2>
           <p className="mb-4 text-sm text-gray-600">
-            Lo que elige el cliente (ej: acompañamiento, bebida). La opción incluida no cobra extra; las demás cobran
-            la diferencia de precio.
+            De qué categoría elige el cliente (ej: Papas, Bebidas). La opción más barata va incluida en el precio; si
+            elige otra, paga la diferencia.
           </p>
 
           <div className="flex flex-col gap-3">
-            {datos.grupos.map((g, i) => {
-              const opciones = productos.filter((p) => String(p.categoriaId) === g.categoriaId)
-              return (
-                <div
-                  key={i}
-                  className="grid items-center gap-2 rounded border p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto]"
+            {datos.grupos.map((g, i) => (
+              <div key={i} className="grid items-center gap-2 rounded border p-3 sm:grid-cols-[1fr_auto_auto]">
+                <select
+                  value={g.categoriaId}
+                  onChange={(e) => cambiarFila('grupos', i, { categoriaId: e.target.value })}
+                  className={campo}
+                  aria-label={`Categoría del lugar ${i + 1}`}
                 >
+                  <option value="">Elegir categoría</option>
+                  {categorias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-1 text-sm">
                   <input
-                    type="text"
-                    maxLength={40}
-                    value={g.nombre}
-                    onChange={(e) => cambiarFila('grupos', i, { nombre: e.target.value })}
-                    className={campo}
-                    placeholder="Ej: Acompañamiento"
-                    aria-label={`Nombre del lugar ${i + 1}`}
+                    type="checkbox"
+                    checked={g.obligatorio}
+                    onChange={(e) => cambiarFila('grupos', i, { obligatorio: e.target.checked })}
                   />
-                  <select
-                    value={g.categoriaId}
-                    onChange={(e) =>
-                      // Al cambiar la categoría, la opción incluida anterior deja de servir
-                      cambiarFila('grupos', i, { categoriaId: e.target.value, productoIncluidoId: '' })
-                    }
-                    className={campo}
-                    aria-label={`Categoría del lugar ${i + 1}`}
-                  >
-                    <option value="">Categoría</option>
-                    {categorias.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={g.productoIncluidoId}
-                    disabled={g.categoriaId === ''}
-                    onChange={(e) => cambiarFila('grupos', i, { productoIncluidoId: e.target.value })}
-                    className={`${campo} disabled:bg-gray-100`}
-                    aria-label={`Opción incluida del lugar ${i + 1}`}
-                  >
-                    <option value="">Opción incluida</option>
-                    {opciones.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="flex items-center gap-1 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={g.obligatorio}
-                      onChange={(e) => cambiarFila('grupos', i, { obligatorio: e.target.checked })}
-                    />
-                    Obligatorio
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => cambiar('grupos', datos.grupos.filter((_, j) => j !== i))}
-                    className={botonQuitar}
-                    aria-label={`Quitar lugar ${i + 1}`}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              )
-            })}
+                  Obligatorio
+                </label>
+                <button
+                  type="button"
+                  onClick={() => cambiar('grupos', datos.grupos.filter((_, j) => j !== i))}
+                  className={botonQuitar}
+                  aria-label={`Quitar lugar ${i + 1}`}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
           </div>
 
           <button
             type="button"
-            onClick={() =>
-              cambiar('grupos', [
-                ...datos.grupos,
-                { nombre: '', categoriaId: '', productoIncluidoId: '', obligatorio: true },
-              ])
-            }
+            onClick={() => cambiar('grupos', [...datos.grupos, { nombre: '', categoriaId: '', obligatorio: true }])}
             className={`${botonAgregar} mt-3`}
           >
             <Plus size={16} /> Agregar lugar

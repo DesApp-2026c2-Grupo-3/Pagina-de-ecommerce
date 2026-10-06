@@ -1,5 +1,5 @@
 // 1. Reemplazamos los modelos por versiones falsas ANTES de importar el controlador
-jest.mock('../src/models', () => ({
+jest.mock('../../src/models', () => ({
     Direccion: {
         findAll: jest.fn(),
         findByPk: jest.fn(),
@@ -8,13 +8,13 @@ jest.mock('../src/models', () => ({
     },
 }));
 
-const { Direccion } = require('../src/models');
+const { Direccion } = require('../../src/models');
 const {
     obtenerDireccionesPorUsuario,
     crearDireccion,
     actualizarDireccion,
     eliminarDireccion,
-} = require('../src/controllers/direccionController');
+} = require('../../src/controllers/direccionController');
 
 // Un "res" falso: guarda con qué se llamó a status() y a json()
 function crearRes() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import Modal from './Modal'
 import AddressPicker from './AddressPicker'
 import { useZona, type UbicacionElegida } from '../context/ZonaContext'
@@ -22,35 +22,18 @@ const ubicacionVacia: UbicacionEnCurso = {
   longitud: null,
 }
 
-// En estas pantallas no se pide la zona (para poder iniciar sesión y usar las direcciones guardadas)
-const SIN_ZONA = ['/login', '/registro']
-
+// Se abre solo cuando la persona lo pide (desde el botón de dirección del Navbar)
 function ElegirZonaModal() {
   const { zona, selectorAbierto, cerrarSelector, elegirUbicacion } = useZona()
   const { user, isAuthenticated } = useAuth()
-  const { pathname } = useLocation()
 
   const [ubicacion, setUbicacion] = useState<UbicacionEnCurso>(ubicacionVacia)
   const [direcciones, setDirecciones] = useState<Address[]>([])
   const [error, setError] = useState('')
 
-  // La primera vez, el aviso aparece después de 2 segundos: así el cliente
-  // alcanza a ver la página antes de que se le pida la dirección
-  const [demoraCumplida, setDemoraCumplida] = useState(false)
-
-  useEffect(() => {
-    if (zona) return
-    const timer = setTimeout(() => setDemoraCumplida(true), 2000)
-    return () => clearTimeout(timer)
-  }, [zona])
-
-  
-  // La primera vez (sin zona elegida) se abre sola y no se puede cerrar
-  const obligatorio = !zona && demoraCumplida && !SIN_ZONA.includes(pathname)  
-  const abierto = obligatorio || selectorAbierto
   // Al abrirse, arranca con la zona actual (si hay) y trae las direcciones guardadas
   useEffect(() => {
-    if (!abierto) return
+    if (!selectorAbierto) return
     setError('')
     setUbicacion(zona ? { ...zona } : ubicacionVacia)
     if (isAuthenticated && user) {
@@ -58,7 +41,7 @@ function ElegirZonaModal() {
         .then(setDirecciones)
         .catch(() => setDirecciones([]))
     }
-  }, [abierto])
+  }, [selectorAbierto])
 
   function confirmar(u: UbicacionEnCurso) {
     if (u.latitud === null || u.longitud === null) {
@@ -73,9 +56,8 @@ function ElegirZonaModal() {
 
   return (
     <Modal
-      isOpen={abierto}
+      isOpen={selectorAbierto}
       onClose={cerrarSelector}
-      cerrable={!obligatorio}
       tamanio="lg"
       title="¿Dónde querés recibir tu pedido?"
       subtitle="Así te mostramos lo que tiene la sucursal más cercana."
@@ -139,7 +121,11 @@ function ElegirZonaModal() {
         {!isAuthenticated && (
           <p className="text-center text-sm text-gray-600">
             ¿Ya tenés cuenta?{' '}
-            <Link to="/login" className="font-bold text-brand-dark underline hover:text-brand-red">
+            <Link
+              to="/login"
+              onClick={cerrarSelector}
+              className="font-bold text-brand-dark underline hover:text-brand-red"
+            >
               Iniciá sesión
             </Link>{' '}
             para usar tus direcciones guardadas.

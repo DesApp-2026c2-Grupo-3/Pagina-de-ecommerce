@@ -1,4 +1,5 @@
-const { productoSchema } = require('../src/schemas/producto.schema');
+
+const { productoSchema } = require('../../src/schemas/producto.schema');
 
 const productoValido = {
     nombre: 'Hamburguesa clásica',

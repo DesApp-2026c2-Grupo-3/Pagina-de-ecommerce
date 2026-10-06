@@ -1,5 +1,4 @@
-const { adminSchema, loginSchema, updateSchema } = require('../src/schemas/admin/admin.schema');
-
+const { adminSchema, loginSchema, updateSchema } = require('../../src/schemas/admin/admin.schema');
 function mensajeDe(schema, datos) {
     return schema.validate(datos).error?.details[0].message;
 }
@@ -8,6 +7,7 @@ const adminValido = {
     nombre: 'Admin Central',
     email: 'admin@burger.com',
     password: 'Segura123',
+    sucursalId: 1,
 };
 
 describe('adminSchema (alta de administrador)', () => {
