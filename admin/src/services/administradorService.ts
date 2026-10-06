@@ -1,79 +1,80 @@
-const API_URL = 'http://localhost:3000/admin'
+const API_URL = "http://localhost:3000/admin";
 
 export async function obtenerAdministradores() {
-  const respuesta = await fetch(`${API_URL}/administradores`)
+  const respuesta = await fetch(`${API_URL}/administradores`, {
+    credentials: "include",
+  });
 
   if (!respuesta.ok) {
-    throw new Error('Error al obtener los administradores')
+    throw new Error("Error al obtener los administradores");
   }
 
-  return respuesta.json()
+  return respuesta.json();
 }
 
 export async function obtenerAdministradorPorId(id: number) {
-  const respuesta = await fetch(`${API_URL}/${id}`)
+  const respuesta = await fetch(`${API_URL}/${id}`, {
+    credentials: "include",
+  });
 
   if (!respuesta.ok) {
-    throw new Error('Error al obtener el administrador')
+    throw new Error("Error al obtener el administrador");
   }
 
-  return respuesta.json()
+  return respuesta.json();
 }
 
 export async function crearAdministrador(administrador: unknown) {
   const respuesta = await fetch(`${API_URL}/administradores/nuevo`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify(administrador),
-  })
+  });
   const datos = await respuesta.json();
 
   if (!respuesta.ok) {
-    throw new Error(datos.code || datos.mensaje || "Error al crear el administrador");
+    throw new Error(
+      datos.code || datos.mensaje || "Error al crear el administrador",
+    );
   }
 
-  return datos
+  return datos;
 }
 
 export async function actualizarAdministrador(
   id: number,
-  administrador: unknown
+  administrador: unknown,
 ) {
-  const respuesta = await fetch(
-    `${API_URL}/administradores/editar/${id}`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(administrador),
-    }
-  )
+  const respuesta = await fetch(`${API_URL}/administradores/editar/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(administrador),
+  });
 
-  const datos = await respuesta.json()
+  const datos = await respuesta.json();
 
   if (!respuesta.ok) {
     throw new Error(
-      datos.code ||
-      datos.mensaje ||
-      'Error al actualizar el administrador'
-    )
+      datos.code || datos.mensaje || "Error al actualizar el administrador",
+    );
   }
 
-  return datos
+  return datos;
 }
 
 export async function eliminarAdministrador(id: number) {
-  const respuesta = await fetch(
-    `${API_URL}/eliminar/${id}`,
-    {
-      method: 'DELETE',
-    }
-  )
+  const respuesta = await fetch(`${API_URL}/eliminar/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
 
   if (!respuesta.ok) {
-    throw new Error('Error al eliminar el administrador')
+    throw new Error("Error al eliminar el administrador");
   }
 }

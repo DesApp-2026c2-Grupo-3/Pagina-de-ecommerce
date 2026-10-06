@@ -25,21 +25,40 @@ async function pedir(url: string, opciones: RequestInit, porDefecto: string) {
 const json = (method: string, body: unknown): RequestInit => ({
   method,
   headers: { "Content-Type": "application/json" },
+  credentials: "include",
   body: JSON.stringify(body),
 });
 
 export function obtenerInsumos(): Promise<Insumo[]> {
-  return pedir(`${API_URL}/`, {}, "Error al obtener los insumos");
+  return pedir(
+    `${API_URL}/`,
+    {
+      credentials: "include",
+    },
+    "Error al obtener los insumos",
+  );
 }
 
 export function crearInsumo(datos: DatosInsumo) {
-  return pedir(`${API_URL}/nuevo`, json("POST", datos), "Error al crear el insumo");
+  return pedir(
+    `${API_URL}/nuevo`,
+    json("POST", datos),
+    "Error al crear el insumo",
+  );
 }
 
 export function actualizarInsumo(id: number, datos: DatosInsumo) {
-  return pedir(`${API_URL}/editar/${id}`, json("PATCH", datos), "Error al editar el insumo");
+  return pedir(
+    `${API_URL}/editar/${id}`,
+    json("PATCH", datos),
+    "Error al editar el insumo",
+  );
 }
 
 export function eliminarInsumo(id: number) {
-  return pedir(`${API_URL}/eliminar/${id}`, { method: "DELETE" }, "Error al eliminar el insumo");
+  return pedir(
+    `${API_URL}/eliminar/${id}`,
+    { method: "DELETE", credentials: "include" },
+    "Error al eliminar el insumo",
+  );
 }

@@ -13,14 +13,20 @@ async function errorDe(respuesta: Response, porDefecto: string) {
 }
 
 export async function obtenerProductos() {
-  const respuesta = await fetch(`${API_URL}/`);
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al obtener los productos");
+  const respuesta = await fetch(`${API_URL}/`, {
+    credentials: "include",
+  });
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al obtener los productos");
   return respuesta.json();
 }
 
 export async function obtenerProductoPorId(id: number) {
-  const respuesta = await fetch(`${API_URL}/${id}`);
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al obtener el producto");
+  const respuesta = await fetch(`${API_URL}/${id}`, {
+    credentials: "include",
+  });
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al obtener el producto");
   return respuesta.json();
 }
 
@@ -28,9 +34,11 @@ export async function crearProducto(producto: unknown) {
   const respuesta = await fetch(`${API_URL}/nuevo`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(producto),
   });
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al crear el producto");
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al crear el producto");
   return respuesta.json();
 }
 
@@ -38,34 +46,51 @@ export async function actualizarProducto(id: number, producto: unknown) {
   const respuesta = await fetch(`${API_URL}/editar/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
+
+    credentials: "include",
+
     body: JSON.stringify(producto),
   });
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al actualizar el producto");
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al actualizar el producto");
   return respuesta.json();
 }
 
 export async function eliminarProducto(id: number) {
-  const respuesta = await fetch(`${API_URL}/eliminar/${id}`, { method: "DELETE" });
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al eliminar el producto");
+  const respuesta = await fetch(`${API_URL}/eliminar/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al eliminar el producto");
 }
 
 // Para elegir los ingredientes de la receta
 export async function obtenerInsumos() {
-  const respuesta = await fetch(`${API}/admin/insumos`);
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al obtener los insumos");
+  const respuesta = await fetch(`${API}/admin/insumos`, {
+    credentials: "include",
+  });
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al obtener los insumos");
   return respuesta.json();
 }
 
 // Regular, mediano y grande, en orden
 export async function obtenerTamanios() {
-  const respuesta = await fetch(`${API}/tamanios`);
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al obtener los tamaños");
+  const respuesta = await fetch(`${API}/tamanios`, {
+    credentials: "include",
+  });
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al obtener los tamaños");
   return respuesta.json();
 }
 
 // Por sucursal, cuántas unidades se pueden preparar con el stock actual
 export async function verStockProducto(id: number) {
-  const respuesta = await fetch(`${API_URL}/${id}/stock`);
-  if (!respuesta.ok) throw await errorDe(respuesta, "Error al obtener el stock del producto");
+  const respuesta = await fetch(`${API_URL}/${id}/stock`, {
+    credentials: "include",
+  });
+  if (!respuesta.ok)
+    throw await errorDe(respuesta, "Error al obtener el stock del producto");
   return respuesta.json();
 }
