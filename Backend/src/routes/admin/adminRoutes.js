@@ -10,6 +10,8 @@ const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
 
 router.post('/login', validarLoginAdmin, adminController.login)
 
+router.post('/logout', adminController.logout)
+
 router.get('/administradores', esMasterJwt, adminController.verAdmins)
 
 router.get('/:id', esMasterJwt, esIdValido, adminController.obtenerAdminPorId)
