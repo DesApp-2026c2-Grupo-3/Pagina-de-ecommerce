@@ -2,7 +2,7 @@ const API_URL = "http://localhost:3000/admin/sucursales";
 
 export async function obtenerSucursales() {
   const respuesta = await fetch(`${API_URL}`, {
-    credentials: "include", // 👈 Envía la cookie access_token
+    credentials: "include",
   });
 
   if (!respuesta.ok) {
@@ -13,7 +13,9 @@ export async function obtenerSucursales() {
 }
 
 export async function obtenerSucursalPorId(id: number) {
-  const respuesta = await fetch(`${API_URL}/${id}`);
+  const respuesta = await fetch(`${API_URL}/${id}`, {
+    credentials: "include",
+  });
 
   if (!respuesta.ok) {
     throw new Error("Error al obtener la sucursal");
@@ -28,6 +30,9 @@ export async function crearSucursal(sucursal: unknown) {
     headers: {
       "Content-Type": "application/json",
     },
+
+    credentials: "include",
+
     body: JSON.stringify(sucursal),
   });
   const datos = await respuesta.json();
@@ -46,6 +51,9 @@ export async function actualizarSucursal(id: number, sucursal: unknown) {
     headers: {
       "Content-Type": "application/json",
     },
+
+    credentials: "include",
+
     body: JSON.stringify(sucursal),
   });
 
@@ -67,6 +75,9 @@ export async function cambiarEstadoSucursal(id: number, activa: boolean) {
     headers: {
       "Content-Type": "application/json",
     },
+
+    credentials: "include",
+
     body: JSON.stringify({ activa }),
   });
 

@@ -26,6 +26,7 @@ const obtenerPedidosPorSucursal = async (req, res) => {
         const { usuario } = req;
         const admin = await Admin.findByPk(usuario.id);
 
+
         // se compara con null para que no rechace al master
         // se compara la sucursal del admin con la sucursal q se quiere ver
         if (admin.sucursalId !== null && admin.sucursalId !== Number(sucursalIdParam)) {
@@ -39,7 +40,10 @@ const obtenerPedidosPorSucursal = async (req, res) => {
 
         const pedidos = await Pedido.findAll({
             where,
-            include: [CLIENTE, DETALLE],
+            include: [
+                CLIENTE,
+                DETALLE,
+            ],
             order: [['fecha', 'DESC']],
         });
 

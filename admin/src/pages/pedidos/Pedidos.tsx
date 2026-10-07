@@ -10,7 +10,13 @@ const API_URL = "http://localhost:3000/admin/pedidos";
 const POR_PAGINA = 8;
 
 // Las 4 etapas válidas (mismo orden que el backend)
-const ETAPAS = ["Pendiente", "En proceso", "En camino", "Entregado"] as const;
+const ETAPAS = [
+  "Pendiente",
+  "En proceso",
+  "En camino",
+  "Entregado",
+  "Cancelado",
+] as const;
 type Etapa = (typeof ETAPAS)[number];
 
 interface DetallePedidoFila {
@@ -23,7 +29,7 @@ interface PedidoFila {
   fecha: string;
   total: string;
   estado: string;
-  usuario: { nombre: string; apellido: string } | null;
+  Usuario: { nombre: string; apellido: string } | null;
   DetallePedidos: DetallePedidoFila[];
 }
 
@@ -37,6 +43,7 @@ const coloresEtapa: Record<Etapa, string> = {
   "En proceso": "bg-blue-100 text-blue-700",
   "En camino": "bg-purple-100 text-purple-700",
   Entregado: "bg-green-100 text-green-700",
+  Cancelado: "bg-red-100 text-red-700",
 };
 
 function esEtapa(valor: string): valor is Etapa {
@@ -57,7 +64,9 @@ function Etapa({ estado }: { estado: string }) {
     ? coloresEtapa[estado]
     : "bg-gray-200 text-gray-600";
   return (
-    <span className={`rounded-full px-3 py-1 text-sm font-medium ${color}`}>
+    <span
+      className={`inline-flex items-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold ${color}`}
+    >
       {estado}
     </span>
   );
@@ -135,14 +144,14 @@ function SelectorEtapa({
     <div
       role="radiogroup"
       aria-label={`Elegir etapa del pedido ${pedidoId}`}
-      className="grid grid-cols-2 gap-2"
+      className="grid grid-cols-2 gap-2 sm:grid-cols-4"
     >
       {ETAPAS.map((etapa) => {
         const activa = valor === etapa;
         return (
           <label
             key={etapa}
-            className={`flex cursor-pointer items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2 ${
+            className={`flex min-h-[38px] cursor-pointer select-none items-center justify-center rounded-md border px-3 py-1.5 text-center text-xs font-medium transition-colors sm:text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2 ${
               activa
                 ? "border-orange-300 bg-action text-white"
                 : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
@@ -213,7 +222,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
 
   const filtrados = pedidos.filter((pedido) => {
     const cliente =
-      `${pedido.usuario?.nombre ?? ""} ${pedido.usuario?.apellido ?? ""}`.toLowerCase();
+      `${pedido.Usuario?.nombre ?? ""} ${pedido.Usuario?.apellido ?? ""}`.toLowerCase();
     const termino = busqueda.trim().toLowerCase();
     const coincideBusqueda =
       termino === "" ||
@@ -227,6 +236,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
     (paginaActual - 1) * POR_PAGINA,
     paginaActual * POR_PAGINA,
   );
+  console.log(pagina);
   const hayFiltros = busqueda !== "" || filtroEstado !== "todos";
 
   const etapaActual = (pedido: PedidoFila) =>
@@ -235,11 +245,14 @@ export default function Pedidos({ administrador }: PedidosProps) {
   // Inhabilitado: sin selección, igual a la etapa actual, guardando o ya entregado
   const puedeAceptar = (pedido: PedidoFila) => {
     const elegida = seleccion[pedido.id];
+    const esEstadoFinal =
+      pedido.estado === "Entregado" || pedido.estado === "Cancelado";
+
     return (
       elegida !== undefined &&
       elegida !== pedido.estado &&
       guardando !== pedido.id &&
-      pedido.estado !== "Entregado"
+      !esEstadoFinal
     );
   };
 
@@ -275,8 +288,10 @@ export default function Pedidos({ administrador }: PedidosProps) {
   }
 
   const controles = (pedido: PedidoFila) => {
-    const entregado = pedido.estado === "Entregado";
+    const entregado =
+      pedido.estado === "Entregado" || pedido.estado === "Cancelado";
     const error = errorFila[pedido.id];
+
     return (
       <>
         <SelectorEtapa
@@ -306,16 +321,15 @@ export default function Pedidos({ administrador }: PedidosProps) {
           </button>
           {entregado && (
             <span className="inline-flex items-center gap-1 text-sm text-gray-500">
-              <Lock size={14} /> Entregado · solo lectura
+              <Lock size={14} /> {pedido.estado} · solo lectura
             </span>
           )}
         </div>
       </>
     );
   };
-
   return (
-    <main className="p-4 md:p-8">
+    <main className="w-full max-w-full overflow-hidden p-4 md:p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Pedidos</h1>
         <p className="mt-2 text-gray-600">
@@ -371,125 +385,48 @@ export default function Pedidos({ administrador }: PedidosProps) {
             </div>
           ) : (
             <>
-              {/* Celular: tarjetas */}
-              <ul className="flex flex-col gap-3 md:hidden">
-                {pagina.map((pedido) => (
-                  <li
-                    key={pedido.id}
-                    className="flex flex-col gap-3 rounded-lg border bg-white p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold">Pedido #{pedido.id}</p>
-                        <p className="truncate text-sm text-gray-600">
-                          {pedido.usuario
-                            ? `${pedido.usuario.nombre} ${pedido.usuario.apellido}`
-                            : "Cliente no disponible"}
+              {/* Tarjetas de pedidos: 1 columna en móvil, 2 en md/lg */}
+              <ul className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+                {pagina.map((pedido) => {
+                  const cliente = pedido.Usuario
+                    ? `${pedido.Usuario.nombre} ${pedido.Usuario.apellido}`
+                    : "Cliente no disponible";
+                  return (
+                    <li
+                      key={pedido.id}
+                      className="flex w-full flex-col overflow-hidden rounded-lg border bg-white p-4"
+                    >
+                      {/* Header: ID, fecha/hora y badge del estado actual */}
+                      <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold">Pedido #{pedido.id}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatearFechaHora(pedido.fecha)}
+                          </p>
+                        </div>
+                        <Etapa estado={pedido.estado} />
+                      </div>
+
+                      {/* Body: cliente, productos y total */}
+                      <div className="flex flex-col gap-1 border-b py-3 text-sm text-gray-600">
+                        <p className="font-medium text-gray-800">{cliente}</p>
+                        <p>{resumenProductos(pedido)}</p>
+                        <p>
+                          Total:{" "}
+                          <span className="font-semibold text-gray-800">
+                            {Number(pedido.total).toLocaleString("es-AR")}
+                          </span>
                         </p>
                       </div>
-                      <Etapa estado={pedido.estado} />
-                    </div>
 
-                    <div className="text-sm text-gray-600">
-                      <p>
-                        {formatearFechaHora(pedido.fecha)} ·{" "}
-                        {Number(pedido.total).toLocaleString("es-AR")}
-                      </p>
-                      <p className="mt-1">{resumenProductos(pedido)}</p>
-                    </div>
-
-                    {controles(pedido)}
-                  </li>
-                ))}
+                      {/* Footer/Acciones: selector de etapas y confirmación */}
+                      <div className="mt-auto flex flex-col gap-2 pt-3">
+                        {controles(pedido)}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
-
-              {/* Escritorio: tabla */}
-              <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
-                <table className="w-full min-w-[900px] border-collapse">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Nº</th>
-                      <th className="px-4 py-3 text-left">Cliente</th>
-                      <th className="px-4 py-3 text-left">Fecha</th>
-                      <th className="px-4 py-3 text-right">Total</th>
-                      <th className="px-4 py-3 text-left">Productos</th>
-                      <th className="px-4 py-3 text-left">Etapa actual</th>
-                      <th className="px-4 py-3 text-left">Cambiar etapa</th>
-                      <th className="px-4 py-3 text-right">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagina.map((pedido) => {
-                      const entregado = pedido.estado === "Entregado";
-                      const error = errorFila[pedido.id];
-                      return (
-                        <tr key={pedido.id} className="border-t align-top">
-                          <td className="px-4 py-4 font-medium">
-                            #{pedido.id}
-                          </td>
-                          <td className="px-4 py-4">
-                            {pedido.usuario
-                              ? `${pedido.usuario.nombre} ${pedido.usuario.apellido}`
-                              : "No disponible"}
-                          </td>
-                          <td className="px-4 py-4 text-gray-600">
-                            {formatearFechaHora(pedido.fecha)}
-                          </td>
-                          <td className="px-4 py-4 text-right">
-                            {Number(pedido.total).toLocaleString("es-AR")}
-                          </td>
-                          <td className="max-w-56 px-4 py-4 text-sm text-gray-600">
-                            {resumenProductos(pedido)}
-                          </td>
-                          <td className="px-4 py-4">
-                            <Etapa estado={pedido.estado} />
-                          </td>
-                          <td className="px-4 py-4">
-                            <SelectorEtapa
-                              pedidoId={pedido.id}
-                              valor={etapaActual(pedido)}
-                              bloqueado={entregado || guardando === pedido.id}
-                              onChange={(etapa) =>
-                                setSeleccion((prev) => ({
-                                  ...prev,
-                                  [pedido.id]: etapa,
-                                }))
-                              }
-                            />
-                            {error && (
-                              <p
-                                role="alert"
-                                className="mt-2 rounded border border-red-300 bg-red-50 p-2 text-sm text-red-700"
-                              >
-                                {error}
-                              </p>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col items-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => aceptar(pedido)}
-                                disabled={!puedeAceptar(pedido)}
-                                className={botonAceptar}
-                              >
-                                {guardando === pedido.id
-                                  ? "Guardando..."
-                                  : "Aceptar"}
-                              </button>
-                              {entregado && (
-                                <span className="inline-flex items-center gap-1 text-sm text-gray-500">
-                                  <Lock size={14} /> Solo lectura
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
 
               <Paginacion
                 paginaActual={paginaActual}

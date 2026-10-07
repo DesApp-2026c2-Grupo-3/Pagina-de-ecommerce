@@ -1,9 +1,9 @@
 const Joi = require('joi');
 
 // Las 4 etapas válidas del pedido
-const estado = Joi.string().valid('Pendiente', 'En proceso', 'En camino', 'Entregado').required().messages({
+const estado = Joi.string().valid('Pendiente', 'En proceso', 'En camino', 'Entregado', 'Cancelado').required().messages({
     'string.base': 'El estado debe ser un texto',
-    'any.only': 'El estado debe ser uno de: Pendiente, En proceso, En camino o Entregado',
+    'any.only': 'El estado debe ser uno de: Pendiente, En proceso, En camino, Entregado o Cancelado',
     'any.required': 'El estado es obligatorio'
 });
 
