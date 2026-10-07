@@ -19,6 +19,7 @@ import NuevaSucursal from '../pages/Sucursales/NuevaSucursal'
 import EditarSucursal from '../pages/Sucursales/EditarSucursal'
 import Stock from '../pages/Stock/Stock'
 import Insumos from '../pages/Insumos/Insumos'
+import Pedidos from '../pages/pedidos/Pedidos'
 import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
 
 interface AppRoutesProps {
@@ -43,6 +44,7 @@ export default function AppRoutes({ isAuthenticated, administrador ,setAdministr
                     <AdminLayout administrador={administrador} setAdministrador={setAdministrador} />
                 </ProtectedRoute>}>
                  <Route path="/admin" element={<AdminHome administrador={administrador} />} />
+                 <Route path="/admin/pedidos" element={<Pedidos administrador={administrador} />} />
 
                 {/* Solo el master */}
                 <Route element={<SoloMaster administrador={administrador} />}>

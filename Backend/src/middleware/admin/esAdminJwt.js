@@ -4,7 +4,6 @@ const esAdminJwt = (req, res, next) => {
     try {
         const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
         const token = req.cookies.access_token;
-
         if (!token) {
             return res.status(401).json({ msj: "Acceso no autorizado" });
         }
