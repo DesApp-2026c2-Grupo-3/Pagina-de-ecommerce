@@ -163,6 +163,16 @@ module.exports = {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+       {
+        nombre: 'Coca Cola Zero',
+        descripcion: 'Gaseosa sabor cola helada (reducida en azúcar).',
+        precio: 1800,
+        imagen: '/imagenes/coca-cola.png',
+        disponible: true,
+        categoriaId: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       {
         nombre: 'Limonada',
         descripcion: 'Limonada natural con hielo.',
