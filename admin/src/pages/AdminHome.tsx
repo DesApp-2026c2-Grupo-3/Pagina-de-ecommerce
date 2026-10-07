@@ -53,9 +53,9 @@ export default function AdminHome({ administrador }: AdminHomeProps) {
             <Link to={`/admin/sucursales/editar/${sucursalId}`} className={accesoClase}>
               <Store /> Datos de mi sucursal
             </Link>
-            <div className={`${accesoClase} cursor-default text-gray-400`}>
-              <ClipboardList /> Pedidos (próximamente)
-            </div>
+            <Link to="/admin/pedidos" className={accesoClase}>
+              <ClipboardList /> Pedidos
+            </Link>
           </>
         ) : (
           <p className="text-gray-600">No tenés una sucursal asignada. Pedile al administrador general que te asigne una.</p>
