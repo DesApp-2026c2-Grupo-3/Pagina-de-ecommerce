@@ -1,7 +1,9 @@
 const API_URL = "http://localhost:3000/admin/sucursales";
 
 export async function obtenerSucursales() {
-  const respuesta = await fetch(`${API_URL}`);
+  const respuesta = await fetch(`${API_URL}`, {
+    credentials: "include", // 👈 Envía la cookie access_token
+  });
 
   if (!respuesta.ok) {
     throw new Error("Error al obtener las sucursales");
@@ -28,9 +30,11 @@ export async function crearSucursal(sucursal: unknown) {
     },
     body: JSON.stringify(sucursal),
   });
-   const datos = await respuesta.json();
+  const datos = await respuesta.json();
   if (!respuesta.ok) {
-   throw new Error(datos.code || datos.mensaje || "Error al crear la sucursal");
+    throw new Error(
+      datos.code || datos.mensaje || "Error al crear la sucursal",
+    );
   }
 
   return datos;
@@ -47,7 +51,9 @@ export async function actualizarSucursal(id: number, sucursal: unknown) {
 
   const datos = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) {
-    throw new Error(datos.code || datos.mensaje || "Error al actualizar la sucursal");
+    throw new Error(
+      datos.code || datos.mensaje || "Error al actualizar la sucursal",
+    );
   }
 
   return datos;
