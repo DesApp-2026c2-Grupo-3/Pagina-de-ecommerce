@@ -3,43 +3,13 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Menu, LogOut, X } from "lucide-react";
 import type { AdministradorSesion } from "../App";
 import { cerrarSesionService } from "../services/authService";
+import { enlacesDe } from "../config/menu";
 
 interface NavbarProps {
   administrador: AdministradorSesion | null;
   setAdministrador: React.Dispatch<
     React.SetStateAction<AdministradorSesion | null>
   >;
-}
-
-interface Enlace {
-  to: string;
-  label: string;
-  end?: boolean; // true = activo solo con la ruta exacta (para "Inicio")
-}
-
-// Qué ve cada rol en el menú
-function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
-  if (administrador?.rol === "MASTER") {
-    return [
-      { to: "/admin", label: "Inicio", end: true },
-      { to: "/admin/productos", label: "Productos" },
-      { to: "/admin/insumos", label: "Insumos" },
-      { to: "/admin/categorias", label: "Categorías" },
-      { to: "/admin/sucursales", label: "Sucursales" },
-      { to: "/admin/administradores", label: "Administradores" },
-    ];
-  }
-
-  const id = administrador?.sucursalId;
-  return [
-    { to: "/admin", label: "Inicio", end: true },
-    ...(id
-      ? [
-          { to: `/admin/sucursales/${id}/stock`, label: "Stock" },
-          { to: `/admin/sucursales/editar/${id}`, label: "Mi sucursal" },
-        ]
-      : []),
-  ];
 }
 
 const claseEnlace = ({ isActive }: { isActive: boolean }) =>

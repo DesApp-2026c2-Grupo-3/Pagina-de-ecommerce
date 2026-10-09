@@ -19,6 +19,7 @@ import SobreNosotros from './components/home/SobreNosotros'
 import ScrollToTop from './utils/scrollToTop'
 import { ZonaProvider } from './context/ZonaContext'
 import ElegirZonaModal from './components/ElegirZonaModal'
+import ZonaDesdeUsuario from './components/ZonaDesdeUsuario'
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
       </main>
       <Footer />
       <Toast />
+      <ZonaDesdeUsuario />
       <ElegirZonaModal />
     </div>
     </ZonaProvider>

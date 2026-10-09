@@ -117,6 +117,7 @@ function Navbar() {
   const { totalItems, clearCart } = useCart()
   const navigate = useNavigate()
   const menuRef = useRef<HTMLLIElement>(null)
+  const { limpiarZona } = useZona()
 
   // Cierra el menú de perfil (escritorio) al hacer clic afuera
   useEffect(() => {
@@ -137,6 +138,7 @@ function Navbar() {
     setMobileProfileOpen(false)
     setOpen(false)
     navigate('/')
+    limpiarZona()
   }
 
   // Si el link es "Home" y ya estás ahí, React Router no navega (misma URL),

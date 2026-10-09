@@ -52,7 +52,32 @@ function Checkout() {
   const [sucursalesLoading, setSucursalesLoading] = useState(true);
 
   const [error, setError] = useState("");
+  const [avisoSucursal, setAvisoSucursal] = useState("");
 
+  // La dirección elegida pasa a ser la zona: el Navbar y el checkout muestran siempre lo mismo
+  function usarComoZona(d: Address) {
+    if (d.latitud == null || d.longitud == null) return;
+    const coords = { lat: Number(d.latitud), lng: Number(d.longitud) };
+    const nueva = buscarSucursalCercana(coords, sucursales);
+    const error = elegirUbicacion({
+      calle: d.calle,
+      numero: d.numero,
+      localidad: d.localidad ?? "",
+      provincia: d.provincia ?? "",
+      codigoPostal: d.codigoPostal ?? "",
+      latitud: coords.lat,
+      longitud: coords.lng,
+    });
+    if (error) {
+      setError(error);
+      return;
+    }
+    if (zona && nueva && nueva.sucursal.id !== zona.sucursalId) {
+      setAvisoSucursal(
+        `Ahora tu pedido sale de ${nueva.sucursal.nombre}. Si algún producto no está disponible ahí, te avisamos al confirmar.`,
+      );
+    }
+  }
   useEffect(() => {
     if (!user) return;
     getDirecciones(user.id)
@@ -72,8 +97,12 @@ function Checkout() {
             )
           : undefined;
         const predeterminada = data.find((d) => d.predeterminada);
-        setDireccionSeleccionada(deRegreso?.id ?? deLaZona?.id ?? predeterminada?.id ?? data[0]?.id ?? null);
-      })
+        // Con zona, se elige la dirección de la zona (si no está guardada, primero hay que guardarla).
+        // Sin zona, la predeterminada.
+        const inicial = deRegreso ?? deLaZona ?? (zona ? undefined : predeterminada ?? data[0]);
+        setDireccionSeleccionada(inicial?.id ?? null);
+        // Si viene de agregar o editar una dirección, esa pasa a ser la zona
+        if (deRegreso) usarComoZona(deRegreso);      })
       .catch(() => setError("No se pudieron cargar tus direcciones"))
       .finally(() => setDireccionesLoading(false));
   }, [user]);
@@ -322,6 +351,7 @@ function Checkout() {
                       setDireccionSeleccionada(d.id);
                       setEligiendoDireccion(false);
                       setError("");
+                      usarComoZona(d);
                     }}
                   />
                   <div className="min-w-0">
@@ -415,6 +445,11 @@ function Checkout() {
         </div>
 
         <div className="mt-4">
+          {avisoSucursal && (
+            <p className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+              {avisoSucursal}
+            </p>
+          )}
           <ErrorAlert message={error} />
         </div>
 

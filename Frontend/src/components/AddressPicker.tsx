@@ -66,6 +66,10 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
   const [buscando, setBuscando] = useState(false)
   const [usandoGps, setUsandoGps] = useState(false)
   const [mensaje, setMensaje] = useState('')
+  // Dirección elegida sin altura: se pide la altura y se vuelve a buscar en Google para ubicarla bien
+  const [sinAltura, setSinAltura] = useState<GeoResultado | null>(null)
+  const [altura, setAltura] = useState('')
+  const [verificando, setVerificando] = useState(false)
 
   // Google agrupa las sugerencias + la elección en una "sesión".
   // Se renueva cada vez que el usuario elige una dirección.
@@ -133,19 +137,66 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
 
   async function elegirSugerencia(s: GeoSugerencia) {
     setSugerencias([])
-    setUsandoGps(false)
+    setSinAltura(null)
     setMensaje('Cargando dirección...')
     try {
       const r = await detalleDireccion(s.placeId, sessionTokenRef.current)
+
+      // Una localidad o un lugar no sirve: su ubicación es el centro de la zona, no una casa
+      if (!r.calle) {
+        setMensaje('Eso es una zona o un lugar, no una dirección. Escribí la calle y la altura (ej: Florida 2950).')
+        return
+      }
+
+      // Calle sin altura: se pide la altura y se busca de nuevo, antes de aceptar la ubicación
+      if (r.altura == null) {
+        setSinAltura(r)
+        setAltura('')
+        setMensaje('')
+        mostrarEnBuscador(armarTexto(r.calle, '', r.localidad ?? r.departamento ?? ''))
+        return
+      }
+
       aplicarResultado(r)
-      mostrarEnBuscador(
-        armarTexto(r.calle ?? '', r.altura != null ? String(r.altura) : '', r.localidad ?? r.departamento ?? ''),
-      )
-      setMensaje(mensajeSegunResultado(r))
+      mostrarEnBuscador(armarTexto(r.calle, String(r.altura), r.localidad ?? r.departamento ?? ''))
+      setMensaje('')
     } catch (err) {
       setMensaje(err instanceof Error ? err.message : 'No se pudo cargar la dirección')
     } finally {
       sessionTokenRef.current = nuevoSessionToken()
+    }
+  }
+
+  // Busca en Google "calle altura, localidad" y solo la acepta si existe
+  async function confirmarAltura() {
+    if (!sinAltura) return
+    const numero = altura.trim()
+    if (!/^\d{1,5}$/.test(numero)) {
+      setMensaje('Ingresá una altura válida (solo números).')
+      return
+    }
+
+    const localidad = sinAltura.localidad ?? sinAltura.departamento ?? ''
+    setVerificando(true)
+    setMensaje('Buscando la dirección...')
+    try {
+      const token = nuevoSessionToken()
+      const opciones = await autocompletarDireccion(`${sinAltura.calle} ${numero}, ${localidad}`, token)
+      const r = opciones[0] ? await detalleDireccion(opciones[0].placeId, token) : null
+
+      if (!r || !r.calle || r.altura == null || String(r.altura) !== numero) {
+        setMensaje(`No encontramos ${sinAltura.calle} ${numero}. Revisá la altura.`)
+        return
+      }
+
+      aplicarResultado(r)
+      mostrarEnBuscador(armarTexto(r.calle, String(r.altura), r.localidad ?? r.departamento ?? ''))
+      setSinAltura(null)
+      setMensaje('')
+    } catch (err) {
+      setMensaje(err instanceof Error ? err.message : 'No se pudo buscar la dirección')
+    } finally {
+      setVerificando(false)
     }
   }
 
@@ -216,8 +267,10 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
             <input
               type="text"
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              onKeyDown={handleKeyDown}
+              onChange={(e) => {
+                setBusqueda(e.target.value)
+                setSinAltura(null)
+              }}              onKeyDown={handleKeyDown}
               placeholder="Buscar y seleccionar dirección..."
               autoComplete="off"
               className="w-full rounded-lg border border-brand-dark/20 px-3 py-2 text-lg focus:border-brand-red focus:outline-none"
@@ -262,7 +315,36 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
             <LocateFixed className="h-5 w-5" />
           </button>
         </div>
-
+        {sinAltura && (
+          <div className="flex flex-wrap items-center gap-2 rounded bg-orange-50 px-3 py-2">
+            <span className="text-sm">
+              ¿A qué altura de <strong>{sinAltura.calle}</strong>?
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              value={altura}
+              onChange={(e) => setAltura(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  confirmarAltura()
+                }
+              }}
+              placeholder="Ej: 2950"
+              className="w-28 rounded border px-2 py-1"
+            />
+            <button
+              type="button"
+              onClick={confirmarAltura}
+              disabled={verificando}
+              className="rounded border border-orange-400 px-3 py-1 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-50"
+            >
+              {verificando ? 'Buscando...' : 'Confirmar'}
+            </button>
+          </div>
+        )}        
         {mensaje && <p className="text-sm text-gray-600">{mensaje}</p>}
 
         {value.calle && (!value.numero || !tieneUbicacion) && (

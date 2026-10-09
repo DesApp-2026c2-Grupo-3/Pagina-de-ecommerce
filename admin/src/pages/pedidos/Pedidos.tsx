@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { Lock } from "lucide-react";
+import { Eye, Lock } from "lucide-react";
 import MensajeVacio from "../../components/MensajeVacio";
 import Paginacion from "../../components/Paginacion";
 import { BarraFiltros, Buscador, SelectFiltro } from "../../components/Filtros";
+import DetallePedidoModal from "../../components/DetallePedidoModal";
 import { useToast } from "../../context/ToastContext";
+import { obtenerSucursales } from "../../services/sucursalService";
 import type { AdministradorSesion } from "../../App";
 
 const API_URL = "http://localhost:3000/admin/pedidos";
 const POR_PAGINA = 8;
 
-// Las 4 etapas válidas (mismo orden que el backend)
+// Las etapas válidas (mismo orden que el backend)
 const ETAPAS = [
   "Pendiente",
   "En proceso",
@@ -33,6 +35,12 @@ interface PedidoFila {
   DetallePedidos: DetallePedidoFila[];
 }
 
+interface SucursalOpcion {
+  id: number;
+  nombre: string;
+  activa: boolean;
+}
+
 interface PedidosProps {
   administrador: AdministradorSesion | null;
 }
@@ -54,7 +62,7 @@ function esEtapa(valor: string): valor is Etapa {
 // se llevan a la forma canónica para que el badge, el filtro y el selector coincidan
 function normalizarEtapa(valor: string): string {
   const coincidencia = ETAPAS.find(
-    (etapa) => etapa.toLowerCase() === valor.toLowerCase(),
+    (etapa) => etapa.toLowerCase() === (valor ?? "").toLowerCase(),
   );
   return coincidencia ?? valor;
 }
@@ -179,12 +187,16 @@ const botonAceptar =
 
 export default function Pedidos({ administrador }: PedidosProps) {
   const { mostrarToast } = useToast();
+  const esMaster = administrador?.rol === "MASTER";
 
-  const sucursalId = administrador?.sucursalId ?? null;
+  // El admin de sucursal ve la suya; el master elige cuál ver
+  const [sucursales, setSucursales] = useState<SucursalOpcion[]>([]);
+  const [sucursalId, setSucursalId] = useState<number | null>(
+    administrador?.sucursalId ?? null,
+  );
 
   const [pedidos, setPedidos] = useState<PedidoFila[]>([]);
-  // Cargando solo si hay sucursal que consultar (el estado inicial evita setState síncrono en el effect)
-  const [cargando, setCargando] = useState(sucursalId !== null);
+  const [cargando, setCargando] = useState(esMaster || sucursalId !== null);
   const [errorCarga, setErrorCarga] = useState("");
 
   // Etapa elegida por cada pedido (todavía no aceptada)
@@ -195,23 +207,49 @@ export default function Pedidos({ administrador }: PedidosProps) {
   const [guardando, setGuardando] = useState<number | null>(null);
   const [errorFila, setErrorFila] = useState<Record<number, string>>({});
 
+  // Pedido abierto en el detalle
+  const [detalleId, setDetalleId] = useState<number | null>(null);
+
   // Filtros
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
 
+  // El master trae todas las sucursales y arranca con la primera
+  useEffect(() => {
+    if (!esMaster) return;
+    obtenerSucursales()
+      .then((lista: SucursalOpcion[]) => {
+        setSucursales(lista);
+        setSucursalId((actual) => actual ?? lista[0]?.id ?? null);
+        if (lista.length === 0) setCargando(false);
+      })
+      .catch(() => {
+        setErrorCarga("No se pudieron cargar las sucursales");
+        setCargando(false);
+      });
+  }, [esMaster]);
+
   useEffect(() => {
     if (sucursalId === null) return;
+    let cancelado = false;
+    setCargando(true);
+    setErrorCarga("");
+    setSeleccion({});
+    setErrorFila({});
     traerPedidos(sucursalId)
-      .then(setPedidos)
-      .catch((error) =>
+      .then((lista) => !cancelado && setPedidos(lista))
+      .catch((error) => {
+        if (cancelado) return;
+        setPedidos([]);
         setErrorCarga(
-          error instanceof Error
-            ? error.message
-            : "Error al cargar los pedidos",
-        ),
-      )
-      .finally(() => setCargando(false));
+          error instanceof Error ? error.message : "Error al cargar los pedidos",
+        );
+      })
+      .finally(() => !cancelado && setCargando(false));
+    return () => {
+      cancelado = true;
+    };
   }, [sucursalId]);
 
   // Al cambiar un filtro, se vuelve a la primera página
@@ -236,13 +274,16 @@ export default function Pedidos({ administrador }: PedidosProps) {
     (paginaActual - 1) * POR_PAGINA,
     paginaActual * POR_PAGINA,
   );
-  console.log(pagina);
   const hayFiltros = busqueda !== "" || filtroEstado !== "todos";
+
+  const nombreSucursal = esMaster
+    ? sucursales.find((s) => s.id === sucursalId)?.nombre
+    : administrador?.sucursal?.nombre;
 
   const etapaActual = (pedido: PedidoFila) =>
     seleccion[pedido.id] ?? pedido.estado;
 
-  // Inhabilitado: sin selección, igual a la etapa actual, guardando o ya entregado
+  // Inhabilitado: sin selección, igual a la etapa actual, guardando o ya cerrado
   const puedeAceptar = (pedido: PedidoFila) => {
     const elegida = seleccion[pedido.id];
     const esEstadoFinal =
@@ -268,7 +309,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
       setPedidos((prev) =>
         prev.map((p) =>
           p.id === pedido.id
-            ? { ...p, estado: actualizado.estado ?? nueva }
+            ? { ...p, estado: normalizarEtapa(actualizado.estado ?? nueva) }
             : p,
         ),
       );
@@ -288,7 +329,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
   }
 
   const controles = (pedido: PedidoFila) => {
-    const entregado =
+    const cerrado =
       pedido.estado === "Entregado" || pedido.estado === "Cancelado";
     const error = errorFila[pedido.id];
 
@@ -297,7 +338,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
         <SelectorEtapa
           pedidoId={pedido.id}
           valor={etapaActual(pedido)}
-          bloqueado={entregado || guardando === pedido.id}
+          bloqueado={cerrado || guardando === pedido.id}
           onChange={(etapa) =>
             setSeleccion((prev) => ({ ...prev, [pedido.id]: etapa }))
           }
@@ -310,7 +351,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
             {error}
           </p>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => aceptar(pedido)}
@@ -319,7 +360,14 @@ export default function Pedidos({ administrador }: PedidosProps) {
           >
             {guardando === pedido.id ? "Guardando..." : "Aceptar"}
           </button>
-          {entregado && (
+          <button
+            type="button"
+            onClick={() => setDetalleId(pedido.id)}
+            className="inline-flex items-center gap-1 rounded border px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            <Eye size={16} /> Ver detalle
+          </button>
+          {cerrado && (
             <span className="inline-flex items-center gap-1 text-sm text-gray-500">
               <Lock size={14} /> {pedido.estado} · solo lectura
             </span>
@@ -328,24 +376,39 @@ export default function Pedidos({ administrador }: PedidosProps) {
       </>
     );
   };
+
   return (
     <main className="w-full max-w-full overflow-hidden p-4 md:p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Pedidos</h1>
         <p className="mt-2 text-gray-600">
-          {administrador?.sucursal?.nombre
-            ? `Seguimiento de los pedidos de ${administrador.sucursal.nombre}.`
-            : "Seguimiento de los pedidos de tu sucursal."}
+          {nombreSucursal
+            ? `Seguimiento de los pedidos de ${nombreSucursal}.`
+            : "Seguimiento de los pedidos de la sucursal."}
         </p>
       </div>
 
-      {sucursalId === null ? (
+      {!esMaster && sucursalId === null ? (
         <div className="rounded-lg border bg-white px-6 py-10">
           <MensajeVacio mensaje="No tenés una sucursal asignada. Pedile al administrador general que te asigne una." />
         </div>
       ) : (
         <>
           <BarraFiltros>
+            {esMaster && (
+              <SelectFiltro
+                valor={sucursalId !== null ? String(sucursalId) : ""}
+                onChange={(valor) => {
+                  setSucursalId(Number(valor));
+                  setPaginaActual(1);
+                }}
+                etiqueta="Elegir sucursal"
+                opciones={sucursales.map((s) => ({
+                  valor: String(s.id),
+                  etiqueta: s.activa ? s.nombre : `${s.nombre} (inactiva)`,
+                }))}
+              />
+            )}
             <Buscador
               valor={busqueda}
               onChange={conReinicio(setBusqueda)}
@@ -379,7 +442,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
                 mensaje={
                   hayFiltros
                     ? "No hay pedidos con esos filtros."
-                    : "Todavía no hay pedidos en tu sucursal."
+                    : "Todavía no hay pedidos en esta sucursal."
                 }
               />
             </div>
@@ -414,12 +477,12 @@ export default function Pedidos({ administrador }: PedidosProps) {
                         <p>
                           Total:{" "}
                           <span className="font-semibold text-gray-800">
-                            {Number(pedido.total).toLocaleString("es-AR")}
+                            ${Number(pedido.total).toLocaleString("es-AR")}
                           </span>
                         </p>
                       </div>
 
-                      {/* Footer/Acciones: selector de etapas y confirmación */}
+                      {/* Footer/Acciones: selector de etapas, confirmación y detalle */}
                       <div className="mt-auto flex flex-col gap-2 pt-3">
                         {controles(pedido)}
                       </div>
@@ -438,6 +501,11 @@ export default function Pedidos({ administrador }: PedidosProps) {
           )}
         </>
       )}
+
+      <DetallePedidoModal
+        pedidoId={detalleId}
+        onClose={() => setDetalleId(null)}
+      />
     </main>
   );
 }

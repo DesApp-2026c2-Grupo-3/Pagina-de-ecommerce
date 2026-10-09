@@ -11,7 +11,6 @@ import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
 import { MoveUpLeft } from 'lucide-react'
-import type { CartItem } from '../types/cart'
 
 function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
@@ -162,22 +161,12 @@ function DetalleProducto({ id }: { id: number }) {
     showToast(`${product.nombre} agregado al carrito`)
   }
 
-  // Compra directa: va al checkout solo con este producto, sin tocar el carrito
+  // Agrega el producto y lleva al carrito para revisar todo y pagar
   function pagarAhora() {
     if (!product || !puedeAgregar) return
     const { opciones, extras } = armarEleccion()
-    const compraDirecta: CartItem = {
-      id: `directa-${product.id}`,
-      product,
-      quantity: cantidad,
-      selectedOptions: opciones,
-      unitPrice: extras.unitPrice,
-      tamanioId: extras.tamanioId,
-      tamanio: tamanioActivo?.tamanio ?? null,
-      personalizaciones: extras.personalizaciones,
-      combo: extras.combo,
-    }
-    navigate('/checkout', { state: { compraDirecta } })
+    addItem(product, cantidad, opciones, extras)
+    navigate('/carrito')
   }
 
   if (loading) {
