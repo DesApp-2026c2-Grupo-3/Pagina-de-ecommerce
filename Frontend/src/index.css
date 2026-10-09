@@ -5,6 +5,14 @@
   --color-brand-dark: #1a1414;
   --color-brand-cream: #fff7e6;
   --color-brand-green: #28a745;
+  --color-brand-mustard: #ffb81c;
+  --color-brand-sand: #f3e3c7;
+  --color-brand-muted: #6b5a57;
+
+  --font-sans: 'Figtree', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+
+  --shadow-sticker: 6px 6px 0 var(--color-brand-dark);
 }
 
 @layer base {

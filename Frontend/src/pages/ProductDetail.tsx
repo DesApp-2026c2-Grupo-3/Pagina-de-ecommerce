@@ -10,7 +10,8 @@ import CustomizeSheet from '../components/product/CustomizeSheet'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
-import { MoveUpLeft } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, SlidersHorizontal } from 'lucide-react'
+import CategoryIcon from '../components/icons/CategoryIcon'
 
 function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
@@ -169,49 +170,58 @@ function DetalleProducto({ id }: { id: number }) {
     navigate('/carrito')
   }
 
-  if (loading) {
+   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-200 via-yellow-800 to-red-800 px-4 py-24 text-center">
-        <p className="font-semibold text-brand-dark">Cargando...</p>
+      <div className="grid min-h-screen place-items-center bg-brand-cream px-4">
+        <p className="font-display text-2xl font-extrabold text-brand-dark">Cargando...</p>
       </div>
     )
   }
 
   if (!product) {
     return (
-      <div className='bg-brand-cream'>
-      <div className="mx-auto flex max-w-xl flex-col items-center gap-6 px-4 py-24 text-center
-      min-h-screen justify-center">
-        <h1 className="text-3xl font-extrabold text-brand-dark">Producto no encontrado</h1>
-        <p className="text-gray-600">El producto que buscás no existe o ya no está disponible.</p>
-        <Link
-          to="/catalogo"
-          className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
-        >
-          Volver al catálogo
-        </Link>
-      </div>
+      <div className="bg-brand-cream">
+        <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-5 px-4 py-24 text-center">
+          <img src="/Otros/notFound.png" alt="" className="h-48" />
+          <h1 className="font-display text-4xl font-extrabold text-brand-dark">Producto no encontrado</h1>
+          <p className="text-brand-muted">El producto que buscás no existe o ya no está disponible.</p>
+          <Link
+            to="/catalogo"
+            className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-transform hover:-translate-y-0.5"
+          >
+            Volver al menú
+          </Link>
+        </div>
       </div>
     )
   }
 
-  const filaGrupo = 'flex items-center gap-3 border-b border-brand-dark/10 py-4'
+  const filaGrupo = 'flex items-center gap-3 border-b-2 border-dashed border-brand-sand py-4 last:border-b-0'
   const botonSeleccionar =
-    'shrink-0 rounded-md border border-stone-800 px-3 py-1.5 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-red hover:text-white'
+    'shrink-0 rounded-full border-2 border-brand-dark px-4 py-2 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-dark hover:text-brand-cream'
+  const botonPersonalizar =
+    'mt-2 inline-flex items-center gap-2 rounded-full bg-brand-cream px-4 py-2 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-mustard'
 
-  // Cantidad + total y los dos botones. En el celular los botones ocupan todo el ancho.
+  // Cantidad + total y los dos botones. En el celular la barra es oscura y va pegada abajo.
   const barraCompra = (movil: boolean) => (
     <>
-      <div className={`flex items-center justify-between gap-4 pb-3 pt-4 ${movil ? 'px-4' : ''}`}>
+      <div className="flex items-center justify-between gap-4 pb-4">
         <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
-        <span className="text-2xl font-extrabold text-brand-dark">{precio(total)}</span>
+        <div className="text-right">
+          <p className={`text-xs font-bold uppercase tracking-wider ${movil ? 'text-brand-cream/60' : 'text-brand-muted'}`}>Total</p>
+          <p className={`font-display text-3xl font-extrabold ${movil ? 'text-brand-cream' : 'text-brand-dark'}`}>{precio(total)}</p>
+        </div>
       </div>
-      <div className={`grid grid-cols-2 ${movil ? 'pb-[env(safe-area-inset-bottom)]' : 'gap-3'}`}>
+      <div className="grid grid-cols-[1fr_1.4fr] gap-3">
         <button
           type="button"
           onClick={pagarAhora}
           disabled={!puedeAgregar}
-          className={`border border-brand-dark px-4 py-4 font-bold text-brand-dark transition-colors hover:bg-brand-cream disabled:cursor-not-allowed disabled:opacity-40 ${movil ? '' : 'rounded-full'}`}
+          className={`min-h-13 rounded-full border-2 px-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+            movil
+              ? 'border-brand-cream text-brand-cream hover:bg-brand-cream hover:text-brand-dark'
+              : 'border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-brand-cream'
+          }`}
         >
           Pagar ahora
         </button>
@@ -219,141 +229,131 @@ function DetalleProducto({ id }: { id: number }) {
           type="button"
           onClick={anadirAlCarrito}
           disabled={!puedeAgregar}
-          className={`bg-brand-red px-4 py-4 font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${movil ? '' : 'rounded-full'}`}
+          className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
         >
+          <ShoppingBag className="h-5 w-5" />
           Añadir al carrito
         </button>
       </div>
     </>
   )
 
-   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-200 via-yellow-800
-     to-red-800 px-4 py-6 md:py-10 flex items-center ">
-      <div className="mx-auto max-w-5xl rounded-3xl p-4 shadow-xl md:p-8
-      bg-radial from-orange-300 to-transparent">
-        <Link
-        to="/catalogo"
-        className="inline-flex items-center gap-2 text-base font-extrabold text-brand-dark hover:text-brand-red"
-      >
-        
-        <MoveUpLeft size={30}/> Volver al catálogo
-      </Link>
+  return (
+    <div className="min-h-screen bg-brand-cream text-brand-dark">
+      {/* Banda oscura arriba: la imagen y la tarjeta se montan sobre ella */}
+      <div className="bg-brand-dark px-4 pb-40 pt-6">
+        <div className="mx-auto max-w-6xl">
+          <Link
+            to="/catalogo"
+            className="inline-flex min-h-11 items-center gap-2 font-bold text-brand-cream/70 transition-colors hover:text-brand-cream"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Menú{categoryName && <span className="text-brand-cream/40">/ {categoryName}</span>}
+          </Link>
+        </div>
+      </div>
 
-      {/* Centra la grilla del producto en la pantalla */}
-      <div className="w-full">        
-        <div className="mt-2 grid w-full gap-6 md:grid-cols-2 md:items-start md:gap-12">
-          <div className="md:sticky md:top-24">
+      <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12">
+        {/* Imagen sobre el recuadro rojo inclinado */}
+        <div className="md:sticky md:top-28">
+          <div className="relative mx-auto grid aspect-square w-full max-w-md rotate-2 place-items-center rounded-[2.5rem] border-2 border-brand-dark bg-brand-red">
+            <div className="absolute inset-[8%] rounded-full bg-black/15" />
             {product.imagen ? (
               <img
                 src={product.imagen}
                 alt={product.nombre}
-                className="mx-auto h-56 w-full max-w-sm object-contain sm:h-72 md:h-96 md:max-w-none"
+                className={`relative w-[85%] -rotate-2 object-contain drop-shadow-2xl ${product.disponible ? '' : 'opacity-60 grayscale'}`}
               />
             ) : (
-              <div
-                aria-hidden="true"
-                className="mx-auto grid h-56 w-full max-w-sm place-items-center rounded-3xl bg-brand-cream text-7xl sm:h-72 md:h-96 md:max-w-none"
-              >
-                🍔
-              </div>
+              <CategoryIcon icono="generico" className="relative h-32 w-32 text-brand-cream" />
             )}
           </div>
+        </div>
 
-          <div>
-            <span className="mr-auto rounded-full bg-brand-red px-3 py-1 text-sm font-bold text-white">
+        {/* Tarjeta con la info y las opciones */}
+        <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
+          {categoryName && (
+            <span className="inline-block rounded-full bg-brand-red px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white">
               {categoryName}
             </span>
-            <h1 className="text-3xl font-extrabold text-brand-dark">{product.nombre}</h1>
-            <p className="mt-2 text-xl font-extrabold text-brand-dark">{precio(precioBase)}</p>
-            <p className="mt-3 text-gray-800">
-              {product.descripcion}
-              {esCombo && tamanioActivo && (
-                <> Acompañamiento y bebida {tamanioActivo.tamanio} a elección.</>
-              )}
+          )}
+          <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">{product.nombre}</h1>
+          <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
+          <p className="mt-3 leading-relaxed text-brand-muted">
+            {product.descripcion}
+            {esCombo && tamanioActivo && <> Acompañamiento y bebida {tamanioActivo.tamanio} a elección.</>}
+          </p>
+
+          {!product.disponible && (
+            <p className="mt-4 rounded-2xl border-2 border-dashed border-brand-red/40 bg-brand-red/5 px-4 py-3 font-bold text-brand-red">
+              Este producto no está disponible por el momento.
             </p>
+          )}
 
-            {!product.disponible && (
-              <p className="mt-4 rounded-2xl bg-brand-cream px-4 py-3 font-semibold text-brand-red">
-                Este producto no está disponible por el momento.
-              </p>
-            )}
+          <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
 
-            <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
-
-            {esCombo ? (
-              <section className="mt-6" aria-label="Armá tu combo">
-                <div className={filaGrupo}>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-extrabold text-brand-dark">{product.nombre}</p>
-                    {personalizable && (
-                      <button
-                        type="button"
-                        onClick={() => setPersonalizando(true)}
-                        className="text-sm text-gray-600 underline hover:text-brand-red"
-                      >
-                        Personalizar
-                      </button>
-                    )}
-                    {tocados.length > 0 && (
-                      <p className="text-xs text-gray-500">{textoPersonalizacion().join(' · ')}</p>
-                    )}
-                  </div>
-                </div>
-
-                {grupos.map((grupo) => {
-                  const elegido = elegida(grupo)
-                  return (
-                    <div key={grupo.id} className={filaGrupo}>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-extrabold text-brand-dark">{grupo.nombre}</p>
-                        {elegido ? (
-                          <p className="text-sm text-gray-600">
-                            {elegido.nombre}
-                            {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
-                          </p>
-                        ) : (
-                          <p className="text-sm italic text-gray-800">
-                            Elegí uno{grupo.obligatorio ? ' (Obligatorio)' : ' (Opcional)'}
-                          </p>
-                        )}
-                      </div>
-                      <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
-                        {elegido ? 'Cambiar' : 'Seleccionar'}
-                      </button>
-                    </div>
-                  )
-                })}
-              </section>
-            ) : (
-              personalizable && (
-                <section className="mt-6">
-                  <h2 className="text-lg font-extrabold text-brand-dark">Personaliza tu producto</h2>
-                  <div className="mt-3 border-b border-brand-dark/10 pb-4">
-                    <button
-                      type="button"
-                      onClick={() => setPersonalizando(true)}
-                      className="text-gray-600 underline hover:text-brand-red"
-                    >
-                      Personalizar
+          {esCombo ? (
+            <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-2" aria-label="Armá tu combo">
+              <div className={filaGrupo}>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg font-extrabold">{product.nombre}</p>
+                  {tocados.length > 0 && (
+                    <p className="text-sm text-brand-muted">{textoPersonalizacion().join(' · ')}</p>
+                  )}
+                  {personalizable && (
+                    <button type="button" onClick={() => setPersonalizando(true)} className={botonPersonalizar}>
+                      <SlidersHorizontal className="h-4 w-4" /> Personalizar
                     </button>
-                    {tocados.length > 0 && (
-                      <p className="mt-1 text-sm text-gray-500">{textoPersonalizacion().join(' · ')}</p>
-                    )}
-                  </div>
-                </section>
-              )
-            )}
+                  )}
+                </div>
+              </div>
 
-            {/* En pantallas grandes la barra de compra va dentro de la columna */}
-            <div className="mt-8 hidden md:block">{barraCompra(false)}</div>
-          </div>
+              {grupos.map((grupo) => {
+                const elegido = elegida(grupo)
+                return (
+                  <div key={grupo.id} className={filaGrupo}>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-lg font-extrabold">{grupo.nombre}</p>
+                      {elegido ? (
+                        <p className="text-sm text-brand-muted">
+                          {elegido.nombre}
+                          {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
+                        </p>
+                      ) : (
+                        <p className={`text-sm font-semibold ${grupo.obligatorio ? 'text-brand-red' : 'text-brand-muted'}`}>
+                          Elegí uno {grupo.obligatorio ? '(obligatorio)' : '(opcional)'}
+                        </p>
+                      )}
+                    </div>
+                    <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
+                      {elegido ? 'Cambiar' : 'Elegir'}
+                    </button>
+                  </div>
+                )
+              })}
+            </section>
+          ) : (
+            personalizable && (
+              <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-5">
+                <h2 className="font-display text-xl font-extrabold">Hacelo a tu manera</h2>
+                {tocados.length > 0 && (
+                  <p className="mt-1 text-sm text-brand-muted">{textoPersonalizacion().join(' · ')}</p>
+                )}
+                <button type="button" onClick={() => setPersonalizando(true)} className={botonPersonalizar}>
+                  <SlidersHorizontal className="h-4 w-4" /> Sacá o sumá ingredientes
+                </button>
+              </section>
+            )
+          )}
+
+          {/* En pantallas grandes la barra de compra va dentro de la tarjeta */}
+          <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">{barraCompra(false)}</div>
         </div>
       </div>
 
-      {/* En el celular la barra queda pegada al pie de la pantalla mientras se ve el producto,
-          pero dentro del flujo: al final de la página se apoya arriba del footer en vez de taparlo */}
-      <div className="sticky bottom-0 z-30 -mx-4 mt-6 rounded-t-3xl bg-white shadow-[0_-6px_20px_rgba(0,0,0,0.12)] md:hidden">
+      {/* En el celular la barra queda pegada al pie de la pantalla, dentro del flujo:
+          al final de la página se apoya arriba del footer en vez de taparlo */}
+      <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
         {barraCompra(true)}
       </div>
 
@@ -383,8 +383,6 @@ function DetalleProducto({ id }: { id: number }) {
         />
       )}
     </div>
-    </div>
   )
 }
-
 export default ProductDetail

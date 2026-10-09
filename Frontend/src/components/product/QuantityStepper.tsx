@@ -1,32 +1,45 @@
 interface QuantityStepperProps {
-  value: number
-  onChange: (value: number) => void
+  value: number;
+  onChange: (value: number) => void;
   /** Nombre de lo que se cuenta, para los lectores de pantalla (ej: "Queso") */
-  label: string
-  min?: number
-  max?: number
-  step?: number
+  label: string;
+  min?: number;
+  max?: number;
+  step?: number;
 }
 
-const redondear = (n: number) => Math.round(n * 100) / 100
+const redondear = (n: number) => Math.round(n * 100) / 100;
 
 // Control "− 1 +" en forma de píldora
-function QuantityStepper({ value, onChange, label, min = 1, max = 99, step = 1 }: QuantityStepperProps) {
+function QuantityStepper({
+  value,
+  onChange,
+  label,
+  min = 1,
+  max = 99,
+  step = 1,
+}: QuantityStepperProps) {
   const boton =
-    'grid h-9 w-9 place-items-center text-xl leading-none text-brand-dark transition-colors hover:text-brand-red disabled:cursor-not-allowed disabled:text-brand-dark/25 disabled:hover:text-brand-dark/25'
-
+    "grid h-9 w-9 place-items-center rounded-full text-xl font-bold leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-30";
   return (
-    <div className="inline-flex shrink-0 items-center rounded-full border border-brand-dark/40" role="group" aria-label={label}>
+    <div
+      className="inline-flex shrink-0 items-center gap-1 rounded-full border-2 border-brand-dark bg-white p-0.5"
+      role="group"
+      aria-label={label}
+    >
       <button
         type="button"
         aria-label={`Quitar ${label}`}
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, redondear(value - step)))}
-        className={boton}
+        className={`${boton} bg-brand-cream text-brand-dark hover:bg-brand-sand`}
       >
         −
       </button>
-      <span className="min-w-6 text-center font-semibold text-brand-dark" aria-live="polite">
+      <span
+        className="min-w-7 text-center font-extrabold text-brand-dark"
+        aria-live="polite"
+      >
         {value}
       </span>
       <button
@@ -39,7 +52,7 @@ function QuantityStepper({ value, onChange, label, min = 1, max = 99, step = 1 }
         +
       </button>
     </div>
-  )
+  );
 }
 
-export default QuantityStepper
+export default QuantityStepper;

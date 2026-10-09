@@ -39,30 +39,28 @@ function Sheet({ title, onClose, children, footer, alto = 'medio' }: SheetProps)
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-t-3xl
-           shadow-xl md:max-h-[85vh] md:max-w-lg md:rounded-3xl
-           bg-radial-[at_50%_90%] from-yellow-200 via-orange-300 to-red-300 ${
+        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-t-[2rem] border-2 border-b-0 border-brand-dark bg-brand-cream
+           md:max-h-[85vh] md:max-w-lg md:rounded-[2rem] md:border-b-2 md:shadow-[8px_8px_0_var(--color-brand-red)] ${
           alto === 'completo' ? 'h-[calc(100dvh-2rem)] md:h-auto' : 'min-h-[60dvh] md:min-h-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
-          <h2 className="text-lg font-extrabold text-brand-dark">{title}</h2>
+          <h2 className="font-display text-2xl font-extrabold text-brand-dark">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="-mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl 
-            leading-none text-brand-dark/60 transition-colors hover:bg-brand-cream hover:text-brand-red"
+            className="-mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-brand-dark transition-colors hover:bg-brand-red hover:text-white"
           >
-            <X size={30}/>
+            <X size={22} />
           </button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 pb-4">{children}</div>
 
         {footer && (
-          <div className="border-t border-brand-dark/10 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="border-t-2 border-dashed border-brand-sand bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {footer}
           </div>
         )}

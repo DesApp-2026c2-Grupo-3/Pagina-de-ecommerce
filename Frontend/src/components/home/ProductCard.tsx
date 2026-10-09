@@ -1,4 +1,7 @@
 import { Link } from 'react-router-dom'
+import { Plus } from 'lucide-react'
+import CategoryIcon from '../icons/CategoryIcon'
+import { formatearPrecio, precioDesde } from '../../utils/precio'
 import type { ProductoBackend } from '../../types/product'
 
 interface ProductCardProps {
@@ -7,57 +10,60 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const isUnavailable = !product.disponible
-  const precios = product.tamanios?.map((t) => Number(t.precio)) ?? []  
-  const tieneTamanios = precios.length > 0
-  const precioMostrado = tieneTamanios ? Math.min(...precios) : Number(product.precio)
+  const tieneTamanios = (product.tamanios?.length ?? 0) > 0
+  // Fondo de la foto intercalado entre mostaza y arena, como en el diseño
+  const fondoFoto = product.id % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'
 
   return (
-    <Link to={`/producto/${product.id}`} className="block h-full">
+    <Link to={`/producto/${product.id}`} className="group block h-full">
       <article
-        className={`relative flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-md transition-transform ${
-          isUnavailable ? '' : 'hover:scale-105 hover:shadow-xl'
+        className={`relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border-2 bg-white transition ${
+          isUnavailable
+            ? 'border-dashed border-brand-muted/60'
+            : 'border-brand-dark group-hover:-translate-y-1 group-hover:shadow-sticker'
         }`}
       >
         {isUnavailable && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-brand-dark px-3 py-1 text-xs font-bold text-white shadow">
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-brand-dark px-3 py-1 text-xs font-bold text-white">
             No disponible
           </span>
         )}
 
-        {product.imagen ? (
-          <img
-            src={product.imagen}
-            alt={product.nombre}
-            className={`h-40 w-full object-contain object-center
-              bg-gradient-to-t from-orange-400 to-orange-100 ${
-              isUnavailable ? 'opacity-50 grayscale' : ''
-            }`}
-          />
-        ) : (
-          <div
-            className={`grid h-40 w-full place-items-center bg-brand-cream text-5xl ${
-              isUnavailable ? 'opacity-50 grayscale' : ''
-            }`}
-            aria-hidden="true"
-          >
-            🍽️
-          </div>
-        )}
+        <div className={`grid h-44 place-items-center ${isUnavailable ? 'bg-brand-sand/60' : fondoFoto}`}>
+          {product.imagen ? (
+            <img
+              src={product.imagen}
+              alt={product.nombre}
+              className={`h-36 w-full object-contain drop-shadow-lg transition-transform duration-300 ${
+                isUnavailable ? 'opacity-50 grayscale' : 'group-hover:scale-110 group-hover:-rotate-3'
+              }`}
+            />
+          ) : (
+            <CategoryIcon icono="generico" className={`h-20 w-20 text-brand-dark ${isUnavailable ? 'opacity-40' : ''}`} />
+          )}
+        </div>
 
-        <div className="flex flex-1 flex-col p-4 border-t-2
-        bg-gradient-to-t from-stone-300 to-stone-100">
-          <h3 className="text-lg font-bold text-brand-dark">
-            {product.nombre}
-          </h3>
+        <div className="flex flex-1 flex-col gap-1 border-t-2 border-brand-dark p-5">
+          <h3 className="font-display text-xl font-extrabold leading-tight text-brand-dark">{product.nombre}</h3>
 
-          <p className="mt-1 flex-1 text-sm text-gray-600 line-clamp-2">
-            {product.descripcion}
-          </p>
+          <p className="line-clamp-2 flex-1 text-sm text-brand-muted">{product.descripcion}</p>
 
-          <div className="mt-4 flex items-baseline gap-1">            {tieneTamanios && <span className="text-xs font-semibold text-gray-500">desde</span>}
-            <span className={`text-xl font-extrabold ${isUnavailable ? 'text-gray-400' : 'text-brand-red'}`}>
-              ${precioMostrado.toLocaleString('es-AR')}
-            </span>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-baseline gap-1">
+              {tieneTamanios && <span className="text-xs font-semibold text-brand-muted">desde</span>}
+              <span className={`text-xl font-extrabold ${isUnavailable ? 'text-brand-muted' : 'text-brand-red'}`}>
+                {formatearPrecio(precioDesde(product))}
+              </span>
+            </div>
+
+            {!isUnavailable && (
+              <span
+                aria-hidden="true"
+                className="grid h-10 w-10 place-items-center rounded-xl bg-brand-red text-white transition-transform group-hover:rotate-90"
+              >
+                <Plus className="h-5 w-5" strokeWidth={3} />
+              </span>
+            )}
           </div>
         </div>
       </article>

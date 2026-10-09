@@ -7,7 +7,13 @@ import { createOrder } from "../services/orderService";
 import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
-import { etiquetaTamanio } from "../config/combo";
+import { MapPin, Store } from "lucide-react";
+import PageHeader from "../components/ui/PageHeader";
+import PasosCompra from "../components/cart/PasosCompra";
+import SeccionCheckout from "../components/checkout/SeccionCheckout";
+import Aviso from "../components/checkout/Aviso";
+import ResumenPedido from "../components/checkout/ResumenPedido";
+import PedidoConfirmado from "../components/checkout/PedidoConfirmado";
 import { buscarSucursalCercana } from "../utils/sucursales";
 import { distanciaKm } from "../utils/distancia";
 import type { Order } from "../types/order";
@@ -196,278 +202,210 @@ function Checkout() {
     }
   }
 
-  if (confirmedOrder) {
-    return (
-      <div className="bg-brand-cream">
-        <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-4 px-4 py-24 text-center">
-          <h1 className="text-3xl font-extrabold text-brand-dark">¡Pedido confirmado!</h1>
-          <p className="text-gray-600">
-            Tu pedido <span className="font-bold text-brand-red">#{confirmedOrder.id}</span> fue generado con éxito.
-          </p>
-          <p className="text-xl font-extrabold text-brand-dark">
-            Total: ${Number(confirmedOrder.total).toLocaleString("es-AR")}
-          </p>
-          <Link
-            to="/historial"
-            className="mt-4 rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Ver pedido
-          </Link>
-          {compraDirecta && items.length > 0 && (
-            <Link to="/carrito" className="text-sm font-bold text-brand-dark underline hover:text-brand-red">
-              Tu carrito sigue guardado ({items.length} {items.length === 1 ? "producto" : "productos"})
-            </Link>
-          )}
-        </div>
-      </div>
-    );
+   if (confirmedOrder) {
+    return <PedidoConfirmado pedido={confirmedOrder} quedanEnCarrito={compraDirecta ? items.length : 0} />;
   }
 
+  const tarjetaElegida = "flex flex-wrap items-start justify-between gap-3 rounded-2xl border-2 border-brand-dark bg-brand-cream/60 p-4";
+  const linkAccion = "text-sm font-bold text-brand-dark underline-offset-4 hover:text-brand-red hover:underline";
+
   return (
-    <div className="bg-brand-cream">
-      <div className="mx-auto min-h-screen max-w-2xl px-4 py-12">
-        <h1 className="text-3xl font-extrabold text-brand-dark">Confirmar pedido</h1>
-        <p className="mt-2 text-gray-600">
-          {compraDirecta
+    <div className="min-h-screen bg-brand-cream text-brand-dark">
+      <PageHeader
+        titulo="Confirmar pedido"
+        subtitulo={
+          compraDirecta
             ? "Compra directa: estás pagando solo este producto, tu carrito no se modifica."
-            : "Revisá tu pedido antes de confirmar."}
-        </p>
+            : "Revisá todo antes de mandarlo a la cocina."
+        }
+      >
+        <PasosCompra actual={1} />
+      </PageHeader>
 
-        {/* ---------- Productos ---------- */}
-        <div className="mt-8 flex flex-col gap-3">
-          {lineas.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-md">
-              <div className="min-w-0">
-                <p className="font-bold text-brand-dark">
-                  {item.quantity}x {item.product.nombre}
-                </p>
-                {(item.tamanio || item.selectedOptions.length > 0) && (
-                  <p className="text-sm text-gray-600">
-                    {[etiquetaTamanio(item.tamanio), ...item.selectedOptions].filter(Boolean).join(" · ")}
+      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start">
+        <div className="flex flex-col gap-5">
+          {/* ---------- Dirección de entrega ---------- */}
+          <SeccionCheckout titulo="Dirección de entrega" Icono={MapPin}>
+            {/* La dirección de la zona, si todavía no está guardada */}
+            {zona && !zonaGuardada && !direccionesLoading && (
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-brand-dark/30 p-4">
+                <div className="min-w-0">
+                  <p className="font-bold">La dirección de tu zona</p>
+                  <p className="text-sm text-brand-muted">
+                    {zona.calle} {zona.numero} — {zona.localidad}
                   </p>
-                )}
+                </div>
+                <Link
+                  to="/direcciones"
+                  state={{
+                    ...volverAlCheckout,
+                    abrirNueva: true,
+                    prefill: {
+                      calle: zona.calle,
+                      numero: zona.numero,
+                      localidad: zona.localidad,
+                      provincia: zona.provincia,
+                      codigoPostal: zona.codigoPostal,
+                      latitud: zona.latitud,
+                      longitud: zona.longitud,
+                    },
+                  }}
+                  className="shrink-0 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-brand-cream transition-transform hover:-translate-y-0.5"
+                >
+                  Guardarla
+                </Link>
               </div>
-              <span className="shrink-0 font-extrabold text-brand-dark">
-                ${(item.unitPrice * item.quantity).toLocaleString("es-AR")}
-              </span>
-            </div>
-          ))}
-        </div>
+            )}
 
-        {/* ---------- Dirección de entrega ---------- */}
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-brand-dark">Dirección de entrega</h2>
-
-          {/* La dirección de la zona, si todavía no está guardada */}
-          {zona && !zonaGuardada && !direccionesLoading && (
-            <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-dashed border-brand-dark/30 bg-white p-4">
-              <div className="min-w-0">
-                <p className="font-bold text-brand-dark">📍 La dirección de tu zona</p>
-                <p className="text-sm text-gray-600">
-                  {zona.calle} {zona.numero} — {zona.localidad}
-                </p>
+            {direccionesLoading ? (
+              <p className="text-sm text-brand-muted">Cargando direcciones...</p>
+            ) : direcciones.length === 0 ? (
+              zona ? null : (
+                <div className="rounded-2xl border-2 border-dashed border-brand-dark/30 p-4">
+                  <p className="font-semibold">Todavía no tenés direcciones guardadas.</p>
+                  <Link to="/direcciones" state={{ ...volverAlCheckout, abrirNueva: true }} className={`mt-1 inline-block ${linkAccion}`}>
+                    Agregar una dirección →
+                  </Link>
+                </div>
+              )
+            ) : !eligiendoDireccion && direccion ? (
+              // La dirección elegida, con opciones para cambiarla o editarla
+              <div className={tarjetaElegida}>
+                <div className="min-w-0">
+                  <p className="font-display text-lg font-extrabold">{direccion.alias}</p>
+                  <p className="text-sm text-brand-muted">
+                    {direccion.calle} {direccion.numero} — {direccion.localidad}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-4">
+                  <Link to="/direcciones" state={{ ...volverAlCheckout, editarId: direccion.id }} className={linkAccion}>
+                    Editar
+                  </Link>
+                  <button type="button" onClick={() => setEligiendoDireccion(true)} className={linkAccion}>
+                    Cambiar
+                  </button>
+                </div>
               </div>
-              <Link
-                to="/direcciones"
-                state={{
-                  ...volverAlCheckout,
-                  abrirNueva: true,
-                  prefill: {
-                    calle: zona.calle,
-                    numero: zona.numero,
-                    localidad: zona.localidad,
-                    provincia: zona.provincia,
-                    codigoPostal: zona.codigoPostal,
-                    latitud: zona.latitud,
-                    longitud: zona.longitud,
-                  },
-                }}
-                className="shrink-0 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Guardarla
-              </Link>
-            </div>
-          )}
-
-          {direccionesLoading ? (
-            <p className="mt-2 text-sm text-gray-600">Cargando direcciones...</p>
-          ) : direcciones.length === 0 ? (
-            zona ? null : (
-              <div className="mt-3 rounded-xl border border-brand-dark/15 bg-white p-4">
-                <p className="text-sm font-semibold text-brand-dark">Todavía no tenés direcciones guardadas.</p>
+            ) : (
+              // Lista para elegir otra dirección
+              <div className="flex flex-col gap-2">
+                {direcciones.map((d) => {
+                  const elegida = direccionSeleccionada === d.id;
+                  return (
+                    <label
+                      key={d.id}
+                      className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-colors ${
+                        elegida ? "border-brand-dark bg-brand-cream/60" : "border-brand-dark/15 hover:border-brand-dark/40"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="direccion"
+                        className="mt-1 h-4 w-4 accent-brand-red"
+                        checked={elegida}
+                        onChange={() => {
+                          setDireccionSeleccionada(d.id);
+                          setEligiendoDireccion(false);
+                          setError("");
+                          usarComoZona(d);
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold">{d.alias}</span>
+                          {d.predeterminada && (
+                            <span className="rounded-full bg-brand-mustard px-2 py-0.5 text-xs font-extrabold">Predeterminada</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-brand-muted">
+                          {d.calle} {d.numero} — {d.localidad}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
                 <Link
                   to="/direcciones"
                   state={{ ...volverAlCheckout, abrirNueva: true }}
-                  className="mt-2 inline-block text-sm font-bold text-brand-dark underline hover:text-brand-red"
+                  className="rounded-2xl border-2 border-dashed border-brand-dark/30 p-4 text-center text-sm font-bold transition-colors hover:border-brand-dark"
                 >
-                  Agregar una dirección →
+                  + Agregar dirección
                 </Link>
               </div>
-            )
-          ) : !eligiendoDireccion && direccion ? (
-            // La dirección elegida, con opciones para cambiarla o editarla
-            <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-brand-dark/15 bg-white p-4 shadow-sm">
-              <div className="min-w-0">
-                <p className="font-bold text-brand-dark">{direccion.alias}</p>
-                <p className="text-sm text-gray-600">
-                  {direccion.calle} {direccion.numero} — {direccion.localidad}
+            )}
+          </SeccionCheckout>
+
+          {/* ---------- Sucursal ---------- */}
+          <SeccionCheckout titulo="Sucursal que lo prepara" Icono={Store}>
+            {sucursalesLoading ? (
+              <p className="text-sm text-brand-muted">Buscando la sucursal...</p>
+            ) : !direccion ? (
+              <p className="text-sm text-brand-muted">
+                {zona && !zonaGuardada
+                  ? "Guardá la dirección de tu zona para confirmar el pedido."
+                  : "Elegí una dirección para ver qué sucursal te lo envía."}
+              </p>
+            ) : !coordsDireccion ? (
+              <Aviso>
+                <p className="font-semibold">Esta dirección no tiene ubicación en el mapa.</p>
+                <Link to="/direcciones" state={{ ...volverAlCheckout, editarId: direccion.id }} className="mt-1 inline-block font-bold underline">
+                  Marcarla en el mapa →
+                </Link>
+              </Aviso>
+            ) : !masCercana ? (
+              <p className="text-sm text-brand-muted">No hay sucursales disponibles.</p>
+            ) : !dentroDeZona ? (
+              <Aviso tono="error">
+                <p className="font-semibold">Tu dirección está fuera de nuestra zona de entrega.</p>
+                <p className="mt-1">
+                  La sucursal más cercana, {masCercana.sucursal.nombre}, está a {formatearKm(masCercana.distancia)} km y
+                  entrega hasta {masCercana.sucursal.radioEntregaKm} km.
                 </p>
-              </div>
-              <div className="flex shrink-0 gap-3">
-                <Link
-                  to="/direcciones"
-                  state={{ ...volverAlCheckout, editarId: direccion.id }}
-                  className="text-sm font-semibold text-brand-dark hover:text-brand-red"
-                >
-                  Editar
-                </Link>
+              </Aviso>
+            ) : sucursalDistinta && zona ? (
+              <Aviso>
+                <p className="font-semibold">
+                  Tu pedido es de {zona.sucursalNombre}, pero esta dirección le corresponde a {masCercana.sucursal.nombre}.
+                </p>
+                <p className="mt-1">
+                  Si cambiás tu zona, revisá el pedido: algunos productos pueden no estar disponibles en esa sucursal.
+                </p>
                 <button
                   type="button"
-                  onClick={() => setEligiendoDireccion(true)}
-                  className="text-sm font-semibold text-brand-dark underline hover:text-brand-red"
+                  onClick={usarDireccionComoZona}
+                  className="mt-3 rounded-full bg-brand-dark px-4 py-2 font-bold text-brand-cream transition-transform hover:-translate-y-0.5"
                 >
-                  Cambiar
+                  Pedir desde {masCercana.sucursal.nombre}
                 </button>
+              </Aviso>
+            ) : (
+              <div className={tarjetaElegida}>
+                <div className="min-w-0">
+                  <p className="font-display text-lg font-extrabold">{masCercana.sucursal.nombre}</p>
+                  <p className="text-sm text-brand-muted">
+                    {masCercana.sucursal.calle} {masCercana.sucursal.numero} — {masCercana.sucursal.localidad}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-brand-dark px-3 py-1 text-xs font-extrabold text-brand-mustard">
+                  a {formatearKm(masCercana.distancia)} km
+                </span>
               </div>
-            </div>
-          ) : (
-            // Lista para elegir otra dirección
-            <div className="mt-3 flex flex-col gap-2">
-              {direcciones.map((d) => (
-                <label
-                  key={d.id}
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
-                    direccionSeleccionada === d.id
-                      ? "border-brand-dark bg-white"
-                      : "border-brand-dark/10 bg-white hover:border-brand-dark/40"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="direccion"
-                    className="mt-1 accent-brand-dark"
-                    checked={direccionSeleccionada === d.id}
-                    onChange={() => {
-                      setDireccionSeleccionada(d.id);
-                      setEligiendoDireccion(false);
-                      setError("");
-                      usarComoZona(d);
-                    }}
-                  />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-brand-dark">{d.alias}</span>
-                      {d.predeterminada && (
-                        <span className="rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-bold text-brand-green">
-                          Predeterminada
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {d.calle} {d.numero} — {d.localidad}
-                    </p>
-                  </div>
-                </label>
-              ))}
-              <Link
-                to="/direcciones"
-                state={{ ...volverAlCheckout, abrirNueva: true }}
-                className="rounded-xl border border-dashed border-brand-dark/20 p-4 text-center text-sm font-bold text-brand-dark transition-colors hover:border-brand-dark"
-              >
-                + Agregar dirección
-              </Link>
-            </div>
-          )}
-        </div>
+            )}
+          </SeccionCheckout>
 
-        {/* ---------- Sucursal ---------- */}
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-brand-dark">Sucursal</h2>
-
-          {sucursalesLoading ? (
-            <p className="mt-2 text-sm text-gray-600">Buscando la sucursal...</p>
-          ) : !direccion ? (
-            <p className="mt-2 text-sm text-gray-600">
-              {zona && !zonaGuardada
-                ? "Guardá la dirección de tu zona para confirmar el pedido."
-                : "Elegí una dirección para ver qué sucursal te lo envía."}
-            </p>
-          ) : !coordsDireccion ? (
-            <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
-              <p className="text-sm font-semibold text-amber-700">Esta dirección no tiene ubicación en el mapa.</p>
-              <Link
-                to="/direcciones"
-                state={{ ...volverAlCheckout, editarId: direccion.id }}
-                className="mt-1 inline-block text-sm font-bold text-amber-700 hover:underline"
-              >
-                Marcarla en el mapa →
-              </Link>
-            </div>
-          ) : !masCercana ? (
-            <p className="mt-2 text-sm text-gray-600">No hay sucursales disponibles.</p>
-          ) : !dentroDeZona ? (
-            <div className="mt-3 rounded-xl border border-brand-red/20 bg-brand-red/10 p-4">
-              <p className="text-sm font-semibold text-brand-red">Tu dirección está fuera de nuestra zona de entrega.</p>
-              <p className="mt-1 text-sm text-brand-red">
-                La sucursal más cercana, {masCercana.sucursal.nombre}, está a {formatearKm(masCercana.distancia)} km y
-                entrega hasta {masCercana.sucursal.radioEntregaKm} km.
-              </p>
-            </div>
-          ) : sucursalDistinta && zona ? (
-            <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
-              <p className="text-sm font-semibold text-amber-800">
-                Tu pedido es de {zona.sucursalNombre}, pero esta dirección le corresponde a {masCercana.sucursal.nombre}.
-              </p>
-              <p className="mt-1 text-sm text-amber-800">
-                Si cambiás tu zona, revisá el pedido: algunos productos pueden no estar disponibles en esa sucursal.
-              </p>
-              <button
-                type="button"
-                onClick={usarDireccionComoZona}
-                className="mt-3 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Pedir desde {masCercana.sucursal.nombre}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-brand-dark/15 bg-white p-4 shadow-sm">
-              <div className="min-w-0">
-                <p className="font-bold text-brand-dark">{masCercana.sucursal.nombre}</p>
-                <p className="text-sm text-gray-600">
-                  {masCercana.sucursal.calle} {masCercana.sucursal.numero} — {masCercana.sucursal.localidad}
-                </p>
-              </div>
-              <span className="shrink-0 rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-bold text-brand-green">
-                a {formatearKm(masCercana.distancia)} km
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4">
-          {avisoSucursal && (
-            <p className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
-              {avisoSucursal}
-            </p>
-          )}
+          {avisoSucursal && <Aviso>{avisoSucursal}</Aviso>}
           <ErrorAlert message={error} />
         </div>
 
-        {/* ---------- Total y confirmar ---------- */}
-        <div className="mt-6 flex items-center justify-between border-t border-brand-dark/10 pt-6">
-          <span className="text-xl font-extrabold text-brand-dark">Total: ${total.toLocaleString("es-AR")}</span>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={loading || !puedeConfirmar}
-            className="rounded-full bg-brand-red px-8 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Confirmando..." : "Confirmar pedido"}
-          </button>
-        </div>
+        <ResumenPedido
+          lineas={lineas}
+          total={total}
+          onConfirmar={handleConfirm}
+          deshabilitado={loading || !puedeConfirmar}
+          cargando={loading}
+        />
       </div>
     </div>
   );
 }
-
 export default Checkout;

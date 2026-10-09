@@ -1,8 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Cake, IdCard, Smartphone, UserRound } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getPerfil, actualizarPerfil } from '../services/userService'
 import Modal from '../components/Modal'
 import ErrorAlert from '../components/ErrorAlert'
+import AccountLayout from '../components/cuenta/AccountLayout'
+import FilaDato from '../components/cuenta/FilaDato'
+import BotonesModal from '../components/ui/BotonesModal'
+import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 import { formatearFecha } from '../utils/fechas'
 import {
   validarApellido,
@@ -15,35 +20,6 @@ import {
 import type { User } from '../types/user'
 
 type CampoEditable = 'nombre' | 'telefono' | 'fechaNacimiento' | 'dni' | null
-
-const ESTILO_CAMPO =
-  'mt-1 w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none'
-
-interface BotonesModalProps {
-  saving: boolean
-  onCancelar: () => void
-}
-
-function BotonesModal({ saving, onCancelar }: BotonesModalProps) {
-  return (
-    <div className="mt-2 flex justify-end gap-3">
-      <button
-        type="button"
-        onClick={onCancelar}
-        className="rounded-full border border-brand-dark/20 px-5 py-2 font-bold text-brand-dark transition-colors hover:border-brand-red hover:text-brand-red"
-      >
-        Cancelar
-      </button>
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-      >
-        {saving ? 'Guardando...' : 'Guardar'}
-      </button>
-    </div>
-  )
-}
 
 function Perfil() {
   const { user, setUser } = useAuth()
@@ -132,65 +108,36 @@ function Perfil() {
     }
   }
 
-  if (loading || !datos) {
-    return <div className="mx-auto max-w-md px-4 py-16 text-center text-gray-600">Cargando...</div>
-  }
-
+  // Mientras carga, "datos" es null: por eso el "?." (el layout muestra "Cargando...")
   const filas = [
     {
       campo: 'nombre' as const,
-      icono: '👤',
+      Icono: UserRound,
       titulo: 'Nombre y apellido',
-      valor: [datos.name, datos.apellido].filter(Boolean).join(' ') || 'Datos no proporcionados',
+      valor: [datos?.name, datos?.apellido].filter(Boolean).join(' '),
     },
-    {
-      campo: 'telefono' as const,
-      icono: '📱',
-      titulo: 'Teléfono',
-      valor: datos.telefono || 'Datos no proporcionados',
-    },
+    { campo: 'telefono' as const, Icono: Smartphone, titulo: 'Teléfono', valor: datos?.telefono },
     {
       campo: 'fechaNacimiento' as const,
-      icono: '🎂',
+      Icono: Cake,
       titulo: 'Fecha de nacimiento',
-      valor: formatearFecha(datos.fechaNacimiento) || 'Datos no proporcionados',
+      valor: formatearFecha(datos?.fechaNacimiento),
     },
-    {
-      campo: 'dni' as const,
-      icono: '🪪',
-      titulo: 'Documento de identidad',
-      valor: datos.dni || 'Datos no proporcionados',
-    },
+    { campo: 'dni' as const, Icono: IdCard, titulo: 'Documento de identidad', valor: datos?.dni },
   ]
 
   return (
-    <div className='bg-brand-cream'>
-    <div className="mx-auto max-w-2xl px-4 py-12 min-h-screen">
-      <h1 className="text-3xl font-extrabold text-brand-dark">Datos personales</h1>
-
-      <div className="mt-8 divide-y divide-brand-dark/10 rounded-2xl bg-white shadow-md">
-        {filas.map((fila) => (
-          <button
+    <AccountLayout titulo="Datos personales" cargando={loading || !datos}>
+      <div className="overflow-hidden rounded-[1.75rem] border-2 border-brand-dark bg-white">
+        {filas.map((fila, i) => (
+          <FilaDato
             key={fila.campo}
-            type="button"
+            Icono={fila.Icono}
+            titulo={fila.titulo}
+            valor={fila.valor}
+            color={i % 2 === 0 ? 'mostaza' : 'rojo'}
             onClick={() => abrirModal(fila.campo)}
-            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-brand-cream"
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-2xl">{fila.icono}</span>
-              <div>
-                <p className="font-semibold text-brand-dark">{fila.titulo}</p>
-                <p
-                  className={`text-sm ${
-                    fila.valor === 'Datos no proporcionados' ? 'text-gray-400' : 'text-gray-600'
-                  }`}
-                >
-                  {fila.valor}
-                </p>
-              </div>
-            </div>
-            <span className="text-xl text-brand-dark/40">›</span>
-          </button>
+          />
         ))}
       </div>
 
@@ -204,7 +151,7 @@ function Perfil() {
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="nombre" className="text-sm text-gray-500">
+              <label htmlFor="nombre" className={CLASE_LABEL}>
                 Nombre
               </label>
               <input
@@ -216,11 +163,11 @@ function Perfil() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ej: Juan"
-                className={ESTILO_CAMPO}
+                className={CLASE_INPUT}
               />
             </div>
             <div>
-              <label htmlFor="apellido" className="text-sm text-gray-500">
+              <label htmlFor="apellido" className={CLASE_LABEL}>
                 Apellido
               </label>
               <input
@@ -231,7 +178,7 @@ function Perfil() {
                 value={apellido}
                 onChange={(e) => setApellido(e.target.value)}
                 placeholder="Ej: Pérez"
-                className={ESTILO_CAMPO}
+                className={CLASE_INPUT}
               />
             </div>
           </div>
@@ -250,7 +197,7 @@ function Perfil() {
       >
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
           <div>
-            <label htmlFor="telefono" className="text-sm text-gray-500">
+            <label htmlFor="telefono" className={CLASE_LABEL}>
               Número con código de área
             </label>
             <input
@@ -263,7 +210,7 @@ function Perfil() {
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="Ej: 11 1234-5678"
-              className={ESTILO_CAMPO}
+              className={CLASE_INPUT}
             />
           </div>
           <ErrorAlert message={error} />
@@ -276,12 +223,12 @@ function Perfil() {
         isOpen={campoAbierto === 'fechaNacimiento'}
         onClose={cerrarModal}
         title="Fecha de nacimiento"
-        subtitle="Para saludarte en tu cumpleaños 🎂"
+        subtitle="Para saludarte en tu cumpleaños."
         tamanio="sm"
       >
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
           <div>
-            <label htmlFor="fechaNacimiento" className="text-sm text-gray-500">
+            <label htmlFor="fechaNacimiento" className={CLASE_LABEL}>
               Fecha
             </label>
             <input
@@ -293,7 +240,7 @@ function Perfil() {
               autoComplete="bday"
               value={fechaNacimiento}
               onChange={(e) => setFechaNacimiento(e.target.value)}
-              className={ESTILO_CAMPO}
+              className={CLASE_INPUT}
             />
           </div>
           <ErrorAlert message={error} />
@@ -311,7 +258,7 @@ function Perfil() {
       >
         <form onSubmit={guardarCambios} noValidate className="flex flex-col gap-4">
           <div>
-            <label htmlFor="dni" className="text-sm text-gray-500">
+            <label htmlFor="dni" className={CLASE_LABEL}>
               Número de DNI
             </label>
             <input
@@ -323,15 +270,14 @@ function Perfil() {
               value={dni}
               onChange={(e) => setDni(e.target.value)}
               placeholder="Ej: 30123456"
-              className={ESTILO_CAMPO}
+              className={CLASE_INPUT}
             />
           </div>
           <ErrorAlert message={error} />
           <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
-    </div>
-    </div>
+    </AccountLayout>
   )
 }
 

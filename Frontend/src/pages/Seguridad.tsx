@@ -1,11 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { KeyRound, Mail } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getPerfil, actualizarPerfil } from '../services/userService'
 import Modal from '../components/Modal'
 import ErrorAlert from '../components/ErrorAlert'
+import CampoPassword from '../components/CampoPassword'
+import AccountLayout from '../components/cuenta/AccountLayout'
+import FilaDato from '../components/cuenta/FilaDato'
+import BotonesModal from '../components/ui/BotonesModal'
+import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 import { esEmailValido } from '../utils/validaciones'
 import type { User } from '../types/user'
-import CampoPassword from '../components/CampoPassword'
 
 type CampoEditable = 'email' | 'password' | null
 
@@ -41,6 +46,10 @@ function Seguridad() {
     setCampoAbierto(campo)
   }
 
+  function cerrarModal() {
+    setCampoAbierto(null)
+  }
+
   async function guardarEmail(e: FormEvent) {
     e.preventDefault()
     setError('')
@@ -62,7 +71,7 @@ function Seguridad() {
       })
       setDatos(updated)
       setUser(updated)
-      setCampoAbierto(null)
+      cerrarModal()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar el email')
     } finally {
@@ -70,148 +79,120 @@ function Seguridad() {
     }
   }
 
- async function guardarPassword(e: FormEvent) {
-  e.preventDefault()
-  setError('')
+  async function guardarPassword(e: FormEvent) {
+    e.preventDefault()
+    setError('')
 
-  if (!passwordActual) {
-    setError('Ingresá tu contraseña actual')
-    return
-  }
-  if (passwordNueva.length < 6) {
-    setError('La nueva contraseña debe tener al menos 6 caracteres')
-    return
-  }
-  setSaving(true)
-  try {
-    const updated = await actualizarPerfil(user!.id, {
-      name: datos!.name,
-      apellido: datos!.apellido,
-      email: datos!.email,
-      telefono: datos!.telefono,
-      dni: datos!.dni,
-      fechaNacimiento: datos!.fechaNacimiento,
-      password: passwordNueva,
-      passwordActual,
-    })
-    setDatos(updated)
-    setUser(updated)
-    setCampoAbierto(null)
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Error al actualizar la contraseña')
-  } finally {
-    setSaving(false)
-  }
-}
+    if (!passwordActual) {
+      setError('Ingresá tu contraseña actual')
+      return
+    }
+    if (passwordNueva.length < 6) {
+      setError('La nueva contraseña debe tener al menos 6 caracteres')
+      return
+    }
 
-  if (loading || !datos) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center text-gray-600">Cargando...</div>
-    )
+    setSaving(true)
+    try {
+      const updated = await actualizarPerfil(user!.id, {
+        name: datos!.name,
+        apellido: datos!.apellido,
+        email: datos!.email,
+        telefono: datos!.telefono,
+        dni: datos!.dni,
+        fechaNacimiento: datos!.fechaNacimiento,
+        password: passwordNueva,
+        passwordActual,
+      })
+      setDatos(updated)
+      setUser(updated)
+      cerrarModal()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar la contraseña')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <div className='bg-brand-cream'>
-    <div className="mx-auto max-w-2xl px-4 py-12 min-h-screen">
-      <h1 className="text-3xl font-extrabold text-brand-dark">Inicio de sesión y seguridad</h1>
-
-      <div className="mt-8 divide-y divide-brand-dark/10 rounded-2xl bg-white shadow-md">
-        <button
-          type="button"
-          onClick={() => abrirModal('email')}
-          className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-brand-cream"
-        >
-          <div className="flex items-center gap-4">
-            <span className="text-2xl">📧</span>
-            <div>
-              <p className="font-semibold text-brand-dark">Email</p>
-              <p className="text-sm text-gray-600">{datos.email}</p>
-            </div>
-          </div>
-          <span className="text-xl text-brand-dark/40">›</span>
-        </button>
-
-        <button
-          type="button"
+    <AccountLayout
+      titulo="Inicio de sesión y seguridad"
+      subtitulo="Con estos datos entrás a tu cuenta."
+      cargando={loading || !datos}
+    >
+      <div className="overflow-hidden rounded-[1.75rem] border-2 border-brand-dark bg-white">
+        <FilaDato Icono={Mail} titulo="Email" valor={datos?.email} onClick={() => abrirModal('email')} />
+        <FilaDato
+          Icono={KeyRound}
+          titulo="Contraseña"
+          valor="••••••••"
+          color="rojo"
           onClick={() => abrirModal('password')}
-          className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-brand-cream"
-        >
-          <div className="flex items-center gap-4">
-            <span className="text-2xl">🔑</span>
-            <div>
-              <p className="font-semibold text-brand-dark">Contraseña</p>
-              <p className="text-sm text-gray-600">••••••••</p>
-            </div>
-          </div>
-          <span className="text-xl text-brand-dark/40">›</span>
-        </button>
+        />
       </div>
 
       {/* Modal: Email */}
       <Modal
         isOpen={campoAbierto === 'email'}
-        onClose={() => setCampoAbierto(null)}
+        onClose={cerrarModal}
         title="Email"
         subtitle="Usamos tu email para que inicies sesión y te contactemos sobre tus pedidos."
       >
         <form onSubmit={guardarEmail} noValidate className="flex flex-col gap-4">
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
-          />
+          <div>
+            <label htmlFor="email" className={CLASE_LABEL}>
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              autoFocus
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={CLASE_INPUT}
+            />
+          </div>
           <ErrorAlert message={error} />
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-2 self-end rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
+          <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
 
       {/* Modal: Contraseña */}
-      <Modal
-        isOpen={campoAbierto === 'password'}
-        onClose={() => setCampoAbierto(null)}
-        title="Cambiar contraseña"
-      >
+      <Modal isOpen={campoAbierto === 'password'} onClose={cerrarModal} title="Cambiar contraseña">
         <form onSubmit={guardarPassword} noValidate className="flex flex-col gap-4">
           <div>
-            <label className="text-sm text-gray-500">Contraseña actual</label>
+            <label htmlFor="passwordActual" className={CLASE_LABEL}>
+              Contraseña actual
+            </label>
             <CampoPassword
+              id="passwordActual"
               value={passwordActual}
               onChange={(e) => setPasswordActual(e.target.value)}
               placeholder="Tu contraseña actual"
               autoComplete="current-password"
-              className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
+              className={CLASE_INPUT}
             />
           </div>
           <div>
-            <label className="text-sm text-gray-500">Nueva contraseña</label>
+            <label htmlFor="passwordNueva" className={CLASE_LABEL}>
+              Nueva contraseña
+            </label>
             <CampoPassword
+              id="passwordNueva"
               value={passwordNueva}
               onChange={(e) => setPasswordNueva(e.target.value)}
               placeholder="Mínimo 6 caracteres"
               autoComplete="new-password"
-              className="w-full border-b border-brand-dark/20 py-2 text-lg focus:border-brand-red focus:outline-none"
+              className={CLASE_INPUT}
             />
           </div>
           <ErrorAlert message={error} />
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-2 self-end rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
+          <BotonesModal saving={saving} onCancelar={cerrarModal} />
         </form>
       </Modal>
-    </div>
-    </div>
+    </AccountLayout>
   )
 }
 
