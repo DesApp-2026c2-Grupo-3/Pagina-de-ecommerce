@@ -19,7 +19,6 @@ export default function AdminLayout({administrador, setAdministrador}:AdminLayou
         <Outlet />
       </main>
 
-      <Footer />
-    </div>
+<Footer administrador={administrador} />    </div>
   )
 }

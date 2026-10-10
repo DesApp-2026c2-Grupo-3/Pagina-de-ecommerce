@@ -2,13 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
-import { Search,SkipBack, SkipForward, ArrowBigLeftDash, ArrowBigRightDash } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
+import CategoryFilter from "../components/catalogo/CategoryFilter";
+import Pagination from "../components/catalogo/Pagination";
 import { useZona } from "../context/ZonaContext";
+import { useSearchParams } from "react-router-dom";
 
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+  // Si viene del Home con ?categoria=3, arranca filtrado
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(() => {
+  const id = Number(searchParams.get("categoria"));
+    return id > 0 ? id : null;
+  });  
   const [search, setSearch] = useState("");
   const { zona } = useZona();
 
@@ -58,185 +66,71 @@ function Products() {
     startIndex + productsPerPage
   );
 
-  // Ventana de hasta 3 números, centrada en la página actual
-  const maxButtons = 3;
-  const windowSize = Math.min(maxButtons, totalPages);
-  const windowStart = Math.max(
-    1,
-    Math.min(currentPage - 1, totalPages - maxButtons + 1)
-  );
-  const visiblePages = Array.from(
-    { length: windowSize },
-    (_, index) => windowStart + index
-  );
-
   const goToPage = (page: number) => {
     setCurrentPage(Math.min(Math.max(page, 1), totalPages));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
   return (
-    <div
-      className="mx-auto px-10 py-10 min-h-screen
-    bg-gradient-to-b from-orange-200 via-yellow-800 to-red-800"
-    >
-      <h1
-        className="text-3xl font-extrabold sm:text-4xl
-      bg-gradient-to-r from-stone-900 via-gray-800 to-red-700 bg-clip-text text-transparent w-fit"
-      >
-        Nuestro catálogo
-      </h1>
-      <p className="mt-2 text-gray-800">
-        Elegí una categoría o buscá tu producto favorito.
-      </p>
-      {zona && (
-        <p className="mt-1 text-sm font-semibold text-gray-800">
-          📍 Mostrando lo disponible en {zona.sucursalNombre}
-        </p>
-      )}
-
-      <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:px-0 md:pb-0">
-          <button
-            type="button"
-            onClick={() => setSelectedCategory(null)}
-            aria-pressed={selectedCategory === null}
-            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-              selectedCategory === null
-                ? "border-brand-red bg-brand-red text-white"
-                : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
-            }`}
-          >
-            Todos
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              type="button"
-              onClick={() => setSelectedCategory(category.id)}
-              aria-pressed={selectedCategory === category.id}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-                selectedCategory === category.id
-                  ? "border-brand-red bg-brand-red text-white"
-                  : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
-              }`}
-            >
-              {category.nombre}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative w-full md:w-72">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-            <Search size={18} />
-          </span>
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar producto..."
-            aria-label="Buscar producto"
-            className="w-full rounded-full border border-brand-dark/20 bg-white py-2 pl-10 pr-4 text-brand-dark placeholder:text-gray-400 focus:border-brand-red focus:outline-none"
-          />
-        </div>
-      </div>
-
-      {filteredProducts.length === 0 ? (
-        <div
-          className="mt-16 flex flex-col items-center gap-2 text-center
-        text-[2rem]"
-        >
-          <img src="/Otros/notFound.png" alt="Buscado cosas" className="h-64" />
-          <p className="font-semibold text-white">
-            No encontramos productos con ese criterio.
-          </p>
-          <p className="text-[1rem] text-gray-100">
-            Probá con otra categoría o cambiá la búsqueda.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {currentProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+    <div className="min-h-screen bg-brand-cream text-brand-dark">
+      {/* Banda oscura con título y buscador */}
+      <section className="bg-brand-dark px-4 pb-20 pt-10 text-brand-cream">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-6">
+          <div>
+            <h1 className="font-display text-5xl font-extrabold tracking-tight sm:text-6xl">
+              El <span className="text-brand-red">menú</span>
+            </h1>
+            <p className="mt-2 text-brand-cream/70">
+              {zona ? (
+                <>
+                  <MapPin className="mr-1.5 inline h-4 w-4 align-[-2px] text-brand-mustard" />
+                  Mostrando lo disponible en <b className="text-brand-cream">{zona.sucursalNombre}</b>
+                </>
+              ) : (
+                "Elegí una categoría o buscá tu producto favorito."
+              )}
+            </p>
           </div>
 
-          {totalPages > 1 && (
-  <div className="mt-8 flex items-center justify-center gap-2">
-    <button
-      type="button"
-      onClick={() => goToPage(1)}
-      disabled={currentPage === 1}
-      aria-label="Primera página"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40 " 
-    >
-      <SkipBack size={20}/>
-    </button>
+          <label className="flex min-h-12 w-full items-center gap-2 rounded-full bg-brand-cream px-5 text-brand-dark sm:max-w-sm">
+            <Search className="h-5 w-5 shrink-0" />
+            <span className="sr-only">Buscar producto</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="¿Qué te pinta? Buscá…"
+              className="min-w-0 flex-1 bg-transparent text-base placeholder:text-brand-muted focus:outline-none"
+            />
+          </label>
+        </div>
+      </section>
 
-    <button
-      type="button"
-      onClick={() => goToPage(currentPage - 1)}
-      disabled={currentPage === 1}
-      aria-label="Página anterior"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <ArrowBigLeftDash size={20}/>
-    </button>
+      <div className="mx-auto max-w-7xl px-4 pb-16">
+        {/* Categorías: barra blanca montada sobre la banda */}
+        <div className="-mt-9">
+          <CategoryFilter categorias={categories} seleccionada={selectedCategory} onSeleccionar={setSelectedCategory} />
+        </div>
 
-    {visiblePages.map((page) => (
-      <button
-        key={page}
-        type="button"
-        onClick={() => goToPage(page)}
-        aria-current={currentPage === page ? "page" : undefined}
-        className={`h-10 w-10 rounded-full font-bold transition-colors hidden sm:block border ${
-          currentPage === page
-            ? "bg-gradient-to-t from-red-800 to-red-400 text-white"
-            : "bg-white text-brand-dark hover:text-white hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 "
-        }`}
-      >
-        {page}
-      </button>
-    ))}
+        {filteredProducts.length === 0 ? (
+          <div className="mt-16 flex flex-col items-center gap-2 text-center">
+            <img src="/Otros/notFound.png" alt="" className="h-56" />
+            <p className="font-display text-2xl font-extrabold">No encontramos productos con ese criterio.</p>
+            <p className="text-brand-muted">Probá con otra categoría o cambiá la búsqueda.</p>
+          </div>
+        ) : (
+          <>
+            <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {currentProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
 
-    <button
-      type="button"
-      onClick={() => goToPage(currentPage + 1)}
-      disabled={currentPage === totalPages}
-      aria-label="Página siguiente"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <ArrowBigRightDash size={20}/>
-    </button>
-
-    <button
-      type="button"
-      onClick={() => goToPage(totalPages)}
-      disabled={currentPage === totalPages}
-      aria-label="Última página"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors  hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <SkipForward size={20} />
-    </button>
-  </div>
-)}
-        </>
-      )}
+            <Pagination paginaActual={currentPage} totalPaginas={totalPages} onCambiar={goToPage} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-export default Products;
+   export default Products;

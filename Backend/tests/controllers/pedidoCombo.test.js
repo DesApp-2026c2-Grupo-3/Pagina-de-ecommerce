@@ -19,7 +19,11 @@ jest.mock('../../src/models', () => {
     };
 });
 
+// El precio de referencia del recargo sale de la base: en el test se calcula con los productos de abajo
+jest.mock('../../src/utils/combo', () => ({ precioMasBarato: jest.fn() }));
+
 const models = require('../../src/models');
+const { precioMasBarato } = require('../../src/utils/combo');
 const { crearPedido } = require('../../src/controllers/pedidoController');
 
 const { Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, ComboGrupo, StockSucursal, Direccion } = models;
@@ -66,6 +70,16 @@ const gruposDelCombo = [
 const sucursal = { id: 2, nombre: 'Morón', activa: true, latitud: -34.65, longitud: -58.62, radioEntregaKm: 5 };
 const direccion = { id: 3, usuarioId: 1, latitud: -34.65, longitud: -58.62 };
 
+// Lo más barato de una categoría en un tamaño, como lo calcularía la base
+function masBaratoDe(categoriaId, tamanioId) {
+    const precios = Object.values(productos)
+        .filter((p) => p.categoriaId === categoriaId)
+        .map((p) => p.tamanios.find((tm) => tm.tamanioId === Number(tamanioId))?.precio)
+        .filter((precio) => precio != null)
+        .map(Number);
+    return precios.length > 0 ? Math.min(...precios) : null;
+}
+
 let stocks;
 
 function pedidoCon(items) {
@@ -80,10 +94,12 @@ beforeEach(() => {
     Sucursal.findByPk.mockResolvedValue(sucursal);
     Direccion.findOne.mockResolvedValue(direccion);
     Pedido.create.mockResolvedValue({ id: 100, update: jest.fn() });
+    DetallePedido.create.mockResolvedValue({});
 
     Producto.findByPk.mockImplementation((id) => Promise.resolve(productos[id] ?? null));
-    RecetaInsumo.findAll.mockImplementation(({ where }) => Promise.resolve(recetas[where.productoId]));
-    ComboGrupo.findAll.mockImplementation(({ where }) => Promise.resolve(where.productoId === 20 ? gruposDelCombo : []));
+    RecetaInsumo.findAll.mockImplementation(({ where }) => Promise.resolve(recetas[where.productoId] ?? []));
+    ComboGrupo.findAll.mockImplementation(({ where }) => Promise.resolve(Number(where.productoId) === 20 ? gruposDelCombo : []));
+    precioMasBarato.mockImplementation((categoriaId, tamanioId) => Promise.resolve(masBaratoDe(categoriaId, tamanioId)));
 
     stocks = { 1: crearStock(100), 10: crearStock(100), 11: crearStock(100), 15: crearStock(100) };
     StockSucursal.findOne.mockImplementation(({ where }) => Promise.resolve(stocks[where.insumoId] ?? null));
@@ -124,6 +140,7 @@ describe('crearPedido con combos', () => {
         }]), res);
 
         // 11000 + recargo de las papas (2900 - 2100 = 800) + recargo de la bebida (es la incluida: 0)
+        expect(res.status).toHaveBeenCalledWith(201);
         expect(DetallePedido.create).toHaveBeenCalledWith(
             expect.objectContaining({
                 precio: 11800,
@@ -138,10 +155,10 @@ describe('crearPedido con combos', () => {
             }),
             expect.anything()
         );
-        expect(stocks[1].cantidad).toBe(98);
-        expect(stocks[10].cantidad).toBe(97);
-        expect(stocks[11].cantidad).toBe(94);
-        expect(stocks[15].cantidad).toBe(97.2);
+        expect(stocks[1].cantidad).toBe(98);    // pan del combo: 1 x 2 (el tamaño no lo agranda)
+        expect(stocks[10].cantidad).toBe(97);   // papas: 1 x factor 1,5 x 2
+        expect(stocks[11].cantidad).toBe(94);   // cheddar: 2 x factor 1,5 x 2
+        expect(stocks[15].cantidad).toBe(97.2); // cola: 1 x factor 1,4 x 2
     });
 
     test('exige elegir los grupos obligatorios', async () => {

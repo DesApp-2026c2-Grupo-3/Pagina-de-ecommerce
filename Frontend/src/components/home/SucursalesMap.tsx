@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AdvancedMarker, APIProvider, InfoWindow, Map, useMap } from '@vis.gl/react-google-maps'
 import { getSucursales } from '../../services/sucursalService'
 import type { Sucursal } from '../../types/sucursal'
-import { MapPin, Clock } from 'lucide-react'
+import { MapPin, Clock, Phone } from 'lucide-react'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 const MAP_ID = 'DEMO_MAP_ID'
@@ -72,19 +72,18 @@ function SucursalesMap() {
 
   return (
     // El mismo fondo que las demás secciones del inicio, con espacio para que se vea el degradé
-    <section id="sucursales" className="scroll-mt-24 bg-radial from-stone-500 to-stone-900 px-4 py-16">
-      <div className="mx-auto max-w-7xl rounded-2xl border-2 border-stone-700 bg-gradient-to-br from-red-900 via-red-800 to-red-950 p-4 sm:p-6">
-        <h2 className="mb-4 flex items-center gap-3 text-2xl font-extrabold text-white">
-          <MapPin size={30} />
+    <section id="sucursales" className="scroll-mt-24 bg-brand-cream px-4 py-20 text-brand-dark">      
+    <div className="mx-auto max-w-7xl">        
+        <h2 className="mb-8 flex items-center gap-3 font-display text-4xl font-extrabold tracking-tight">
+          <MapPin size={34} className="text-brand-red" />
           Nuestras sucursales
         </h2>
 
         {loading ? (
-          <p className="py-12 text-center text-gray-100">Cargando sucursales...</p>
-        ) : (
+          <p className="py-12 text-center text-brand-muted">Cargando sucursales...</p>        ) : (
           <APIProvider apiKey={API_KEY} language="es" region="AR">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="h-72 overflow-hidden rounded-2xl shadow-md md:order-2 md:col-span-2 md:h-[28rem]">
+              <div className="h-72 overflow-hidden rounded-[1.75rem] border-2 border-brand-dark md:order-2 md:col-span-2 md:h-[28rem]">                
                 <Map
                   mapId={MAP_ID}
                   defaultCenter={CENTRO_POR_DEFECTO}
@@ -118,11 +117,11 @@ function SucursalesMap() {
                         <p className="font-bold">{seleccionada.nombre}</p>
                         <p className="mt-1 text-sm">{direccionDe(seleccionada)}</p>
                         {seleccionada.horario && (
-                          <p className="mt-1 text-xs text-gray-600">🕒 {seleccionada.horario}</p>
-                        )}
+                          <p className="mt-1 flex items-center gap-1 text-xs text-gray-600"><Clock size={12} /> {seleccionada.horario}</p>                        
+                          )}
                         {seleccionada.telefono && (
-                          <p className="text-xs text-gray-600">📞 {seleccionada.telefono}</p>
-                        )}
+                          <p className="flex items-center gap-1 text-xs text-gray-600"><Phone size={12} /> {seleccionada.telefono}</p>                        
+                          )}
                         <a
                           href={linkComoLlegar(seleccionada)}
                           target="_blank"
@@ -146,15 +145,17 @@ function SucursalesMap() {
                         type="button"
                         onClick={() => setSeleccionadaId(s.id)}
                         aria-pressed={activa}
-                        className={`w-full rounded-2xl border bg-white/20 p-4 text-left shadow-sm transition-colors ${
-                          activa ? 'border-white' : 'border-white/10 hover:border-white/40'
+                        className={`w-full rounded-3xl border-2 border-brand-dark p-4 text-left transition ${
+                          activa
+                            ? 'bg-brand-dark text-brand-cream shadow-[6px_6px_0_var(--color-brand-red)]'
+                            : 'bg-white text-brand-dark hover:-translate-y-0.5'
                         }`}
                       >
-                        <p className="font-bold text-white">{s.nombre}</p>
-                        <p className="mt-1 text-sm text-gray-100">{direccionDe(s)}</p>
+                        <p className="font-display text-lg font-extrabold">{s.nombre}</p>                        
+                        <p className="mt-1 text-sm opacity-80">{direccionDe(s)}</p>                        
                         {s.horario && (
-                          <div className="mt-1 flex items-center gap-2 text-xs text-gray-100">
-                            <Clock size={16} className="shrink-0" />
+                          <div className="mt-1 flex items-center gap-2 text-xs opacity-80">                            
+                          <Clock size={16} className="shrink-0" />
                             <p>{s.horario}</p>
                           </div>
                         )}

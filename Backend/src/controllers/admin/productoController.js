@@ -217,7 +217,6 @@ const editarProductoPorId = async (req, res) => {
 };
 
 // Borrado lógico: el producto deja de verse en el panel y en la tienda,
-// pero se conserva para los pedidos que ya lo tienen
 const eliminarProducto = async (req, res) => {
     try {
         const producto = await Producto.findByPk(req.params.id);
@@ -225,9 +224,11 @@ const eliminarProducto = async (req, res) => {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
 
-        if (enCombos > 0) {
+        // No se puede borrar si es la opción incluida de un combo
+        const usosEnCombos = await ComboGrupo.count({ where: { productoIncluidoId: producto.id } });
+        if (usosEnCombos > 0) {
             return res.status(409).json({
-                mensaje: 'Este producto es la opción incluida de un combo. Cambiá ese combo antes de eliminarlo.'
+                mensaje: 'Este producto es la opción incluida de un combo. Cambiala en el combo antes de eliminarlo.',
             });
         }
 

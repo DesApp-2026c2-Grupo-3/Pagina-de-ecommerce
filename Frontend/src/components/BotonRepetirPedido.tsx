@@ -16,8 +16,17 @@ interface Resumen {
   preciosCambiaron: boolean
 }
 
-function BotonRepetirPedido({ pedidoId }: { pedidoId: number }) {
-  const { user } = useAuth()
+const estilos = {
+  claro: 'min-h-10 border-2 border-brand-dark bg-brand-cream px-4 text-sm text-brand-dark hover:bg-brand-mustard',  
+  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:-translate-y-0.5',
+}
+
+interface Props {
+  pedidoId: number
+  variante?: keyof typeof estilos
+}
+
+function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { user } = useAuth()
   const { addItem } = useCart()
   const { zona, abrirSelector } = useZona()
   const navigate = useNavigate()
@@ -81,8 +90,7 @@ function BotonRepetirPedido({ pedidoId }: { pedidoId: number }) {
         type="button"
         onClick={repetir}
         disabled={cargando}
-        className="inline-flex items-center gap-2 rounded-full border border-brand-dark/20 bg-white px-4 py-2 text-sm font-bold text-brand-dark transition-colors hover:border-brand-dark disabled:opacity-50"
-      >
+        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:opacity-50 ${estilos[variante]}`}      >
         <RotateCcw size={16} />
         {cargando ? 'Cargando...' : 'Repetir pedido'}
       </button>

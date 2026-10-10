@@ -1,86 +1,72 @@
 import { useEffect, useMemo, useState } from 'react'
+import { SearchX } from 'lucide-react'
 import ProductCard from '../components/home/ProductCard'
+import CategoryFilter from '../components/catalogo/CategoryFilter'
+import PageHeader from '../components/ui/PageHeader'
 import { getPromoCategories, getPromotions } from '../services/promotionService'
 import type { Category, Product } from '../types/product'
-import type { CategoriaPromo } from '../mocks/promotions'
-const ALL_TAB = 'Todas'
 
+// Ojo: las promos todavía vienen de mocks/promotions.ts (no hay tabla de promociones en el backend)
 function Promociones() {
   const [promotions, setPromotions] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string>(ALL_TAB)
+  const [categoriaId, setCategoriaId] = useState<number | null>(null)
 
   useEffect(() => {
     getPromotions().then(setPromotions)
     getPromoCategories().then(setCategories)
   }, [])
 
-  const filteredPromotions = useMemo(() => {
-    return promotions.filter((promo) => {
-      if (selectedCategory !== ALL_TAB && promo.category !== selectedCategory) return false
-      return true
-    })
-    .sort((a, b) => Number(b.available) - Number(a.available))
-  }, [promotions, selectedCategory])
+  const filtradas = useMemo(() => {
+    const nombre = categories.find((c) => c.id === categoriaId)?.nombre
+    return promotions
+      .filter((promo) => !nombre || promo.category === nombre)
+      .sort((a, b) => Number(b.available) - Number(a.available))
+  }, [promotions, categories, categoriaId])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 bg-red-800">
-      <h1 className="text-3xl font-extrabold text-brand-dark sm:text-4xl">Promociones</h1>
-      <p className="mt-2 text-gray-600">Aprovechá nuestros combos y descuentos de la semana.</p>
+    <div className="min-h-screen bg-brand-cream pb-16 text-brand-dark">
+      <PageHeader
+        titulo={
+          <>
+            Promos <span className="text-brand-red">que pegan</span>
+          </>
+        }
+        subtitulo="Aprovechá nuestros combos y descuentos de la semana."
+      />
 
-      <div className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:px-0 md:pb-0">
-        <button
-          type="button"
-          onClick={() => setSelectedCategory(ALL_TAB)}
-          aria-pressed={selectedCategory === ALL_TAB}
-          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-            selectedCategory === ALL_TAB
-              ? 'border-brand-red bg-brand-red text-white'
-              : 'border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red'
-          }`}
-        >
-          🔥 {ALL_TAB}
-        </button>
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            onClick={() => setSelectedCategory(category.nombre)}
-            aria-pressed={selectedCategory === category.nombre}
-            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-              selectedCategory === category.nombre
-                ? 'border-brand-red bg-brand-red text-white'
-                : 'border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red'
-            }`}
-          >
-           {category.nombre}
-          </button>
-        ))}
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="-mt-9">
+          <CategoryFilter categorias={categories} seleccionada={categoriaId} onSeleccionar={setCategoriaId} />
+        </div>
+
+        {filtradas.length === 0 ? (
+          <div className="mt-16 flex flex-col items-center gap-3 text-center">
+            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-mustard">
+              <SearchX className="h-7 w-7" />
+            </span>
+            <p className="font-display text-2xl font-extrabold">No hay promos en esta categoría</p>
+            <p className="text-brand-muted">Probá con otra.</p>
+          </div>
+        ) : (
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filtradas.map((promo) => (
+              <ProductCard
+                key={promo.id}
+                product={{
+                  id: promo.id,
+                  nombre: promo.name,
+                  descripcion: promo.description,
+                  precio: promo.price,
+                  imagen: promo.image,
+                  disponible: promo.available,
+                  categoriaId: 0,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      {filteredPromotions.length === 0 ? (
-        <div className="mt-16 flex flex-col items-center gap-2 text-center">
-          <span className="text-4xl">🔍</span>
-          <p className="font-semibold text-brand-dark">No hay promociones en esta categoría.</p>
-          <p className="text-sm text-gray-600">Probá con otra categoría.</p>
-        </div>
-      ) : (
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredPromotions.map((promo) => (
-            <ProductCard
-              key={promo.id}
-              product={{
-                id: promo.id,
-                nombre: promo.name,
-                descripcion: promo.description,
-                precio: promo.price,
-                imagen: promo.image,
-                disponible: promo.available,
-                categoriaId: 0,
-              }}
-            />          ))}
-        </div>
-      )}
     </div>
   )
 }

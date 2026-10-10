@@ -19,7 +19,7 @@ function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
 }
 
-// Modal "¿Cómo quieres personalizar?": lo que solo se puede sacar va con tilde,
+// Modal "¿Cómo queres personalizar?": lo que solo se puede sacar va con tilde,
 // lo que se puede aumentar va con − / +. Sacar no baja el precio; sumar cobra el precio del extra.
 function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClose }: CustomizeSheetProps) {
     // Solo se muestran los ingredientes que el cliente puede tocar (el pan o el medallón, no)
@@ -44,7 +44,7 @@ function CustomizeSheet({ ingredientes, cantidades, precioBase, onGuardar, onClo
 
   return (
     <Sheet
-      title="¿Cómo quieres personalizar?"
+      title="¿Cómo querés personalizar?"
       onClose={onClose}
       alto="completo"
       footer={

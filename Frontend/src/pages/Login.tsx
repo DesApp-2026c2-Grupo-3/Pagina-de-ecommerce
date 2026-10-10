@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useLocation,  useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { esEmailValido } from '../utils/validaciones'
 import ErrorAlert from '../components/ErrorAlert'
 import CampoPassword from '../components/CampoPassword'
+import AuthLayout from '../components/auth/AuthLayout'
+import BotonEnviar from '../components/ui/BotonEnviar'
+import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
 function Login() {
   const { login, loading } = useAuth()
@@ -11,61 +14,73 @@ function Login() {
   const location = useLocation()
   const estado = location.state as { from?: string; mensaje?: string; email?: string } | null
   const from = estado?.from ?? '/'
-  const [email, setEmail] = useState(estado?.email ?? '') 
+  const [email, setEmail] = useState(estado?.email ?? '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-async function handleSubmit(e: FormEvent) {
-  e.preventDefault()
-  setError('')
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError('')
 
-  if (!email.trim()) {
-    setError('El email es obligatorio')
-    return
-  }
-  if (!esEmailValido(email)) {
-    setError('El email no tiene un formato válido')
-    return
-  }
-  if (!password) {
-    setError('La contraseña es obligatoria')
-    return
-  }
+    if (!email.trim()) {
+      setError('El email es obligatorio')
+      return
+    }
+    if (!esEmailValido(email)) {
+      setError('El email no tiene un formato válido')
+      return
+    }
+    if (!password) {
+      setError('La contraseña es obligatoria')
+      return
+    }
 
-  try {
-    await login({ email, password })
-    navigate(from, { replace: true })
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
+    try {
+      await login({ email, password })
+      navigate(from, { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
+    }
   }
-}
 
   return (
-    <div className='bg-brand-cream'>
-    <div className="mx-auto flex max-w-md flex-col px-4 py-16">
-      <h1 className="text-3xl font-extrabold text-brand-dark">Iniciar sesión</h1>
-      <p className="mt-2 text-gray-600">Ingresá tus datos para continuar con tu pedido.</p>
+    <AuthLayout
+      titulo="Iniciar sesión"
+      subtitulo="Ingresá tus datos para continuar con tu pedido."
+      pie={
+        <>
+          ¿No tenés cuenta?{' '}
+          <Link to="/registro" state={{ from }} className="font-bold text-brand-red hover:underline">
+            Registrate
+          </Link>
+        </>
+      }
+    >
       {estado?.mensaje && (
-        <p className="mt-4 rounded-lg bg-brand-green/10 px-4 py-3 text-sm font-semibold text-brand-green">
+        <p className="mb-5 rounded-2xl border-2 border-brand-mustard bg-brand-cream px-4 py-3 text-sm font-bold">
           {estado.mensaje}
         </p>
       )}
-        <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">        <div>
-          <label htmlFor="email" className="text-sm font-semibold text-brand-dark">
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <div>
+          <label htmlFor="email" className={CLASE_LABEL}>
             Email
           </label>
           <input
             id="email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
+            placeholder="tu@email.com"
+            className={CLASE_INPUT}
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="text-sm font-semibold text-brand-dark">
+          <label htmlFor="password" className={CLASE_LABEL}>
             Contraseña
           </label>
           <CampoPassword
@@ -75,28 +90,14 @@ async function handleSubmit(e: FormEvent) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Tu contraseña"
             autoComplete="current-password"
-            className="w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
+            className={CLASE_INPUT}
           />
         </div>
 
-          <ErrorAlert message={error} />
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? 'Ingresando...' : 'Ingresar'}
-        </button>
+        <ErrorAlert message={error} />
+        <BotonEnviar cargando={loading} texto="Ingresar" textoCargando="Ingresando..." />
       </form>
-
-      <p className="mt-6 text-center text-sm text-gray-600">
-        ¿No tenés cuenta?{' '}
-        <Link to="/registro" state={{ from }} className="font-semibold text-brand-red hover:underline">
-          Registrate
-        </Link>
-      </p>
-    </div>
-    </div>
+    </AuthLayout>
   )
 }
 

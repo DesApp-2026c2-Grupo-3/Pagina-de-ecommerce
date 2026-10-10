@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ShoppingBag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getHistorialPedidos } from '../services/orderService'
 import type { Order } from '../types/order'
-import { formatearFechaHora } from '../utils/fechas'
-import BotonRepetirPedido from '../components/BotonRepetirPedido'
-
-const estadoColores: Record<string, string> = {
-  pendiente: 'bg-brand-red/10 text-brand-red',
-  entregado: 'bg-brand-green/10 text-brand-green',
-}
+import { FILTROS_PEDIDO, estaEnCurso, type FiltroPedido } from '../config/pedidoEstados'
+import AccountLayout from '../components/cuenta/AccountLayout'
+import PedidoEnCurso from '../components/cuenta/PedidoEnCurso'
+import PedidoCard from '../components/cuenta/PedidoCard'
+import ErrorAlert from '../components/ErrorAlert'
 
 function HistorialPedidos() {
   const { user } = useAuth()
   const [pedidos, setPedidos] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [filtro, setFiltro] = useState<FiltroPedido>('todos')
 
   useEffect(() => {
     if (!user) return
@@ -28,88 +28,59 @@ function HistorialPedidos() {
       .finally(() => setLoading(false))
   }, [user])
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center text-gray-600">Cargando...</div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center font-semibold text-red-600">
-        {error}
-      </div>
-    )
-  }
-
-  if (pedidos.length === 0) {
-    return (
-      
-      <div className="mx-auto flex flex-col items-center justify-center gap-6 px-4 py-24
-       text-center bg-stone-900 min-h-screen">
-        <div className="flex flex-col gap-4 p-6 rounded bg-stone-800 border-3 border-stone-500">
-          <img src="/Otros/bolsaVacia.png" alt="carrito vacio" 
-        className="h-80 rounded"/>
-        <h1 className="text-3xl font-extrabold text-white">Todavía no hiciste pedidos</h1>
-        <Link
-          to="/catalogo"
-          className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
-        >
-          Ver el catalogo
-        </Link>
-      </div>
-      </div>
-    )
-  }
+  const enCurso = pedidos.filter((p) => estaEnCurso(p.estado))
+  const aplica = FILTROS_PEDIDO.find((f) => f.id === filtro)!.aplica
+  const filtrados = pedidos.filter((p) => aplica(p.estado))
 
   return (
-    <div className='bg-brand-cream'>
-    <div className="mx-auto max-w-3xl px-4 py-12 min-h-screen">
-      <h1 className="text-3xl font-extrabold text-brand-dark">Historial de pedidos</h1>
+    <AccountLayout titulo="Historial de pedidos" cargando={loading}>
+      <ErrorAlert message={error} />
 
-      <div className="mt-8 flex flex-col gap-4">
-        {pedidos.map((pedido) => (
-          <div key={pedido.id} className="rounded-2xl bg-white p-5 shadow-md">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-bold text-brand-dark">Pedido #{pedido.id}</span>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${
-                  estadoColores[pedido.estado] ?? 'bg-brand-dark/10 text-brand-dark'
+      {!error && pedidos.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 rounded-3xl border-2 border-brand-dark bg-white px-6 py-12 text-center">
+          <span className="grid h-16 w-16 -rotate-6 place-items-center rounded-2xl bg-brand-mustard">
+            <ShoppingBag className="h-8 w-8" />
+          </span>
+          <p className="font-display text-3xl font-extrabold tracking-tight">Todavía no hiciste pedidos</p>
+          <p className="text-brand-muted">Cuando pidas, vas a poder seguirlos y repetirlos desde acá.</p>
+          <Link
+            to="/catalogo"
+            className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+          >
+            Ver el menú
+          </Link>
+        </div>
+      ) : (
+        <>
+          {enCurso.map((pedido) => (
+            <PedidoEnCurso key={pedido.id} pedido={pedido} />
+          ))}
+
+          <div role="tablist" aria-label="Filtrar pedidos" className="mt-2 flex flex-wrap gap-2">
+            {FILTROS_PEDIDO.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={filtro === f.id}
+                onClick={() => setFiltro(f.id)}
+                className={`min-h-10 rounded-full border-2 border-brand-dark px-4 text-sm font-bold transition-colors ${
+                  filtro === f.id ? 'bg-brand-dark text-brand-cream' : 'bg-white hover:bg-brand-cream'
                 }`}
               >
-                {pedido.estado}
-              </span>
-            </div>
-            
-            <span className="mt-1 block text-sm text-gray-600">
-              {formatearFechaHora(pedido.fecha)}
-            </span>
-
-            <div className="mt-4 flex flex-col gap-2 border-t border-brand-dark/10 pt-4">
-              {pedido.DetallePedidos.map((detalle) => (
-                <div key={detalle.id} className="flex items-center justify-between text-sm">
-                  <span className="text-brand-dark">
-                    {detalle.cantidad}x {detalle.Producto.nombre}
-                  </span>
-                  <span className="font-semibold text-gray-600">
-                    ${(Number(detalle.precio) * detalle.cantidad).toLocaleString('es-AR')}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex items-center justify-between border-t border-brand-dark/10 pt-4">
-              <span className="font-bold text-brand-dark">Total</span>
-              <span className="text-xl font-extrabold text-brand-red">
-                ${Number(pedido.total).toLocaleString('es-AR')}
-              </span>
-            </div>
-            <BotonRepetirPedido pedidoId={pedido.id} />
+                {f.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
-    </div>
+
+          {filtrados.length === 0 ? (
+            <p className="py-6 text-center text-brand-muted">No hay pedidos en esta categoría.</p>
+          ) : (
+            filtrados.map((pedido) => <PedidoCard key={pedido.id} pedido={pedido} />)
+          )}
+        </>
+      )}
+    </AccountLayout>
   )
 }
 

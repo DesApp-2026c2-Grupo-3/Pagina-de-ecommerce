@@ -1,38 +1,27 @@
 import { Link } from 'react-router-dom'
-import { SendHorizonal } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
+
+// Invitación a registrarse (solo para visitantes sin sesión). Mismo formato que la tarjeta de último pedido.
 function GuestQuickAccessRow() {
   return (
-    <section className="border-b-3 border-red-950 border-t-3 bg-gradient-to-t from-red-700 via-red-800 to-red-900">
-       
+    <section className="relative z-10 -mt-12 px-4 pb-10">      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-6 rounded-[1.75rem] border-2 border-brand-dark bg-white p-6 shadow-sticker">
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-mustard">
+          <UserPlus className="h-7 w-7 text-brand-dark" />
+        </span>
 
-      <div className="mx-auto max-w-7xl px-4 py-6">
-        
-        <div
-          className="flex flex-col items-center justify-between gap-8 
-          rounded-2xl bg-brand-cream px-6 py-5 text-center 
-           sm:flex-row sm:text-left">
-
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex justify-center items-center shrink-0 h-12 w-12 rounded-full
-             bg-red-800 text-2xl text-white">
-              <SendHorizonal size={26} color='#fffdfd'  />
-            </div>
-            <div>
-              <p className="font-extrabold text-brand-dark">
-                Crea tu cuenta y pedi mas facil!
-              </p>
-              <p className="text-sm text-gray-600">
-                Guarda tus datos, consulta tus pedidos y disfruta una experiencia de compra mas rapida.
-              </p>
-            </div>
-          </div>
-          <Link to='/registro' className='transition-transform hover:translate-y-0.5'>
-          <span className="shrink-0 rounded-xl bg-red-800  hover:bg-red-900 
-           px-5 py-4 font-bold text-white">
-            Registrarse
-          </span>
-          </Link>
+        <div className="min-w-0 flex-1 basis-64">
+          <p className="font-display text-2xl font-extrabold leading-tight text-brand-dark">Creá tu cuenta y pedí más fácil</p>
+          <p className="mt-1 text-brand-muted">
+            Guardá tus direcciones, seguí tus pedidos y repetilos con un toque.
+          </p>
         </div>
+
+        <Link
+          to="/registro"
+          className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+        >
+          Registrarme
+        </Link>
       </div>
     </section>
   )

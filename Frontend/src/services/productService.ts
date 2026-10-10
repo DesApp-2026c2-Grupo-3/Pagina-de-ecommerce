@@ -53,3 +53,16 @@ export const getCategories = async (): Promise<Category[]> => {
   const categorias = await httpClient<Category[]>('/categorias')  
   return categorias
 }
+
+
+// Ranking real: productos con más unidades pedidas (sin cancelados). Con sucursalId, solo esa sucursal.
+export interface ProductoRanking {
+  productoId: number
+  vendidos: number
+}
+
+export const getMasPedidos = async (sucursalId?: number | null, limite = 4): Promise<ProductoRanking[]> => {
+  const params = new URLSearchParams({ limite: String(limite) })
+  if (sucursalId) params.set('sucursalId', String(sucursalId))
+  return httpClient<ProductoRanking[]>(`/productos/mas-pedidos?${params}`)
+}

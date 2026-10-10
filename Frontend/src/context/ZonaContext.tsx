@@ -23,16 +23,21 @@ export interface Zona extends UbicacionElegida {
 
 interface ZonaContextType {
   zona: Zona | null
+  // true cuando ya llegaron las sucursales (antes no se puede asignar una zona)
+  sucursalesCargadas: boolean
   selectorAbierto: boolean
   abrirSelector: () => void
   cerrarSelector: () => void
   // Devuelve el motivo si no se pudo (ej: fuera de zona), o '' si quedó elegida
   elegirUbicacion: (ubicacion: UbicacionElegida) => string
+  // Borra la zona (por ejemplo, al cerrar sesión)
+  limpiarZona: () => void
 }
 
 const ZonaContext = createContext<ZonaContextType | undefined>(undefined)
 
 const ZONA_KEY = 'zona'
+const AVISO_ZONA_KEY = 'avisoZonaCerrado'
 
 function leerZonaGuardada(): Zona | null {
   try {
@@ -40,6 +45,15 @@ function leerZonaGuardada(): Zona | null {
     return guardada ? JSON.parse(guardada) : null
   } catch {
     return null
+  }
+}
+
+function guardarZona(zona: Zona | null) {
+  try {
+    if (zona) localStorage.setItem(ZONA_KEY, JSON.stringify(zona))
+    else localStorage.removeItem(ZONA_KEY)
+  } catch {
+    // Sin almacenamiento disponible: la zona vive solo mientras la página esté abierta
   }
 }
 
@@ -58,7 +72,7 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (zona && sucursales.length > 0 && !sucursales.some((s) => s.id === zona.sucursalId)) {
       setZona(null)
-      localStorage.removeItem(ZONA_KEY)
+      guardarZona(null)
     }
   }, [zona, sucursales])
 
@@ -78,19 +92,34 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
       distanciaKm: cercana.distancia,
     }
     setZona(nueva)
-    localStorage.setItem(ZONA_KEY, JSON.stringify(nueva))
+    guardarZona(nueva)
     setSelectorAbierto(false)
     return ''
+  }
+
+  // Al cerrar sesión, la ubicación se borra: es del usuario, no del navegador
+  function limpiarZona() {
+    setZona(null)
+    setSelectorAbierto(false)
+    guardarZona(null)
+    try {
+      // Así el globito de "Ingresá tu dirección" vuelve a aparecer
+      sessionStorage.removeItem(AVISO_ZONA_KEY)
+    } catch {
+      // Sin almacenamiento disponible: no hace falta hacer nada más
+    }
   }
 
   return (
     <ZonaContext.Provider
       value={{
         zona,
+        sucursalesCargadas: sucursales.length > 0,
         selectorAbierto,
         abrirSelector: () => setSelectorAbierto(true),
         cerrarSelector: () => setSelectorAbierto(false),
         elegirUbicacion,
+        limpiarZona,
       }}
     >
       {children}

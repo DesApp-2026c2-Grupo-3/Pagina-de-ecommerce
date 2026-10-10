@@ -18,8 +18,8 @@ interface ModalProps {
   cerrable?: boolean // false = sin ✕ y sin Esc (hay que completar algo para seguir)
 }
 
-function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = true, children }: ModalProps) {  const tituloId = useId()
-
+function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = true, children }: ModalProps) {
+  const tituloId = useId()
   // Se cierra con la tecla Esc
   useEffect(() => {
     if (!isOpen || !cerrable) return    
@@ -28,26 +28,25 @@ function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = tr
     }
     document.addEventListener('keydown', alPresionar)
     return () => document.removeEventListener('keydown', alPresionar)
-  }, [isOpen, onClose])
+  }, [isOpen, cerrable, onClose])
 
   if (!isOpen) return null
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/50 px-4"
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/60 px-4 backdrop-blur-sm"
+      onClick={cerrable ? onClose : undefined}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
-        className={`max-h-[90vh] w-full ${ANCHOS[tamanio]} overflow-y-auto rounded-2xl p-6 shadow-xl
-        bg-radial-[at_50%_90%] from-yellow-200 via-orange-300 to-red-300`}
+        className={`max-h-[90vh] w-full ${ANCHOS[tamanio]} overflow-y-auto rounded-[1.75rem] border-2 border-brand-dark bg-brand-cream p-6 text-brand-dark shadow-[8px_8px_0_var(--color-brand-red)]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id={tituloId} className="text-2xl font-extrabold text-brand-dark">
+            <h2 id={tituloId} className="font-display text-3xl font-extrabold leading-tight tracking-tight">              
               {title}
             </h2>
             {subtitle && <p className="mt-1 text-sm text-gray-800">{subtitle}</p>}
@@ -57,9 +56,9 @@ function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = tr
               type="button"
               onClick={onClose}
               aria-label="Cerrar"
-              className="text-2xl leading-none text-brand-dark/50 hover:text-brand-red"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-brand-dark bg-white transition-colors hover:bg-brand-dark hover:text-brand-cream"
             >
-              <X size={30}/>
+              <X size={20} />
             </button>
           )}
         </div>
