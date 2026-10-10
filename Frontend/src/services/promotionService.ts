@@ -8,5 +8,5 @@ export const getPromotions = async (): Promise<Product[]> => {
 }
 
 export const getPromoCategories = async (): Promise<Category[]> => {
-  return promoCategories
+  return promoCategories.map((c) => ({ id: c.id, nombre: c.name }))
 }

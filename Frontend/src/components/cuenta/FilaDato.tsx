@@ -33,8 +33,10 @@ function FilaDato({ Icono, titulo, valor, onClick, color = 'mostaza' }: Props) {
           {valor || SIN_DATO}
         </span>
       </span>
-      <span className="shrink-0 text-sm font-extrabold text-brand-red group-hover:underline">Editar</span>
-    </button>
+      <span className="shrink-0 rounded-full border-2 border-brand-dark px-4 py-1.5 text-sm font-bold transition-colors group-hover:bg-brand-dark group-hover:text-brand-cream">
+        Editar
+      </span>    
+      </button>
   )
 }
 

@@ -1,24 +1,10 @@
-import type { CarouselSlide } from '../../types/carousel'
-
-// Foto de fondo del slide: a pleno en layout 'photo', tenue (como textura) en layout 'split'
-function SlideBackdrop({ slide }: { slide: CarouselSlide }) {
-  if (!slide.backgroundImage) return null
-
-  const esSplit = slide.layout === 'split'
-  const degrade = !esSplit
-    ? 'from-brand-dark/90 via-brand-dark/60 to-brand-dark/10'
-    : slide.tone === 'red'
-      ? 'from-brand-red via-brand-red/90 to-brand-red/60'
-      : 'from-brand-dark via-brand-dark/90 to-brand-dark/60'
-
+// Foto de fondo del slide a todo color. El degradé oscuro solo cubre la izquierda, donde va el texto.
+function SlideBackdrop({ imagen }: { imagen: string }) {
   return (
     <>
-      <img
-        src={slide.backgroundImage}
-        alt=""
-        className={`absolute inset-0 h-full w-full object-cover ${esSplit ? 'opacity-100 grayscale' : ''}`}
-      />
-      <div className={`absolute inset-0 bg-gradient-to-r ${degrade}`} />
+      <img src={imagen} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-r from-brand-dark/90 via-brand-dark/50 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-brand-dark/60 to-transparent" />
     </>
   )
 }

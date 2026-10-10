@@ -4,6 +4,7 @@ import { getCategories } from '../../services/productService'
 import { estiloCategoria } from '../../config/categorias'
 import CategoryIcon from '../icons/CategoryIcon'
 import type { Category } from '../../types/product'
+import { ArrowRight } from 'lucide-react'
 
 // "Elegí por antojo": acceso directo al catálogo filtrado por categoría
 function CategoriasRow() {
@@ -22,8 +23,11 @@ function CategoriasRow() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <h2 className="font-display text-4xl font-extrabold tracking-tight">Elegí por antojo</h2>
-          <Link to="/catalogo" className="font-bold text-brand-red hover:underline">
-            Ver todo el menú →
+          <Link
+            to="/catalogo"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-5 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
+          >
+            Ver todo el menú <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 

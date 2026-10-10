@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { CarouselSlide } from '../../types/carousel'
 import { ArrowBigLeft, ArrowBigRight } from 'lucide-react'
 import SlideContent from './SlideContent'
-import SlideSplitMedia from './SlideSplitMedia'
 import SlideBackdrop from './SlideBackdrop'
 
 interface CarouselProps {
@@ -41,19 +40,12 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
   const slide = slides[index]
   if (!slide) return null
 
-  const esSplit = slide.layout === 'split'
-
   return (
-    <section
-      className={`relative overflow-hidden border-b-4 border-brand-red text-white ${
-        slide.tone === 'red' ? 'bg-brand-red' : 'bg-brand-dark'
-      }`}
-    >
-      <SlideBackdrop slide={slide} />
+    <section className="relative overflow-hidden border-b-4 border-brand-red bg-brand-dark text-white">
+      <SlideBackdrop imagen={slide.backgroundImage} />
 
-      <div className="relative mx-auto flex min-h-[22rem] max-w-7xl flex-col items-center gap-8 px-4 py-10 md:min-h-[26rem] md:flex-row">        
+      <div className="relative mx-auto flex min-h-[24rem] max-w-7xl items-center px-4 py-12 md:min-h-[30rem]">
         <SlideContent slide={slide} />
-        {esSplit && <SlideSplitMedia slide={slide} />}
       </div>
 
       {slides.length > 1 && (
@@ -76,7 +68,7 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
             <ArrowBigRight size={18} />
           </button>
 
-          <div className="relative flex justify-center gap-2 pb-14">            
+          <div className="relative flex justify-center gap-2 pb-14">
             {slides.map((s, i) => (
               <button
                 key={s.id}

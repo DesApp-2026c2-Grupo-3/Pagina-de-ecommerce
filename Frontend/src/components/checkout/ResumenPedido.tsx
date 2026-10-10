@@ -14,7 +14,7 @@ interface Props {
 // Columna derecha del checkout: qué se pide, el total y el botón de confirmar
 function ResumenPedido({ lineas, total, onConfirmar, deshabilitado, cargando }: Props) {
   return (
-    <aside className="flex flex-col gap-4 rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker lg:sticky lg:top-28">
+    <aside className="flex flex-col gap-4 rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker">
       <h2 className="font-display text-2xl font-extrabold">Tu pedido</h2>
 
       <ul className="flex flex-col gap-3">

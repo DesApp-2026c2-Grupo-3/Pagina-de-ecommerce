@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ChevronRight, MapPin } from 'lucide-react'
 import Modal from './Modal'
 import AddressPicker from './AddressPicker'
+import ErrorAlert from './ErrorAlert'
 import { useZona, type UbicacionElegida } from '../context/ZonaContext'
 import { useAuth } from '../context/AuthContext'
 import { getDirecciones } from '../services/addressService'
@@ -36,12 +38,15 @@ function ElegirZonaModal() {
     if (!selectorAbierto) return
     setError('')
     setUbicacion(zona ? { ...zona } : ubicacionVacia)
-    if (isAuthenticated && user) {
-      getDirecciones(user.id)
-        .then(setDirecciones)
-        .catch(() => setDirecciones([]))
+    // Sin sesión no hay direcciones guardadas (y no quedan las del usuario anterior)
+    if (!isAuthenticated || !user) {
+      setDirecciones([])
+      return
     }
-  }, [selectorAbierto])
+    getDirecciones(user.id)
+      .then(setDirecciones)
+      .catch(() => setDirecciones([]))
+  }, [selectorAbierto, user])
 
   function confirmar(u: UbicacionEnCurso) {
     if (u.latitud === null || u.longitud === null) {
@@ -65,7 +70,7 @@ function ElegirZonaModal() {
       <div className="flex flex-col gap-5">
         {guardadas.length > 0 && (
           <div>
-            <p className="mb-2 text-sm font-bold text-brand-dark">Tus direcciones</p>
+            <p className="mb-2 text-sm font-bold">Tus direcciones</p>
             <div className="flex flex-col gap-2">
               {guardadas.map((d) => (
                 <button
@@ -82,16 +87,31 @@ function ElegirZonaModal() {
                       longitud: Number(d.longitud),
                     })
                   }
-                  className="rounded-xl border border-brand-dark/10 bg-white p-3 text-left transition-colors hover:border-brand-dark/40"
+                  className="group flex items-center gap-3 rounded-2xl border-2 border-brand-dark bg-white p-3 text-left transition-transform hover:-translate-y-0.5"
                 >
-                  <span className="block font-bold text-brand-dark">{d.alias}</span>
-                  <span className="block text-sm text-gray-600">
-                    {d.calle} {d.numero} — {d.localidad}
+                  <span
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                      d.predeterminada ? 'bg-brand-mustard' : 'bg-brand-cream'
+                    }`}
+                  >
+                    <MapPin className="h-5 w-5" />
                   </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold">{d.alias}</span>
+                    <span className="block truncate text-sm text-brand-muted">
+                      {d.calle} {d.numero} — {d.localidad}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-brand-muted transition-transform group-hover:translate-x-1 group-hover:text-brand-red" />
                 </button>
               ))}
             </div>
-            <p className="mt-4 text-sm font-bold text-brand-dark">U otra dirección</p>
+
+            <div className="mt-5 flex items-center gap-3 text-sm font-bold text-brand-muted">
+              <span className="h-0 flex-1 border-t-2 border-dashed border-brand-sand" />
+              u otra dirección
+              <span className="h-0 flex-1 border-t-2 border-dashed border-brand-sand" />
+            </div>
           </div>
         )}
 
@@ -103,29 +123,21 @@ function ElegirZonaModal() {
           }}
         />
 
-        {error && (
-          <p className="rounded-xl border border-brand-red/20 bg-brand-red/10 p-3 text-sm font-semibold text-brand-red">
-            {error}
-          </p>
-        )}
+        <ErrorAlert message={error} />
 
         <button
           type="button"
           onClick={() => confirmar(ubicacion)}
           disabled={ubicacion.latitud === null}
-          className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="min-h-12 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
         >
           Ver el menú de mi zona
         </button>
 
         {!isAuthenticated && (
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-brand-muted">
             ¿Ya tenés cuenta?{' '}
-            <Link
-              to="/login"
-              onClick={cerrarSelector}
-              className="font-bold text-brand-dark underline hover:text-brand-red"
-            >
+            <Link to="/login" onClick={cerrarSelector} className="font-bold text-brand-red hover:underline">
               Iniciá sesión
             </Link>{' '}
             para usar tus direcciones guardadas.

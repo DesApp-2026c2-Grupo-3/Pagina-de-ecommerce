@@ -17,7 +17,8 @@ function IconoAlias({ alias }: { alias: string }) {
   return <MapPin className={clase} strokeWidth={2.2} />
 }
 
-const accion = 'inline-flex min-h-10 items-center gap-1.5 rounded-full px-2 text-[13px] font-bold transition-colors sm:px-3 sm:text-sm'
+const accion =
+  'inline-flex min-h-10 items-center gap-1.5 rounded-full border-2 px-3 text-[13px] font-bold transition-colors sm:px-4 sm:text-sm'
 
 // Tarjeta de una dirección guardada. La predeterminada se destaca con sombra y el ícono en mostaza.
 function DireccionCard({ direccion, onEditar, onEliminar, onPredeterminada }: Props) {
@@ -64,9 +65,9 @@ function DireccionCard({ direccion, onEditar, onEliminar, onPredeterminada }: Pr
         )}
       </div>
 
-      <div className="flex w-full flex-wrap items-center justify-between border-t-2 border-dashed border-brand-sand pt-3 sm:w-auto sm:justify-start sm:border-0 sm:pt-0">
+      <div className="flex w-full flex-wrap items-center gap-2 border-t-2 border-dashed border-brand-sand pt-3 sm:w-auto sm:border-0 sm:pt-0">
         {!predeterminada && (
-          <button type="button" onClick={onPredeterminada} className={`${accion} text-brand-dark hover:bg-brand-cream`}>
+          <button type="button" onClick={onPredeterminada} className={`${accion} border-brand-dark bg-white hover:bg-brand-mustard`}>
             Usar por defecto
           </button>
         )}
@@ -74,7 +75,7 @@ function DireccionCard({ direccion, onEditar, onEliminar, onPredeterminada }: Pr
           type="button"
           onClick={onEditar}
           aria-label={`Editar ${alias}`}
-          className={`${accion} text-brand-dark hover:bg-brand-cream`}
+          className={`${accion} border-brand-dark bg-white hover:bg-brand-dark hover:text-brand-cream`}
         >
           <Pencil className="h-4 w-4" /> Editar
         </button>
@@ -82,7 +83,7 @@ function DireccionCard({ direccion, onEditar, onEliminar, onPredeterminada }: Pr
           type="button"
           onClick={onEliminar}
           aria-label={`Eliminar ${alias}`}
-          className={`${accion} text-brand-red hover:bg-brand-red/10`}
+          className={`${accion} border-brand-red bg-white text-brand-red hover:bg-brand-red hover:text-white`}
         >
           <Trash2 className="h-4 w-4" /> Eliminar
         </button>

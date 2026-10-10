@@ -14,8 +14,7 @@ function TituloConResaltado({ title, highlight }: { title: string; highlight?: s
     </>
   )
 }
-
-// Texto y botones de un slide: igual en los dos layouts
+// Texto y botón de un slide, sobre la foto de fondo
 function SlideContent({ slide }: { slide: CarouselSlide }) {
   return (
     <div className="w-full max-w-2xl text-center md:text-left">
@@ -25,11 +24,11 @@ function SlideContent({ slide }: { slide: CarouselSlide }) {
         </span>
       )}
 
-      <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl">
+      <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight drop-shadow-lg sm:text-6xl">
         <TituloConResaltado title={slide.title} highlight={slide.highlight} />
       </h1>
 
-      <p className="mt-5 text-lg text-white/80">{slide.description}</p>
+      <p className="mt-5 max-w-xl text-lg text-white/85">{slide.description}</p>
 
       <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
         <Link
@@ -37,10 +36,8 @@ function SlideContent({ slide }: { slide: CarouselSlide }) {
           className={
             slide.ctaVariant === 'outline'
               ? 'rounded-full border-2 border-brand-cream px-6 py-3 text-center font-bold text-brand-cream transition-colors hover:bg-brand-cream hover:text-brand-dark'
-              : `rounded-full px-6 py-3 text-center font-bold text-white transition-transform hover:-translate-y-0.5 ${
-                  slide.tone === 'red' ? 'bg-brand-dark' : 'bg-brand-red'
-                }`          
-              }
+              : 'rounded-full bg-brand-red px-6 py-3 text-center font-bold text-white transition-transform hover:-translate-y-0.5'
+          }          
         >
           {slide.ctaLabel}
         </Link>

@@ -6,8 +6,9 @@ import PromoDestacadaBanner from '../components/home/PromoDestacadaBanner'
 import ComoFuncionaSection from '../components/home/ComoFuncionaSection'
 import MasPedidosSection from '../components/home/MasPedidosSection'
 import ContactSection from '../components/home/ContactSection'
-import SucursalesMap from '../components/home/SucursalesMap'
+import TuSucursal from '../components/home/TuSucursal'
 import { useAuth } from '../context/AuthContext'
+import DestacadosRow from '../components/home/DestacadosRow'
 
 function Home() {
   const { isAuthenticated } = useAuth()
@@ -18,9 +19,10 @@ function Home() {
       {isAuthenticated ? <UltimoPedidoCard /> : <GuestQuickAccessRow />}
       <CategoriasRow />
       <PromoDestacadaBanner />
-      <ComoFuncionaSection />
       <MasPedidosSection />
-      <SucursalesMap />
+      <DestacadosRow />
+      <ComoFuncionaSection />
+      <TuSucursal />
       <ContactSection />
     </div>
   )

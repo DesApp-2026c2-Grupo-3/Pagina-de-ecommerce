@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useZona } from "../context/ZonaContext";
@@ -7,19 +7,22 @@ import { createOrder } from "../services/orderService";
 import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
-import { MapPin, Store } from "lucide-react";
+import { ArrowLeft, Bike, MapPin, Pencil, Store, Wallet } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import PasosCompra from "../components/cart/PasosCompra";
 import SeccionCheckout from "../components/checkout/SeccionCheckout";
 import Aviso from "../components/checkout/Aviso";
 import ResumenPedido from "../components/checkout/ResumenPedido";
 import PedidoConfirmado from "../components/checkout/PedidoConfirmado";
+import OpcionesCheckout from "../components/checkout/OpcionesCheckout";
+import { FORMAS_ENTREGA, FORMAS_PAGO, type FormaEntrega, type FormaPago } from "../config/compra";
 import { buscarSucursalCercana } from "../utils/sucursales";
 import { distanciaKm } from "../utils/distancia";
 import type { Order } from "../types/order";
 import type { Address } from "../types/address";
 import type { Sucursal } from "../types/sucursal";
 import type { CartItem } from "../types/cart";
+import ModalConfirmarPedido from "../components/checkout/ModalConfirmarPedido";
 
 function formatearKm(km: number) {
   return km.toLocaleString("es-AR", { maximumFractionDigits: 1 });
@@ -33,6 +36,7 @@ function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { zona, elegirUbicacion } = useZona();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const estadoNav = location.state as { direccionId?: number; compraDirecta?: CartItem } | null;
   // Si vuelve de agregar o editar una dirección, llega con su id para dejarla elegida
@@ -57,6 +61,11 @@ function Checkout() {
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [sucursalesLoading, setSucursalesLoading] = useState(true);
 
+  // ⚠️ Pendiente de backend: se eligen pero todavía no se envían con el pedido
+  const [formaEntrega, setFormaEntrega] = useState<FormaEntrega>("envio");
+  const [formaPago, setFormaPago] = useState<FormaPago>("efectivo");
+  // Pregunta "¿Confirmás tu pedido?" antes de enviarlo
+  const [preguntando, setPreguntando] = useState(false);
   const [error, setError] = useState("");
   const [avisoSucursal, setAvisoSucursal] = useState("");
 
@@ -108,7 +117,8 @@ function Checkout() {
         const inicial = deRegreso ?? deLaZona ?? (zona ? undefined : predeterminada ?? data[0]);
         setDireccionSeleccionada(inicial?.id ?? null);
         // Si viene de agregar o editar una dirección, esa pasa a ser la zona
-        if (deRegreso) usarComoZona(deRegreso);      })
+        if (deRegreso) usarComoZona(deRegreso);
+      })
       .catch(() => setError("No se pudieron cargar tus direcciones"))
       .finally(() => setDireccionesLoading(false));
   }, [user]);
@@ -189,25 +199,35 @@ function Checkout() {
     }
 
     setError("");
+    setPreguntando(true);
+  }
+
+  // Se llama desde el cartel "¿Confirmás tu pedido?"
+  async function enviarPedido() {
+    if (!direccion || !masCercana) return;
     setLoading(true);
     try {
       const order = await createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id);
+      setPreguntando(false);
       setConfirmedOrder(order);
       // En una compra directa, el carrito queda como estaba
       if (!compraDirecta) clearCart();
     } catch (err) {
+      setPreguntando(false);
       setError(err instanceof Error ? err.message : "Error al confirmar el pedido");
     } finally {
       setLoading(false);
     }
   }
 
-   if (confirmedOrder) {
+  if (confirmedOrder) {
     return <PedidoConfirmado pedido={confirmedOrder} quedanEnCarrito={compraDirecta ? items.length : 0} />;
   }
 
-  const tarjetaElegida = "flex flex-wrap items-start justify-between gap-3 rounded-2xl border-2 border-brand-dark bg-brand-cream/60 p-4";
+  const tarjetaElegida = "flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-brand-dark bg-brand-cream/60 p-4";
   const linkAccion = "text-sm font-bold text-brand-dark underline-offset-4 hover:text-brand-red hover:underline";
+  const botonChico =
+    "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-white px-4 text-sm font-bold transition-colors hover:bg-brand-dark hover:text-brand-cream";
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
@@ -224,6 +244,22 @@ function Checkout() {
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start">
         <div className="flex flex-col gap-5">
+          {/* Volver: al carrito, o al producto si es una compra directa */}
+          {compraDirecta ? (
+            <button type="button" onClick={() => navigate(-1)} className={`${botonChico} w-fit shadow-sticker`}>
+              <ArrowLeft className="h-4 w-4" /> Volver al producto
+            </button>
+          ) : (
+            <Link to="/carrito" className={`${botonChico} w-fit shadow-sticker`}>
+              <ArrowLeft className="h-4 w-4" /> Volver al carrito
+            </Link>
+          )}
+
+          {/* ---------- Cómo lo recibís (pendiente de backend) ---------- */}
+          <SeccionCheckout titulo="¿Cómo lo recibís?" Icono={Bike}>
+            <OpcionesCheckout nombre="Cómo lo recibís" opciones={FORMAS_ENTREGA} elegida={formaEntrega} onElegir={setFormaEntrega} />
+          </SeccionCheckout>
+
           {/* ---------- Dirección de entrega ---------- */}
           <SeccionCheckout titulo="Dirección de entrega" Icono={MapPin}>
             {/* La dirección de la zona, si todavía no está guardada */}
@@ -269,7 +305,7 @@ function Checkout() {
                 </div>
               )
             ) : !eligiendoDireccion && direccion ? (
-              // La dirección elegida, con opciones para cambiarla o editarla
+              // La dirección elegida. "Cambiar" abre la lista (ahí también se edita o se agrega una)
               <div className={tarjetaElegida}>
                 <div className="min-w-0">
                   <p className="font-display text-lg font-extrabold">{direccion.alias}</p>
@@ -277,14 +313,9 @@ function Checkout() {
                     {direccion.calle} {direccion.numero} — {direccion.localidad}
                   </p>
                 </div>
-                <div className="flex shrink-0 gap-4">
-                  <Link to="/direcciones" state={{ ...volverAlCheckout, editarId: direccion.id }} className={linkAccion}>
-                    Editar
-                  </Link>
-                  <button type="button" onClick={() => setEligiendoDireccion(true)} className={linkAccion}>
-                    Cambiar
-                  </button>
-                </div>
+                <button type="button" onClick={() => setEligiendoDireccion(true)} className={botonChico}>
+                  Cambiar
+                </button>
               </div>
             ) : (
               // Lista para elegir otra dirección
@@ -310,7 +341,7 @@ function Checkout() {
                           usarComoZona(d);
                         }}
                       />
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold">{d.alias}</span>
                           {d.predeterminada && (
@@ -321,6 +352,15 @@ function Checkout() {
                           {d.calle} {d.numero} — {d.localidad}
                         </p>
                       </div>
+                      <Link
+                        to="/direcciones"
+                        state={{ ...volverAlCheckout, editarId: d.id }}
+                        aria-label={`Editar ${d.alias}`}
+                        title="Editar"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-brand-muted transition-colors hover:bg-brand-cream hover:text-brand-dark"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Link>
                     </label>
                   );
                 })}
@@ -393,18 +433,37 @@ function Checkout() {
             )}
           </SeccionCheckout>
 
+          {/* ---------- Forma de pago (pendiente de backend) ---------- */}
+          <SeccionCheckout titulo="Forma de pago" Icono={Wallet}>
+            <OpcionesCheckout nombre="Forma de pago" opciones={FORMAS_PAGO} elegida={formaPago} onElegir={setFormaPago} />
+          </SeccionCheckout>
+
+        </div>
+
+        {/* Resumen y, debajo del botón de confirmar, los avisos y errores (así se ven al confirmar) */}
+        <div className="flex flex-col gap-4">
+          <ResumenPedido
+            lineas={lineas}
+            total={total}
+            onConfirmar={handleConfirm}
+            deshabilitado={loading || !puedeConfirmar}
+            cargando={loading}
+          />
           {avisoSucursal && <Aviso>{avisoSucursal}</Aviso>}
           <ErrorAlert message={error} />
         </div>
-
-        <ResumenPedido
-          lineas={lineas}
-          total={total}
-          onConfirmar={handleConfirm}
-          deshabilitado={loading || !puedeConfirmar}
-          cargando={loading}
-        />
       </div>
+      
+      <ModalConfirmarPedido
+        abierto={preguntando}
+        total={total}
+        direccion={direccion ? `${direccion.alias} · ${direccion.calle} ${direccion.numero}` : ""}
+        sucursal={masCercana?.sucursal.nombre ?? ""}
+        formaPago={FORMAS_PAGO.find((f) => f.id === formaPago)?.titulo ?? ""}
+        cargando={loading}
+        onCancelar={() => setPreguntando(false)}
+        onConfirmar={enviarPedido}
+      />
     </div>
   );
 }

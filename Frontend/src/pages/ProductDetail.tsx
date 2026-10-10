@@ -4,13 +4,16 @@ import { getCategories, getProductoDetalle, getProducts } from '../services/prod
 import type { Category, ComboGrupo, ProductIngredient, ProductoBackend } from '../types/product'
 import { useCart } from '../context/CartContext'
 import { useToast } from '../context/ToastContext'
-import { ordenarTamanios } from '../config/combo'
+import { etiquetaTamanio, ordenarTamanios } from '../config/combo'
 import ChoiceSheet, { type OpcionElegible } from '../components/product/ChoiceSheet'
-import CustomizeSheet from '../components/product/CustomizeSheet'
+import IngredientesEditables from '../components/product/IngredientesEditables'
+import SeccionOpciones from '../components/product/SeccionOpciones'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
-import { ArrowLeft, ShoppingBag, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react'
+import Stepper from '../components/Stepper'
+import ModalConfirmarAgregar from '../components/product/ModalConfirmarAgregar'
 import CategoryIcon from '../components/icons/CategoryIcon'
 
 function precio(n: number) {
@@ -44,10 +47,15 @@ function DetalleProducto({ id }: { id: number }) {
   const [tamanioId, setTamanioId] = useState<number | null>(null)
   // Cantidad final por insumo, solo de los que el cliente cambió respecto de la receta
   const [cantidades, setCantidades] = useState<Record<number, number>>({})
-  const [personalizando, setPersonalizando] = useState(false)
+  // ⚠️ Pendiente de backend: la nota viaja como texto en el carrito, todavía no se guarda en el pedido
+  const [nota, setNota] = useState('')
   // Producto elegido en cada grupo del combo: id del grupo -> id del producto
   const [eleccion, setEleccion] = useState<Record<number, number>>({})
   const [grupoAbierto, setGrupoAbierto] = useState<number | null>(null)
+  // Paso actual de la tarjeta (empieza en 1, como el Stepper)
+  const [paso, setPaso] = useState(1)
+  // Pregunta "¿Lo sumamos al carrito?" antes de agregarlo
+  const [confirmandoAgregar, setConfirmandoAgregar] = useState(false)
 
   // Se vuelve a pedir si el cliente cambia de zona: la disponibilidad depende de la sucursal
   useEffect(() => {
@@ -63,11 +71,11 @@ function DetalleProducto({ id }: { id: number }) {
       .catch((error) => {
         console.error('No se pudo cargar el detalle:', error)
         setProduct(null)
-      })      .finally(() => setLoading(false))
+      })
+      .finally(() => setLoading(false))
   }, [id, zona?.sucursalId])
 
-  const nombreCategoria = (categoriaId?: number | null) =>
-    categorias.find((c) => c.id === categoriaId)?.nombre ?? ''
+  const nombreCategoria = (categoriaId?: number | null) => categorias.find((c) => c.id === categoriaId)?.nombre ?? ''
 
   const categoryName = nombreCategoria(product?.categoriaId)
   // Un combo es un producto con grupos elegibles (acompañamiento, bebida, ...) cargados en la base
@@ -77,7 +85,7 @@ function DetalleProducto({ id }: { id: number }) {
   const tamanioActivo = tamanios.find((t) => t.tamanioId === tamanioId) ?? null
 
   // Insumos que el cliente puede tocar. Los "lugares" del combo se eligen aparte.
-  const ingredientes: ProductIngredient[] = (product?.ingredientes ?? [])
+  const ingredientes: ProductIngredient[] = product?.ingredientes ?? []
   const personalizable = ingredientes.some((i) => i.esRemovible || i.esAgregable)
 
   const cantidadFinal = (ing: ProductIngredient) => cantidades[ing.insumoId] ?? ing.cantidadBase
@@ -123,6 +131,28 @@ function DetalleProducto({ id }: { id: number }) {
   const grupoActivo = grupos.find((g) => g.id === grupoAbierto) ?? null
   const puedeAgregar = !!product?.disponible && comboCompleto
 
+  // Pasos de la tarjeta: solo los que aplican a este producto. El último siempre es el de la nota y la compra.
+  const pasos = [
+    ...(tamanios.length > 0 ? [{ id: 'tamanio', nombre: 'Tamaño' }] : []),
+    ...(esCombo ? [{ id: 'combo', nombre: 'Tu combo' }] : []),
+    ...(personalizable ? [{ id: 'ingredientes', nombre: 'Ingredientes' }] : []),
+    { id: 'final', nombre: 'Listo' },
+  ]
+  const pasoActual = pasos[paso - 1]?.id ?? 'final'
+  const esUltimoPaso = paso >= pasos.length
+  // No se avanza del paso del combo sin elegir lo obligatorio
+  const puedeAvanzar = pasoActual !== 'combo' || comboCompleto
+
+  function irAPaso(destino: number) {
+    // Para pasar más allá del combo, tiene que estar completo
+    const pasoCombo = pasos.findIndex((p) => p.id === 'combo') + 1
+    if (pasoCombo > 0 && destino > pasoCombo && !comboCompleto) {
+      setPaso(pasoCombo)
+      return
+    }
+    setPaso(destino)
+  }
+
   function textoPersonalizacion() {
     return tocados.map((ing) => {
       const final = cantidadFinal(ing)
@@ -130,6 +160,17 @@ function DetalleProducto({ id }: { id: number }) {
       if (final > ing.cantidadBase) return `${final - ing.cantidadBase} ${ing.nombre} extra`
       return `${ing.nombre} x${final}`
     })
+  }
+
+  // "Mediana · Coca Cola · Sin cebolla": lo elegido en los pasos, para el repaso y la confirmación
+  function resumenEleccion() {
+    return [
+      tamanioActivo ? etiquetaTamanio(tamanioActivo.tamanio) : '',
+      ...grupos.map((g) => elegida(g)?.nombre ?? ''),
+      ...textoPersonalizacion(),
+    ]
+      .filter(Boolean)
+      .join(' · ')
   }
 
   // Lo que eligió el cliente, listo para el carrito o para una compra directa
@@ -141,7 +182,7 @@ function DetalleProducto({ id }: { id: number }) {
     })
 
     return {
-      opciones: [...opcionesCombo, ...textos].filter(Boolean),
+      opciones: [...opcionesCombo, ...textos, nota.trim() ? `Nota: ${nota.trim()}` : ''].filter(Boolean),
       extras: {
         unitPrice: precioUnitario,
         personalizaciones: tocados.map((ing) => ({ insumoId: ing.insumoId, cantidad: cantidadFinal(ing) })),
@@ -160,6 +201,8 @@ function DetalleProducto({ id }: { id: number }) {
     const { opciones, extras } = armarEleccion()
     addItem(product, cantidad, opciones, extras)
     showToast(`${product.nombre} agregado al carrito`)
+    // Después de confirmar, lleva al carrito para revisar el pedido
+    navigate('/carrito')
   }
 
   // Agrega el producto y lleva al carrito para revisar todo y pagar
@@ -170,7 +213,7 @@ function DetalleProducto({ id }: { id: number }) {
     navigate('/carrito')
   }
 
-   if (loading) {
+  if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-brand-cream px-4">
         <p className="font-display text-2xl font-extrabold text-brand-dark">Cargando...</p>
@@ -199,44 +242,85 @@ function DetalleProducto({ id }: { id: number }) {
   const filaGrupo = 'flex items-center gap-3 border-b-2 border-dashed border-brand-sand py-4 last:border-b-0'
   const botonSeleccionar =
     'shrink-0 rounded-full border-2 border-brand-dark px-4 py-2 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-dark hover:text-brand-cream'
-  const botonPersonalizar =
-    'mt-2 inline-flex items-center gap-2 rounded-full bg-brand-cream px-4 py-2 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-mustard'
 
-  // Cantidad + total y los dos botones. En el celular la barra es oscura y va pegada abajo.
-  const barraCompra = (movil: boolean) => (
-    <>
-      <div className="flex items-center justify-between gap-4 pb-4">
-        <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
-        <div className="text-right">
-          <p className={`text-xs font-bold uppercase tracking-wider ${movil ? 'text-brand-cream/60' : 'text-brand-muted'}`}>Total</p>
-          <p className={`font-display text-3xl font-extrabold ${movil ? 'text-brand-cream' : 'text-brand-dark'}`}>{precio(total)}</p>
+  const totalTexto = (movil: boolean) => (
+    <div className="text-right">
+      <p className={`text-xs font-bold uppercase tracking-wider ${movil ? 'text-brand-cream/60' : 'text-brand-muted'}`}>
+        Total
+      </p>
+      <p className={`font-display text-3xl font-extrabold ${movil ? 'text-brand-cream' : 'text-brand-dark'}`}>
+        {precio(total)}
+      </p>
+    </div>
+  )
+
+  const botonBorde = (movil: boolean) =>
+    movil
+      ? 'border-brand-cream text-brand-cream hover:bg-brand-cream hover:text-brand-dark'
+      : 'border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-brand-cream'
+
+  // Pasos intermedios: total + Atrás / Continuar.
+  // Último paso: cantidad, total y los dos botones de compra. En el celular la barra es oscura y va pegada abajo.
+  const barraCompra = (movil: boolean) =>
+    !esUltimoPaso ? (
+      <div className="flex items-center justify-between gap-3">
+        {totalTexto(movil)}
+        <div className="flex gap-2">
+          {paso > 1 && (
+            <button
+              type="button"
+              onClick={() => setPaso(paso - 1)}
+              className={`min-h-13 rounded-full border-2 px-5 font-bold transition-colors ${botonBorde(movil)}`}
+            >
+              Atrás
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => irAPaso(paso + 1)}
+            disabled={!puedeAvanzar}
+            className="flex min-h-13 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Continuar <ArrowRight className="h-5 w-5" />
+          </button>
         </div>
       </div>
-      <div className="grid grid-cols-[1fr_1.4fr] gap-3">
-        <button
-          type="button"
-          onClick={pagarAhora}
-          disabled={!puedeAgregar}
-          className={`min-h-13 rounded-full border-2 px-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-            movil
-              ? 'border-brand-cream text-brand-cream hover:bg-brand-cream hover:text-brand-dark'
-              : 'border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-brand-cream'
-          }`}
-        >
-          Pagar ahora
-        </button>
-        <button
-          type="button"
-          onClick={anadirAlCarrito}
-          disabled={!puedeAgregar}
-          className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ShoppingBag className="h-5 w-5" />
-          Añadir al carrito
-        </button>
-      </div>
-    </>
-  )
+    ) : (
+      <>
+        <div className="flex items-center justify-between gap-4 pb-4">
+          <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
+          {totalTexto(movil)}
+        </div>
+        <div className="grid grid-cols-[1fr_1.4fr] gap-3">
+          <button
+            type="button"
+            onClick={pagarAhora}
+            disabled={!puedeAgregar}
+            className={`min-h-13 rounded-full border-2 px-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${botonBorde(movil)}`}
+          >
+            Pagar ahora
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmandoAgregar(true)}
+            disabled={!puedeAgregar}
+            className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            Añadir al carrito
+          </button>
+        </div>
+        {paso > 1 && (
+          <button
+            type="button"
+            onClick={() => setPaso(paso - 1)}
+            className={`mt-3 w-full text-sm font-bold underline-offset-4 hover:underline ${movil ? 'text-brand-cream/70' : 'text-brand-muted'}`}
+          >
+            ← Volver al paso anterior
+          </button>
+        )}
+      </>
+    )
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
@@ -255,7 +339,7 @@ function DetalleProducto({ id }: { id: number }) {
 
       <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12">
         {/* Imagen sobre el recuadro rojo inclinado */}
-        <div className="md:sticky md:top-28">
+        <div>
           <div className="relative mx-auto grid aspect-square w-full max-w-md rotate-2 place-items-center rounded-[2.5rem] border-2 border-brand-dark bg-brand-red">
             <div className="absolute inset-[8%] rounded-full bg-black/15" />
             {product.imagen ? (
@@ -277,7 +361,9 @@ function DetalleProducto({ id }: { id: number }) {
               {categoryName}
             </span>
           )}
-          <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">{product.nombre}</h1>
+          <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
+            {product.nombre}
+          </h1>
           <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
           <p className="mt-3 leading-relaxed text-brand-muted">
             {product.descripcion}
@@ -290,21 +376,25 @@ function DetalleProducto({ id }: { id: number }) {
             </p>
           )}
 
-          <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
+          {/* Las opciones van por pasos para que la tarjeta no quede larguísima */}
+          {pasos.length > 1 && (
+            <div className="mt-6">
+              <Stepper pasos={pasos.map((p) => p.nombre)} actual={paso} onIrA={irAPaso} />
+            </div>
+          )}
 
-          {esCombo ? (
+          {pasoActual === 'tamanio' && (
+            <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
+          )}
+
+          {pasoActual === 'combo' && (
             <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-2" aria-label="Armá tu combo">
               <div className={filaGrupo}>
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-lg font-extrabold">{product.nombre}</p>
-                  {tocados.length > 0 && (
-                    <p className="text-sm text-brand-muted">{textoPersonalizacion().join(' · ')}</p>
-                  )}
-                  {personalizable && (
-                    <button type="button" onClick={() => setPersonalizando(true)} className={botonPersonalizar}>
-                      <SlidersHorizontal className="h-4 w-4" /> Personalizar
-                    </button>
-                  )}
+                  <p className="text-sm text-brand-muted">
+                    {tocados.length > 0 ? textoPersonalizacion().join(' · ') : 'Como viene en la receta'}
+                  </p>
                 </div>
               </div>
 
@@ -320,7 +410,9 @@ function DetalleProducto({ id }: { id: number }) {
                           {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
                         </p>
                       ) : (
-                        <p className={`text-sm font-semibold ${grupo.obligatorio ? 'text-brand-red' : 'text-brand-muted'}`}>
+                        <p
+                          className={`text-sm font-semibold ${grupo.obligatorio ? 'text-brand-red' : 'text-brand-muted'}`}
+                        >
                           Elegí uno {grupo.obligatorio ? '(obligatorio)' : '(opcional)'}
                         </p>
                       )}
@@ -332,43 +424,74 @@ function DetalleProducto({ id }: { id: number }) {
                 )
               })}
             </section>
-          ) : (
-            personalizable && (
-              <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-5">
-                <h2 className="font-display text-xl font-extrabold">Hacelo a tu manera</h2>
-                {tocados.length > 0 && (
-                  <p className="mt-1 text-sm text-brand-muted">{textoPersonalizacion().join(' · ')}</p>
-                )}
-                <button type="button" onClick={() => setPersonalizando(true)} className={botonPersonalizar}>
-                  <SlidersHorizontal className="h-4 w-4" /> Sacá o sumá ingredientes
-                </button>
-              </section>
-            )
+          )}
+
+          {/* Sacar y sumar ingredientes (en un combo, aplica a la hamburguesa) */}
+          {pasoActual === 'ingredientes' && (
+            <IngredientesEditables
+              ingredientes={ingredientes}
+              cantidades={cantidades}
+              onCambiar={(insumoId, cantidad) => {
+                const ing = ingredientes.find((i) => i.insumoId === insumoId)
+                setCantidades((prev) => {
+                  const nuevas = { ...prev }
+                  // Si vuelve a la cantidad de la receta, deja de contar como cambio
+                  if (ing && cantidad === ing.cantidadBase) delete nuevas[insumoId]
+                  else nuevas[insumoId] = cantidad
+                  return nuevas
+                })
+              }}
+            />
+          )}
+
+          {pasoActual === 'final' && (
+            <>
+              {/* Repaso de lo elegido en los pasos anteriores */}
+              {pasos.length > 1 && (
+                <div className="mt-6 rounded-2xl border-2 border-dashed border-brand-sand bg-brand-cream/60 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu elección</p>
+                  <p className="mt-1 font-semibold">{resumenEleccion() || 'Como viene en la receta'}</p>
+                </div>
+              )}
+
+              <SeccionOpciones titulo="¿Algo para la cocina?">
+                <textarea
+                  value={nota}
+                  onChange={(e) => setNota(e.target.value)}
+                  maxLength={140}
+                  rows={2}
+                  placeholder="Ej: bien cocida, sin sal en las papas"
+                  className="w-full resize-none rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 placeholder:text-brand-muted/70 focus:border-brand-red focus:outline-none"
+                />
+              </SeccionOpciones>
+            </>
           )}
 
           {/* En pantallas grandes la barra de compra va dentro de la tarjeta */}
-          <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">{barraCompra(false)}</div>
+          <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">
+            {barraCompra(false)}
+          </div>
         </div>
       </div>
 
-      {/* En el celular la barra queda pegada al pie de la pantalla, dentro del flujo:
-          al final de la página se apoya arriba del footer en vez de taparlo */}
+      {/* En el celular la barra queda pegada al pie de la pantalla */}
       <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
         {barraCompra(true)}
       </div>
 
-      {personalizando && (
-        <CustomizeSheet
-          ingredientes={ingredientes}
-          cantidades={cantidades}
-          precioBase={precioBase}
-          onClose={() => setPersonalizando(false)}
-          onGuardar={(nuevas) => {
-            setCantidades(nuevas)
-            setPersonalizando(false)
-          }}
-        />
-      )}
+      <ModalConfirmarAgregar
+        abierto={confirmandoAgregar}
+        nombre={product.nombre}
+        imagen={product.imagen}
+        detalle={[resumenEleccion(), nota.trim() ? `Nota: ${nota.trim()}` : ''].filter(Boolean).join(' · ')}
+        cantidad={cantidad}
+        total={total}
+        onCancelar={() => setConfirmandoAgregar(false)}
+        onConfirmar={() => {
+          setConfirmandoAgregar(false)
+          anadirAlCarrito()
+        }}
+      />
 
       {grupoActivo && (
         <ChoiceSheet

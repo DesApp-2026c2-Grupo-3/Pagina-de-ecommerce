@@ -8,7 +8,7 @@ function Conocenos() {
     <main className="bg-brand-cream text-brand-dark">
       {/* Hero: foto de fondo apagada, igual que el carrusel */}
       <section className="relative overflow-hidden bg-brand-dark text-brand-cream">
-        <img src="/Nosotros/1.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-30 grayscale" />
+        <img src="/Nosotros/1.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-100 grayscale" />
         <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-brand-dark/80 to-transparent" />
 
         <div className="relative mx-auto max-w-6xl px-4 py-20 sm:py-28">
