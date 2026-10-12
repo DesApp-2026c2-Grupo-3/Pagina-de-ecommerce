@@ -43,7 +43,7 @@ function ResumenPedido({ lineas, total, onConfirmar, deshabilitado, cargando }: 
         type="button"
         onClick={onConfirmar}
         disabled={deshabilitado}
-        className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <ShoppingBag className="h-5 w-5" />
         {cargando ? 'Confirmando...' : 'Confirmar pedido'}

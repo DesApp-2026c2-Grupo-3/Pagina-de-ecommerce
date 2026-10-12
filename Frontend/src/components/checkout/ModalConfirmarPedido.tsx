@@ -8,13 +8,14 @@ interface Props {
   direccion: string
   sucursal: string
   formaPago: string
+  observaciones: string
   cargando: boolean
   onCancelar: () => void
   onConfirmar: () => void
 }
 
 // Última pregunta antes de mandar el pedido a la cocina: repasa lo elegido y el total
-function ModalConfirmarPedido({ abierto, total, direccion, sucursal, formaPago, cargando, onCancelar, onConfirmar }: Props) {
+function ModalConfirmarPedido({ abierto, total, direccion, sucursal, formaPago, observaciones, cargando, onCancelar, onConfirmar }: Props) {
   const filas = [
     { Icono: MapPin, titulo: 'Lo enviamos a', valor: direccion },
     { Icono: Store, titulo: 'Lo prepara', valor: sucursal },
@@ -42,6 +43,15 @@ function ModalConfirmarPedido({ abierto, total, direccion, sucursal, formaPago, 
         <span className="font-display text-3xl font-extrabold">{formatearPrecio(total)}</span>
       </div>
 
+      {observaciones.trim() && (
+        <div className="mt-4 rounded-2xl border-2 border-brand-dark/15 bg-brand-cream p-4">
+          <p className="font-bold">Observaciones del pedido</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted">
+            {observaciones}
+          </p>
+        </div>
+      )}
+
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
@@ -55,7 +65,7 @@ function ModalConfirmarPedido({ abierto, total, direccion, sucursal, formaPago, 
           type="button"
           onClick={onConfirmar}
           disabled={cargando}
-          className="min-h-11 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
+          className="min-h-11 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
         >
           {cargando ? 'Enviando...' : 'Sí, confirmar'}
         </button>

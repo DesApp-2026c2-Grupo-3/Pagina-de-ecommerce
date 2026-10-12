@@ -87,7 +87,7 @@ function ElegirZonaModal() {
                       longitud: Number(d.longitud),
                     })
                   }
-                  className="group flex items-center gap-3 rounded-2xl border-2 border-brand-dark bg-white p-3 text-left transition-transform hover:-translate-y-0.5"
+                  className="group flex items-center gap-3 rounded-2xl border-2 border-brand-dark bg-white p-3 text-left transition-transform hover:translate-y-0.5"
                 >
                   <span
                     className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
@@ -129,7 +129,7 @@ function ElegirZonaModal() {
           type="button"
           onClick={() => confirmar(ubicacion)}
           disabled={ubicacion.latitud === null}
-          className="min-h-12 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
+          className="min-h-12 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
         >
           Ver el menú de mi zona
         </button>

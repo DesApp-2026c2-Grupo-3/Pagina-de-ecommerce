@@ -20,7 +20,7 @@ function Footer() {
           </p>
           <Link
             to="/catalogo"
-            className="mt-2 inline-flex min-h-11 w-fit items-center rounded-full bg-brand-red px-5 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="mt-2 inline-flex min-h-11 w-fit items-center rounded-full bg-brand-red px-5 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Pedir ahora
           </Link>

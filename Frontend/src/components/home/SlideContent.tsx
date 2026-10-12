@@ -36,7 +36,7 @@ function SlideContent({ slide }: { slide: CarouselSlide }) {
           className={
             slide.ctaVariant === 'outline'
               ? 'rounded-full border-2 border-brand-cream px-6 py-3 text-center font-bold text-brand-cream transition-colors hover:bg-brand-cream hover:text-brand-dark'
-              : 'rounded-full bg-brand-red px-6 py-3 text-center font-bold text-white transition-transform hover:-translate-y-0.5'
+              : 'rounded-full bg-brand-red px-6 py-3 text-center font-bold text-white transition-transform hover:translate-y-0.5'
           }          
         >
           {slide.ctaLabel}

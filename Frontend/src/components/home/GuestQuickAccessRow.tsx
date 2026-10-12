@@ -18,7 +18,7 @@ function GuestQuickAccessRow() {
 
         <Link
           to="/registro"
-          className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+          className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
         >
           Registrarme
         </Link>

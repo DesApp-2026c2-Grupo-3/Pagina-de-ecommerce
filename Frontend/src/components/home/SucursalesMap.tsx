@@ -148,7 +148,7 @@ function SucursalesMap() {
                         className={`w-full rounded-3xl border-2 border-brand-dark p-4 text-left transition ${
                           activa
                             ? 'bg-brand-dark text-brand-cream shadow-[6px_6px_0_var(--color-brand-red)]'
-                            : 'bg-white text-brand-dark hover:-translate-y-0.5'
+                            : 'bg-white text-brand-dark hover:translate-y-0.5'
                         }`}
                       >
                         <p className="font-display text-lg font-extrabold">{s.nombre}</p>                        
