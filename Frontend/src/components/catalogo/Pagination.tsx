@@ -9,7 +9,7 @@ interface Props {
 }
 
 const boton =
-  'grid h-11 min-w-11 place-items-center rounded-2xl border-2 border-brand-dark bg-white px-3 font-bold text-brand-dark transition hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-30'
+  'grid h-11 min-w-11 place-items-center rounded-2xl border-2 bg-radial from-red-100 to-red-300 px-3 font-bold text-brand-dark transition hover:translate-y-0.5 disabled:pointer-events-none disabled:opacity-20 hover:from-red-300 to-red-500'
 
 function Flecha({ Icono, label, onClick, disabled }: { Icono: LucideIcon; label: string; onClick: () => void; disabled: boolean }) {
   return (
@@ -41,7 +41,8 @@ function Pagination({ paginaActual, totalPaginas, onCambiar, maxBotones = 3 }: P
           type="button"
           onClick={() => onCambiar(pagina)}
           aria-current={paginaActual === pagina ? 'page' : undefined}
-          className={`${boton} hidden sm:grid ${paginaActual === pagina ? 'bg-brand-dark text-brand-cream' : ''}`}
+          disabled={paginaActual === pagina}
+          className={`${boton} hidden sm:grid ${paginaActual === pagina ? 'bg-radial from-red-900 to-red-700 text-white cursor-default border border-black' : ''}`}
         >
           {pagina}
         </button>

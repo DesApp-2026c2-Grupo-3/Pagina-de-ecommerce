@@ -16,11 +16,25 @@ function PedidoEnCurso({ pedido }: { pedido: Order }) {
           </p>
           <p className="mt-1 font-display text-2xl font-extrabold leading-tight tracking-tight">{resumenItems(pedido)}</p>
           <p className="mt-1 text-sm text-brand-cream/70">{formatearFechaHora(pedido.fecha)}</p>
+          <p className="mt-1 text-sm text-brand-cream/70">
+            Sucursal: {pedido.Sucursal?.nombre ?? 'No disponible'}
+          </p>
         </div>
         <p className="font-display text-3xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
       </div>
 
       <SeguimientoPedido estado={pedido.estado} />
+      {pedido.observaciones?.trim() && (
+        <div className="rounded-2xl border border-brand-cream/20 bg-white/5 p-4">
+          <p className="font-bold text-brand-mustard">
+            Observaciones del pedido
+          </p>
+          
+          <p className="mt-1 whitespace-pre-wrap text-sm text-brand-cream/80">
+            {pedido.observaciones}
+          </p>
+        </div>
+      )}
     </article>
   )
 }

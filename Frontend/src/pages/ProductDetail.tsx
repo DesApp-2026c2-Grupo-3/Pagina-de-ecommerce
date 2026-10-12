@@ -230,7 +230,7 @@ function DetalleProducto({ id }: { id: number }) {
           <p className="text-brand-muted">El producto que buscás no existe o ya no está disponible.</p>
           <Link
             to="/catalogo"
-            className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Volver al menú
           </Link>
@@ -279,7 +279,7 @@ function DetalleProducto({ id }: { id: number }) {
             type="button"
             onClick={() => irAPaso(paso + 1)}
             disabled={!puedeAvanzar}
-            className="flex min-h-13 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex min-h-13 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Continuar <ArrowRight className="h-5 w-5" />
           </button>
@@ -304,7 +304,7 @@ function DetalleProducto({ id }: { id: number }) {
             type="button"
             onClick={() => setConfirmandoAgregar(true)}
             disabled={!puedeAgregar}
-            className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ShoppingBag className="h-5 w-5" />
             Añadir al carrito
@@ -454,7 +454,7 @@ function DetalleProducto({ id }: { id: number }) {
                 </div>
               )}
 
-              <SeccionOpciones titulo="¿Algo para la cocina?">
+              {/*<SeccionOpciones titulo="¿Algo para la cocina?">
                 <textarea
                   value={nota}
                   onChange={(e) => setNota(e.target.value)}
@@ -463,7 +463,7 @@ function DetalleProducto({ id }: { id: number }) {
                   placeholder="Ej: bien cocida, sin sal en las papas"
                   className="w-full resize-none rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 placeholder:text-brand-muted/70 focus:border-brand-red focus:outline-none"
                 />
-              </SeccionOpciones>
+              </SeccionOpciones>*/}
             </>
           )}
 

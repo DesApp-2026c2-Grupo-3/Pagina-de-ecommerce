@@ -20,7 +20,7 @@ function BotonesModal({ saving, onCancelar, textoGuardar = 'Guardar' }: Props) {
       <button
         type="submit"
         disabled={saving}
-        className="min-h-11 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
+        className="min-h-11 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
       >
         {saving ? 'Guardando...' : textoGuardar}
       </button>

@@ -309,7 +309,7 @@ function AddressPicker({ value, onChange }: AddressPickerProps) {
             disabled={usandoGps}
             aria-label="Usar mi ubicación actual"
             title="Usar mi ubicación actual"
-            className={`grid h-[52px] w-[52px] shrink-0 place-items-center rounded-2xl border-2 border-brand-dark bg-brand-mustard text-brand-dark transition-transform hover:-translate-y-0.5 disabled:opacity-50 ${
+            className={`grid h-[52px] w-[52px] shrink-0 place-items-center rounded-2xl border-2 border-brand-dark bg-brand-mustard text-brand-dark transition-transform hover:translate-y-0.5 disabled:opacity-50 ${
               usandoGps ? 'animate-pulse' : ''
             }`}
           >

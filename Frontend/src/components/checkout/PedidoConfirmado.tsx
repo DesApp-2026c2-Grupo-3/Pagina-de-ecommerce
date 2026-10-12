@@ -29,9 +29,19 @@ function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
             Tu pedido <span className="font-bold text-brand-red">#{pedido.id}</span> ya está en la cocina.
           </p>
           <p className="font-display text-3xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
+
+          {pedido.observaciones?.trim() && (
+            <div className="w-full rounded-2xl border-2 border-brand-dark/15 bg-brand-cream p-4 text-left">
+              <p className="font-bold">Observaciones del pedido</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted">
+                {pedido.observaciones}
+              </p>
+            </div>
+          )}
+
           <Link
             to="/historial"
-            className="mt-2 inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="mt-2 inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Seguir mi pedido
           </Link>
