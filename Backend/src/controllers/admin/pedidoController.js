@@ -1,4 +1,4 @@
-const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, sequelize } = require('../../models');
+const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, historialDeTiemposPedido, sequelize } = require('../../models');
 const { devolverStockPedido } = require('../../utils/stockPedido');
 
 // Qué se trae de cada parte del pedido (nunca la contraseña del cliente).
@@ -13,6 +13,8 @@ const DIRECCION = {
     attributes: ['id', 'alias', 'calle', 'numero', 'piso', 'localidad', 'provincia', 'observaciones', 'latitud', 'longitud'],
 };
 const SUCURSAL = { model: Sucursal, attributes: ['id', 'nombre'] };
+// Línea de tiempo de estados: se devuelve ordenada cronológicamente en el detalle
+const HISTORIAL = { model: historialDeTiemposPedido, attributes: ['id', 'estado', 'estadoAnterior', 'fecha'] };
 
 // Un pedido en estos estados ya está cerrado: no se puede cambiar
 const ESTADOS_FINALES = ['entregado', 'cancelado'];
@@ -64,7 +66,11 @@ const obtenerPedidosPorSucursal = async (req, res) => {
 const obtenerPedidoPorId = async (req, res) => {
     try {
         const pedido = await Pedido.findByPk(req.params.id, {
-            include: [CLIENTE, DIRECCION, SUCURSAL, DETALLE],
+            include: [CLIENTE, DIRECCION, SUCURSAL, DETALLE, HISTORIAL],
+            order: [
+                [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC'],
+                [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'id', 'ASC'],
+            ],
         });
         if (!pedido) {
             return res.status(404).json({ mensaje: 'Pedido no encontrado' });
@@ -79,7 +85,6 @@ const obtenerPedidoPorId = async (req, res) => {
                 mensaje: 'Acceso denegado: no tienes permisos para gestionar los pedidos de esta sucursal'
             });
         }
-
         res.status(200).json(pedido);
     } catch (error) {
         console.error('Algo salió mal:', error.message);
@@ -118,10 +123,18 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
             });
         }
 
-        // El cambio de estado y la devolución de stock van juntos: o se hacen los dos, o ninguno
+        // El cambio de estado y su registro en la línea de tiempo van juntos
+        // (igual que la devolución de stock): o se hacen todos, o ninguno
         const t = await sequelize.transaction();
         try {
+            const estadoPrevio = pedido.estado;
             await pedido.update({ estado }, { transaction: t });
+            await historialDeTiemposPedido.create({
+                pedidoId: pedido.id,
+                estadoAnterior: estadoPrevio,
+                estado,
+                fecha: new Date(),
+            }, { transaction: t });
             if (mismoEstado(estado, 'cancelado')) {
                 await devolverStockPedido(pedido.id, { transaction: t, adminId: admin.id });
             }
