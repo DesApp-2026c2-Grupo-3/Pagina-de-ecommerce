@@ -65,3 +65,35 @@ export interface PropsDetallePedidoModal {
   pedidoId: number | null
   onClose: () => void
 }
+
+// ---------- Lista de pedidos (Pedidos.tsx) ----------
+// Las etapas válidas, en el mismo orden que valida el backend (Joi)
+export const ETAPAS = [
+  'Pendiente',
+  'En proceso',
+  'En camino',
+  'Entregado',
+  'Cancelado',
+] as const
+
+export type Etapa = (typeof ETAPAS)[number]
+
+export interface DetallePedidoFila {
+  cantidad: number
+  Producto: { nombre: string } | null
+}
+
+export interface PedidoFila {
+  id: number
+  fecha: string
+  total: string
+  estado: string
+  Usuario: { nombre: string; apellido: string } | null
+  DetallePedidos: DetallePedidoFila[]
+}
+
+export interface SucursalOpcion {
+  id: number
+  nombre: string
+  activa: boolean
+}
