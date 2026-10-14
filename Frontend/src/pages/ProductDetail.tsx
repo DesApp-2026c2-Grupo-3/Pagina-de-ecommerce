@@ -7,7 +7,6 @@ import { useToast } from '../context/ToastContext'
 import { etiquetaTamanio, ordenarTamanios } from '../config/combo'
 import ChoiceSheet, { type OpcionElegible } from '../components/product/ChoiceSheet'
 import IngredientesEditables from '../components/product/IngredientesEditables'
-import SeccionOpciones from '../components/product/SeccionOpciones'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
@@ -48,7 +47,7 @@ function DetalleProducto({ id }: { id: number }) {
   // Cantidad final por insumo, solo de los que el cliente cambió respecto de la receta
   const [cantidades, setCantidades] = useState<Record<number, number>>({})
   // ⚠️ Pendiente de backend: la nota viaja como texto en el carrito, todavía no se guarda en el pedido
-  const [nota, setNota] = useState('')
+  const [nota] = useState('')
   // Producto elegido en cada grupo del combo: id del grupo -> id del producto
   const [eleccion, setEleccion] = useState<Record<number, number>>({})
   const [grupoAbierto, setGrupoAbierto] = useState<number | null>(null)
