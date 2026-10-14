@@ -102,7 +102,7 @@ function ElegirZonaModal() {
                         longitud: Number(d.longitud),
                       }, d.id)
                     }
-                  className="group flex items-center gap-3 rounded-2xl border-2 border-brand-dark bg-white p-3 text-left transition-transform hover:-translate-y-0.5"
+                  className="group flex items-center gap-3 rounded-2xl border-2 border-brand-dark bg-white p-3 text-left transition-transform hover:translate-y-0.5"
                 >
                   <span
                     className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
