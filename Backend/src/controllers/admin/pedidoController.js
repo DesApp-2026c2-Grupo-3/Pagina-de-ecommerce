@@ -14,7 +14,8 @@ const DIRECCION = {
 };
 const SUCURSAL = { model: Sucursal, attributes: ['id', 'nombre'] };
 // Línea de tiempo de estados: se devuelve ordenada cronológicamente en el detalle
-const HISTORIAL = { model: historialDeTiemposPedido, attributes: ['id', 'estado', 'estadoAnterior', 'fecha'] };
+// `as` explícito: coincide con el alias del modelo y la clave que espera el front (`historialDeTiemposPedidos`)
+const HISTORIAL = { model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos', attributes: ['id', 'estado', 'estadoAnterior', 'fecha'] };
 
 // Un pedido en estos estados ya está cerrado: no se puede cambiar
 const ESTADOS_FINALES = ['entregado', 'cancelado'];
@@ -31,14 +32,15 @@ function puedeVerSucursal(admin, sucursalId) {
 // GET /admin/pedidos/sucursal/:id?estado=... → filtrados por estado
 const obtenerPedidosPorSucursal = async (req, res) => {
     try {
-        const sucursal = await Sucursal.findByPk(req.params.id);
-        if (!sucursal) {
-            return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
-        }
-
+        // Auth primero: no se revela si la sucursal existe a quien no tiene sesión
         const admin = await Admin.findByPk(req.usuario.id);
         if (!admin) {
             return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
+        }
+
+        const sucursal = await Sucursal.findByPk(req.params.id);
+        if (!sucursal) {
+            return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
         }
         if (!puedeVerSucursal(admin, sucursal.id)) {
             return res.status(403).json({ mensaje: 'No tienes permisos para acceder a esta sucursal' });
@@ -65,6 +67,12 @@ const obtenerPedidosPorSucursal = async (req, res) => {
 // GET /admin/pedidos/:id → detalle completo: productos, cliente, dirección y sucursal
 const obtenerPedidoPorId = async (req, res) => {
     try {
+        // Auth primero: no se revela si el pedido existe a quien no tiene sesión
+        const admin = await Admin.findByPk(req.usuario.id);
+        if (!admin) {
+            return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
+        }
+
         const pedido = await Pedido.findByPk(req.params.id, {
             include: [CLIENTE, DIRECCION, SUCURSAL, DETALLE, HISTORIAL],
             order: [
@@ -72,18 +80,10 @@ const obtenerPedidoPorId = async (req, res) => {
                 [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'id', 'ASC'],
             ],
         });
-        if (!pedido) {
+        // Sin permiso se responde 404 genérico (no 403): evita confirmar
+        // a un admin de otra sucursal que el pedido existe (prevención de IDOR/enumeración)
+        if (!pedido || !puedeVerSucursal(admin, pedido.sucursalId)) {
             return res.status(404).json({ mensaje: 'Pedido no encontrado' });
-        }
-
-        const admin = await Admin.findByPk(req.usuario.id);
-        if (!admin) {
-            return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
-        }
-        if (!puedeVerSucursal(admin, pedido.sucursalId)) {
-            return res.status(403).json({
-                mensaje: 'Acceso denegado: no tienes permisos para gestionar los pedidos de esta sucursal'
-            });
         }
         res.status(200).json(pedido);
     } catch (error) {
@@ -97,19 +97,17 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
     try {
         const { estado } = req.body;
 
-        const pedido = await Pedido.findByPk(req.params.id);
-        if (!pedido) {
-            return res.status(404).json({ mensaje: 'Pedido no encontrado' });
-        }
-
+        // Auth primero: no se revela si el pedido existe a quien no tiene sesión
         const admin = await Admin.findByPk(req.usuario.id);
         if (!admin) {
             return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
         }
-        if (!puedeVerSucursal(admin, pedido.sucursalId)) {
-            return res.status(403).json({
-                mensaje: 'Acceso denegado: no tienes permisos para gestionar los pedidos de esta sucursal'
-            });
+
+        const pedido = await Pedido.findByPk(req.params.id);
+        // Sin permiso se responde 404 genérico (no 403): evita confirmar
+        // a un admin de otra sucursal que el pedido existe (prevención de IDOR/enumeración)
+        if (!pedido || !puedeVerSucursal(admin, pedido.sucursalId)) {
+            return res.status(404).json({ mensaje: 'Pedido no encontrado' });
         }
 
         if (ESTADOS_FINALES.some((final) => mismoEstado(pedido.estado, final))) {

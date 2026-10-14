@@ -123,9 +123,10 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
+        // sameSite/path/secure deben coincidir con el login: si no, el navegador no borra la cookie
         return res.clearCookie("access_token", {
             httpOnly: true,
-            sameSite: "strict",
+            sameSite: "lax",
             path: '/',
             secure: process.env.NODE_ENV === 'production'
         }).status(200).json({ mensaje: "Sesión cerrada" })

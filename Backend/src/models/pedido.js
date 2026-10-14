@@ -11,7 +11,8 @@ module.exports = (sequelize, DataTypes) => {
      */
   static associate(models) {
     Pedido.hasMany(models.DetallePedido, { foreignKey: 'pedidoId' });
-    Pedido.hasMany(models.historialDeTiemposPedido, { foreignKey: 'pedidoId' });
+    // Alias explícito: la clave del JSON es `historialDeTiemposPedidos` (la usa el panel admin)
+    Pedido.hasMany(models.historialDeTiemposPedido, { foreignKey: 'pedidoId', as: 'historialDeTiemposPedidos' });
     Pedido.belongsTo(models.Usuario, { foreignKey: 'usuarioId' });
     Pedido.belongsTo(models.Direccion, { foreignKey: 'direccionId' });
     Pedido.belongsTo(models.Sucursal, { foreignKey: 'sucursalId' });
