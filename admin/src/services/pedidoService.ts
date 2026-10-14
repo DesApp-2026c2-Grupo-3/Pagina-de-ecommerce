@@ -1,4 +1,4 @@
-import type { PedidoCompleto } from '../types/pedido'
+import type { Etapa, PedidoCompleto, PedidoFila } from '../types/pedido'
 
 const API_URL = 'http://localhost:3000/admin/pedidos'
 
@@ -20,5 +20,30 @@ export async function obtenerPedidoPorId(pedidoId: number): Promise<PedidoComple
     credentials: 'include',
   })
   if (!respuesta.ok) throw await errorDe(respuesta, 'No se pudo cargar el pedido')
+  return respuesta.json()
+}
+
+// Cambio de estado (PATCH /editar/estado/:id).
+// El backend valida: bloquea volver a Pendiente y solo devuelve stock si se cancela desde Pendiente.
+export async function actualizarEstadoPedido(
+  pedidoId: number,
+  estado: Etapa,
+): Promise<{ estado?: string }> {
+  const respuesta = await fetch(`${API_URL}/editar/estado/${pedidoId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ estado }),
+  })
+  if (!respuesta.ok) throw await errorDe(respuesta, 'No se pudo actualizar el estado')
+  return respuesta.json()
+}
+
+// Pedidos de una sucursal (GET /sucursal/:id), del más nuevo al más viejo
+export async function obtenerPedidosPorSucursal(sucursalId: number): Promise<PedidoFila[]> {
+  const respuesta = await fetch(`${API_URL}/sucursal/${sucursalId}`, {
+    credentials: 'include',
+  })
+  if (!respuesta.ok) throw await errorDe(respuesta, 'Error al cargar los pedidos')
   return respuesta.json()
 }

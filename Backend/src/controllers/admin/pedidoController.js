@@ -92,7 +92,8 @@ const obtenerPedidoPorId = async (req, res) => {
     }
 };
 
-// PATCH /admin/pedidos/editar/estado/:id → cambia el estado; si es "Cancelado", devuelve el stock
+// PATCH /admin/pedidos/editar/estado/:id → cambia el estado;
+// solo devuelve el stock si se cancela desde "Pendiente". Nunca se puede volver a "Pendiente".
 const cambiarEstadoPedidoPorId = async (req, res) => {
     try {
         const { estado } = req.body;
@@ -120,9 +121,16 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
                 mensaje: `El pedido ya se encuentra en el estado: ${estado}`
             });
         }
+        // Una vez que el pedido abandona Pendiente nunca puede volver:
+        // Pendiente es solo el estado inicial
+        if (mismoEstado(estado, 'pendiente') && !mismoEstado(pedido.estado, 'pendiente')) {
+            return res.status(400).json({
+                mensaje: 'Un pedido que salió de Pendiente no puede volver a Pendiente'
+            });
+        }
 
         // El cambio de estado y su registro en la línea de tiempo van juntos
-        // (igual que la devolución de stock): o se hacen todos, o ninguno
+        // (igual que la eventual devolución de stock): o se hacen todos, o ninguno
         const t = await sequelize.transaction();
         try {
             const estadoPrevio = pedido.estado;
@@ -133,7 +141,9 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
                 estado,
                 fecha: new Date(),
             }, { transaction: t });
-            if (mismoEstado(estado, 'cancelado')) {
+            // Solo se devuelve el stock si se cancela desde Pendiente (sin preparación iniciada).
+            // Desde En proceso / En camino no hay devolución automática: queda para manejo manual.
+            if (mismoEstado(estado, 'cancelado') && mismoEstado(estadoPrevio, 'pendiente')) {
                 await devolverStockPedido(pedido.id, { transaction: t, adminId: admin.id });
             }
             await t.commit();

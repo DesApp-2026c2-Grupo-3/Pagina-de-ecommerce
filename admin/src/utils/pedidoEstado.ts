@@ -17,6 +17,28 @@ export function estaEnCurso(estado: string) {
   return e !== 'Entregado' && e !== 'Cancelado'
 }
 
+// Pedido cerrado: ya no admite cambios (espejo de ESTADOS_FINALES del backend)
+export function esEstadoFinal(estado: string) {
+  const e = normalizarEstado(estado)
+  return e === 'Entregado' || e === 'Cancelado'
+}
+
+// Pendiente es solo el estado inicial: una vez abandonado nunca se puede volver.
+// Espejo de la validación del backend en PATCH /admin/pedidos/editar/estado/:id
+export function esRetornoAPendienteProhibido(estadoActual: string, destino: string) {
+  return (
+    normalizarEstado(destino) === 'Pendiente' &&
+    normalizarEstado(estadoActual) !== 'Pendiente'
+  )
+}
+
+// ¿Se puede pedir el cambio de estado? (el backend tiene la última palabra)
+export function puedePasarA(estadoActual: string, destino: string) {
+  if (esEstadoFinal(estadoActual)) return false
+  if (esRetornoAPendienteProhibido(estadoActual, destino)) return false
+  return normalizarEstado(destino) !== normalizarEstado(estadoActual)
+}
+
 // Posición en la línea de tiempo (0 a 3); -1 si es Cancelado (fuera del flujo)
 export function pasoActual(estado: string) {
   return PASOS_SEGUIMIENTO.indexOf(normalizarEstado(estado) as (typeof PASOS_SEGUIMIENTO)[number])

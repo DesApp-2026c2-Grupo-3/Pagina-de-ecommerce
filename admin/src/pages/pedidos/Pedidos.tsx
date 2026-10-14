@@ -6,40 +6,20 @@ import { BarraFiltros, Buscador, SelectFiltro } from "../../components/Filtros";
 import DetallePedidoModal from "../../components/DetallePedidoModal";
 import { useToast } from "../../context/ToastContext";
 import { obtenerSucursales } from "../../services/sucursalService";
+import {
+  actualizarEstadoPedido,
+  obtenerPedidosPorSucursal,
+} from "../../services/pedidoService";
+import {
+  esEstadoFinal,
+  esRetornoAPendienteProhibido,
+  puedePasarA,
+} from "../../utils/pedidoEstado";
+import type { Etapa, PedidoFila, SucursalOpcion } from "../../types/pedido";
+import { ETAPAS } from "../../types/pedido";
 import type { AdministradorSesion } from "../../App";
 
-const API_URL = "http://localhost:3000/admin/pedidos";
 const POR_PAGINA = 8;
-
-// Las etapas válidas (mismo orden que el backend)
-const ETAPAS = [
-  "Pendiente",
-  "En proceso",
-  "En camino",
-  "Entregado",
-  "Cancelado",
-] as const;
-type Etapa = (typeof ETAPAS)[number];
-
-interface DetallePedidoFila {
-  cantidad: number;
-  Producto: { nombre: string } | null;
-}
-
-interface PedidoFila {
-  id: number;
-  fecha: string;
-  total: string;
-  estado: string;
-  Usuario: { nombre: string; apellido: string } | null;
-  DetallePedidos: DetallePedidoFila[];
-}
-
-interface SucursalOpcion {
-  id: number;
-  nombre: string;
-  activa: boolean;
-}
 
 interface PedidosProps {
   administrador: AdministradorSesion | null;
@@ -98,53 +78,28 @@ function resumenProductos(pedido: PedidoFila) {
   return primeros.join(" · ") || "Sin productos";
 }
 
-// Mensaje de error del backend: { code } de Joi, { mensaje } de negocio o { msj } de auth
-async function mensajeDeError(respuesta: Response, porDefecto: string) {
-  const datos = await respuesta.json().catch(() => null);
-  return datos?.code ?? datos?.mensaje ?? datos?.msj ?? porDefecto;
-}
-
+// La red vive en services/pedidoService; acá solo se normaliza la etapa
+// (lógica de presentación) para que badge, filtro y selector coincidan
 async function traerPedidos(sucursalId: number): Promise<PedidoFila[]> {
-  const respuesta = await fetch(`${API_URL}/sucursal/${sucursalId}`, {
-    credentials: "include",
-  });
-  if (!respuesta.ok)
-    throw new Error(
-      await mensajeDeError(respuesta, "Error al cargar los pedidos"),
-    );
-  const pedidos: PedidoFila[] = await respuesta.json();
+  const pedidos = await obtenerPedidosPorSucursal(sucursalId);
   return pedidos.map((pedido) => ({
     ...pedido,
     estado: normalizarEtapa(pedido.estado),
   }));
 }
 
-async function enviarEstado(
-  id: number,
-  estado: string,
-): Promise<{ estado?: string }> {
-  const respuesta = await fetch(`${API_URL}/editar/estado/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ estado }),
-  });
-  if (!respuesta.ok)
-    throw new Error(
-      await mensajeDeError(respuesta, "No se pudo actualizar el estado"),
-    );
-  return respuesta.json();
-}
-
-// Selector de etapa dentro del pedido (radio buttons accesibles, sin modales)
+// Selector de etapa dentro del pedido (radio buttons accesibles, sin modales).
+// Pendiente se deshabilita si el pedido ya la abandonó (regla espejo del backend).
 function SelectorEtapa({
   pedidoId,
   valor,
+  estadoActual,
   bloqueado,
   onChange,
 }: {
   pedidoId: number;
   valor: string | undefined;
+  estadoActual: string;
   bloqueado: boolean;
   onChange: (etapa: Etapa) => void;
 }) {
@@ -156,21 +111,31 @@ function SelectorEtapa({
     >
       {ETAPAS.map((etapa) => {
         const activa = valor === etapa;
+        const retornoProhibido = esRetornoAPendienteProhibido(
+          estadoActual,
+          etapa,
+        );
+        const deshabilitada = bloqueado || retornoProhibido;
         return (
           <label
             key={etapa}
+            title={
+              retornoProhibido
+                ? "Un pedido que salió de Pendiente no puede volver a Pendiente"
+                : undefined
+            }
             className={`flex min-h-[38px] cursor-pointer select-none items-center justify-center rounded-md border px-3 py-1.5 text-center text-xs font-medium transition-colors sm:text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2 ${
               activa
                 ? "border-orange-300 bg-action text-white"
                 : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-            } ${bloqueado ? "cursor-not-allowed opacity-50 hover:bg-white" : ""}`}
+            } ${deshabilitada ? "cursor-not-allowed opacity-50 hover:bg-white" : ""}`}
           >
             <input
               type="radio"
               name={`etapa-${pedidoId}`}
               value={etapa}
               checked={activa}
-              disabled={bloqueado}
+              disabled={deshabilitada}
               onChange={() => onChange(etapa)}
               className="peer sr-only"
             />
@@ -243,7 +208,9 @@ export default function Pedidos({ administrador }: PedidosProps) {
         if (cancelado) return;
         setPedidos([]);
         setErrorCarga(
-          error instanceof Error ? error.message : "Error al cargar los pedidos",
+          error instanceof Error
+            ? error.message
+            : "Error al cargar los pedidos",
         );
       })
       .finally(() => !cancelado && setCargando(false));
@@ -283,18 +250,14 @@ export default function Pedidos({ administrador }: PedidosProps) {
   const etapaActual = (pedido: PedidoFila) =>
     seleccion[pedido.id] ?? pedido.estado;
 
-  // Inhabilitado: sin selección, igual a la etapa actual, guardando o ya cerrado
+  // Inhabilitado: sin selección, igual a la actual, guardando, cerrado
+  // o retorno a Pendiente (bloqueado por el backend)
   const puedeAceptar = (pedido: PedidoFila) => {
     const elegida = seleccion[pedido.id];
-    const esEstadoFinal =
-      pedido.estado === "Entregado" || pedido.estado === "Cancelado";
-
-    return (
-      elegida !== undefined &&
-      elegida !== pedido.estado &&
-      guardando !== pedido.id &&
-      !esEstadoFinal
-    );
+    if (elegida === undefined) return false;
+    if (guardando === pedido.id) return false;
+    if (esEstadoFinal(pedido.estado)) return false;
+    return puedePasarA(pedido.estado, elegida);
   };
 
   async function aceptar(pedido: PedidoFila) {
@@ -304,7 +267,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
     setGuardando(pedido.id);
     setErrorFila((prev) => ({ ...prev, [pedido.id]: "" }));
     try {
-      const actualizado = await enviarEstado(pedido.id, nueva);
+      const actualizado = await actualizarEstadoPedido(pedido.id, nueva);
       // Solo se actualiza el estado: la respuesta no trae cliente ni productos
       setPedidos((prev) =>
         prev.map((p) =>
@@ -329,8 +292,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
   }
 
   const controles = (pedido: PedidoFila) => {
-    const cerrado =
-      pedido.estado === "Entregado" || pedido.estado === "Cancelado";
+    const cerrado = esEstadoFinal(pedido.estado);
     const error = errorFila[pedido.id];
 
     return (
@@ -338,6 +300,7 @@ export default function Pedidos({ administrador }: PedidosProps) {
         <SelectorEtapa
           pedidoId={pedido.id}
           valor={etapaActual(pedido)}
+          estadoActual={pedido.estado}
           bloqueado={cerrado || guardando === pedido.id}
           onChange={(etapa) =>
             setSeleccion((prev) => ({ ...prev, [pedido.id]: etapa }))
