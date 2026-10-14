@@ -1,0 +1,2 @@
+// Promesa que se resuelve después de "ms" milisegundos (para pantallas decorativas con duración mínima)
+export const esperar = (ms: number) => new Promise<void>((resolver) => setTimeout(resolver, ms))

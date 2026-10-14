@@ -32,7 +32,6 @@ export const ESTILO_ESTADO: Record<EstadoPedido, string> = {
 // Filtros del historial
 export const FILTROS_PEDIDO = [
   { id: 'todos', label: 'Todos', aplica: () => true },
-  { id: 'curso', label: 'En curso', aplica: (estado: string) => estaEnCurso(estado) },
   { id: 'entregados', label: 'Entregados', aplica: (estado: string) => normalizarEstado(estado) === 'Entregado' },
   { id: 'cancelados', label: 'Cancelados', aplica: (estado: string) => normalizarEstado(estado) === 'Cancelado' },
 ] as const
