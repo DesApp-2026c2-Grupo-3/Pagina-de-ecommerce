@@ -1,6 +1,9 @@
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
-const { Usuario, Sucursal } = require('../models')
+const { Usuario, Sucursal, TokenRecuperacion } = require('../models')
+
+const { enviarCorreoRecuperacion } = require('../services/emailServices');
 
 // Hash de relleno: se usa en el login cuando el email no existe,
 // para que la respuesta tarde lo mismo y no revele qué emails están registrados.
@@ -72,6 +75,132 @@ const login = async(req,res) =>{
         return res.status(500).json({ mensaje:'Error al loguear' })
     }
 }
+
+
+const solicitarRecuperacion = async (req, res) => {
+    try {
+        const emailNormalizado = req.body.email.trim().toLowerCase();
+        const usuario = await Usuario.findOne({
+            where: { email: emailNormalizado }
+        });
+
+        // No revelar si el email está registrado.
+        const respuesta = {
+            mensaje: 'Si el email está registrado, recibirás instrucciones para recuperar tu contraseña.'
+        };
+
+        if (!usuario) {
+            return res.status(200).json(respuesta);
+        }
+
+        // Invalidar solicitudes anteriores pendientes del mismo usuario.
+        await TokenRecuperacion.destroy({
+            where: {
+                usuarioId: usuario.id,
+                usadoEn: null
+            }
+        });
+
+        // El token original se enviará por correo; solo guardamos su hash.
+        const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto
+            .createHash('sha256')
+            .update(token)
+            .digest('hex');
+
+        const expiraEn = new Date(Date.now() + 15 * 60 * 1000);
+
+        await TokenRecuperacion.create({
+            usuarioId: usuario.id,
+            tokenHash,
+            expiraEn,
+            usadoEn: null
+        });
+
+        await enviarCorreoRecuperacion(emailNormalizado, token);
+
+        return res.status(200).json(respuesta);
+    } catch (error) {
+        console.error('Error al solicitar recuperación:', error.message);
+        return res.status(500).json({
+            mensaje: 'Error del servidor'
+        });
+    }
+};
+
+
+const restablecerPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (
+            typeof token !== 'string' ||
+            !token.trim() ||
+            typeof password !== 'string' ||
+            password.length < 6 ||
+            password.length > 20 ||
+            !/\S/.test(password)
+        ) {
+            return res.status(400).json({
+                mensaje: 'El token es obligatorio y la contraseña debe tener entre 6 y 20 caracteres, sin estar compuesta solo por espacios.'
+            });
+        }
+
+        const tokenHash = crypto
+            .createHash('sha256')
+            .update(token)
+            .digest('hex');
+
+        const { sequelize, TokenRecuperacion, Usuario } = require('../models');
+
+        await sequelize.transaction(async (transaction) => {
+            const solicitud = await TokenRecuperacion.findOne({
+                where: {
+                    tokenHash,
+                    usadoEn: null
+                },
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            });
+
+            if (!solicitud || solicitud.expiraEn <= new Date()) {
+                const error = new Error('El token es inválido o ha expirado.');
+                error.status = 400;
+                throw error;
+            }
+
+            const usuario = await Usuario.findByPk(solicitud.usuarioId, {
+                transaction
+            });
+
+            if (!usuario) {
+                const error = new Error('El token es inválido o ha expirado.');
+                error.status = 400;
+                throw error;
+            }
+
+            usuario.password = await bcrypt.hash(password, 10);
+            await usuario.save({ transaction });
+
+            solicitud.usadoEn = new Date();
+            await solicitud.save({ transaction });
+        });
+
+        return res.status(200).json({
+            mensaje: 'La contraseña se restableció correctamente.'
+        });
+    } catch (error) {
+        if (error.status === 400) {
+            return res.status(400).json({ mensaje: error.message });
+        }
+
+        console.error('Error al restablecer contraseña:', error.message);
+        return res.status(500).json({
+            mensaje: 'Error del servidor'
+        });
+    }
+};
+
 
 const obtenerUsuarioPorId = async (req, res) => {
     try {
@@ -184,4 +313,4 @@ const actualizarUsuario = async (req, res) => {
     }
 };
 
-module.exports = { verUsuarios, crearUsuario, login, obtenerUsuarioPorId, actualizarUsuario, actualizarSucursalPredeterminada };
+module.exports = { verUsuarios, crearUsuario, login, solicitarRecuperacion, restablecerPassword, obtenerUsuarioPorId, actualizarUsuario, actualizarSucursalPredeterminada };

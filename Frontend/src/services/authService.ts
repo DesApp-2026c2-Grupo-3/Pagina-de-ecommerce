@@ -32,3 +32,24 @@ export const register = async (data: RegisterData): Promise<string> => {
   })
   return respuesta.mensaje
 }
+
+export const solicitarRecuperacion = async (email: string): Promise<string> => {
+  const respuesta = await httpClient<{ mensaje: string }>('/usuario/recuperar-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+
+  return respuesta.mensaje
+}
+
+export const restablecerPassword = async (
+  token: string,
+  password: string,
+): Promise<string> => {
+  const respuesta = await httpClient<{ mensaje: string }>('/usuario/restablecer-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  })
+
+  return respuesta.mensaje
+}
