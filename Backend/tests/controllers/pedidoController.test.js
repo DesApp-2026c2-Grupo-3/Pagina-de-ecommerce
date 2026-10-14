@@ -14,6 +14,7 @@ jest.mock('../../src/models', () => {
         ProductoTamanio: {},
         StockSucursal: { findOne: jest.fn() },
         MovimientoStock: { create: jest.fn() },
+        historialDeTiemposPedido: { create: jest.fn(), findAll: jest.fn() },
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },
         __t: t,
     };
@@ -128,6 +129,15 @@ describe('crearPedido', () => {
                     tipo: 'venta', insumoId: 1, sucursalId: 2, cantidad: 2,
                     cantidadAnterior: 50, cantidadNueva: 48, pedidoId: 100,
                 }),
+                expect.anything()
+            );
+        });
+
+        test('registra el estado inicial en la línea de tiempo del pedido', async () => {
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), crearRes());
+
+            expect(models.historialDeTiemposPedido.create).toHaveBeenCalledWith(
+                expect.objectContaining({ pedidoId: 100, estadoAnterior: null }),
                 expect.anything()
             );
         });
