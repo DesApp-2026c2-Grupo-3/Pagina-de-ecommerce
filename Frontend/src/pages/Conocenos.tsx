@@ -39,7 +39,7 @@ function Conocenos() {
           </p>
           <Link
             to="/catalogo"
-            className="mt-8 inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="mt-8 inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Ver el menú
           </Link>

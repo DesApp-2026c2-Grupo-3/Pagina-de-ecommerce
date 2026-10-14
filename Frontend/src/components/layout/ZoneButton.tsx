@@ -88,7 +88,7 @@ function ZoneButton() {
           <button
             type="button"
             onClick={elegir}
-            className="mt-3 w-full rounded-full bg-brand-red px-4 py-2 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="mt-3 w-full rounded-full bg-brand-red px-4 py-2 text-sm font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Elegir dirección
           </button>

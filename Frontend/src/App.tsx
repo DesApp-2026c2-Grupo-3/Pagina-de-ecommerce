@@ -24,8 +24,13 @@ import Cuenta from './pages/Cuenta'
 import Conocenos from './pages/Conocenos'
 import PantallaBienvenida from './components/ui/PantallaBienvenida'
 import { useAuth } from './context/AuthContext'
+<<<<<<< HEAD
 import PantallaDespedida from './components/ui/PantallaDespedida'
 import BotonSubir from './components/layout/BotonSubir'
+=======
+import RecuperarPassword from './pages/RecuperarPassword'
+import RestablecerPassword from './pages/RestablecerPassword'
+>>>>>>> 4134257f19b5556371ed603a5eddcbb7ed8e8f65
 
 function App() {
   const { user } = useAuth()
@@ -49,6 +54,8 @@ function App() {
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
+          <Route path="/recuperar-password" element={<RecuperarPassword />} />
+          <Route path="/restablecer-password" element={<RestablecerPassword />} />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/perfil" element={<Perfil />} />

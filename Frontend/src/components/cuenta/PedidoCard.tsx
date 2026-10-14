@@ -28,6 +28,9 @@ function PedidoCard({ pedido }: { pedido: Order }) {
           </div>
           <p className="truncate text-brand-dark/80">{resumenItems(pedido)}</p>
           <p className="text-xs text-brand-muted">{formatearFechaHora(pedido.fecha)}</p>
+          <p className="mt-1 text-sm text-gray-600">
+            Sucursal: {pedido.Sucursal?.nombre ?? 'No disponible'}
+            </p>
         </div>
 
         <p className="font-display text-2xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
@@ -47,19 +50,31 @@ function PedidoCard({ pedido }: { pedido: Order }) {
       </div>
 
       {abierto && (
-        <ul className="mt-4 flex flex-col gap-2 rounded-2xl bg-brand-cream p-4">
-          {pedido.DetallePedidos.map((detalle) => (
-            <li key={detalle.id} className="flex items-center justify-between gap-3 text-sm">
-              <span>
-                <span className="font-bold">{detalle.cantidad}×</span> {detalle.Producto.nombre}
-              </span>
-              <span className="font-bold text-brand-muted">
-                {formatearPrecio(Number(detalle.precio) * detalle.cantidad)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+        <div className="mt-4 flex flex-col gap-4 rounded-2xl bg-brand-cream p-4">
+          <ul className="flex flex-col gap-2">
+            {pedido.DetallePedidos.map((detalle) => (
+              <li key={detalle.id} className="flex items-center justify-between gap-3 text-sm">
+                <span>
+                  <span className="font-bold">{detalle.cantidad}×</span>{" "}
+                    {detalle.Producto.nombre}
+                  </span>
+                <span className="font-bold text-brand-muted">
+                  {formatearPrecio(Number(detalle.precio) * detalle.cantidad)}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {pedido.observaciones?.trim() && (
+            <div className="border-t-2 border-dashed border-brand-sand pt-3">
+              <p className="font-bold">Observaciones del pedido</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted">
+                {pedido.observaciones}
+              </p>
+            </div>
+          )}
+          </div>
+        )}
     </article>
   )
 }

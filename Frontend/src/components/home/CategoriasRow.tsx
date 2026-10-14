@@ -25,7 +25,7 @@ function CategoriasRow() {
           <h2 className="font-display text-4xl font-extrabold tracking-tight">Elegí por antojo</h2>
           <Link
             to="/catalogo"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-5 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-5 text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
           >
             Ver todo el menú <ArrowRight className="h-4 w-4" />
           </Link>
@@ -38,7 +38,7 @@ function CategoriasRow() {
               <Link
                 key={categoria.id}
                 to={`/catalogo?categoria=${categoria.id}`}
-                className="flex w-28 shrink-0 flex-col items-center gap-3 rounded-3xl border-2 border-brand-dark bg-white px-2 pb-4 pt-5 text-center text-sm font-bold transition-transform hover:-translate-y-1 md:w-auto"
+                className="flex w-28 shrink-0 flex-col items-center gap-3 rounded-3xl border-2 border-brand-dark bg-white px-2 pb-4 pt-5 text-center text-sm font-bold transition-transform hover:translate-y-1 md:w-auto"
               >
                 <span className={`grid h-16 w-16 place-items-center rounded-2xl ${fondo}`}>
                   <CategoryIcon icono={icono} />

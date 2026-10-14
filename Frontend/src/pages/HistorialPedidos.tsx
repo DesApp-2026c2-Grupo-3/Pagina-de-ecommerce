@@ -46,7 +46,7 @@ function HistorialPedidos() {
           <p className="text-brand-muted">Cuando pidas, vas a poder seguirlos y repetirlos desde acá.</p>
           <Link
             to="/catalogo"
-            className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Ver el menú
           </Link>

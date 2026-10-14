@@ -20,8 +20,8 @@ interface Resumen {
 }
 
 const estilos = {
-  claro: 'min-h-10 border-2 border-brand-dark bg-brand-cream px-4 text-sm text-brand-dark hover:bg-brand-mustard',
-  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:-translate-y-0.5',
+  claro: 'min-h-10 border-2 border-brand-dark bg-brand-cream px-4 text-sm text-brand-dark hover:bg-brand-mustard',  
+  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:translate-y-0.5',
 }
 
 interface Props {
@@ -121,6 +121,7 @@ function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
                 {resumen.agregados === 1 ? 'producto' : 'productos'} a tu carrito.
               </p>
             )}
+
 
             {resumen.preciosCambiaron && (
               <p className="rounded-xl bg-brand-cream p-3 text-sm text-brand-dark">

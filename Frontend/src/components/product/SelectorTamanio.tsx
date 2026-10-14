@@ -29,7 +29,7 @@ function SelectorTamanio({ tamanios, valor, onChange }: SelectorTamanioProps) {
               aria-label={etiquetaTamanio(t.tamanio, t.etiqueta)}
               onClick={() => onChange(t.tamanioId)}
               className={`min-h-13 rounded-2xl border-2 border-brand-dark px-5 font-bold transition ${
-                activo ? 'bg-brand-dark text-brand-cream' : 'bg-white text-brand-dark hover:-translate-y-0.5'
+                activo ? 'bg-brand-dark text-brand-cream' : 'bg-white text-brand-dark hover:translate-y-0.5'
               }`}
             >
               {etiquetaTamanio(t.tamanio)}

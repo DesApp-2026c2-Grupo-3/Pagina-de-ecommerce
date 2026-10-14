@@ -23,11 +23,6 @@
     flex-direction: column;
   }
 
- html {
-  overflow-y: scroll; 
-}
-  
-  body,
   /* La página no muestra barra de scroll: para subir está el BotonSubir */
   html {
     overflow-y: scroll;
@@ -36,6 +31,18 @@
   html::-webkit-scrollbar {
     display: none;
   }
+
+  /* Paneles con scroll interno (modales, carrito…): barra finita con los colores de la marca */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-muted) transparent;
+  }
+
+  body,
+  html {
+    cursor: default;
+  }
+
 
   /* Paneles con scroll interno (modales, carrito…): barra finita con los colores de la marca */
   * {
