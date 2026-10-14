@@ -9,6 +9,7 @@ import PasosCompra from "../components/cart/PasosCompra";
 import CartItemRow from "../components/cart/CartItemRow";
 import SugerenciasCarrito from "../components/cart/SugerenciaCarrito";
 import ResumenCarrito from "../components/cart/ResumenCarrito";
+import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal";
 import type { CartItem } from "../types/cart";
 
 function Cart() {
@@ -16,6 +17,8 @@ function Cart() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [editando, setEditando] = useState<CartItem | null>(null);
+  const [itemAEliminar, setItemAEliminar] = useState<CartItem | null>(null);
+  const [observaciones, setObservaciones] = useState("");
 
   // Se puede editar si tiene tamaños o ingredientes para quitar o agregar
   const esEditable = (item: CartItem) =>
@@ -29,7 +32,7 @@ function Cart() {
       navigate("/login", { state: { from: "/carrito" } });
       return;
     }
-    navigate("/checkout");
+    navigate("/checkout" , { state: { observaciones } });
   }
 
   if (items.length === 0) {
@@ -48,7 +51,7 @@ function Cart() {
             <p className="text-brand-muted">Elegí tu antojo del menú y lo vas a ver acá.</p>
             <Link
               to="/catalogo"
-              className="mt-2 inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+              className="mt-2 inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
             >
               Ver el menú <ArrowRight className="h-5 w-5" />
             </Link>
@@ -70,7 +73,7 @@ function Cart() {
         <div className="flex flex-col gap-3">
           <Link
             to="/catalogo"
-            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-5 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
+            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-5 text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
           >
             <ArrowLeft className="h-4 w-4" /> Seguir agregando
           </Link>
@@ -80,10 +83,34 @@ function Cart() {
               key={item.id}
               item={item}
               onCantidad={(cantidad) => updateQuantity(item.id, cantidad)}
-              onQuitar={() => removeItem(item.id)}
+              onQuitar={() => setItemAEliminar(item)}
               onEditar={esEditable(item) ? () => setEditando(item) : undefined}
             />
           ))}
+
+          <div className="rounded-2xl border-2 border-brand-dark bg-white p-4">
+            <label
+            htmlFor="observaciones"
+            className="mb-2 block font-bold text-brand-dark"
+            >
+              Observaciones del pedido (opcional)
+            </label>
+
+            <textarea 
+            id="observaciones"
+            value={observaciones}
+            onChange={(e) => setObservaciones(e.target.value)}
+            maxLength={500}
+            placeholder="Ej.: tocar timbre dos veces..."
+            rows={3}
+            className="w-full rounded-xl border-2 border-brand-dark/20 p-3 text-sm outline-none focus:border-brand-red"
+            />
+
+            <p className="mt-1 text-right text-xs text-brand-muted">
+              {observaciones.length}/500 caracteres
+            </p>
+          </div>
+
         </div>
 
         <ResumenCarrito
@@ -97,6 +124,17 @@ function Cart() {
       <SugerenciasCarrito />
 
       <EditarItemModal item={editando} onClose={() => setEditando(null)} />
+
+      {itemAEliminar && (
+  <ConfirmarEliminarModal
+    nombreProducto={itemAEliminar.product.nombre}
+    onCancelar={() => setItemAEliminar(null)}
+    onConfirmar={() => {
+      removeItem(itemAEliminar.id)
+      setItemAEliminar(null)
+    }}
+  />
+)}
     </div>
   );
 }

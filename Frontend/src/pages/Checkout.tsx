@@ -38,17 +38,18 @@ function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const estadoNav = location.state as { direccionId?: number; compraDirecta?: CartItem } | null;
+  const estadoNav = location.state as { direccionId?: number; compraDirecta?: CartItem; observaciones?: string } | null;
   // Si vuelve de agregar o editar una dirección, llega con su id para dejarla elegida
   const direccionDeRegreso = estadoNav?.direccionId;
   // "Pagar ahora": se compra solo ese producto y el carrito no se toca
   const compraDirecta = estadoNav?.compraDirecta ?? null;
+  const observaciones = estadoNav?.observaciones ?? "";
 
   const lineas = compraDirecta ? [compraDirecta] : items;
   const total = compraDirecta ? compraDirecta.unitPrice * compraDirecta.quantity : totalPrice;
 
   // Al ir a direcciones y volver, la compra directa viaja con la navegación
-  const volverAlCheckout = { from: "/checkout", compraDirecta };
+  const volverAlCheckout = { from: "/checkout", compraDirecta, observaciones };
 
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
@@ -207,7 +208,7 @@ function Checkout() {
     if (!direccion || !masCercana) return;
     setLoading(true);
     try {
-      const order = await createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id);
+      const order = await createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id, compraDirecta ? "" : observaciones);
       setPreguntando(false);
       setConfirmedOrder(order);
       // En una compra directa, el carrito queda como estaba
@@ -286,7 +287,7 @@ function Checkout() {
                       longitud: zona.longitud,
                     },
                   }}
-                  className="shrink-0 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-brand-cream transition-transform hover:-translate-y-0.5"
+                  className="shrink-0 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-brand-cream transition-transform hover:translate-y-0.5"
                 >
                   Guardarla
                 </Link>
@@ -413,7 +414,7 @@ function Checkout() {
                 <button
                   type="button"
                   onClick={usarDireccionComoZona}
-                  className="mt-3 rounded-full bg-brand-dark px-4 py-2 font-bold text-brand-cream transition-transform hover:-translate-y-0.5"
+                  className="mt-3 rounded-full bg-brand-dark px-4 py-2 font-bold text-brand-cream transition-transform hover:translate-y-0.5"
                 >
                   Pedir desde {masCercana.sucursal.nombre}
                 </button>
@@ -460,10 +461,10 @@ function Checkout() {
         direccion={direccion ? `${direccion.alias} · ${direccion.calle} ${direccion.numero}` : ""}
         sucursal={masCercana?.sucursal.nombre ?? ""}
         formaPago={FORMAS_PAGO.find((f) => f.id === formaPago)?.titulo ?? ""}
+        observaciones={compraDirecta ? "" : observaciones}
         cargando={loading}
         onCancelar={() => setPreguntando(false)}
-        onConfirmar={enviarPedido}
-      />
+        onConfirmar={enviarPedido}     />
     </div>
   );
 }

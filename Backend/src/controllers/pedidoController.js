@@ -117,8 +117,15 @@ const obtenerPedidosPorUsuario = async (req, res) => {
     try {
         const pedidos = await Pedido.findAll({
             where: { usuarioId: req.params.usuarioId },
-            include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }], order: [['fecha', 'DESC']],
+            include: [{
+                model: DetallePedido,
+                include: [{ model: Producto, paranoid: false }],
+            }, {
+                model: Sucursal,
+            }],
+            order: [['fecha', 'DESC']],
         });
+
 
         res.status(200).json(pedidos);
     } catch (error) {
@@ -153,8 +160,9 @@ const crearPedido = async (req, res) => {
 
     const t = await sequelize.transaction();
 
+
     try {
-        const { usuarioId, productos, direccionId, sucursalId } = req.body;
+        const { usuarioId, productos, direccionId, sucursalId, observaciones } = req.body;
         const usuario = await Usuario.findByPk(usuarioId);
 
         if (!usuario) {
@@ -197,7 +205,11 @@ const crearPedido = async (req, res) => {
         }
 
         const nuevoPedido = await Pedido.create({
-            usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0
+
+            usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0,
+            observaciones: typeof observaciones === 'string'
+                ? observaciones.trim() || null
+                : null,
         }, { transaction: t });
 
         let total = 0;

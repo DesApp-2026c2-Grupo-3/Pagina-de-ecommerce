@@ -37,7 +37,7 @@ function ContactSection() {
               key={titulo}
               href={href}
               {...(externo ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-              className="flex items-center gap-4 rounded-3xl border-2 border-brand-dark bg-brand-cream px-5 py-4 text-brand-dark shadow-sticker transition-transform hover:-translate-y-0.5"
+              className="flex items-center gap-4 rounded-3xl border-2 border-brand-dark bg-brand-cream px-5 py-4 text-brand-dark shadow-sticker transition-transform hover:translate-y-0.5"
             >
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-mustard">
                 <Icono size={24} />

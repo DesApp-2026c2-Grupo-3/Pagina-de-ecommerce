@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
     estado: { type: DataTypes.STRING, allowNull: false, defaultValue: 'pendiente' },
     direccionId: { type: DataTypes.INTEGER, allowNull: true },
     sucursalId: { type: DataTypes.INTEGER, allowNull: true },
+    observaciones: { type: DataTypes.TEXT, allowNull: true },
   }, {
     sequelize,
     modelName: 'Pedido',

@@ -45,7 +45,7 @@ function ResumenCarrito({ cantidad, subtotal, logueado, onConfirmar }: Props) {
       <button
         type="button"
         onClick={onConfirmar}
-        className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+        className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
       >
         {logueado ? 'Continuar' : 'Iniciá sesión para continuar'}
         <ArrowRight className="h-5 w-5" />

@@ -44,7 +44,7 @@ function TuSucursal() {
           <button
             type="button"
             onClick={abrirSelector}
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             <MapPin className="h-5 w-5" /> Elegir dirección
           </button>
@@ -108,14 +108,14 @@ function TuSucursal() {
               href={linkComoLlegar(sucursal)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
             >
               <Navigation className="h-4 w-4" /> Cómo llegar
             </a>
             <button
               type="button"
               onClick={abrirSelector}
-              className="min-h-12 rounded-full bg-brand-dark px-6 font-bold text-brand-cream transition-transform hover:-translate-y-0.5"
+              className="min-h-12 rounded-full bg-brand-dark px-6 font-bold text-brand-cream transition-transform hover:translate-y-0.5"
             >
               Cambiar dirección
             </button>

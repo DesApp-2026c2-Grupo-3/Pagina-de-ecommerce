@@ -94,6 +94,14 @@ function Login() {
           />
         </div>
 
+        <div className="text-right">
+          <Link to="/recuperar-password"
+          className="text-sm font-bold text-brand-red hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+
         <ErrorAlert message={error} />
         <BotonEnviar cargando={loading} texto="Ingresar" textoCargando="Ingresando..." />
       </form>

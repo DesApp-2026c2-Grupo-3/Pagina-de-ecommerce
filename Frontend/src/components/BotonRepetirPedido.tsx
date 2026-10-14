@@ -18,7 +18,7 @@ interface Resumen {
 
 const estilos = {
   claro: 'min-h-10 border-2 border-brand-dark bg-brand-cream px-4 text-sm text-brand-dark hover:bg-brand-mustard',  
-  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:-translate-y-0.5',
+  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:translate-y-0.5',
 }
 
 interface Props {
@@ -26,7 +26,8 @@ interface Props {
   variante?: keyof typeof estilos
 }
 
-function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { user } = useAuth()
+function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  
+  const { user } = useAuth()
   const { addItem } = useCart()
   const { zona, abrirSelector } = useZona()
   const navigate = useNavigate()
@@ -109,6 +110,7 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { 
                 {resumen.agregados === 1 ? 'producto' : 'productos'} a tu carrito.
               </p>
             )}
+
 
             {resumen.preciosCambiaron && (
               <p className="rounded-xl bg-brand-cream p-3 text-sm text-brand-dark">

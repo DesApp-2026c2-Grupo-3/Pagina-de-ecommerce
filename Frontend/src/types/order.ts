@@ -20,4 +20,6 @@ export interface Order {
   total: string
   estado: string
   DetallePedidos: DetallePedido[]
+  Sucursal:{id: number, nombre:string}
+  observaciones?: string | null;
 }

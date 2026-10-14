@@ -54,7 +54,7 @@ function Navbar() {
           <Link
             to="/carrito"
             aria-label={`Carrito, ${totalItems} productos`}
-            className="relative ml-2 grid h-11 w-11 place-items-center rounded-2xl bg-white/5 text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+            className="relative ml-2 grid h-11 w-11 place-items-center rounded-2xl bg-white/5 text-white transition hover:translate-y-0.5 hover:bg-white/10"
           >
             <ShoppingBag className="h-6 w-6" />
             {totalItems > 0 && (

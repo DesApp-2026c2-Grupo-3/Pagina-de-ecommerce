@@ -46,7 +46,7 @@ function ModalConfirmarAgregar({ abierto, nombre, imagen, detalle, cantidad, tot
         <button
           type="button"
           onClick={onConfirmar}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+          className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
         >
           <ShoppingBag className="h-4 w-4" /> Sí, agregar
         </button>
