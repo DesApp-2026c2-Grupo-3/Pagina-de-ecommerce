@@ -8,6 +8,7 @@ import { useZona, type UbicacionElegida } from '../context/ZonaContext'
 import { useAuth } from '../context/AuthContext'
 import { getDirecciones } from '../services/addressService'
 import type { Address } from '../types/address'
+import BuscandoSucursal from './BuscandoSucursal'
 
 interface UbicacionEnCurso extends Omit<UbicacionElegida, 'latitud' | 'longitud'> {
   latitud: number | null
@@ -28,10 +29,19 @@ const ubicacionVacia: UbicacionEnCurso = {
 function ElegirZonaModal() {
   const { zona, selectorAbierto, cerrarSelector, elegirUbicacion } = useZona()
   const { user, isAuthenticated } = useAuth()
-
   const [ubicacion, setUbicacion] = useState<UbicacionEnCurso>(ubicacionVacia)
   const [direcciones, setDirecciones] = useState<Address[]>([])
   const [error, setError] = useState('')
+    // Dirección guardada que dio el error (para mostrarlo debajo de esa tarjeta)
+  const [errorEnId, setErrorEnId] = useState<number | null>(null)
+    // Pantalla "Buscando tu sucursal" después de elegir una dirección
+  const [buscando, setBuscando] = useState(false)
+
+  useEffect(() => {
+    if (!buscando) return
+    const timer = setTimeout(() => setBuscando(false), 2800)
+    return () => clearTimeout(timer)
+  }, [buscando])
 
   // Al abrirse, arranca con la zona actual (si hay) y trae las direcciones guardadas
   useEffect(() => {
@@ -48,18 +58,23 @@ function ElegirZonaModal() {
       .catch(() => setDirecciones([]))
   }, [selectorAbierto, user])
 
-  function confirmar(u: UbicacionEnCurso) {
-    if (u.latitud === null || u.longitud === null) {
+  function confirmar(u: UbicacionEnCurso, direccionId: number | null = null) {
+    setErrorEnId(direccionId)
+        if (u.latitud === null || u.longitud === null) {
       setError('Elegí tu dirección o usá tu ubicación actual.')
       return
     }
-    setError(elegirUbicacion({ ...u, latitud: u.latitud, longitud: u.longitud }))
-  }
+    const motivo = elegirUbicacion({ ...u, latitud: u.latitud, longitud: u.longitud })
+    setError(motivo)
+    // Sin motivo = la zona quedó elegida (y el modal se cierra): se muestra la búsqueda de la sucursal
+    if (!motivo) setBuscando(true)  }
 
   // Solo sirven las direcciones guardadas que tienen ubicación en el mapa
   const guardadas = direcciones.filter((d) => d.latitud != null && d.longitud != null)
 
   return (
+    <>
+    {buscando && zona && <BuscandoSucursal sucursal={zona.sucursalNombre} distanciaKm={zona.distanciaKm} />}
     <Modal
       isOpen={selectorAbierto}
       onClose={cerrarSelector}
@@ -72,10 +87,10 @@ function ElegirZonaModal() {
           <div>
             <p className="mb-2 text-sm font-bold">Tus direcciones</p>
             <div className="flex flex-col gap-2">
-              {guardadas.map((d) => (
-                <button
-                  key={d.id}
-                  type="button"
+                {guardadas.map((d) => (
+                  <div key={d.id} className="flex flex-col gap-2">
+                  <button
+                    type="button"
                   onClick={() =>
                     confirmar({
                       calle: d.calle,
@@ -84,9 +99,9 @@ function ElegirZonaModal() {
                       provincia: d.provincia ?? '',
                       codigoPostal: d.codigoPostal ?? '',
                       latitud: Number(d.latitud),
-                      longitud: Number(d.longitud),
-                    })
-                  }
+                        longitud: Number(d.longitud),
+                      }, d.id)
+                    }
                   className="group flex items-center gap-3 rounded-2xl border-2 border-brand-dark bg-white p-3 text-left transition-transform hover:translate-y-0.5"
                 >
                   <span
@@ -103,8 +118,10 @@ function ElegirZonaModal() {
                     </span>
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-brand-muted transition-transform group-hover:translate-x-1 group-hover:text-brand-red" />
-                </button>
-              ))}
+                  </button>
+                  {errorEnId === d.id && <ErrorAlert message={error} />}
+                  </div>
+                ))}
             </div>
 
             <div className="mt-5 flex items-center gap-3 text-sm font-bold text-brand-muted">
@@ -123,8 +140,7 @@ function ElegirZonaModal() {
           }}
         />
 
-        <ErrorAlert message={error} />
-
+          {errorEnId === null && <ErrorAlert message={error} />}
         <button
           type="button"
           onClick={() => confirmar(ubicacion)}
@@ -145,6 +161,7 @@ function ElegirZonaModal() {
         )}
       </div>
     </Modal>
+    </>
   )
 }
 

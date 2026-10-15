@@ -37,9 +37,7 @@ function PedidoCard({ pedido }: { pedido: Order }) {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-brand-sand pt-4">
-        <BotonRepetirPedido
-        pedidoId={pedido.id}
-        />
+        <BotonRepetirPedido pedido={pedido} />
         <button
           type="button"
           onClick={() => setAbierto((v) => !v)}

@@ -1,0 +1,226 @@
+/* Animaciones de las pantallas de carga (decorativas). Todas empiezan con "bf-". */
+
+@keyframes bf-subir {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes bf-pop {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  70%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0);       opacity: 1; }
+}
+
+/* La barra crece con transform (no con width): así no se traba aunque la página esté cargando cosas */
+@keyframes bf-barra {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Si la persona pidió menos movimiento en su sistema, las animaciones terminan al instante */
+@media (prefers-reduced-motion: reduce) {
+  .pantalla-carga,
+  .pantalla-carga *,
+  .bf-pagina,
+  .bf-escalonado > * {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+
+/* ---------- Preparando tu pedido ---------- */
+@keyframes bf-entrar {
+  from { transform: translateY(40px) scale(0.94); opacity: 0; }
+  to   { transform: translateY(0) scale(1);       opacity: 1; }
+}
+@keyframes bf-vapor {
+  0%   { transform: translateY(10px) scaleY(0.6); opacity: 0; }
+  30%  { opacity: 0.9; }
+  100% { transform: translateY(-70px) scaleY(1.2); opacity: 0; }
+}
+@keyframes bf-llama {
+  0%, 100% { transform: scaleY(1) skewX(0); }
+  50%      { transform: scaleY(1.25) skewX(-6deg); }
+}
+@keyframes bf-chisporrotea {
+  0%, 100% { transform: translateY(0); }
+  25%      { transform: translateY(-2px) rotate(-1deg); }
+  75%      { transform: translateY(-1px) rotate(1deg); }
+}
+@keyframes bf-paso {
+  from { opacity: 0.35; transform: translateX(-8px); }
+  to   { opacity: 1;    transform: translateX(0); }
+}
+@keyframes bf-tilde {
+  0%   { transform: scale(0); }
+  70%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes bf-confeti {
+  from { transform: translate(0, 0) rotate(0); opacity: 1; }
+  to   { transform: translate(var(--x), var(--y)) rotate(260deg); opacity: 0; }
+}
+
+.bf-tarjeta-entra { animation: bf-entrar 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.bf-vapor { opacity: 0; animation: bf-vapor 1.3s ease-out infinite; }
+.bf-llama { transform-origin: bottom; animation: bf-llama 0.35s ease-in-out infinite; }
+.bf-chisporrotea { animation: bf-chisporrotea 0.25s linear infinite; }
+.bf-paso { opacity: 0.35; animation: bf-paso 0.3s ease-out forwards; }
+.bf-tilde { transform: scale(0); animation: bf-tilde 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) forwards; }
+.bf-pop { opacity: 0; animation: bf-pop 0.55s cubic-bezier(0.3, 1.5, 0.5, 1) forwards; }
+.bf-subir { opacity: 0; animation: bf-subir 0.4s ease-out forwards; }
+.bf-confeti { opacity: 0; animation: bf-confeti 0.9s ease-out 0.1s forwards; }
+
+
+/* ---------- Bienvenida ---------- */
+@keyframes bf-caer {
+  0%   { transform: translateY(-460px); opacity: 0; }
+  60%  { transform: translateY(10px);   opacity: 1; }
+  80%  { transform: translateY(-6px); }
+  100% { transform: translateY(0);      opacity: 1; }
+}
+@keyframes bf-rebote {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes bf-telon {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-100%); }
+}
+@keyframes bf-girar {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+
+.bf-telon { animation: bf-telon 0.6s cubic-bezier(0.7, 0, 0.3, 1) 3.1s forwards; }
+.bf-capa { opacity: 0; animation: bf-caer 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) forwards; }
+.bf-rebote { animation: bf-rebote 0.5s ease-in-out 2s 2; }
+.bf-rayos { animation: bf-girar 14s linear infinite; }
+.bf-barra-3s { transform-origin: left; transform: scaleX(0); animation: bf-barra 3s cubic-bezier(0.5, 0, 0.3, 1) forwards; }
+
+
+/* ---------- Armando tu pedido otra vez (Repetir pedido) ---------- */
+@keyframes bf-imprimir {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes bf-volar {
+  from { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+  to   { transform: translate(var(--x), var(--y)) scale(0.35) rotate(var(--r)); opacity: 0; }
+}
+@keyframes bf-apretar {
+  0%, 100% { transform: scaleY(1); }
+  40%      { transform: scaleY(0.92) scaleX(1.05); }
+  70%      { transform: scaleY(1.04); }
+}
+
+.bf-ticket { transform: translateY(-100%); animation: bf-imprimir 1.2s steps(10) 0.1s forwards; }
+.bf-volar { animation: bf-volar 0.6s cubic-bezier(0.5, 0, 0.6, 1) both; }
+.bf-bolsa { transform-origin: bottom; animation: bf-apretar 0.3s ease 1.8s, bf-apretar 0.3s ease 2.1s, bf-apretar 0.3s ease 2.4s; }
+.bf-girar-lento { animation: bf-girar 1.2s linear infinite reverse; }
+
+
+/* ---------- Buscando tu sucursal ---------- */
+@keyframes bf-radar {
+  from { transform: scale(0.2); opacity: 0.9; }
+  to   { transform: scale(2.6); opacity: 0; }
+}
+@keyframes bf-pin {
+  0%   { transform: translateY(-60px) rotate(-45deg); opacity: 0; }
+  60%  { transform: translateY(6px) rotate(-45deg);   opacity: 1; }
+  80%  { transform: translateY(-4px) rotate(-45deg); }
+  100% { transform: translateY(0) rotate(-45deg);     opacity: 1; }
+}
+@keyframes bf-ruta {
+  from { stroke-dashoffset: 420; }
+  to   { stroke-dashoffset: 0; }
+}
+/* El texto "Buscando…" se va y entra "Te atiende…" (las dos duran lo mismo que la pantalla) */
+@keyframes bf-texto-sale {
+  0%, 55%   { opacity: 1; transform: translateY(0); }
+  65%, 100% { opacity: 0; transform: translateY(-16px); }
+}
+@keyframes bf-texto-entra {
+  0%, 60%   { opacity: 0; transform: translateY(16px); }
+  72%, 100% { opacity: 1; transform: translateY(0); }
+}
+
+.bf-radar { opacity: 0; animation: bf-radar 1.6s ease-out infinite; }
+.bf-pin { opacity: 0; animation: bf-pin 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.15s forwards; }
+.bf-ruta { stroke-dasharray: 420; stroke-dashoffset: 420; animation: bf-ruta 1.1s cubic-bezier(0.5, 0, 0.3, 1) 0.7s forwards; }
+.bf-texto-sale { animation: bf-texto-sale 2.8s ease forwards; }
+.bf-texto-entra { opacity: 0; animation: bf-texto-entra 2.8s ease forwards; }
+
+
+/* ---------- Hasta pronto (al cerrar sesión) ---------- */
+@keyframes bf-cortina {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes bf-salida {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes bf-cartel {
+  0%   { transform: rotate(-4deg) translateY(-200px); }
+  60%  { transform: rotate(5deg) translateY(10px); }
+  80%  { transform: rotate(-2deg); }
+  100% { transform: rotate(0); }
+}
+@keyframes bf-saludo {
+  0%, 100% { transform: rotate(0); }
+  20%      { transform: rotate(-22deg); }
+  40%      { transform: rotate(14deg); }
+  60%      { transform: rotate(-16deg); }
+  80%      { transform: rotate(8deg); }
+}
+@keyframes bf-guinio {
+  0%, 40%, 100% { transform: scaleY(1); }
+  45%, 55%      { transform: scaleY(0.1); }
+}
+
+/* Sube la cortina, se queda ~2 s y se desvanece */
+.bf-cortina { transform: translateY(100%); animation: bf-cortina 0.5s cubic-bezier(0.7, 0, 0.3, 1) forwards, bf-salida 0.4s ease-in 3.6s forwards; }
+.bf-cartel { transform-origin: top center; animation: bf-cartel 0.8s cubic-bezier(0.3, 1.4, 0.5, 1) 0.3s both; }
+.bf-saludo { transform-origin: bottom center; animation: bf-saludo 1.1s ease-in-out 0.6s 2; }
+.bf-guinio { animation: bf-guinio 1.4s ease 0.8s 2; }
+
+/* ---------- Transición entre páginas y tarjetas escalonadas ---------- */
+@keyframes bf-aparecer {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes bf-deslizar {
+  from { transform: translateY(24px); }
+  to   { transform: translateY(0); }
+}
+@keyframes bf-fundido {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes bf-tarjeta {
+  from { transform: translateY(28px) scale(0.94); opacity: 0; }
+  to   { transform: translateY(0) scale(1);       opacity: 1; }
+}
+
+/* La página se desliza en 0.6 s pero el fundido dura 0.15 s: así no queda el flash claro
+   en las páginas con banda oscura arriba.
+   "backwards" (y no "both"): al terminar no deja ningún transform puesto,
+   así no rompe los elementos "fixed" que haya dentro de la página */
+.bf-pagina {
+  animation:
+    bf-deslizar 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) backwards,
+    bf-fundido 0.8s ease-out backwards;
+}
+
+/* Cada hijo directo aparece un poquito después que el anterior (hasta el 8.º; los demás, juntos) */
+.bf-escalonado > * { animation: bf-tarjeta 0.55s cubic-bezier(0.3, 1.3, 0.5, 1) backwards; animation-delay: 0.56s; }
+.bf-escalonado > :nth-child(1) { animation-delay: 0s; }
+.bf-escalonado > :nth-child(2) { animation-delay: 0.08s; }
+.bf-escalonado > :nth-child(3) { animation-delay: 0.16s; }
+.bf-escalonado > :nth-child(4) { animation-delay: 0.24s; }
+.bf-escalonado > :nth-child(5) { animation-delay: 0.32s; }
+.bf-escalonado > :nth-child(6) { animation-delay: 0.4s; }
+.bf-escalonado > :nth-child(7) { animation-delay: 0.48s; }
