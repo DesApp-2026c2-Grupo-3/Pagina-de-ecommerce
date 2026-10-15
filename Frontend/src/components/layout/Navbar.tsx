@@ -25,10 +25,11 @@ function Navbar() {
     <header className="sticky top-0 z-30 border-b-4 border-brand-red bg-brand-dark" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         {/* Logo y dónde se recibe el pedido */}
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Link to="/" className="flex shrink-0 items-center" onClick={() => alNavegar('/')}>
+        <Link to="/" className="flex shrink-0 items-center" onClick={() => alNavegar('/')}>
             <LogoConEco isAuthenticated={isAuthenticated} />
-          </Link>
+        </Link>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          
           <ZoneButton />
         </div>
 
@@ -65,11 +66,14 @@ function Navbar() {
           </Link>
 
           {isAuthenticated ? (
-            <AccountMenu onLogout={cerrarSesion} />
+            <div className="ml-2 "> <AccountMenu onLogout={cerrarSesion} /></div>
+           
           ) : (
+            
+            
             <Link
               to="/login"
-              className="flex min-h-11 items-center rounded-full bg-brand-red px-5 font-bold text-white transition hover:brightness-110"
+              className="ml-10 flex min-h-11 items-center rounded-full bg-brand-red px-10 font-bold text-white transition hover:brightness-110"
             >
               Ingresar
             </Link>

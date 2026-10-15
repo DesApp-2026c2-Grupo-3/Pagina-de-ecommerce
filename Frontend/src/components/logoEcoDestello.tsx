@@ -67,7 +67,7 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
             <div
                 className="relative"
                 style={{
-                    height: 'clamp(2.25rem, 4vw + 1.2rem, 3.5rem)',
+                    height: 'clamp(2.25rem, 7vw + 1.6rem, 3.5rem)',
                     aspectRatio: '417 / 274',
                 }}
             >
