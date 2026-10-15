@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/animaciones.css";
 
 @theme {
   --color-brand-red: #e4002b;
@@ -22,10 +23,21 @@
     flex-direction: column;
   }
 
- html {
-  overflow-y: scroll; 
-}
-  
+  /* La página no muestra barra de scroll: para subir está el BotonSubir */
+  html {
+    overflow-y: scroll;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Paneles con scroll interno (modales, carrito…): barra finita con los colores de la marca */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-muted) transparent;
+  }
+
   body,
   html {
     cursor: default;

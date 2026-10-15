@@ -30,8 +30,9 @@ function HistorialPedidos() {
 
   const enCurso = pedidos.filter((p) => estaEnCurso(p.estado))
   const aplica = FILTROS_PEDIDO.find((f) => f.id === filtro)!.aplica
-  const filtrados = pedidos.filter((p) => aplica(p.estado))
-
+  // La lista de abajo es solo de pedidos terminados: los en curso ya están arriba
+  const filtrados = pedidos.filter((p) => !estaEnCurso(p.estado) && aplica(p.estado))
+  
   return (
     <AccountLayout titulo="Historial de pedidos" cargando={loading}>
       <ErrorAlert message={error} />
@@ -45,7 +46,7 @@ function HistorialPedidos() {
           <p className="text-brand-muted">Cuando pidas, vas a poder seguirlos y repetirlos desde acá.</p>
           <Link
             to="/catalogo"
-            className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Ver el menú
           </Link>
@@ -76,8 +77,11 @@ function HistorialPedidos() {
           {filtrados.length === 0 ? (
             <p className="py-6 text-center text-brand-muted">No hay pedidos en esta categoría.</p>
           ) : (
-            filtrados.map((pedido) => <PedidoCard key={pedido.id} pedido={pedido} />)
-          )}
+            <div className="bf-escalonado flex flex-col gap-5">
+              {filtrados.map((pedido) => (
+                <PedidoCard key={pedido.id} pedido={pedido} />
+              ))}
+            </div>          )}
         </>
       )}
     </AccountLayout>

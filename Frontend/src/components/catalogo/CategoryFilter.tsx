@@ -7,8 +7,8 @@ interface Props {
 }
 
 const base = 'shrink-0 whitespace-nowrap rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors'
-const activo = 'bg-brand-red text-white'
-const inactivo = 'text-brand-dark hover:bg-brand-cream'
+const activo = 'bg-gradient-to-b from-red-500 to-red-700 text-white'
+const inactivo = 'text-brand-dark hover:bg-gradient-to-b from-red-100 to-red-200 '
 
 // Chips de categorías dentro de la barra blanca tipo sticker
 function CategoryFilter({ categorias, seleccionada, onSeleccionar }: Props) {

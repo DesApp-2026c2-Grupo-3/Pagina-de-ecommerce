@@ -16,5 +16,8 @@ router.put('/:id', usuarioValidaciones.validarActualizarUsuario, usuarioControll
 
 router.put('/:id/sucursal', usuarioController.actualizarSucursalPredeterminada)
 
+router.post('/recuperar-password', usuarioController.solicitarRecuperacion)
+
+router.post('/restablecer-password', usuarioController.restablecerPassword)
 
 module.exports = router;

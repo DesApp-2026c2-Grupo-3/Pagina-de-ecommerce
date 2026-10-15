@@ -16,7 +16,7 @@ function PromoDestacadaBanner() {
           <p className="max-w-md text-lg text-white/85">{promo.descripcion}</p>
           <Link
             to={promo.link}
-            className="inline-flex min-h-12 items-center rounded-full bg-brand-cream px-6 font-bold text-brand-dark transition-transform hover:-translate-y-0.5"
+            className="inline-flex min-h-12 items-center rounded-full bg-brand-cream px-6 font-bold text-brand-dark transition-transform hover:translate-y-0.5"
           >
             {promo.boton}
           </Link>

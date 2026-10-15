@@ -8,6 +8,9 @@ import { useZona } from '../context/ZonaContext'
 import { getRepetirPedido } from '../services/orderService'
 import { getProductoDetalle } from '../services/productService'
 import type { ProductoBackend } from '../types/product'
+import type { Order } from '../types/order'
+import ArmandoPedido from './ArmandoPedido'
+import { esperar } from '../utils/esperar'
 
 interface Resumen {
   agregados: number
@@ -18,15 +21,17 @@ interface Resumen {
 
 const estilos = {
   claro: 'min-h-10 border-2 border-brand-dark bg-brand-cream px-4 text-sm text-brand-dark hover:bg-brand-mustard',  
-  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:-translate-y-0.5',
+  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:translate-y-0.5',
 }
 
 interface Props {
-  pedidoId: number
+  /** El pedido a repetir (se usa su id y, en la pantalla de carga, sus productos) */
+  pedido: Order
   variante?: keyof typeof estilos
 }
 
-function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { user } = useAuth()
+function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
+  const { user } = useAuth()
   const { addItem } = useCart()
   const { zona, abrirSelector } = useZona()
   const navigate = useNavigate()
@@ -46,7 +51,8 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { 
     setCargando(true)
     setError('')
     try {
-      const resultado = await getRepetirPedido(pedidoId, user.id, zona.sucursalId)
+      // La pantalla "Armando tu pedido otra vez" dura al menos 2,8 segundos
+      const [resultado] = await Promise.all([getRepetirPedido(pedido.id, user.id, zona.sucursalId), esperar(2800)])
 
       // Cada producto completo (con su receta y tamaños), una sola vez
       const ids = [...new Set(resultado.disponibles.map((l) => l.productoId))]
@@ -59,7 +65,11 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { 
       for (const linea of resultado.disponibles) {
         const producto = productos.get(linea.productoId)
         if (!producto || !producto.disponible) {
-          noDisponibles.push({ nombre: producto?.nombre ?? 'Un producto', cantidad: linea.cantidad, motivo: 'No hay stock en tu sucursal' })
+          noDisponibles.push({
+            nombre: producto?.nombre ?? 'Un producto',
+            cantidad: linea.cantidad,
+            motivo: 'No hay stock en tu sucursal',
+          })
           continue
         }
         addItem(producto, linea.cantidad, linea.selectedOptions, {
@@ -90,11 +100,13 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { 
         type="button"
         onClick={repetir}
         disabled={cargando}
-        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:opacity-50 ${estilos[variante]}`}      >
+        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:opacity-50 ${estilos[variante]}`}
+      >
         <RotateCcw size={16} />
         {cargando ? 'Cargando...' : 'Repetir pedido'}
       </button>
       {error && <p className="mt-2 text-sm font-semibold text-brand-red">{error}</p>}
+      {cargando && <ArmandoPedido pedido={pedido} />}
 
       <Modal
         isOpen={resumen !== null}
@@ -109,6 +121,7 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  const { 
                 {resumen.agregados === 1 ? 'producto' : 'productos'} a tu carrito.
               </p>
             )}
+
 
             {resumen.preciosCambiaron && (
               <p className="rounded-xl bg-brand-cream p-3 text-sm text-brand-dark">

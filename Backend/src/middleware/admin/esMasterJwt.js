@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 const esMasterJwt = (req, res, next) => {
     try {
-        console.log("Cookies recibidas:", req.cookies)
+
         const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
         const token = req.cookies.access_token;
         if (!token) {

@@ -17,7 +17,7 @@ function NotFound() {
         <div className="flex flex-wrap justify-center gap-3">
           <Link
             to="/"
-            className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Volver al inicio
           </Link>

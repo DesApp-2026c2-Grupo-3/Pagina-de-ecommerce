@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
 import Pagination from "../components/catalogo/Pagination";
 import { useZona } from "../context/ZonaContext";
@@ -18,6 +18,8 @@ function Products() {
     return id > 0 ? id : null;
   });  
   const [search, setSearch] = useState("");
+    // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
+  const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,10 +37,15 @@ function Products() {
   // Volver a la página 1 si cambia cualquier filtro o la zona
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, search, zona?.sucursalId]);
+  }, [selectedCategory, busqueda, zona?.sucursalId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBusqueda(search), 250);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const query = busqueda.trim().toLowerCase();
 
     return products
       .filter((product) => {
@@ -56,7 +63,7 @@ function Products() {
         return true;
       })
       .sort((a, b) => Number(b.disponible) - Number(a.disponible));
-  }, [products, selectedCategory, search]);
+  }, [products, selectedCategory, busqueda]);
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
@@ -112,14 +119,30 @@ function Products() {
         </div>
 
         {filteredProducts.length === 0 ? (
-          <div className="mt-16 flex flex-col items-center gap-2 text-center">
-            <img src="/Otros/notFound.png" alt="" className="h-56" />
-            <p className="font-display text-2xl font-extrabold">No encontramos productos con ese criterio.</p>
+          <div className="mx-auto mt-10 flex max-w-xl flex-col items-center gap-4 rounded-3xl border-2 border-brand-dark bg-white px-6 py-12 text-center">
+            <span className="grid h-16 w-16 -rotate-6 place-items-center rounded-2xl bg-brand-mustard">
+              <SearchX className="h-8 w-8" />
+            </span>
+            <p className="font-display text-3xl font-extrabold tracking-tight">No encontramos productos</p>
             <p className="text-brand-muted">Probá con otra categoría o cambiá la búsqueda.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setSelectedCategory(null);
+              }}
+              className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+            >
+              Ver todo el menú
+            </button>
           </div>
         ) : (
           <>
-            <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {/* La key cambia con cada filtro: la grilla se vuelve a armar y las tarjetas entran de nuevo */}
+            <div
+              key={`${selectedCategory}-${busqueda}-${currentPage}`}
+              className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
               {currentProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

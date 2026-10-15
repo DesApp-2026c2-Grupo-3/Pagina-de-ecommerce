@@ -362,7 +362,7 @@ function Address() {
             <button
               type="submit"
               disabled={saving}
-              className="min-h-11 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
+              className="min-h-11 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
             >
               {paso < PASOS.length ? 'Siguiente' : saving ? 'Guardando...' : 'Guardar'}
             </button>

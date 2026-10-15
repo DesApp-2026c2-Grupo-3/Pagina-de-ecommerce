@@ -12,6 +12,7 @@ const {
     ProductoTamanio,
     StockSucursal,
     MovimientoStock,
+    historialDeTiemposPedido,
     sequelize,
 } = require('../models');
 const { distanciaKm } = require('../utils/distancia');
@@ -98,36 +99,43 @@ async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t })
     return { elegido, tamanio, recargo, receta };
 }
 //Solo para pruebas
-const obtenerPedidos = async (req,res) => {
-    try{
+const obtenerPedidos = async (req, res) => {
+    try {
 
-        const pedidos = await Pedido.findAll({include: [{model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]})
+        const pedidos = await Pedido.findAll({ include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }] })
 
         res.status(200).json(pedidos)
 
-    } catch(error){
+    } catch (error) {
         console.error('Algo salio mal', error.message)
-        res.status(500).json({mensaje: 'Error del servidor'})
+        res.status(500).json({ mensaje: 'Error del servidor' })
     }
 
 }
 
 const obtenerPedidosPorUsuario = async (req, res) => {
-  try {
-    const pedidos = await Pedido.findAll({
-      where: { usuarioId: req.params.usuarioId },
-include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }],      order: [['fecha', 'DESC']],
-    });
+    try {
+        const pedidos = await Pedido.findAll({
+            where: { usuarioId: req.params.usuarioId },
+            include: [{
+                model: DetallePedido,
+                include: [{ model: Producto, paranoid: false }],
+            }, {
+                model: Sucursal,
+            }],
+            order: [['fecha', 'DESC']],
+        });
 
-    res.status(200).json(pedidos);
-  } catch (error) {
-    console.error('Algo salió mal', error.message);
-    res.status(500).json({ mensaje: 'Error del servidor' });
-  }
+
+        res.status(200).json(pedidos);
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error del servidor' });
+    }
 };
 
-const obtenerPedidoId = async (req,res) => {
-    try{
+const obtenerPedidoId = async (req, res) => {
+    try {
         const pedido = await Pedido.findByPk(req.params.id, {
             include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]
         });
@@ -139,7 +147,7 @@ const obtenerPedidoId = async (req,res) => {
         }
 
         res.json(pedido);
-    } catch(error){
+    } catch (error) {
         console.error(error);
 
         res.status(500).json({
@@ -148,31 +156,32 @@ const obtenerPedidoId = async (req,res) => {
     };
 };
 
-const crearPedido = async (req,res) => {
+const crearPedido = async (req, res) => {
 
     const t = await sequelize.transaction();
 
-    try{
-        const { usuarioId, productos, direccionId, sucursalId } = req.body;
+
+    try {
+        const { usuarioId, productos, direccionId, sucursalId, observaciones } = req.body;
         const usuario = await Usuario.findByPk(usuarioId);
 
-        if(!usuario){
+        if (!usuario) {
             await t.rollback();
-            return res.status(404).json({ mensaje: 'Usuario no encontrado'})
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' })
         }
 
         const sucursal = await Sucursal.findByPk(sucursalId);
-        if(!sucursal){
+        if (!sucursal) {
             await t.rollback();
-            return res.status(404).json({ mensaje: 'Sucursal no encontrada'})
+            return res.status(404).json({ mensaje: 'Sucursal no encontrada' })
         }
 
         const direccion = await Direccion.findOne({ where: { id: direccionId, usuarioId } });
         if (!direccion) {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Dirección no encontrada' });
-        }        
-                // La sucursal tiene que estar activa y llegar a la dirección
+        }
+        // La sucursal tiene que estar activa y llegar a la dirección
         if (!sucursal.activa) {
             throw new ErrorPedido(400, `${sucursal.nombre} no está tomando pedidos en este momento`);
         }
@@ -187,7 +196,7 @@ const crearPedido = async (req,res) => {
             throw new ErrorPedido(400, `Tu dirección está fuera de la zona de entrega de ${sucursal.nombre}`);
         }
 
-         // Verificar que haya productos
+        // Verificar que haya productos
         if (!Array.isArray(productos) || productos.length === 0) {
             await t.rollback();
             return res.status(400).json({
@@ -196,14 +205,18 @@ const crearPedido = async (req,res) => {
         }
 
         const nuevoPedido = await Pedido.create({
-            usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0
-        }, { transaction: t});
+
+            usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0,
+            observaciones: typeof observaciones === 'string'
+                ? observaciones.trim() || null
+                : null,
+        }, { transaction: t });
 
         let total = 0;
 
         // Recorrer los productos recibidos
-        for ( const producto of productos){
-            
+        for (const producto of productos) {
+
             if (!producto.productoId || !producto.cantidad) {
                 throw new ErrorPedido(400, 'Cada producto debe tener productoId y cantidad');
             }
@@ -383,16 +396,24 @@ const crearPedido = async (req,res) => {
                         recargo: recargoCombo
                     }
                     : null
-            },{transaction: t});
+            }, { transaction: t });
         }
 
-        await nuevoPedido.update({ total: total }, {transaction: t});
+        await nuevoPedido.update({ total: total }, { transaction: t });
+
+        // Registro inicial de la línea de tiempo: nace en el estado actual del pedido
+        await historialDeTiemposPedido.create({
+            pedidoId: nuevoPedido.id,
+            estado: nuevoPedido.estado,
+            estadoAnterior: null,
+            fecha: nuevoPedido.fecha,
+        }, { transaction: t });
 
         await t.commit();
 
         return res.status(201).json(nuevoPedido)
 
-    } catch (error){
+    } catch (error) {
 
         await t.rollback();
 
@@ -402,7 +423,7 @@ const crearPedido = async (req,res) => {
 
         console.error('Algo salio mal', error.message)
 
-        return res.status(500).json({mensaje: 'Error del servidor'})
+        return res.status(500).json({ mensaje: 'Error del servidor' })
     }
 };
 
