@@ -62,6 +62,7 @@ export default function Navbar({
 
   return (
     <nav className="bg-gray-900 text-white">
+      {/* Barra superior */}
       <div className="flex items-center justify-between px-6 py-4">
         <h1 className="text-xl font-bold">Administración</h1>
 
@@ -76,15 +77,22 @@ export default function Navbar({
           {menuAbierto ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Menú escritorio */}
-        <div className="hidden items-center gap-6 md:flex">
-          {enlaces.map((e) => (
-            <NavLink key={e.to} to={e.to} end={e.end} className={claseEnlace}>
-              {e.label}
-            </NavLink>
-          ))}
-          {usuario}
-        </div>
+        {/* Usuario en escritorio */}
+        <div className="hidden md:block">{usuario}</div>
+      </div>
+
+        {/* Enlaces en un segundo renglón */}
+      <div className="hidden border-t border-gray-700 px-6 py-3 md:flex md:items-center md:gap-6">           
+        {enlaces.map((e) => (
+          <NavLink 
+          key={e.to}
+          to={e.to}
+          end={e.end}
+          className={claseEnlace}
+          >
+            {e.label}
+          </NavLink>
+        ))}
       </div>
 
       {/* Menú móvil */}

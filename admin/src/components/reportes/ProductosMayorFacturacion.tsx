@@ -3,6 +3,7 @@ import {
   obtenerProductosMayorFacturacion,
   type ProductoMayorFacturacion,
 } from "../../services/reporteService";
+import Paginacion from "../Paginacion";
 
 const API_BASE = "http://localhost:3000";
 
@@ -10,6 +11,8 @@ export default function ProductosMayorFacturacion() {
   const [productos, setProductos] = useState<ProductoMayorFacturacion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [paginaActual, setPaginaActual] = useState(1);
+  const productosPorPagina = 5;
 
   const cargarReporte = useCallback(async () => {
     setCargando(true);
@@ -44,8 +47,16 @@ export default function ProductosMayorFacturacion() {
       maximumFractionDigits: 2,
     });
 
+  const indiceUltimoProducto = paginaActual * productosPorPagina;
+  const indicePrimerProducto = indiceUltimoProducto - productosPorPagina;
+
+  const productosPagina = productos.slice(
+  indicePrimerProducto,
+  indiceUltimoProducto
+); 
+
   return (
-    <section className="space-y-6 p-2">
+    <section className="space-y-6 p-3">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium text-orange-600">
@@ -140,7 +151,7 @@ export default function ProductosMayorFacturacion() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {productos.map((producto, indice) => (
+                {productosPagina.map((producto, indice) => (
                   <tr key={producto.productoId} className="hover:bg-gray-50">
                     <td className="px-5 py-4 sm:px-6">
                       <div className="flex items-center gap-3">
@@ -178,9 +189,18 @@ export default function ProductosMayorFacturacion() {
                 ))}
               </tbody>
             </table>
+
           </div>
         )}
+
       </section>
+
+      <Paginacion
+              paginaActual={paginaActual}
+              totalElementos={productos.length}
+              elementosPorPagina={productosPorPagina}
+              cambiarPagina={setPaginaActual}
+            />
     </section>
   );
 }

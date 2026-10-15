@@ -25,6 +25,7 @@ import Reportes from '../pages/Reportes/Reportes'
 import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos'
 import ProductosMenosVendidos from '../components/reportes/ProductosMenosVendidos'
 import ProductosMayorFacturacion from '../components/reportes/ProductosMayorFacturacion'
+import ProductosSinStock from '../components/reportes/ProductosSinStock'
 
 interface AppRoutesProps {
   isAuthenticated: boolean
@@ -53,6 +54,7 @@ export default function AppRoutes({ isAuthenticated, administrador ,setAdministr
                  <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />}/>
                  <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />}/>
                  <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />}/>
+                 <Route path="/admin/reportes/productos-sin-stock" element={<ProductosSinStock administrador={administrador} />}/>
 
                 {/* Solo el master */}
                 <Route element={<SoloMaster administrador={administrador} />}>

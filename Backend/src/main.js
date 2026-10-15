@@ -20,6 +20,11 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+app.use(
+    '/imagenes',
+    express.static(require('path').join(__dirname, '../../Frontend/public/imagenes'))
+);
+
 //RUTAS
 app.get('/', (req, res) => {
     res.json({

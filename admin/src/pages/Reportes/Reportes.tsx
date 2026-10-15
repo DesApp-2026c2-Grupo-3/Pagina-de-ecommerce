@@ -1,32 +1,33 @@
 
 import { Link } from "react-router-dom";
+import { Crown, TrendingDown, Boxes, BadgeDollarSign} from "lucide-react";
 
 const reportes = [
   {
     titulo: "Productos más vendidos",
     descripcion: "Consultá qué productos lideran las ventas.",
-    icono: "🏆",
+    icono: <Crown size={20} className="text-yellow-400"/>,
     ruta: "/admin/reportes/productos-mas-vendidos",
     disponible: true,
   },
   {
     titulo: "Productos menos vendidos",
     descripcion: "Encontrá los productos con menor movimiento, incluidos los que no registran ventas.",
-    icono: "📉",
+    icono: <TrendingDown size={20} className="text-red-500"/>,
     ruta: "/admin/reportes/productos-menos-vendidos",
     disponible: true,
   },
   {
     titulo: "Productos sin stock",
     descripcion: "Identificá los productos que no se pueden preparar por falta de insumos.",
-    icono: "📦",
-    ruta: "",
-    disponible: false,
+    icono: <Boxes size={20} className="text-orange-700"/>,
+    ruta: "/admin/reportes/productos-sin-stock",
+    disponible: true,
   },
   {
     titulo: "Productos con mayor facturación",
     descripcion: "Conocé qué productos generan más ingresos por ventas.",
-    icono: "💰",
+    icono: <BadgeDollarSign size={20} className="text-orange-500"/>,
     ruta: "/admin/reportes/productos-mayor-facturacion",
     disponible: true,
   },
@@ -34,7 +35,7 @@ const reportes = [
 
 export default function Reportes() {
   return (
-    <section className="space-y-6 p-2">
+    <section className="space-y-6 p-3">
       <header>
         <p className="text-sm font-medium text-orange-600">
           ANÁLISIS DEL NEGOCIO

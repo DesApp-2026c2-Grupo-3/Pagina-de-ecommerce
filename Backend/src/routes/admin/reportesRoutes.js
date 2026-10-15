@@ -10,4 +10,6 @@ router.get('/productos-menos-vendidos', esAdminJwt,reporteController.obtenerProd
 
 router.get('/productos-mayor-facturacion', esAdminJwt, reporteController.obtenerProductosMayorFacturacion);
 
+router.get('/productos-sin-stock', esAdminJwt, reporteController.obtenerProductosSinStock);
+
 module.exports = router;
