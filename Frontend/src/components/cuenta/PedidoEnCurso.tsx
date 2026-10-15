@@ -30,7 +30,7 @@ function PedidoEnCurso({ pedido }: { pedido: Order }) {
             Observaciones del pedido
           </p>
           
-          <p className="mt-1 whitespace-pre-wrap text-sm text-brand-cream/80">
+          <p className="mt-1 whitespace-pre-wrap text-sm text-brand-cream/80 break-words">
             {pedido.observaciones}
           </p>
         </div>

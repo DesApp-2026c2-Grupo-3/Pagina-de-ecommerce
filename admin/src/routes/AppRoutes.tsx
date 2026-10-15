@@ -21,6 +21,10 @@ import Stock from '../pages/Stock/Stock'
 import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
 import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
+import Reportes from '../pages/Reportes/Reportes'
+import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos'
+import ProductosMenosVendidos from '../components/reportes/ProductosMenosVendidos'
+import ProductosMayorFacturacion from '../components/reportes/ProductosMayorFacturacion'
 
 interface AppRoutesProps {
   isAuthenticated: boolean
@@ -45,6 +49,10 @@ export default function AppRoutes({ isAuthenticated, administrador ,setAdministr
                 </ProtectedRoute>}>
                  <Route path="/admin" element={<AdminHome administrador={administrador} />} />
                  <Route path="/admin/pedidos" element={<Pedidos administrador={administrador} />} />
+                 <Route path="/admin/reportes" element={<Reportes />} />
+                 <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />}/>
+                 <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />}/>
+                 <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />}/>
 
                 {/* Solo el master */}
                 <Route element={<SoloMaster administrador={administrador} />}>
