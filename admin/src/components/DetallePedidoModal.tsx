@@ -1,162 +1,136 @@
-import { useEffect, useState } from 'react'
-import { MapPin, Phone, X } from 'lucide-react'
-import { obtenerInsumos, obtenerProductos } from '../services/productoService'
+import { useEffect, useState } from "react";
+import { MapPin, Phone, X } from "lucide-react";
+import { obtenerInsumos, obtenerProductos } from "../services/productoService";
+import { obtenerPedidoPorId } from "../services/pedidoService";
+import { formatearFechaHora } from "../utils/pedidoEstado";
+import SeguimientoPedidoAdmin from "./SeguimientoPedidoAdmin";
+import type {
+  DetalleLinea,
+  EleccionCombo,
+  Personalizacion,
+  PedidoCompleto,
+  ProductoCatalogo,
+  PropsDetallePedidoModal,
+} from "../types/pedido";
 
-const API_URL = 'http://localhost:3000/admin/pedidos'
-const TAMANIOS: Record<number, string> = { 1: 'Regular', 2: 'Mediano', 3: 'Grande' }
+const TAMANIOS: Record<number, string> = {
+  1: "Regular",
+  2: "Mediano",
+  3: "Grande",
+};
 
-interface Personalizacion {
-  insumoId: number
-  cantidad: number
-}
-
-interface EleccionCombo {
-  grupoId: number
-  productoId: number
-  recargo?: number
-}
-
-interface DetalleLinea {
-  id: number
-  productoId: number
-  cantidad: number
-  precio: string | number
-  tamanioId: number | null
-  personalizaciones: Personalizacion[] | string | null
-  combo: { elecciones?: EleccionCombo[] } | string | null
-  Producto: { id: number; nombre: string } | null
-}
-
-interface PedidoCompleto {
-  id: number
-  fecha: string
-  estado: string
-  total: string | number
-  Usuario: { nombre: string; apellido: string; email: string; telefono: string | null } | null
-  Direccion: {
-    alias: string
-    calle: string
-    numero: string
-    piso: string | null
-    localidad: string | null
-    provincia: string | null
-    observaciones: string | null
-    latitud: string | number | null
-    longitud: string | number | null
-  } | null
-  Sucursal: { nombre: string } | null
-  DetallePedidos: DetalleLinea[]
-}
-
-// Lo que hace falta del catálogo para traducir ids a nombres
-interface ProductoCatalogo {
-  id: number
-  nombre: string
-  receta?: { insumoId: number; cantidadBase: number }[]
-  grupos?: { id: number; nombre: string }[]
-}
-
-interface Props {
-  pedidoId: number | null
-  onClose: () => void
-}
-
-const precio = (n: number) => `$${n.toLocaleString('es-AR')}`
+const precio = (n: number) => `$${n.toLocaleString("es-AR")}`;
 
 // Las columnas JSON pueden llegar como texto según la base
 function comoJson<T>(valor: T | string | null | undefined): T | null {
-  if (valor == null) return null
-  if (typeof valor !== 'string') return valor
+  if (valor == null) return null;
+  if (typeof valor !== "string") return valor;
   try {
-    return JSON.parse(valor) as T
+    return JSON.parse(valor) as T;
   } catch {
-    return null
+    return null;
   }
 }
 
-function formatearFechaHora(valor: string) {
-  return new Date(valor).toLocaleString('es-AR', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
-}
-
-export default function DetallePedidoModal({ pedidoId, onClose }: Props) {
-  const [pedido, setPedido] = useState<PedidoCompleto | null>(null)
-  const [productos, setProductos] = useState<Map<number, ProductoCatalogo>>(new Map())
-  const [insumos, setInsumos] = useState<Map<number, string>>(new Map())
-  const [error, setError] = useState('')
+export default function DetallePedidoModal({
+  pedidoId,
+  onClose,
+}: PropsDetallePedidoModal) {
+  const [pedido, setPedido] = useState<PedidoCompleto | null>(null);
+  const [productos, setProductos] = useState<Map<number, ProductoCatalogo>>(
+    new Map(),
+  );
+  const [insumos, setInsumos] = useState<Map<number, string>>(new Map());
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (pedidoId === null) return
-    let cancelado = false
-    setPedido(null)
-    setError('')
+    if (pedidoId === null) return;
+    let cancelado = false;
+    setPedido(null);
+    setError("");
 
     Promise.all([
-      fetch(`${API_URL}/${pedidoId}`, { credentials: 'include' }).then(async (r) => {
-        const datos = await r.json().catch(() => null)
-        if (!r.ok) throw new Error(datos?.mensaje ?? datos?.msj ?? 'No se pudo cargar el pedido')
-        return datos as PedidoCompleto
-      }),
+      obtenerPedidoPorId(pedidoId),
       // Si el catálogo no carga, el detalle se muestra igual, con ids en lugar de nombres
       obtenerProductos().catch(() => []),
       obtenerInsumos().catch(() => []),
     ])
       .then(([detalle, prods, ins]) => {
-        if (cancelado) return
-        setPedido(detalle)
-        setProductos(new Map((prods as ProductoCatalogo[]).map((p) => [p.id, p])))
-        setInsumos(new Map((ins as { id: number; nombre: string }[]).map((i) => [i.id, i.nombre])))
+        if (cancelado) return;
+        setPedido(detalle);
+        setProductos(
+          new Map((prods as ProductoCatalogo[]).map((p) => [p.id, p])),
+        );
+        setInsumos(
+          new Map(
+            (ins as { id: number; nombre: string }[]).map((i) => [
+              i.id,
+              i.nombre,
+            ]),
+          ),
+        );
       })
-      .catch((err) => !cancelado && setError(err instanceof Error ? err.message : 'No se pudo cargar el pedido'))
+      .catch(
+        (err) =>
+          !cancelado &&
+          setError(
+            err instanceof Error ? err.message : "No se pudo cargar el pedido",
+          ),
+      );
 
     return () => {
-      cancelado = true
-    }
-  }, [pedidoId])
+      cancelado = true;
+    };
+  }, [pedidoId]);
 
   // Esc cierra
   useEffect(() => {
-    if (pedidoId === null) return
-    const alApretar = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', alApretar)
-    return () => document.removeEventListener('keydown', alApretar)
-  }, [pedidoId, onClose])
+    if (pedidoId === null) return;
+    const alApretar = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", alApretar);
+    return () => document.removeEventListener("keydown", alApretar);
+  }, [pedidoId, onClose]);
 
-  if (pedidoId === null) return null
+  if (pedidoId === null) return null;
 
-  const nombreProducto = (id: number) => productos.get(id)?.nombre ?? `Producto #${id}`
-  const nombreInsumo = (id: number) => insumos.get(id) ?? `Insumo #${id}`
+  const nombreProducto = (id: number) =>
+    productos.get(id)?.nombre ?? `Producto #${id}`;
+  const nombreInsumo = (id: number) => insumos.get(id) ?? `Insumo #${id}`;
 
   // "Sin Cebolla", "+1 Cheddar", según la receta del producto
   function textosPersonalizacion(linea: DetalleLinea): string[] {
-    const receta = productos.get(linea.productoId)?.receta ?? []
-    return (comoJson<Personalizacion[]>(linea.personalizaciones) ?? []).map((p) => {
-      const nombre = nombreInsumo(Number(p.insumoId))
-      const base = receta.find((r) => r.insumoId === Number(p.insumoId))?.cantidadBase
-      if (Number(p.cantidad) === 0) return `Sin ${nombre}`
-      if (base != null && p.cantidad > base) return `+${p.cantidad - base} ${nombre}`
-      return `${nombre} x${p.cantidad}`
-    })
+    const receta = productos.get(linea.productoId)?.receta ?? [];
+    return (comoJson<Personalizacion[]>(linea.personalizaciones) ?? []).map(
+      (p) => {
+        const nombre = nombreInsumo(Number(p.insumoId));
+        const base = receta.find(
+          (r) => r.insumoId === Number(p.insumoId),
+        )?.cantidadBase;
+        if (Number(p.cantidad) === 0) return `Sin ${nombre}`;
+        if (base != null && p.cantidad > base)
+          return `+${p.cantidad - base} ${nombre}`;
+        return `${nombre} x${p.cantidad}`;
+      },
+    );
   }
 
   // "Papas: Papas con cheddar (+$800)"
   function textosCombo(linea: DetalleLinea): string[] {
-    const grupos = productos.get(linea.productoId)?.grupos ?? []
-    return (comoJson<{ elecciones?: EleccionCombo[] }>(linea.combo)?.elecciones ?? []).map((e) => {
-      const lugar = grupos.find((g) => g.id === e.grupoId)?.nombre ?? 'Opción'
-      const recargo = Number(e.recargo ?? 0)
-      return `${lugar}: ${nombreProducto(e.productoId)}${recargo > 0 ? ` (+${precio(recargo)})` : ''}`
-    })
+    const grupos = productos.get(linea.productoId)?.grupos ?? [];
+    return (
+      comoJson<{ elecciones?: EleccionCombo[] }>(linea.combo)?.elecciones ?? []
+    ).map((e) => {
+      const lugar = grupos.find((g) => g.id === e.grupoId)?.nombre ?? "Opción";
+      const recargo = Number(e.recargo ?? 0);
+      return `${lugar}: ${nombreProducto(e.productoId)}${recargo > 0 ? ` (+${precio(recargo)})` : ""}`;
+    });
   }
 
-  const d = pedido?.Direccion
+  const d = pedido?.Direccion;
   const linkMapa =
     d?.latitud != null && d?.longitud != null
       ? `https://www.google.com/maps?q=${d.latitud},${d.longitud}`
-      : null
+      : null;
 
   return (
     <div
@@ -177,34 +151,60 @@ export default function DetallePedidoModal({ pedidoId, onClose }: Props) {
             </h2>
             {pedido && (
               <p className="text-sm text-gray-600">
-                {formatearFechaHora(pedido.fecha)} · {pedido.Sucursal?.nombre ?? 'Sucursal'} · {pedido.estado}
+                {formatearFechaHora(pedido.fecha)} ·{" "}
+                {pedido.Sucursal?.nombre ?? "Sucursal"} · {pedido.estado}
               </p>
             )}
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded p-1 hover:bg-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="rounded p-1 hover:bg-gray-100"
+          >
             <X size={20} />
           </button>
         </div>
 
-        {error && <p className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        {error && (
+          <p className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
         {!pedido && !error && <p className="mt-4 text-gray-600">Cargando...</p>}
 
         {pedido && (
           <>
+            {/* ---------- Seguimiento del pedido ---------- */}
+            <section className="mt-6 rounded border p-3">
+              <h3 className="font-semibold">Seguimiento del pedido</h3>
+              <div className="mt-2">
+                <SeguimientoPedidoAdmin
+                  estado={pedido.estado}
+                  historial={pedido.historialDeTiemposPedidos ?? []}
+                />
+              </div>
+            </section>
+
             {/* ---------- Productos ---------- */}
             <h3 className="mt-6 font-semibold">Productos</h3>
             <ul className="mt-2 flex flex-col divide-y rounded border">
-              {pedido.DetallePedidos.map((linea) => {
+              {(pedido.DetallePedidos ?? []).map((linea) => {
                 const extras = [
-                  linea.tamanioId ? TAMANIOS[linea.tamanioId] ?? null : null,
+                  linea.tamanioId ? (TAMANIOS[linea.tamanioId] ?? null) : null,
                   ...textosCombo(linea),
                   ...textosPersonalizacion(linea),
-                ].filter(Boolean) as string[]
+                ].filter(Boolean) as string[];
                 return (
-                  <li key={linea.id} className="flex items-start justify-between gap-3 p-3">
+                  <li
+                    key={linea.id}
+                    className="flex items-start justify-between gap-3 p-3"
+                  >
                     <div className="min-w-0">
                       <p className="font-semibold">
-                        {linea.cantidad}× {linea.Producto?.nombre ?? nombreProducto(linea.productoId)}
+                        {linea.cantidad}×{" "}
+                        {linea.Producto?.nombre ??
+                          nombreProducto(linea.productoId)}
                       </p>
                       {extras.length > 0 && (
                         <ul className="mt-1 text-sm text-gray-600">
@@ -218,10 +218,12 @@ export default function DetallePedidoModal({ pedidoId, onClose }: Props) {
                       {precio(Number(linea.precio) * linea.cantidad)}
                     </span>
                   </li>
-                )
+                );
               })}
             </ul>
-            <p className="mt-2 text-right text-lg font-bold">Total: {precio(Number(pedido.total))}</p>
+            <p className="mt-2 text-right text-lg font-bold">
+              Total: {precio(Number(pedido.total))}
+            </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {/* ---------- Entrega ---------- */}
@@ -234,10 +236,12 @@ export default function DetallePedidoModal({ pedidoId, onClose }: Props) {
                       {d.piso && `, ${d.piso}`}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {[d.localidad, d.provincia].filter(Boolean).join(', ')}
+                      {[d.localidad, d.provincia].filter(Boolean).join(", ")}
                     </p>
                     {d.observaciones && (
-                      <p className="mt-2 rounded bg-amber-50 p-2 text-sm text-amber-800">📝 {d.observaciones}</p>
+                      <p className="mt-2 rounded bg-amber-50 p-2 text-sm text-amber-800">
+                        📝 {d.observaciones}
+                      </p>
                     )}
                     {linkMapa && (
                       <a
@@ -263,7 +267,9 @@ export default function DetallePedidoModal({ pedidoId, onClose }: Props) {
                     <p className="mt-1 text-sm">
                       {pedido.Usuario.nombre} {pedido.Usuario.apellido}
                     </p>
-                    <p className="text-sm text-gray-600">{pedido.Usuario.email}</p>
+                    <p className="text-sm text-gray-600">
+                      {pedido.Usuario.email}
+                    </p>
                     {pedido.Usuario.telefono && (
                       <a
                         href={`tel:${pedido.Usuario.telefono}`}
@@ -274,7 +280,9 @@ export default function DetallePedidoModal({ pedidoId, onClose }: Props) {
                     )}
                   </>
                 ) : (
-                  <p className="mt-1 text-sm text-gray-500">Cliente no disponible</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Cliente no disponible
+                  </p>
                 )}
               </section>
             </div>
@@ -282,5 +290,5 @@ export default function DetallePedidoModal({ pedidoId, onClose }: Props) {
         )}
       </div>
     </div>
-  )
+  );
 }

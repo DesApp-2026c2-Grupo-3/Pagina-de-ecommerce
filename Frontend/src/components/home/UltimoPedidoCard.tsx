@@ -48,7 +48,7 @@ function UltimoPedidoCard() {
         <span className="font-display text-3xl font-extrabold text-brand-dark">{formatearPrecio(Number(pedido.total))}</span>
 
         <div>
-          <BotonRepetirPedido pedidoId={pedido.id} variante="oscuro" />
+          <BotonRepetirPedido pedido={pedido} variante="oscuro" />
         </div>
       </div>
     </section>

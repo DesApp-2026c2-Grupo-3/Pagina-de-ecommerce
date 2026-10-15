@@ -8,6 +8,9 @@ import { useZona } from '../context/ZonaContext'
 import { getRepetirPedido } from '../services/orderService'
 import { getProductoDetalle } from '../services/productService'
 import type { ProductoBackend } from '../types/product'
+import type { Order } from '../types/order'
+import ArmandoPedido from './ArmandoPedido'
+import { esperar } from '../utils/esperar'
 
 interface Resumen {
   agregados: number
@@ -22,11 +25,12 @@ const estilos = {
 }
 
 interface Props {
-  pedidoId: number
+  /** El pedido a repetir (se usa su id y, en la pantalla de carga, sus productos) */
+  pedido: Order
   variante?: keyof typeof estilos
 }
 
-function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {  
+function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
   const { user } = useAuth()
   const { addItem } = useCart()
   const { zona, abrirSelector } = useZona()
@@ -47,7 +51,8 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {
     setCargando(true)
     setError('')
     try {
-      const resultado = await getRepetirPedido(pedidoId, user.id, zona.sucursalId)
+      // La pantalla "Armando tu pedido otra vez" dura al menos 2,8 segundos
+      const [resultado] = await Promise.all([getRepetirPedido(pedido.id, user.id, zona.sucursalId), esperar(2800)])
 
       // Cada producto completo (con su receta y tamaños), una sola vez
       const ids = [...new Set(resultado.disponibles.map((l) => l.productoId))]
@@ -60,7 +65,11 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {
       for (const linea of resultado.disponibles) {
         const producto = productos.get(linea.productoId)
         if (!producto || !producto.disponible) {
-          noDisponibles.push({ nombre: producto?.nombre ?? 'Un producto', cantidad: linea.cantidad, motivo: 'No hay stock en tu sucursal' })
+          noDisponibles.push({
+            nombre: producto?.nombre ?? 'Un producto',
+            cantidad: linea.cantidad,
+            motivo: 'No hay stock en tu sucursal',
+          })
           continue
         }
         addItem(producto, linea.cantidad, linea.selectedOptions, {
@@ -91,11 +100,13 @@ function BotonRepetirPedido({ pedidoId, variante = 'claro' }: Props) {
         type="button"
         onClick={repetir}
         disabled={cargando}
-        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:opacity-50 ${estilos[variante]}`}      >
+        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:opacity-50 ${estilos[variante]}`}
+      >
         <RotateCcw size={16} />
         {cargando ? 'Cargando...' : 'Repetir pedido'}
       </button>
       {error && <p className="mt-2 text-sm font-semibold text-brand-red">{error}</p>}
+      {cargando && <ArmandoPedido pedido={pedido} />}
 
       <Modal
         isOpen={resumen !== null}

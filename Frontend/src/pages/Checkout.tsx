@@ -23,6 +23,8 @@ import type { Address } from "../types/address";
 import type { Sucursal } from "../types/sucursal";
 import type { CartItem } from "../types/cart";
 import ModalConfirmarPedido from "../components/checkout/ModalConfirmarPedido";
+import PreparandoPedido from "../components/checkout/PreparandoPedido";
+import { esperar } from "../utils/esperar";
 
 function formatearKm(km: number) {
   return km.toLocaleString("es-AR", { maximumFractionDigits: 1 });
@@ -67,6 +69,8 @@ function Checkout() {
   const [formaPago, setFormaPago] = useState<FormaPago>("efectivo");
   // Pregunta "¿Confirmás tu pedido?" antes de enviarlo
   const [preguntando, setPreguntando] = useState(false);
+    // Pantalla decorativa mientras se crea el pedido: null = no se muestra
+  const [procesando, setProcesando] = useState<{ fase: "preparando" | "listo"; numero?: number } | null>(null);
   const [error, setError] = useState("");
   const [avisoSucursal, setAvisoSucursal] = useState("");
 
@@ -203,18 +207,24 @@ function Checkout() {
     setPreguntando(true);
   }
 
-  // Se llama desde el cartel "¿Confirmás tu pedido?"
   async function enviarPedido() {
     if (!direccion || !masCercana) return;
+    setPreguntando(false);
     setLoading(true);
+    setProcesando({ fase: "preparando" });
     try {
-      const order = await createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id, compraDirecta ? "" : observaciones);
-      setPreguntando(false);
+      // La pantalla "Preparando tu pedido" dura al menos 3 segundos, aunque el backend responda antes
+      const [order] = await Promise.all([
+      createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id, compraDirecta ? "" : observaciones),        esperar(3000),
+      ]);
+      setProcesando({ fase: "listo", numero: order.id });
+      await esperar(1600);
+      setProcesando(null);
       setConfirmedOrder(order);
       // En una compra directa, el carrito queda como estaba
       if (!compraDirecta) clearCart();
     } catch (err) {
-      setPreguntando(false);
+      setProcesando(null);
       setError(err instanceof Error ? err.message : "Error al confirmar el pedido");
     } finally {
       setLoading(false);
@@ -464,7 +474,16 @@ function Checkout() {
         observaciones={compraDirecta ? "" : observaciones}
         cargando={loading}
         onCancelar={() => setPreguntando(false)}
-        onConfirmar={enviarPedido}     />
+        onConfirmar={enviarPedido}
+      />
+      
+      {procesando && (
+        <PreparandoPedido
+          fase={procesando.fase}
+          sucursal={masCercana?.sucursal.nombre ?? "la sucursal"}
+          numeroPedido={procesando.numero}
+        />
+      )}
     </div>
   );
 }
