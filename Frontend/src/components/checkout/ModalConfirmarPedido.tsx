@@ -46,7 +46,7 @@ function ModalConfirmarPedido({ abierto, total, direccion, sucursal, formaPago, 
       {observaciones.trim() && (
         <div className="mt-4 rounded-2xl border-2 border-brand-dark/15 bg-brand-cream p-4">
           <p className="font-bold">Observaciones del pedido</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted">
+          <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted w-full break-words">
             {observaciones}
           </p>
         </div>

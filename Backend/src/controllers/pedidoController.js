@@ -428,7 +428,4 @@ const crearPedido = async (req, res) => {
 };
 
 
-//const obtenerHistorialPedido = async (req,res) => {};
-
-
 module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };

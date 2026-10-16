@@ -364,9 +364,13 @@ function DetalleProducto({ id }: { id: number }) {
             {product.nombre}
           </h1>
           <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
-          <p className="mt-3 leading-relaxed text-brand-muted">
+          <p className="mt-3 w-full whitespace-normal break-words leading-relaxed text-brand-muted">
             {product.descripcion}
-            {esCombo && tamanioActivo && <> Acompañamiento y bebida {tamanioActivo.tamanio} a elección.</>}
+            {esCombo && tamanioActivo && (
+              <span className="block">
+                Acompañamiento y bebida {tamanioActivo.tamanio} a elección.
+              </span>
+            )}
           </p>
 
           {!product.disponible && (

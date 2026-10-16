@@ -12,6 +12,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
     return [
       { to: '/admin', label: 'Inicio', end: true },
       { to: '/admin/pedidos', label: 'Pedidos' },
+      { to: '/admin/reportes', label: 'Reportes' },
       { to: '/admin/productos', label: 'Productos' },
       { to: '/admin/insumos', label: 'Insumos' },
       { to: '/admin/categorias', label: 'Categorías' },
@@ -23,6 +24,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
   const id = administrador?.sucursalId
   return [
     { to: '/admin', label: 'Inicio', end: true },
+    { to: '/admin/reportes', label: 'Reportes' },
     ...(id
       ? [
           { to: '/admin/pedidos', label: 'Pedidos' },

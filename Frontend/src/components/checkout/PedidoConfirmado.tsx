@@ -33,7 +33,7 @@ function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
           {pedido.observaciones?.trim() && (
             <div className="w-full rounded-2xl border-2 border-brand-dark/15 bg-brand-cream p-4 text-left">
               <p className="font-bold">Observaciones del pedido</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted">
+              <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted break-words">
                 {pedido.observaciones}
               </p>
             </div>
