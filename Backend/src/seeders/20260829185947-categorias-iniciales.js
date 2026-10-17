@@ -4,7 +4,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     const categorias = [
-      'Hamburguesa',
+      'Hamburguesas',
       'Combos',
       'Papas Fritas',
       'Nuggets',
@@ -12,7 +12,7 @@ module.exports = {
       'Postres',
       'Ensaladas',
       'Sin TACC',
-      'Desayunos y Meriendas',
+      'Café',
       'Menú Café',
       'Salsas'
     ];

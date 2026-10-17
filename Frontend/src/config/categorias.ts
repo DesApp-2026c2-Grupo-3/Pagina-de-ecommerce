@@ -10,6 +10,7 @@ export type IconoCategoria =
   | 'sinTacc'
   | 'desayuno'
   | 'cafe'
+  | 'comboCafe'
   | 'salsa'
   | 'generico'
 
@@ -20,7 +21,9 @@ interface EstiloCategoria {
 
 const ESTILOS: Record<string, EstiloCategoria> = {
   hamburguesa: { icono: 'hamburguesa', fondo: 'bg-brand-mustard' },
+  hamburguesas: { icono: 'hamburguesa', fondo: 'bg-brand-mustard' },
   combos: { icono: 'combo', fondo: 'bg-brand-red' },
+  'combos de cafeteria': { icono: 'comboCafe', fondo: 'bg-brand-mustard' },
   'papas fritas': { icono: 'papas', fondo: 'bg-brand-mustard' },
   nuggets: { icono: 'nuggets', fondo: 'bg-brand-sand' },
   bebidas: { icono: 'bebida', fondo: 'bg-brand-red' },
@@ -28,6 +31,7 @@ const ESTILOS: Record<string, EstiloCategoria> = {
   ensaladas: { icono: 'ensalada', fondo: 'bg-brand-sand' },
   'sin tacc': { icono: 'sinTacc', fondo: 'bg-brand-red' },
   'desayunos y meriendas': { icono: 'desayuno', fondo: 'bg-brand-mustard' },
+  'cafe': { icono: 'desayuno', fondo: 'bg-brand-mustard' },
   'menu cafe': { icono: 'cafe', fondo: 'bg-brand-sand' },
   salsas: { icono: 'salsa', fondo: 'bg-brand-red' },
 }
@@ -41,6 +45,14 @@ function normalizar(nombre: string) {
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
+}
+
+// Categorías que van siempre al final del menú (nombre normalizado). El resto conserva el orden con que llega del backend.
+const AL_FINAL = ['salsas']
+
+export function ordenarCategorias<T extends { nombre: string }>(categorias: T[]): T[] {
+  const lugar = (c: T) => AL_FINAL.indexOf(normalizar(c.nombre)) + 1 // 0 = no va al final
+  return [...categorias].sort((a, b) => lugar(a) - lugar(b))
 }
 
 export function estiloCategoria(nombre: string): EstiloCategoria {

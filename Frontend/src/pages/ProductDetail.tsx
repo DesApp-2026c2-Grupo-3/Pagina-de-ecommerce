@@ -82,6 +82,13 @@ function DetalleProducto({ id }: { id: number }) {
   const esCombo = grupos.length > 0
   const tamanios = useMemo(() => ordenarTamanios(product?.tamanios), [product])
   const tamanioActivo = tamanios.find((t) => t.tamanioId === tamanioId) ?? null
+  // "Acompañamiento y una bebida regular a elección." / "Café y para comer a elección."
+  const textoGruposCombo = (() => {
+    const nombres = grupos.map((g) => g.nombre.toLowerCase())
+    const lista = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : (nombres[0] ?? '')
+    const conTamanio = tamanios.length > 1 && tamanioActivo ? ` ${tamanioActivo.tamanio}` : ''
+    return `${lista.charAt(0).toUpperCase()}${lista.slice(1)}${conTamanio} a elección.`
+  })()
 
   // Insumos que el cliente puede tocar. Los "lugares" del combo se eligen aparte.
   const ingredientes: ProductIngredient[] = product?.ingredientes ?? []
@@ -132,7 +139,8 @@ function DetalleProducto({ id }: { id: number }) {
 
   // Pasos de la tarjeta: solo los que aplican a este producto. El último siempre es el de la nota y la compra.
   const pasos = [
-    ...(tamanios.length > 0 ? [{ id: 'tamanio', nombre: 'Tamaño' }] : []),
+    // Con un único tamaño (combos de desayuno y merienda) no hay nada para elegir
+    ...(tamanios.length > 1 ? [{ id: 'tamanio', nombre: 'Tamaño' }] : []),
     ...(esCombo ? [{ id: 'combo', nombre: 'Tu combo' }] : []),
     ...(personalizable ? [{ id: 'ingredientes', nombre: 'Ingredientes' }] : []),
     { id: 'final', nombre: 'Listo' },
@@ -364,9 +372,9 @@ function DetalleProducto({ id }: { id: number }) {
             {product.nombre}
           </h1>
           <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
-          <p className="mt-3 leading-relaxed text-brand-muted">
+          <p className="mt-3 w-full whitespace-normal break-words leading-relaxed text-brand-muted">
             {product.descripcion}
-            {esCombo && tamanioActivo && <> Acompañamiento y bebida {tamanioActivo.tamanio} a elección.</>}
+            {esCombo && <span className="block">{textoGruposCombo}</span>}
           </p>
 
           {!product.disponible && (

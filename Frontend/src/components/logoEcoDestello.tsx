@@ -21,22 +21,19 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     // Estado para saber si el archivo de imagen ya fue procesado por el navegador
     const [logoCargado, setLogoCargado] = useState(false);
 
-    useEffect(() => {
-        let timerVibracionStart: ReturnType<typeof setTimeout> | null = null;
-        let timerVibracionEnd: ReturnType<typeof setTimeout> | null = null;
+   useEffect(() => {
+    // Definimos las variables para los timers fuera para poder limpiarlas correctamente
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timerVibracionStart: ReturnType<typeof setTimeout> | null = null;
+    let timerVibracionEnd: ReturnType<typeof setTimeout> | null = null;
 
-        if (!isAuthenticated) {
-            setRayoActivo(false);
-            setMostrarLogo(true);
-            setVibrando(false);
-            return; 
-        }
-
+    // Función que contiene toda la secuencia de tu animación
+    const ejecutarSecuenciaLogo = () => {
         setRayoActivo(true);
         setMostrarLogo(false);
         setVibrando(false);
 
-        // Impacto a los 600ms: aparece el logo en el centro exacto y vibra el fondo
+        // Impacto a los 600ms: aparece el logo y vibra el fondo
         timerVibracionStart = setTimeout(() => {
             setMostrarLogo(true);
             setVibrando(true);
@@ -47,12 +44,33 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
             setVibrando(false);
             setRayoActivo(false); 
         }, 1600);
-       
-        return () => {
-            if (timerVibracionStart) clearTimeout(timerVibracionStart);
-            if (timerVibracionEnd) clearTimeout(timerVibracionEnd);
-        };
-    }, [isAuthenticated]);
+    };
+
+    // Control de estado: Si NO está autenticado, reseteamos todo y no activamos el bucle
+    if (!isAuthenticated) {
+        setRayoActivo(false);
+        setMostrarLogo(true);
+        setVibrando(false);
+        return; 
+    }
+
+    // 1. Ejecutar la animación de inmediato la primera vez que se loguea/recarga
+    ejecutarSecuenciaLogo();
+
+    // 2. Configurar el bucle para que se repita (ejemplo: cada 15 segundos)
+    // NOTA: El tiempo total del intervalo debe ser mayor a los 1600ms de la animación.
+    intervalId = setInterval(() => {
+        ejecutarSecuenciaLogo();
+    }, 60000); // 15000ms = 15 segundos
+
+    // Limpieza absoluta de todos los timers e intervalos al desmontar o desloguear
+    return () => {
+        if (intervalId) clearInterval(intervalId);
+        if (timerVibracionStart) clearTimeout(timerVibracionStart);
+        if (timerVibracionEnd) clearTimeout(timerVibracionEnd);
+    };
+}, [isAuthenticated]);
+
 
     const ecos: EcoConfig[] = [
         { x: vibrando ? 40 : 0,  opacity: vibrando ? 0.15 : 0, filter: 'hue-rotate(180deg) brightness(1.6) blur(1px)', delay: '0s' },   

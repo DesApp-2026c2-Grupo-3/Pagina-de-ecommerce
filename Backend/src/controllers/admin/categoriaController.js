@@ -2,7 +2,8 @@ const { Categoria } = require("../../models");
 
 const obtenerCategorias = async (req, res) => {
     try {
-        const categoria = await Categoria.findAll();
+        // Siempre por id: sin orden explícito, Postgres puede devolverlas en otro orden después de un UPDATE
+        const categoria = await Categoria.findAll({ order: [['id', 'ASC']] });
         return res.json(categoria);
     } catch (error) {
         console.error(error);

@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
-import { MapPin, Search, SearchX } from "lucide-react";
+import { ChevronDown, MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
-import Pagination from "../components/catalogo/Pagination";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
+
+// Cuántos productos se suman cada vez que se toca "Mostrar más".
+// 12 es múltiplo de 2, 3 y 4 (las columnas de la grilla), así la última fila siempre queda completa.
+const LOTE_PRODUCTOS = 12;
 
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
@@ -14,17 +17,16 @@ function Products() {
   const [searchParams] = useSearchParams();
   // Si viene del Home con ?categoria=3, arranca filtrado
   const [selectedCategory, setSelectedCategory] = useState<number | null>(() => {
-  const id = Number(searchParams.get("categoria"));
+    const id = Number(searchParams.get("categoria"));
     return id > 0 ? id : null;
-  });  
+  });
   const [search, setSearch] = useState("");
-    // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
+  // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
   const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 8;
-
+  // Cuántos productos se ven ahora: arranca con un lote y "Mostrar más" suma otro
+  const [visibles, setVisibles] = useState(LOTE_PRODUCTOS);
   // Los productos se vuelven a pedir si el cliente cambia de zona
   useEffect(() => {
     getProducts(zona?.sucursalId).then(setProducts);
@@ -34,9 +36,9 @@ function Products() {
     getCategories().then(setCategories);
   }, []);
 
-  // Volver a la página 1 si cambia cualquier filtro o la zona
+  // Volver al primer lote si cambia cualquier filtro o la zona
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibles(LOTE_PRODUCTOS);
   }, [selectedCategory, busqueda, zona?.sucursalId]);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ function Products() {
   }, [search]);
 
   const filteredProducts = useMemo(() => {
-  const query = busqueda.trim().toLowerCase();
+    const query = busqueda.trim().toLowerCase();
 
     return products
       .filter((product) => {
@@ -65,18 +67,9 @@ function Products() {
       .sort((a, b) => Number(b.disponible) - Number(a.disponible));
   }, [products, selectedCategory, busqueda]);
 
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const mostrados = filteredProducts.slice(0, visibles);
+  const restantes = filteredProducts.length - mostrados.length;
 
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const currentProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + productsPerPage
-  );
-
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       {/* Banda oscura con título y buscador */}
@@ -138,17 +131,31 @@ function Products() {
           </div>
         ) : (
           <>
-            {/* La key cambia con cada filtro: la grilla se vuelve a armar y las tarjetas entran de nuevo */}
+            {/* La key cambia con cada filtro: la grilla se vuelve a armar y las tarjetas entran de nuevo.
+                Con "Mostrar más" NO cambia: las tarjetas que ya se veían no se reanimian, solo entran las nuevas */}
             <div
-              key={`${selectedCategory}-${busqueda}-${currentPage}`}
+              key={`${selectedCategory}-${busqueda}`}
               className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
-              {currentProducts.map((product) => (
+              {mostrados.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
 
-            <Pagination paginaActual={currentPage} totalPaginas={totalPages} onCambiar={goToPage} />
+            <div className="mt-10 flex flex-col items-center gap-3">
+              <p role="status" className="text-sm text-brand-muted">
+                Mostrando {mostrados.length} de {filteredProducts.length} productos
+              </p>
+              {restantes > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setVisibles((actual) => actual + LOTE_PRODUCTOS)}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-6 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
+                >
+                  Mostrar más <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -156,4 +163,4 @@ function Products() {
   );
 }
 
-   export default Products;
+export default Products;

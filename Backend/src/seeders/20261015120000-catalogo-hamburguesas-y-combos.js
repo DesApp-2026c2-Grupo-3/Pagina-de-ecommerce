@@ -204,7 +204,9 @@ const GRUPOS_COMBO = [
 // Los demás nombres cubren el caso de haber corrido una versión anterior de este seeder.
 const PRODUCTOS_RETIRADOS = ['Duo Carnivoro', 'Combo Dúo Dinámico', 'Dúo Dinámico', 'Provo Loco', 'Combo Provo Loco'];
 
-const CATEGORIA_HAMBURGUESAS = 'Hamburguesa';
+// La categoría pasa de "Hamburguesa" a "Hamburguesas". Se acepta cualquiera de los dos nombres,
+// así funciona antes y después del renombre.
+const CATEGORIA_HAMBURGUESAS = ['Hamburguesas', 'Hamburguesa'];
 const CATEGORIA_COMBOS = 'Combos';
 
 // Todas las hamburguesas del catálogo y su precio
@@ -229,11 +231,22 @@ module.exports = {
       const cargarProductos = () => consultar('SELECT id, nombre FROM "Productos" WHERE "deletedAt" IS NULL');
       const cargarInsumos = () => consultar('SELECT id, nombre, "precioComercial" FROM "Insumos"');
 
-      const idCategoria = async (nombre) => {
-        const [categoria] = await consultar('SELECT id FROM "Categoria" WHERE nombre = :nombre', { nombre });
-        if (!categoria) throw new Error(`Falta la categoría "${nombre}": corré primero el seeder de categorías`);
-        return categoria.id;
+      // Acepta un nombre o una lista de nombres posibles (se usa el primero que exista)
+      const idCategoria = async (nombres) => {
+        const lista = [].concat(nombres);
+        const filas = await consultar('SELECT id, nombre FROM "Categoria" WHERE nombre IN (:lista)', { lista });
+        const elegida = lista.map((nombre) => filas.find((f) => f.nombre === nombre)).find(Boolean);
+        if (!elegida) throw new Error(`Falta la categoría "${lista[0]}": corré primero el seeder de categorías`);
+        return elegida.id;
       };
+
+      // "Hamburguesa" pasa a llamarse "Hamburguesas" (si la base todavía tiene el singular).
+      // Este cambio no se revierte en el down: depende de cómo esté el seeder de categorías.
+      await ejecutar(
+        `UPDATE "Categoria" SET nombre = 'Hamburguesas', "updatedAt" = NOW()
+          WHERE nombre = 'Hamburguesa'
+            AND NOT EXISTS (SELECT 1 FROM "Categoria" WHERE nombre = 'Hamburguesas')`
+      );
       const categoriaHamburguesas = await idCategoria(CATEGORIA_HAMBURGUESAS);
       const categoriaCombos = await idCategoria(CATEGORIA_COMBOS);
 
