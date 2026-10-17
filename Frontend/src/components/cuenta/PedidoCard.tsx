@@ -68,7 +68,7 @@ function PedidoCard({ pedido }: { pedido: Order }) {
           {pedido.observaciones?.trim() && (
             <div className="border-t-2 border-dashed border-brand-sand pt-3">
               <p className="font-bold">Observaciones del pedido</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted">
+              <p className="mt-1 whitespace-pre-wrap text-sm text-brand-muted break-words">
                 {pedido.observaciones}
               </p>
             </div>

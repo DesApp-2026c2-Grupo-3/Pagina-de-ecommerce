@@ -61,3 +61,28 @@ html, body {
 [aria-disabled="true"] {
   cursor: not-allowed;
 }
+
+
+/* Barra horizontal personalizada */
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+/* Fondo de la barra */
+::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 8px;
+}
+
+/* Parte que se arrastra */
+::-webkit-scrollbar-thumb {
+  background: #f97316;
+  border-radius: 8px;
+  border: 2px solid #1f2937;
+}
+
+/* Al pasar el cursor */
+::-webkit-scrollbar-thumb:hover {
+  background: #fb923c;
+}
