@@ -1,4 +1,32 @@
 const Joi = require('joi');
+const { esZonaHorariaValida, DIAS_SEMANA } = require('../../utils/horarioSucursal');
+
+const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Un día del horario: apertura y cierre en formato HH:MM, y si está abierto
+const diaSchema = Joi.object({
+    apertura: Joi.string().pattern(HORA_REGEX).required().messages({
+        'string.pattern.base': 'La apertura debe tener formato HH:MM (ej: "09:00")',
+        'any.required': 'Cada día debe indicar la apertura'
+    }),
+
+    cierre: Joi.string().pattern(HORA_REGEX).required().messages({
+        'string.pattern.base': 'El cierre debe tener formato HH:MM (ej: "23:00")',
+        'any.required': 'Cada día debe indicar el cierre'
+    }),
+
+    abierto: Joi.boolean().required().messages({
+        'boolean.base': 'El estado "abierto" de cada día debe ser true o false',
+        'any.required': 'Cada día debe indicar si está abierto'
+    })
+}).required();
+
+// Los 7 días de la semana, todos obligatorios
+const horarioSchema = Joi.object(
+    Object.fromEntries(DIAS_SEMANA.map((dia) => [dia, diaSchema]))
+).required().messages({
+    'object.base': 'El horario debe ser un objeto con los días de la semana'
+});
 
 const sucursalSchema = Joi.object({
     nombre: Joi.string().trim().min(3).max(50).required().messages({
@@ -35,8 +63,15 @@ const sucursalSchema = Joi.object({
         'string.pattern.base': 'El teléfono solo puede contener números, espacios, guiones y el signo +'
     }),
 
-    horario: Joi.string().trim().max(100).allow('', null).messages({
-        'string.max': 'El horario no puede superar los 100 caracteres'
+    horario: horarioSchema,
+
+    zona_horaria: Joi.string().trim().max(64).custom((valor, helpers) => {
+        if (!esZonaHorariaValida(valor)) {
+            return helpers.error('any.invalid');
+        }
+        return valor;
+    }).default('America/Argentina/Buenos_Aires').messages({
+        'any.invalid': 'La zona horaria no es válida (usá un identificador IANA, ej: "America/Argentina/Buenos_Aires")'
     }),
 
     // Rango aproximado de Argentina continental

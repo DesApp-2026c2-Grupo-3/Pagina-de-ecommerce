@@ -1,5 +1,21 @@
 'use strict';
 
+const { HORARIO_POR_DEFECTO, ZONA_HORARIA_POR_DEFECTO } = require('../utils/horarioSucursal');
+
+// Cada sucursal arranca con el horario completo por defecto (L a Dom, 09:00 a 23:00).
+// bulkInsert no serializa JSONB como el modelo: se pasa ya stringificado.
+function horarioAbierto() {
+  return JSON.stringify(HORARIO_POR_DEFECTO);
+}
+
+// Sucursales de semana: abiertas de lunes a viernes
+function horarioAbiertoLunesAViernes() {
+  const horario = structuredClone(HORARIO_POR_DEFECTO);
+  horario.sabado.abierto = false;
+  horario.domingo.abierto = false;
+  return JSON.stringify(horario);
+}
+
 module.exports = {
   async up(queryInterface) {
     await queryInterface.bulkInsert('Sucursals', [
@@ -10,7 +26,8 @@ module.exports = {
         localidad: 'Hurlingham',
         provincia: 'Buenos Aires',
         telefono: '011-4665-2310',
-        horario: 'Lun a Dom de 11:00 a 23:30 hs',
+        horario: horarioAbierto(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.6136,
         longitud: -58.6394,
         createdAt: new Date(),
@@ -23,7 +40,8 @@ module.exports = {
         localidad: 'Morón',
         provincia: 'Buenos Aires',
         telefono: '011-4483-7620',
-        horario: 'Lun a Dom de 11:00 a 23:30 hs',
+        horario: horarioAbierto(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.6534,
         longitud: -58.6198,
         createdAt: new Date(),
@@ -36,7 +54,8 @@ module.exports = {
         localidad: 'El Palomar',
         provincia: 'Buenos Aires',
         telefono: '011-4462-1187',
-        horario: 'Lun a Dom de 11:30 a 23:00 hs',
+        horario: horarioAbierto(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.6027,
         longitud: -58.6098,
         createdAt: new Date(),
@@ -49,7 +68,8 @@ module.exports = {
         localidad: 'Ramos Mejía',
         provincia: 'Buenos Aires',
         telefono: '011-4656-9034',
-        horario: 'Lun a Dom de 11:00 a 23:30 hs',
+        horario: horarioAbierto(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.6489,
         longitud: -58.5638,
         createdAt: new Date(),
@@ -62,7 +82,8 @@ module.exports = {
         localidad: 'San Miguel',
         provincia: 'Buenos Aires',
         telefono: '011-4667-4521',
-        horario: 'Lun a Dom de 11:00 a 23:30 hs',
+        horario: horarioAbierto(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.5427,
         longitud: -58.7124,
         createdAt: new Date(),
@@ -75,7 +96,8 @@ module.exports = {
         localidad: 'Muñiz',
         provincia: 'Buenos Aires',
         telefono: '011-4455-2298',
-        horario: 'Lun a Dom de 11:30 a 23:00 hs',
+        horario: horarioAbierto(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.5333,
         longitud: -58.6833,
         createdAt: new Date(),
@@ -88,7 +110,8 @@ module.exports = {
         localidad: 'Belgrano, CABA',
         provincia: 'Ciudad Autónoma de Buenos Aires',
         telefono: '011-4780-6612',
-        horario: 'Lun a Dom de 11:00 a 00:00 hs',
+        horario: horarioAbierto(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.5627,
         longitud: -58.4547,
         createdAt: new Date(),
@@ -101,7 +124,8 @@ module.exports = {
         localidad: 'Microcentro, CABA',
         provincia: 'Ciudad Autónoma de Buenos Aires',
         telefono: '011-4322-4478',
-        horario: 'Lun a Vie de 10:00 a 21:00 hs',
+        horario: horarioAbiertoLunesAViernes(),
+        zona_horaria: ZONA_HORARIA_POR_DEFECTO,
         latitud: -34.6037,
         longitud: -58.3816,
         createdAt: new Date(),
