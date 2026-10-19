@@ -4,6 +4,7 @@ import { formatearFechaHora } from '../../utils/fechas'
 import { formatearPrecio } from '../../utils/precio'
 import { resumenItems } from '../../utils/pedidos'
 import SeguimientoPedido from './SeguimientoPedido'
+import { MessageSquareText } from 'lucide-react'
 
 // Tarjeta oscura destacada para un pedido que todavía no se entregó
 function PedidoEnCurso({ pedido }: { pedido: Order }) {
@@ -23,16 +24,18 @@ function PedidoEnCurso({ pedido }: { pedido: Order }) {
         <p className="font-display text-3xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
       </div>
 
-      <SeguimientoPedido estado={pedido.estado} />
+      <SeguimientoPedido
+        estado={pedido.estado}
+        historial={pedido.historialDeTiemposPedidos}
+        fechaPedido={pedido.fecha}
+      />      
       {pedido.observaciones?.trim() && (
-        <div className="rounded-2xl border border-brand-cream/20 bg-white/5 p-4">
-          <p className="font-bold text-brand-mustard">
-            Observaciones del pedido
-          </p>
-          
-          <p className="mt-1 whitespace-pre-wrap text-sm text-brand-cream/80 break-words">
-            {pedido.observaciones}
-          </p>
+        <div className="flex gap-3 rounded-2xl border-l-4 border-brand-mustard bg-white/5 p-4">
+          <MessageSquareText className="mt-0.5 h-5 w-5 shrink-0 text-brand-mustard" />
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-brand-mustard">Tu nota para el local</p>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-brand-cream/90">{pedido.observaciones}</p>
+          </div>
         </div>
       )}
     </article>

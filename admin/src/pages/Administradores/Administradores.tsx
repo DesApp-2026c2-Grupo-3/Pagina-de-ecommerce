@@ -105,8 +105,8 @@ export default function Administradores() {
   return (
     <main className="p-4 md:p-8">
       <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Administradores</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold break-words sm:text-3xl">Administradores</h1>
           <p className="mt-2 text-gray-600">Gestión de administradores del sistema.</p>
         </div>
         <button

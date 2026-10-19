@@ -183,9 +183,17 @@ export default function DetallePedidoModal({
                   estado={pedido.estado}
                   historial={pedido.historialDeTiemposPedidos ?? []}
                 />
-              </div>
+              </div> 
             </section>
-
+            {/* ---------- Observaciones del cliente ---------- */}
+            {pedido.observaciones?.trim() && (
+              <section className="mt-6 rounded border-l-4 border-amber-400 bg-amber-50 p-3">
+                <h3 className="font-semibold text-amber-900">Observaciones del cliente</h3>
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm text-amber-800">
+                  {pedido.observaciones}
+                </p>
+              </section>
+            )}
             {/* ---------- Productos ---------- */}
             <h3 className="mt-6 font-semibold">Productos</h3>
             <ul className="mt-2 flex flex-col divide-y rounded border">
@@ -240,8 +248,7 @@ export default function DetallePedidoModal({
                     </p>
                     {d.observaciones && (
                       <p className="mt-2 rounded bg-amber-50 p-2 text-sm text-amber-800">
-                        📝 {d.observaciones}
-                      </p>
+                        📝 Indicaciones de entrega: {d.observaciones}                      </p>
                     )}
                     {linkMapa && (
                       <a

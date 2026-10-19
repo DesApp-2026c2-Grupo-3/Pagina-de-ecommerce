@@ -2,43 +2,54 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
-import { ChevronDown, MapPin, Search, SearchX } from "lucide-react";
+import { MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
+import Pagination from "../components/catalogo/Pagination";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
 
-// Cuántos productos se suman cada vez que se toca "Mostrar más".
-// 12 es múltiplo de 2, 3 y 4 (las columnas de la grilla), así la última fila siempre queda completa.
-const LOTE_PRODUCTOS = 12;
+// Productos por página: 8 entra justo en 2 filas de 4 (o 4 de 2) sin dejar huecos
+const POR_PAGINA = 8;
 
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Si viene del Home con ?categoria=3, arranca filtrado
   const [selectedCategory, setSelectedCategory] = useState<number | null>(() => {
     const id = Number(searchParams.get("categoria"));
     return id > 0 ? id : null;
   });
+  function elegirCategoria(id: number | null) {
+    setSelectedCategory(id);
+    setSearchParams(id ? { categoria: String(id) } : {}, { replace: true });
+  }
   const [search, setSearch] = useState("");
   // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
   const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
 
-  // Cuántos productos se ven ahora: arranca con un lote y "Mostrar más" suma otro
-  const [visibles, setVisibles] = useState(LOTE_PRODUCTOS);
+  const [pagina, setPagina] = useState(1);
   // Los productos se vuelven a pedir si el cliente cambia de zona
   useEffect(() => {
     getProducts(zona?.sucursalId).then(setProducts);
   }, [zona?.sucursalId]);
 
   useEffect(() => {
-    getCategories().then(setCategories);
+    getCategories().then((cats) => {
+      setCategories(cats);
+      // Sin ?categoria en la URL, el catálogo arranca mostrando los combos
+      if (!searchParams.get("categoria")) {
+        const combos = cats.find((c) => c.nombre.trim().toLowerCase() === "combos");
+        if (combos) setSelectedCategory(combos.id);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Volver al primer lote si cambia cualquier filtro o la zona
+  // Volver a la primera página si cambia cualquier filtro o la zona
   useEffect(() => {
-    setVisibles(LOTE_PRODUCTOS);
+    setPagina(1);
   }, [selectedCategory, busqueda, zona?.sucursalId]);
 
   useEffect(() => {
@@ -67,8 +78,14 @@ function Products() {
       .sort((a, b) => Number(b.disponible) - Number(a.disponible));
   }, [products, selectedCategory, busqueda]);
 
-  const mostrados = filteredProducts.slice(0, visibles);
-  const restantes = filteredProducts.length - mostrados.length;
+  const totalPaginas = Math.ceil(filteredProducts.length / POR_PAGINA);
+  const desde = (pagina - 1) * POR_PAGINA;
+  const mostrados = filteredProducts.slice(desde, desde + POR_PAGINA);
+
+  function cambiarPagina(nueva: number) {
+    setPagina(nueva);
+    window.scrollTo(0, 0);
+  }
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
@@ -108,7 +125,7 @@ function Products() {
       <div className="mx-auto max-w-7xl px-4 pb-16">
         {/* Categorías: barra blanca montada sobre la banda */}
         <div className="-mt-9">
-          <CategoryFilter categorias={categories} seleccionada={selectedCategory} onSeleccionar={setSelectedCategory} />
+          <CategoryFilter categorias={categories} seleccionada={selectedCategory} onSeleccionar={elegirCategoria} />
         </div>
 
         {filteredProducts.length === 0 ? (
@@ -122,7 +139,7 @@ function Products() {
               type="button"
               onClick={() => {
                 setSearch("");
-                setSelectedCategory(null);
+                elegirCategoria(null);
               }}
               className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
             >
@@ -131,10 +148,9 @@ function Products() {
           </div>
         ) : (
           <>
-            {/* La key cambia con cada filtro: la grilla se vuelve a armar y las tarjetas entran de nuevo.
-                Con "Mostrar más" NO cambia: las tarjetas que ya se veían no se reanimian, solo entran las nuevas */}
+            {/* La key cambia con cada filtro o página: la grilla se vuelve a armar */}
             <div
-              key={`${selectedCategory}-${busqueda}`}
+              key={`${selectedCategory}-${busqueda}-${pagina}`}
               className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
               {mostrados.map((product) => (
@@ -142,20 +158,10 @@ function Products() {
               ))}
             </div>
 
-            <div className="mt-10 flex flex-col items-center gap-3">
-              <p role="status" className="text-sm text-brand-muted">
-                Mostrando {mostrados.length} de {filteredProducts.length} productos
-              </p>
-              {restantes > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setVisibles((actual) => actual + LOTE_PRODUCTOS)}
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-6 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
-                >
-                  Mostrar más <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <Pagination paginaActual={pagina} totalPaginas={totalPaginas} onCambiar={cambiarPagina} />
+            <p role="status" className="mt-4 text-center text-sm text-brand-muted">
+              Mostrando {desde + 1}–{desde + mostrados.length} de {filteredProducts.length} productos
+            </p>
           </>
         )}
       </div>

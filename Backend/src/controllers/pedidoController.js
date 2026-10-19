@@ -1,3 +1,7 @@
+const { Op } = require('sequelize');
+
+// Regla de negocio: pedidos en curso simultáneos por cliente
+const MAX_PEDIDOS_EN_CURSO = 2;
 const { precioMasBarato } = require('../utils/combo');
 const {
     Pedido,
@@ -122,8 +126,12 @@ const obtenerPedidosPorUsuario = async (req, res) => {
                 include: [{ model: Producto, paranoid: false }],
             }, {
                 model: Sucursal,
+            }, {
+                model: historialDeTiemposPedido,
+                as: 'historialDeTiemposPedidos',
+                attributes: ['estado', 'fecha'],
             }],
-            order: [['fecha', 'DESC']],
+            order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
         });
 
 
@@ -169,7 +177,19 @@ const crearPedido = async (req, res) => {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Usuario no encontrado' })
         }
-
+        const enCurso = await Pedido.count({
+            where: {
+                usuarioId,
+                estado: { [Op.notIn]: ['Entregado', 'Cancelado', 'entregado', 'cancelado'] },
+            },
+        });
+        if (enCurso >= MAX_PEDIDOS_EN_CURSO) {
+            await t.rollback();
+            return res.status(409).json({
+                mensaje: `Ya tenés ${enCurso} pedidos en curso. Esperá a que se entregue alguno para hacer otro.`
+            });
+        }
+        
         const sucursal = await Sucursal.findByPk(sucursalId);
         if (!sucursal) {
             await t.rollback();

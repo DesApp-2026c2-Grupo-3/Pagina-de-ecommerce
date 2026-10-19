@@ -41,9 +41,9 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
         <p className="mt-1 text-sm font-bold text-brand-muted">{formatearPrecio(item.unitPrice)} c/u</p>
       </div>
 
-      <div className="flex w-full items-center justify-between gap-3 border-t-2 border-dashed border-brand-sand pt-3 sm:w-auto sm:border-0 sm:pt-0">
+      <div className="flex w-full flex-wrap items-center justify-between gap-3 border-t-2 border-dashed border-brand-sand pt-3 sm:w-auto sm:border-0 sm:pt-0">        
         <QuantityStepper value={item.quantity} onChange={onCantidad} min={1} max={20} label={product.nombre} />
-        <span className="min-w-24 text-right font-display text-xl font-extrabold text-brand-dark">
+        <span className="text-right font-display text-xl font-extrabold text-brand-dark sm:min-w-24">          
           {formatearPrecio(item.unitPrice * item.quantity)}
         </span>
         <div className="flex items-center">

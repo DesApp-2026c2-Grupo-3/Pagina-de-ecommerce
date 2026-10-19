@@ -11,6 +11,7 @@ import SugerenciasCarrito from "../components/cart/SugerenciaCarrito";
 import ResumenCarrito from "../components/cart/ResumenCarrito";
 import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal";
 import type { CartItem } from "../types/cart";
+import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice } = useCart();
@@ -18,8 +19,14 @@ function Cart() {
   const navigate = useNavigate();
   const [editando, setEditando] = useState<CartItem | null>(null);
   const [itemAEliminar, setItemAEliminar] = useState<CartItem | null>(null);
-  const [observaciones, setObservaciones] = useState("");
-
+  // Se guarda en la sesión para no perderla al ir y volver del checkout
+  const [observaciones, setObservaciones] = useState(() => {
+    try { return sessionStorage.getItem('observacionesPedido') ?? '' } catch { return '' }
+  });
+  function cambiarObservaciones(valor: string) {
+    setObservaciones(valor);
+    try { sessionStorage.setItem('observacionesPedido', valor) } catch { /* sin storage */ }
+  }
   // Se puede editar si tiene tamaños o ingredientes para quitar o agregar
   const esEditable = (item: CartItem) =>
     Boolean(
@@ -69,7 +76,7 @@ function Cart() {
         <PasosCompra actual={0} />
       </PageHeader>
 
-      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start">
+      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">        
         <div className="flex flex-col gap-3">
           <Link
             to="/catalogo"
@@ -89,25 +96,20 @@ function Cart() {
           ))}
 
           <div className="rounded-2xl border-2 border-brand-dark bg-white p-4">
-            <label
-            htmlFor="observaciones"
-            className="mb-2 block font-bold text-brand-dark"
-            >
-              Observaciones del pedido (opcional)
+            <label htmlFor="observaciones" className={CLASE_LABEL}>
+              Notas para la cocina (opcional)
             </label>
-
-            <textarea 
-            id="observaciones"
-            value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
-            maxLength={500}
-            placeholder="Ej.: tocar timbre dos veces..."
-            rows={3}
-            className="w-full rounded-xl border-2 border-brand-dark/20 p-3 text-sm outline-none focus:border-brand-red"
+            <textarea
+              id="observaciones"
+              value={observaciones}
+              onChange={(e) => cambiarObservaciones(e.target.value)}
+              maxLength={500}
+              placeholder="Ej.: sin cebolla, la hamburguesa bien cocida..."
+              rows={3}
+              className={`${CLASE_INPUT} resize-none`}
             />
-
             <p className="mt-1 text-right text-xs text-brand-muted">
-              {observaciones.length}/500 caracteres
+              {observaciones.length}/500
             </p>
           </div>
 

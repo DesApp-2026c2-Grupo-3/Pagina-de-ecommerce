@@ -51,6 +51,8 @@ function DetalleProducto({ id }: { id: number }) {
   // Producto elegido en cada grupo del combo: id del grupo -> id del producto
   const [eleccion, setEleccion] = useState<Record<number, number>>({})
   const [grupoAbierto, setGrupoAbierto] = useState<number | null>(null)
+  // false = se ve solo el producto; true = aparecen los pasos para armarlo
+  const [armando, setArmando] = useState(false)
   // Paso actual de la tarjeta (empieza en 1, como el Stepper)
   const [paso, setPaso] = useState(1)
   // Pregunta "¿Lo sumamos al carrito?" antes de agregarlo
@@ -270,23 +272,21 @@ function DetalleProducto({ id }: { id: number }) {
   // Último paso: cantidad, total y los dos botones de compra. En el celular la barra es oscura y va pegada abajo.
   const barraCompra = (movil: boolean) =>
     !esUltimoPaso ? (
-      <div className="flex items-center justify-between gap-3">
+      <div className={movil ? 'flex flex-col gap-3' : 'flex items-center justify-between gap-3'}>
         {totalTexto(movil)}
-        <div className="flex gap-2">
-          {paso > 1 && (
-            <button
-              type="button"
-              onClick={() => setPaso(paso - 1)}
-              className={`min-h-13 rounded-full border-2 px-5 font-bold transition-colors ${botonBorde(movil)}`}
-            >
-              Atrás
-            </button>
-          )}
+        <div className={`flex gap-2 ${movil ? 'w-full' : ''}`}>
+          <button
+            type="button"
+            onClick={() => (paso > 1 ? setPaso(paso - 1) : volverAlProducto())}
+            className={`min-h-13 rounded-full border-2 px-5 font-bold ${botonBorde(movil)}`}
+          >
+            Atrás
+          </button>
           <button
             type="button"
             onClick={() => irAPaso(paso + 1)}
             disabled={!puedeAvanzar}
-            className="flex min-h-13 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+            className={`flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${movil ? 'flex-1' : ''}`}
           >
             Continuar <ArrowRight className="h-5 w-5" />
           </button>
@@ -329,13 +329,72 @@ function DetalleProducto({ id }: { id: number }) {
       </>
     )
 
+  function empezarAArmar() {
+    setPaso(1)
+    setArmando(true)
+    window.scrollTo(0, 0)
+  }
+
+  function volverAlProducto() {
+    setArmando(false)
+    setPaso(1)
+  }
+
+  const imagenProducto = (claseImg: string, claseIcono: string) =>
+    product.imagen ? (
+      <img
+        src={product.imagen}
+        alt={product.nombre}
+        className={`${claseImg} ${product.disponible ? '' : 'opacity-60 grayscale'}`}
+      />
+    ) : (
+      <CategoryIcon icono="generico" className={claseIcono} />
+    )
+
+  // Categoría, nombre, precio y descripción (se usa en las dos vistas)
+  const infoProducto = (
+    <>
+      {categoryName && (
+        <span className="inline-block rounded-full bg-brand-red px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white">
+          {categoryName}
+        </span>
+      )}
+      <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
+        {product.nombre}
+      </h1>
+      <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
+      <p className="mt-3 w-full whitespace-normal break-words leading-relaxed text-brand-muted">
+        {product.descripcion}
+        {esCombo && <span className="block">{textoGruposCombo}</span>}
+      </p>
+
+      {!product.disponible && (
+        <p className="mt-4 rounded-2xl border-2 border-dashed border-brand-red/40 bg-brand-red/5 px-4 py-3 font-bold text-brand-red">
+          Este producto no está disponible por el momento.
+        </p>
+      )}
+    </>
+  )
+
+  const botonEmpezar = (
+    <button
+      type="button"
+      onClick={empezarAArmar}
+      disabled={!product.disponible}
+      className="flex min-h-13 w-full items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <ShoppingBag className="h-5 w-5" />
+      Agregar
+    </button>
+  )
+
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       {/* Banda oscura arriba: la imagen y la tarjeta se montan sobre ella */}
       <div className="bg-brand-dark px-4 pb-40 pt-6">
         <div className="mx-auto max-w-6xl">
           <Link
-            to="/catalogo"
+            to={product.categoriaId ? `/catalogo?categoria=${product.categoriaId}` : '/catalogo'}            
             className="inline-flex min-h-11 items-center gap-2 font-bold text-brand-cream/70 transition-colors hover:text-brand-cream"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -344,146 +403,148 @@ function DetalleProducto({ id }: { id: number }) {
         </div>
       </div>
 
-      <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12">
-        {/* Imagen sobre el recuadro rojo inclinado */}
-        <div>
+      <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12 [&>*]:min-w-0">        
+        {/* La imagen grande queda a la izquierda. En celular se oculta mientras se arma el pedido */}
+        <div className={armando ? 'hidden md:block' : ''}>
           <div className="relative mx-auto grid aspect-square w-full max-w-md rotate-2 place-items-center rounded-[2.5rem] border-2 border-brand-dark bg-brand-red">
             <div className="absolute inset-[8%] rounded-full bg-black/15" />
-            {product.imagen ? (
-              <img
-                src={product.imagen}
-                alt={product.nombre}
-                className={`relative w-[85%] -rotate-2 object-contain drop-shadow-2xl ${product.disponible ? '' : 'opacity-60 grayscale'}`}
-              />
-            ) : (
-              <CategoryIcon icono="generico" className="relative h-32 w-32 text-brand-cream" />
-            )}
+            {imagenProducto('relative w-[85%] -rotate-2 object-contain drop-shadow-2xl', 'relative h-32 w-32 text-brand-cream')}
           </div>
         </div>
 
-        {/* Tarjeta con la info y las opciones */}
-        <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
-          {categoryName && (
-            <span className="inline-block rounded-full bg-brand-red px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white">
-              {categoryName}
-            </span>
-          )}
-          <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
-            {product.nombre}
-          </h1>
-          <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
-          <p className="mt-3 w-full whitespace-normal break-words leading-relaxed text-brand-muted">
-            {product.descripcion}
-            {esCombo && <span className="block">{textoGruposCombo}</span>}
-          </p>
-
-          {!product.disponible && (
-            <p className="mt-4 rounded-2xl border-2 border-dashed border-brand-red/40 bg-brand-red/5 px-4 py-3 font-bold text-brand-red">
-              Este producto no está disponible por el momento.
-            </p>
-          )}
-
-          {/* Las opciones van por pasos para que la tarjeta no quede larguísima */}
-          {pasos.length > 1 && (
-            <div className="mt-6">
-              <Stepper pasos={pasos.map((p) => p.nombre)} actual={paso} onIrA={irAPaso} />
-            </div>
-          )}
-
-          {pasoActual === 'tamanio' && (
-            <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
-          )}
-
-          {pasoActual === 'combo' && (
-            <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-2" aria-label="Armá tu combo">
-              <div className={filaGrupo}>
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-lg font-extrabold">{product.nombre}</p>
-                  <p className="text-sm text-brand-muted">
-                    {tocados.length > 0 ? textoPersonalizacion().join(' · ') : 'Como viene en la receta'}
-                  </p>
+        {/* A la derecha: primero la descripción con "Agregar"; al tocarlo, se reemplaza por los pasos */}
+        {!armando ? (
+          <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
+            {infoProducto}
+            <div className="mt-8 hidden md:block">{botonEmpezar}</div>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-brand-red">Armá tu pedido</p>
+                  <h2 className="mt-1 font-display text-3xl font-extrabold leading-none tracking-tight">{product.nombre}</h2>
                 </div>
+                <button
+                  type="button"
+                  onClick={volverAlProducto}
+                  className="shrink-0 text-sm font-bold text-brand-muted underline-offset-4 hover:text-brand-dark hover:underline"
+                >
+                  Cancelar
+                </button>
               </div>
 
-              {grupos.map((grupo) => {
-                const elegido = elegida(grupo)
-                return (
-                  <div key={grupo.id} className={filaGrupo}>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-display text-lg font-extrabold">{grupo.nombre}</p>
-                      {elegido ? (
-                        <p className="text-sm text-brand-muted">
-                          {elegido.nombre}
-                          {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
-                        </p>
-                      ) : (
-                        <p
-                          className={`text-sm font-semibold ${grupo.obligatorio ? 'text-brand-red' : 'text-brand-muted'}`}
-                        >
-                          Elegí uno {grupo.obligatorio ? '(obligatorio)' : '(opcional)'}
-                        </p>
-                      )}
-                    </div>
-                    <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
-                      {elegido ? 'Cambiar' : 'Elegir'}
-                    </button>
+            {pasos.length > 1 && (
+              <div className="mt-6">
+                <Stepper pasos={pasos.map((p) => p.nombre)} actual={paso} onIrA={irAPaso} />
+              </div>
+            )}
+
+            {pasoActual === 'tamanio' && (
+              <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
+            )}
+
+            {pasoActual === 'combo' && (
+              <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-2" aria-label="Armá tu combo">
+                <div className={filaGrupo}>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-lg font-extrabold">{product.nombre}</p>
+                    <p className="text-sm text-brand-muted">
+                      {tocados.length > 0 ? textoPersonalizacion().join(' · ') : 'Como viene en la receta'}
+                    </p>
                   </div>
-                )
-              })}
-            </section>
-          )}
-
-          {/* Sacar y sumar ingredientes (en un combo, aplica a la hamburguesa) */}
-          {pasoActual === 'ingredientes' && (
-            <IngredientesEditables
-              ingredientes={ingredientes}
-              cantidades={cantidades}
-              onCambiar={(insumoId, cantidad) => {
-                const ing = ingredientes.find((i) => i.insumoId === insumoId)
-                setCantidades((prev) => {
-                  const nuevas = { ...prev }
-                  // Si vuelve a la cantidad de la receta, deja de contar como cambio
-                  if (ing && cantidad === ing.cantidadBase) delete nuevas[insumoId]
-                  else nuevas[insumoId] = cantidad
-                  return nuevas
-                })
-              }}
-            />
-          )}
-
-          {pasoActual === 'final' && (
-            <>
-              {/* Repaso de lo elegido en los pasos anteriores */}
-              {pasos.length > 1 && (
-                <div className="mt-6 rounded-2xl border-2 border-dashed border-brand-sand bg-brand-cream/60 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu elección</p>
-                  <p className="mt-1 font-semibold">{resumenEleccion() || 'Como viene en la receta'}</p>
                 </div>
-              )}
 
-              {/*<SeccionOpciones titulo="¿Algo para la cocina?">
-                <textarea
-                  value={nota}
-                  onChange={(e) => setNota(e.target.value)}
-                  maxLength={140}
-                  rows={2}
-                  placeholder="Ej: bien cocida, sin sal en las papas"
-                  className="w-full resize-none rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 placeholder:text-brand-muted/70 focus:border-brand-red focus:outline-none"
-                />
-              </SeccionOpciones>*/}
-            </>
-          )}
+                {grupos.map((grupo) => {
+                  const elegido = elegida(grupo)
+                  return (
+                    <div key={grupo.id} className={filaGrupo}>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-display text-lg font-extrabold">{grupo.nombre}</p>
+                        {elegido ? (
+                          <p className="text-sm text-brand-muted">
+                            {elegido.nombre}
+                            {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
+                          </p>
+                        ) : (
+                          <p
+                            className={`text-sm font-semibold ${grupo.obligatorio ? 'text-brand-red' : 'text-brand-muted'}`}
+                          >
+                            Elegí uno {grupo.obligatorio ? '(obligatorio)' : '(opcional)'}
+                          </p>
+                        )}
+                      </div>
+                      <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
+                        {elegido ? 'Cambiar' : 'Elegir'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </section>
+            )}
 
-          {/* En pantallas grandes la barra de compra va dentro de la tarjeta */}
-          <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">
-            {barraCompra(false)}
-          </div>
-        </div>
+            {/* Sacar y sumar ingredientes (en un combo, aplica a la hamburguesa) */}
+            {pasoActual === 'ingredientes' && (
+              <IngredientesEditables
+                ingredientes={ingredientes}
+                cantidades={cantidades}
+                onCambiar={(insumoId, cantidad) => {
+                  const ing = ingredientes.find((i) => i.insumoId === insumoId)
+                  setCantidades((prev) => {
+                    const nuevas = { ...prev }
+                    // Si vuelve a la cantidad de la receta, deja de contar como cambio
+                    if (ing && cantidad === ing.cantidadBase) delete nuevas[insumoId]
+                    else nuevas[insumoId] = cantidad
+                    return nuevas
+                  })
+                }}
+              />
+            )}
+
+            {pasoActual === 'final' && (
+              <>
+                {/* Repaso de lo elegido en los pasos anteriores */}
+                {pasos.length > 1 && (
+                  <div className="mt-6 rounded-2xl border-2 border-dashed border-brand-sand bg-brand-cream/60 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu elección</p>
+                    <p className="mt-1 font-semibold">{resumenEleccion() || 'Como viene en la receta'}</p>
+                  </div>
+                )}
+
+                {/*<SeccionOpciones titulo="¿Algo para la cocina?">
+                  <textarea
+                    value={nota}
+                    onChange={(e) => setNota(e.target.value)}
+                    maxLength={140}
+                    rows={2}
+                    placeholder="Ej: bien cocida, sin sal en las papas"
+                    className="w-full resize-none rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 placeholder:text-brand-muted/70 focus:border-brand-red focus:outline-none"
+                  />
+                </SeccionOpciones>*/}
+              </>
+            )}
+
+
+              {/* En pantallas grandes la barra de compra va dentro de la tarjeta */}
+              <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">
+                {barraCompra(false)}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* En el celular la barra queda pegada al pie de la pantalla */}
       <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
-        {barraCompra(true)}
+        {armando ? (
+          barraCompra(true)
+        ) : (
+          <div className="flex items-center justify-between gap-4">
+            {totalTexto(true)}
+            <div className="flex-1">{botonEmpezar}</div>
+          </div>
+        )}
       </div>
 
       <ModalConfirmarAgregar

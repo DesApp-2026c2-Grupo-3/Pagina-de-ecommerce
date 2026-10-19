@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useZona } from "../context/ZonaContext";
@@ -7,7 +7,7 @@ import { createOrder } from "../services/orderService";
 import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
-import { ArrowLeft, Bike, MapPin, Pencil, Store, Wallet } from "lucide-react";
+import { ArrowLeft, House, Pencil, Store } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import PasosCompra from "../components/cart/PasosCompra";
 import SeccionCheckout from "../components/checkout/SeccionCheckout";
@@ -52,6 +52,23 @@ function Checkout() {
 
   // Al ir a direcciones y volver, la compra directa viaja con la navegación
   const volverAlCheckout = { from: "/checkout", compraDirecta, observaciones };
+
+  // Sub-pasos del checkout: 1 = Entrega, 2 = Pago.
+  // El paso va en la URL (?paso=pago) para que el botón "atrás" del navegador vuelva a Entrega
+  const [searchParams] = useSearchParams();
+  const paso: 1 | 2 = searchParams.get("paso") === "pago" ? 2 : 1;
+  function irAPaso(n: 1 | 2) {
+    setError("");
+    window.scrollTo(0, 0);
+    if (n === 2) {
+      // Se conserva el state (compra directa, observaciones) al cambiar de paso
+      navigate("/checkout?paso=pago", { state: location.state });
+    } else if ((window.history.state?.idx ?? 0) > 0) {
+      navigate(-1); // vuelve a Entrega sin duplicar el historial
+    } else {
+      navigate("/checkout", { state: location.state, replace: true });
+    }
+  }
 
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
@@ -222,7 +239,10 @@ function Checkout() {
       setProcesando(null);
       setConfirmedOrder(order);
       // En una compra directa, el carrito queda como estaba
-      if (!compraDirecta) clearCart();
+      if (!compraDirecta) {
+        clearCart();
+        try { sessionStorage.removeItem("observacionesPedido"); } catch { /* sin storage */ }
+      }
     } catch (err) {
       setProcesando(null);
       setError(err instanceof Error ? err.message : "Error al confirmar el pedido");
@@ -235,7 +255,8 @@ function Checkout() {
     return <PedidoConfirmado pedido={confirmedOrder} quedanEnCarrito={compraDirecta ? items.length : 0} />;
   }
 
-  const tarjetaElegida = "flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-brand-dark bg-brand-cream/60 p-4";
+  const tarjetaElegida = "flex items-center gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-white px-5 py-4";
+  const iconoTarjeta = "grid h-12 w-12 shrink-0 place-items-center rounded-2xl";
   const linkAccion = "text-sm font-bold text-brand-dark underline-offset-4 hover:text-brand-red hover:underline";
   const botonChico =
     "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-white px-4 text-sm font-bold transition-colors hover:bg-brand-dark hover:text-brand-cream";
@@ -250,13 +271,17 @@ function Checkout() {
             : "Revisá todo antes de mandarlo a la cocina."
         }
       >
-        <PasosCompra actual={1} />
-      </PageHeader>
+        <PasosCompra actual={paso} onIrA={(i) => i === 1 && irAPaso(1)} />       
+       </PageHeader>
 
-      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start">
+      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-5">
           {/* Volver: al carrito, o al producto si es una compra directa */}
-          {compraDirecta ? (
+          {paso === 2 ? (
+            <button type="button" onClick={() => irAPaso(1)} className={`${botonChico} w-fit shadow-sticker`}>
+              <ArrowLeft className="h-4 w-4" /> Volver a la entrega
+            </button>
+          ) : compraDirecta ? (
             <button type="button" onClick={() => navigate(-1)} className={`${botonChico} w-fit shadow-sticker`}>
               <ArrowLeft className="h-4 w-4" /> Volver al producto
             </button>
@@ -266,13 +291,14 @@ function Checkout() {
             </Link>
           )}
 
+          {paso === 1 && (<>
           {/* ---------- Cómo lo recibís (pendiente de backend) ---------- */}
-          <SeccionCheckout titulo="¿Cómo lo recibís?" Icono={Bike}>
+          <SeccionCheckout titulo="¿Cómo lo recibís?">
             <OpcionesCheckout nombre="Cómo lo recibís" opciones={FORMAS_ENTREGA} elegida={formaEntrega} onElegir={setFormaEntrega} />
           </SeccionCheckout>
 
           {/* ---------- Dirección de entrega ---------- */}
-          <SeccionCheckout titulo="Dirección de entrega" Icono={MapPin}>
+          <SeccionCheckout titulo="Dirección de entrega">
             {/* La dirección de la zona, si todavía no está guardada */}
             {zona && !zonaGuardada && !direccionesLoading && (
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-brand-dark/30 p-4">
@@ -318,11 +344,15 @@ function Checkout() {
             ) : !eligiendoDireccion && direccion ? (
               // La dirección elegida. "Cambiar" abre la lista (ahí también se edita o se agrega una)
               <div className={tarjetaElegida}>
-                <div className="min-w-0">
-                  <p className="font-display text-lg font-extrabold">{direccion.alias}</p>
-                  <p className="text-sm text-brand-muted">
-                    {direccion.calle} {direccion.numero} — {direccion.localidad}
+                <span className={`${iconoTarjeta} bg-brand-mustard`}>
+                  <House className="h-6 w-6" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-extrabold">{direccion.alias}</p>
+                  <p className="text-brand-muted">
+                    {direccion.calle} {direccion.numero} · {direccion.localidad}
                   </p>
+                  {direccion.piso && <p className="text-sm text-brand-muted">Timbre / depto: {direccion.piso}</p>}
                 </div>
                 <button type="button" onClick={() => setEligiendoDireccion(true)} className={botonChico}>
                   Cambiar
@@ -337,7 +367,7 @@ function Checkout() {
                     <label
                       key={d.id}
                       className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-colors ${
-                        elegida ? "border-brand-dark bg-brand-cream/60" : "border-brand-dark/15 hover:border-brand-dark/40"
+                        elegida ? "border-brand-dark bg-white" : "border-brand-dark/15 bg-white hover:border-brand-dark/40"
                       }`}
                     >
                       <input
@@ -385,9 +415,11 @@ function Checkout() {
               </div>
             )}
           </SeccionCheckout>
+          </>)}
 
+          {paso === 2 && (<>
           {/* ---------- Sucursal ---------- */}
-          <SeccionCheckout titulo="Sucursal que lo prepara" Icono={Store}>
+          <SeccionCheckout titulo="Sucursal que lo prepara">
             {sucursalesLoading ? (
               <p className="text-sm text-brand-muted">Buscando la sucursal...</p>
             ) : !direccion ? (
@@ -431,10 +463,13 @@ function Checkout() {
               </Aviso>
             ) : (
               <div className={tarjetaElegida}>
-                <div className="min-w-0">
-                  <p className="font-display text-lg font-extrabold">{masCercana.sucursal.nombre}</p>
-                  <p className="text-sm text-brand-muted">
-                    {masCercana.sucursal.calle} {masCercana.sucursal.numero} — {masCercana.sucursal.localidad}
+                <span className={`${iconoTarjeta} bg-brand-red text-white`}>
+                  <Store className="h-6 w-6" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-extrabold">{masCercana.sucursal.nombre}</p>
+                  <p className="text-brand-muted">
+                    {masCercana.sucursal.calle} {masCercana.sucursal.numero} · {masCercana.sucursal.localidad}
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-brand-dark px-3 py-1 text-xs font-extrabold text-brand-mustard">
@@ -445,9 +480,10 @@ function Checkout() {
           </SeccionCheckout>
 
           {/* ---------- Forma de pago (pendiente de backend) ---------- */}
-          <SeccionCheckout titulo="Forma de pago" Icono={Wallet}>
+          <SeccionCheckout titulo="Forma de pago">
             <OpcionesCheckout nombre="Forma de pago" opciones={FORMAS_PAGO} elegida={formaPago} onElegir={setFormaPago} />
           </SeccionCheckout>
+          </>)}
 
         </div>
 
@@ -456,9 +492,10 @@ function Checkout() {
           <ResumenPedido
             lineas={lineas}
             total={total}
-            onConfirmar={handleConfirm}
-            deshabilitado={loading || !puedeConfirmar}
+            onConfirmar={paso === 1 ? () => irAPaso(2) : handleConfirm}
+            deshabilitado={paso === 1 ? !direccion : loading || !puedeConfirmar}
             cargando={loading}
+            textoBoton={paso === 1 ? "Continuar" : "Confirmar pedido"}
           />
           {avisoSucursal && <Aviso>{avisoSucursal}</Aviso>}
           <ErrorAlert message={error} />
