@@ -3,12 +3,17 @@ import { Link } from 'react-router-dom'
 import { getCategories } from '../../services/productService'
 import { estiloCategoria } from '../../config/categorias'
 import CategoryIcon from '../icons/CategoryIcon'
+import FilaDeslizable from '../ui/FilaDeslizable'
 import type { Category } from '../../types/product'
 import { ArrowRight } from 'lucide-react'
+import { useAuth } from  '../../context/AuthContext'
 
 // "Elegí por antojo": acceso directo al catálogo filtrado por categoría
 function CategoriasRow() {
   const [categorias, setCategorias] = useState<Category[]>([])
+
+  const { user } = useAuth()
+  const idUsuario = user?.id ? String(user.id) : undefined
 
   useEffect(() => {
     getCategories()
@@ -31,7 +36,11 @@ function CategoriasRow() {
           </Link>
         </div>
 
-        <div className="scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:gap-4 md:overflow-visible md:px-0">
+        <FilaDeslizable
+          key={idUsuario ?? 'invitado'}
+          userId={idUsuario}
+          className="scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:gap-4 md:overflow-visible md:px-0"
+        >
           {categorias.map((categoria) => {
             const { icono, fondo } = estiloCategoria(categoria.nombre)
             return (
@@ -47,7 +56,7 @@ function CategoriasRow() {
               </Link>
             )
           })}
-        </div>
+        </FilaDeslizable>
       </div>
     </section>
   )

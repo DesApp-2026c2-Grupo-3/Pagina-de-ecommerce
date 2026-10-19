@@ -30,7 +30,7 @@ function MasPedidosSection() {
     <section className="bg-brand-cream px-4 py-16 text-brand-dark">
       <div className="mx-auto max-w-7xl">
         <h2 className="mb-8 font-display text-4xl font-extrabold tracking-tight">
-          Los más pedidos{zona ? <span className="text-brand-red"> en {zona.sucursalNombre}</span> : null}
+          Los más pedidos en {zona ? <span className="text-brand-red"> {zona.sucursalNombre}</span> : null}
         </h2>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

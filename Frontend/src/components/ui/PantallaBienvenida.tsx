@@ -78,7 +78,7 @@ function PantallaBienvenida() {
           className="bf-subir font-display text-6xl font-extrabold leading-none tracking-tight text-brand-cream sm:text-7xl"
           style={{ animationDelay: '1.6s' }}
         >
-          Burger<span className="text-brand-red">Fast</span>
+          <span className="text-brand-red">Burger</span>Fast
         </p>
         <p className="bf-subir text-lg font-bold text-brand-cream/70" style={{ animationDelay: '1.85s' }}>
           Prendiendo la plancha…

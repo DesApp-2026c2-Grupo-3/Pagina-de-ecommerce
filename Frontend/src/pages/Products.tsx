@@ -2,31 +2,35 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
-import { MapPin, Search, SearchX } from "lucide-react";
+import { ChevronDown, MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
-import Pagination from "../components/catalogo/Pagination";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
+
+// Cuántos productos se suman cada vez que se toca "Mostrar más".
+// 12 es múltiplo de 2, 3 y 4 (las columnas de la grilla), así la última fila siempre queda completa.
+const LOTE_PRODUCTOS = 12;
 
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchParams] = useSearchParams();
   // Si viene del Home con ?categoria=3, arranca filtrado
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(() => {
-  const id = Number(searchParams.get("categoria"));
-    return id > 0 ? id : null;
-  });  
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(
+    () => {
+      const id = Number(searchParams.get("categoria"));
+      return id > 0 ? id : null;
+    },
+  );
   const [search, setSearch] = useState("");
-    // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
+  // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
   const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 8;
-
+  // Cuántos productos se ven ahora: arranca con un lote y "Mostrar más" suma otro
+  const [visibles, setVisibles] = useState(LOTE_PRODUCTOS);
   // Los productos se vuelven a pedir si el cliente cambia de zona
   useEffect(() => {
     getProducts(zona?.sucursalId).then(setProducts);
@@ -36,9 +40,9 @@ function Products() {
     getCategories().then(setCategories);
   }, []);
 
-  // Volver a la página 1 si cambia cualquier filtro o la zona
+  // Volver al primer lote si cambia cualquier filtro o la zona
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibles(LOTE_PRODUCTOS);
   }, [selectedCategory, busqueda, zona?.sucursalId]);
 
   useEffect(() => {
@@ -47,7 +51,7 @@ function Products() {
   }, [search]);
 
   const filteredProducts = useMemo(() => {
-  const query = busqueda.trim().toLowerCase();
+    const query = busqueda.trim().toLowerCase();
 
     return products
       .filter((product) => {
@@ -67,18 +71,9 @@ function Products() {
       .sort((a, b) => Number(b.disponible) - Number(a.disponible));
   }, [products, selectedCategory, busqueda]);
 
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const mostrados = filteredProducts.slice(0, visibles);
+  const restantes = filteredProducts.length - mostrados.length;
 
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const currentProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + productsPerPage
-  );
-
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       {/* Banda oscura con título y buscador */}
@@ -92,7 +87,8 @@ function Products() {
               {zona ? (
                 <>
                   <MapPin className="mr-1.5 inline h-4 w-4 align-[-2px] text-brand-mustard" />
-                  Mostrando lo disponible en <b className="text-brand-cream">{zona.sucursalNombre}</b>
+                  Mostrando lo disponible en{" "}
+                  <b className="text-brand-cream">{zona.sucursalNombre}</b>
                 </>
               ) : (
                 "Elegí una categoría o buscá tu producto favorito."
@@ -117,11 +113,18 @@ function Products() {
       <div className="mx-auto max-w-7xl px-4 pb-16">
         {/* Categorías: barra blanca montada sobre la banda */}
         <div className="-mt-9">
-          <CategoryFilter categorias={categories} seleccionada={selectedCategory} onSeleccionar={setSelectedCategory} />
+          <CategoryFilter
+            categorias={categories}
+            seleccionada={selectedCategory}
+            onSeleccionar={setSelectedCategory}
+          />
         </div>
 
         {sucursalCerrada && (
-          <AvisoCierreSucursal sucursal={zona?.sucursalNombre} className="mt-6" />
+          <AvisoCierreSucursal
+            sucursal={zona?.sucursalNombre}
+            className="mt-6"
+          />
         )}
 
         {filteredProducts.length === 0 ? (
@@ -129,8 +132,12 @@ function Products() {
             <span className="grid h-16 w-16 -rotate-6 place-items-center rounded-2xl bg-brand-mustard">
               <SearchX className="h-8 w-8" />
             </span>
-            <p className="font-display text-3xl font-extrabold tracking-tight">No encontramos productos</p>
-            <p className="text-brand-muted">Probá con otra categoría o cambiá la búsqueda.</p>
+            <p className="font-display text-3xl font-extrabold tracking-tight">
+              No encontramos productos
+            </p>
+            <p className="text-brand-muted">
+              Probá con otra categoría o cambiá la búsqueda.
+            </p>
             <button
               type="button"
               onClick={() => {
@@ -144,17 +151,34 @@ function Products() {
           </div>
         ) : (
           <>
-            {/* La key cambia con cada filtro: la grilla se vuelve a armar y las tarjetas entran de nuevo */}
+            {/* La key cambia con cada filtro: la grilla se vuelve a armar y las tarjetas entran de nuevo.
+                Con "Mostrar más" NO cambia: las tarjetas que ya se veían no se reanimian, solo entran las nuevas */}
             <div
-              key={`${selectedCategory}-${busqueda}-${currentPage}`}
+              key={`${selectedCategory}-${busqueda}`}
               className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
-              {currentProducts.map((product) => (
+              {mostrados.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
 
-            <Pagination paginaActual={currentPage} totalPaginas={totalPages} onCambiar={goToPage} />
+            <div className="mt-10 flex flex-col items-center gap-3">
+              <p role="status" className="text-sm text-brand-muted">
+                Mostrando {mostrados.length} de {filteredProducts.length}{" "}
+                productos
+              </p>
+              {restantes > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisibles((actual) => actual + LOTE_PRODUCTOS)
+                  }
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-6 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
+                >
+                  Mostrar más <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -162,4 +186,4 @@ function Products() {
   );
 }
 
-   export default Products;
+export default Products;

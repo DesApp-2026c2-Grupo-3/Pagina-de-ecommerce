@@ -1,5 +1,6 @@
 import { httpClient } from './httpClient'
 import type { Category, ProductIngredient, ProductoBackend } from '../types/product'
+import { ordenarCategorias } from '../config/categorias'
 
 // Así llega cada insumo de la receta en GET /productos/:id
 interface IngredienteBackend {
@@ -50,8 +51,9 @@ export const getProductoDetalle = async (id: number, sucursalId?: number | null)
 }
 
 export const getCategories = async (): Promise<Category[]> => {
-  const categorias = await httpClient<Category[]>('/categorias')  
-  return categorias
+  const categorias = await httpClient<Category[]>('/categorias')
+  // "Salsas" siempre al final, sin importar el id con que se cargó
+  return ordenarCategorias(categorias)
 }
 
 

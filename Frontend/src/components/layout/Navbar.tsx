@@ -25,10 +25,11 @@ function Navbar() {
     <header className="sticky top-0 z-30 border-b-4 border-brand-red bg-brand-dark" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         {/* Logo y dónde se recibe el pedido */}
+        <Link to="/" className="flex shrink-0 items-center" onClick={() => alNavegar('/')}>
+          <LogoConEco isAuthenticated={isAuthenticated} />
+        </Link>
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Link to="/" className="flex shrink-0 items-center" onClick={() => alNavegar('/')}>
-            <LogoConEco isAuthenticated={isAuthenticated} />
-          </Link>
+
           <ZoneButton />
         </div>
 
@@ -51,32 +52,43 @@ function Navbar() {
             ))}
           </ul>
 
-          <Link
+          {/* Cambiado de Link a NavLink para poder usar ({ isActive }) */}
+          <NavLink
             to="/carrito"
             aria-label={`Carrito, ${totalItems} productos`}
-            className="relative ml-2 grid h-11 w-11 place-items-center rounded-2xl bg-white/5 text-white transition hover:translate-y-0.5 hover:bg-white/10"
+            onClick={() => alNavegar('/carrito')} // Si necesitas que ejecute la misma lógica de navegación
+            className={({ isActive }) =>
+              `relative ml-2 grid h-11 w-11 place-items-center rounded-2xl transition hover:translate-y-0.5 ${isActive
+                ? 'bg-brand-cream text-brand-dark'
+                : 'bg-white/5 text-white hover:bg-white/10'
+              }`
+            }
           >
-            <ShoppingBag className="h-6 w-6" />
+            <ShoppingBag className="h-6.5 w-6.5" />
             {totalItems > 0 && (
               <span className="absolute -right-1.5 -top-1.5 grid h-6 min-w-6 place-items-center rounded-full border-2 border-brand-dark bg-brand-mustard px-1 text-xs font-extrabold text-brand-dark">
                 {totalItems}
               </span>
             )}
-          </Link>
+          </NavLink>
+
 
           {isAuthenticated ? (
-            <AccountMenu onLogout={cerrarSesion} />
+            <div className="ml-2 "> <AccountMenu onLogout={cerrarSesion} /></div>
+
           ) : (
+
+
             <Link
               to="/login"
-              className="flex min-h-11 items-center rounded-full bg-brand-red px-5 font-bold text-white transition hover:brightness-110"
+              className="ml-10 flex min-h-11 items-center rounded-full bg-brand-red px-10 font-bold text-white transition hover:brightness-110"
             >
               Ingresar
             </Link>
           )}
         </div>
       </nav>
-    </header>
+    </header >
   )
 }
 
