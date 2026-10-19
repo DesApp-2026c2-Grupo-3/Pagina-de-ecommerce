@@ -90,3 +90,65 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Edge nuevo */
 }
+
+/* Pista de "deslizá": una manito que oscila de derecha a izquierda un trayecto corto, como arrastrando la fila.
+   El ciclo dura 30 s y la manito solo se ve en los primeros ~5 s (tres vaivenes), así que se repite
+   cada 30 segundos sin ningún temporizador en JS. */
+@keyframes pista-deslizar {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(1);
+  }
+  1% {
+    opacity: 1;
+    transform: translateX(0) scale(1); /* aparece */
+  }
+  2% {
+    opacity: 1;
+    transform: translateX(0) scale(0.9); /* "apoya" el dedo */
+  }
+  /* vaivén 1 */
+  4% {
+    transform: translateX(-70px) scale(0.9);
+  }
+  6% {
+    transform: translateX(0) scale(0.9);
+  }
+  /* vaivén 2 */
+  8% {
+    transform: translateX(-70px) scale(0.9);
+  }
+  10% {
+    transform: translateX(0) scale(0.9);
+  }
+  /* vaivén 3 */
+  12% {
+    transform: translateX(-70px) scale(0.9);
+  }
+  14% {
+    opacity: 1;
+    transform: translateX(0) scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(0) scale(1); /* levanta el dedo */
+  }
+  17%,
+  100% {
+    opacity: 0;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.pista-deslizar {
+  display: block;
+  /* "backwards": durante la espera inicial toma el primer cuadro (invisible) en vez de verse quieta */
+  animation: pista-deslizar 30s ease-in-out 1.2s infinite backwards;
+}
+
+/* Si la persona pidió menos movimiento en su sistema, no se anima */
+@media (prefers-reduced-motion: reduce) {
+  .pista-deslizar {
+    display: none;
+  }
+}
