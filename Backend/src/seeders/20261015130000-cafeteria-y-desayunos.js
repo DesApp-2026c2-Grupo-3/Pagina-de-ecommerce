@@ -167,10 +167,8 @@ const COMBOS = [
 ];
 
 // ---------- Categorías (se buscan por nombre) ----------
-const CATEGORIA_CAFE = 'Menú Café';
-// La categoría de las comidas de cafetería pasa de "Desayunos y Meriendas" a "Café".
-// Se acepta cualquiera de los dos nombres, así funciona antes y después del renombre.
-const CATEGORIA_DESAYUNOS = ['Café', 'Desayunos y Meriendas'];
+const CATEGORIA_CAFE = 'Café'; // las bebidas calientes
+const CATEGORIA_DESAYUNOS = 'Menú Café'; // las comidas de cafetería
 const CATEGORIA_COMBOS = 'Combos';
 const CATEGORIA_COMBOS_CAFETERIA = 'Combos de Cafetería';
 
@@ -212,7 +210,7 @@ const COMBOS_ARMADOS = [
 
 // Grupos de Combo Desayuno y Combo Merienda. El producto incluido es el más barato de su categoría.
 const GRUPOS_COMBO = [
-  { nombre: 'Café', categoria: 'Menú Café', incluido: 'Espresso', icono: '☕', orden: 1 },
+  { nombre: 'Café', categoria: CATEGORIA_CAFE, incluido: 'Espresso', icono: '☕', orden: 1 },
   { nombre: 'Para comer', categoria: CATEGORIA_DESAYUNOS, incluido: 'Medialunas x2', icono: '🥐', orden: 2 },
 ];
 
@@ -243,13 +241,7 @@ module.exports = {
         return elegida.id;
       };
 
-      // "Desayunos y Meriendas" pasa a llamarse "Café" (si la base todavía tiene el nombre viejo).
-      // Este cambio no se revierte en el down: depende de cómo esté el seeder de categorías.
-      await ejecutar(
-        `UPDATE "Categoria" SET nombre = 'Café', "updatedAt" = NOW()
-          WHERE nombre = 'Desayunos y Meriendas'
-            AND NOT EXISTS (SELECT 1 FROM "Categoria" WHERE nombre = 'Café')`
-      );
+     
       const categoriaCafe = await idCategoria(CATEGORIA_CAFE);
       const categoriaDesayunos = await idCategoria(CATEGORIA_DESAYUNOS);
       const categoriaCombos = await idCategoria(CATEGORIA_COMBOS);

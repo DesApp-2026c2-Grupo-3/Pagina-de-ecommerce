@@ -21,6 +21,7 @@ const {
 } = require('../models');
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
+const { estadoSucursal } = require('../utils/horarioSucursal');
 
 // Cuántas unidades de más se pueden pedir de un ingrediente (igual que el front)
 const EXTRA_MAX_INCREMENTO = 3;
@@ -201,9 +202,13 @@ const crearPedido = async (req, res) => {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Dirección no encontrada' });
         }
-        // La sucursal tiene que estar activa y llegar a la dirección
+        // La sucursal tiene que estar activa, abierta en este horario y llegar a la dirección
         if (!sucursal.activa) {
             throw new ErrorPedido(400, `${sucursal.nombre} no está tomando pedidos en este momento`);
+        }
+        const estadoHorario = estadoSucursal(sucursal.horario, sucursal.zona_horaria);
+        if (!estadoHorario.abierta) {
+            throw new ErrorPedido(400, estadoHorario.motivo ?? 'La sucursal seleccionada se encuentra cerrada en este horario');
         }
         if (direccion.latitud == null || direccion.longitud == null) {
             throw new ErrorPedido(400, 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.');

@@ -10,6 +10,7 @@ import IngredientesEditables from '../components/product/IngredientesEditables'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
 import { useZona } from '../context/ZonaContext'
+import AvisoCierreSucursal from '../components/sucursal/AvisoCierreSucursal'
 import { ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react'
 import Stepper from '../components/Stepper'
 import ModalConfirmarAgregar from '../components/product/ModalConfirmarAgregar'
@@ -37,6 +38,7 @@ function DetalleProducto({ id }: { id: number }) {
   const { addItem } = useCart()
   const { showToast } = useToast()
   const { zona } = useZona()
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
   const [product, setProduct] = useState<ProductoBackend | null>(null)
   const [catalogo, setCatalogo] = useState<ProductoBackend[]>([])
   const [categorias, setCategorias] = useState<Category[]>([])
@@ -138,6 +140,7 @@ function DetalleProducto({ id }: { id: number }) {
   const comboCompleto = grupos.every((g) => !g.obligatorio || eleccion[g.id] !== undefined)
   const grupoActivo = grupos.find((g) => g.id === grupoAbierto) ?? null
   const puedeAgregar = !!product?.disponible && comboCompleto
+  const puedeComprar = puedeAgregar && !sucursalCerrada
 
   // Pasos de la tarjeta: solo los que aplican a este producto. El último siempre es el de la nota y la compra.
   const pasos = [
@@ -206,7 +209,7 @@ function DetalleProducto({ id }: { id: number }) {
   }
 
   function anadirAlCarrito() {
-    if (!product || !puedeAgregar) return
+    if (!product || !puedeComprar) return
     const { opciones, extras } = armarEleccion()
     addItem(product, cantidad, opciones, extras)
     showToast(`${product.nombre} agregado al carrito`)
@@ -216,7 +219,7 @@ function DetalleProducto({ id }: { id: number }) {
 
   // Agrega el producto y lleva al carrito para revisar todo y pagar
   function pagarAhora() {
-    if (!product || !puedeAgregar) return
+    if (!product || !puedeComprar) return
     const { opciones, extras } = armarEleccion()
     addItem(product, cantidad, opciones, extras)
     navigate('/carrito')
@@ -302,7 +305,7 @@ function DetalleProducto({ id }: { id: number }) {
           <button
             type="button"
             onClick={pagarAhora}
-            disabled={!puedeAgregar}
+            disabled={!puedeComprar}
             className={`min-h-13 rounded-full border-2 px-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${botonBorde(movil)}`}
           >
             Pagar ahora
@@ -310,7 +313,7 @@ function DetalleProducto({ id }: { id: number }) {
           <button
             type="button"
             onClick={() => setConfirmandoAgregar(true)}
-            disabled={!puedeAgregar}
+            disabled={!puedeComprar}
             className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ShoppingBag className="h-5 w-5" />
@@ -373,6 +376,8 @@ function DetalleProducto({ id }: { id: number }) {
           Este producto no está disponible por el momento.
         </p>
       )}
+
+      {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} className="mt-4" />}
     </>
   )
 
@@ -394,7 +399,7 @@ function DetalleProducto({ id }: { id: number }) {
       <div className="bg-brand-dark px-4 pb-40 pt-6">
         <div className="mx-auto max-w-6xl">
           <Link
-            to={product.categoriaId ? `/catalogo?categoria=${product.categoriaId}` : '/catalogo'}            
+            to="/catalogo"
             className="inline-flex min-h-11 items-center gap-2 font-bold text-brand-cream/70 transition-colors hover:text-brand-cream"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -403,7 +408,7 @@ function DetalleProducto({ id }: { id: number }) {
         </div>
       </div>
 
-      <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12 [&>*]:min-w-0">        
+      <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12 [&>*]:min-w-0">
         {/* La imagen grande queda a la izquierda. En celular se oculta mientras se arma el pedido */}
         <div className={armando ? 'hidden md:block' : ''}>
           <div className="relative mx-auto grid aspect-square w-full max-w-md rotate-2 place-items-center rounded-[2.5rem] border-2 border-brand-dark bg-brand-red">
@@ -538,7 +543,14 @@ function DetalleProducto({ id }: { id: number }) {
       {/* En el celular la barra queda pegada al pie de la pantalla */}
       <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
         {armando ? (
-          barraCompra(true)
+          <>
+            {esUltimoPaso && sucursalCerrada && (
+              <p className="mb-3 rounded-xl bg-brand-red px-3 py-2 text-center text-xs font-bold text-white">
+                La sucursal está cerrada. No se pueden generar pedidos ahora.
+              </p>
+            )}
+            {barraCompra(true)}
+          </>
         ) : (
           <div className="flex items-center justify-between gap-4">
             {totalTexto(true)}
@@ -554,6 +566,7 @@ function DetalleProducto({ id }: { id: number }) {
         detalle={[resumenEleccion(), nota.trim() ? `Nota: ${nota.trim()}` : ''].filter(Boolean).join(' · ')}
         cantidad={cantidad}
         total={total}
+        deshabilitado={sucursalCerrada}
         onCancelar={() => setConfirmandoAgregar(false)}
         onConfirmar={() => {
           setConfirmandoAgregar(false)

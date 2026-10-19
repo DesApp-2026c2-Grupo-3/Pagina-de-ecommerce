@@ -15,6 +15,7 @@ const obtenerSucursales = async (req, res) => {
                 'codigoPostal',
                 'telefono',
                 'horario',
+                'zona_horaria',
                 'latitud',
                 'longitud',
                 'radioEntregaKm',

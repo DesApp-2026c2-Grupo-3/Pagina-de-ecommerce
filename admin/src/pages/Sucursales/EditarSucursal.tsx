@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
 import { obtenerSucursalPorId, actualizarSucursal } from '../../services/sucursalService'
-import FormularioSucursal, { aPedido, desdeSucursal, type DatosSucursal } from '../../components/FormularioSucursal'
+import FormularioSucursal from '../../components/FormularioSucursal'
+import type { DatosSucursal } from '../../types/sucursal'
+import { aPedido, desdeSucursal } from '../../utils/sucursalForm'
 
 export default function EditarSucursal() {
   const { id } = useParams()

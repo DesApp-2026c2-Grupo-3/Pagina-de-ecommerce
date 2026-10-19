@@ -5,6 +5,7 @@ import type { Category, ProductoBackend } from "../types/product";
 import { MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
 import Pagination from "../components/catalogo/Pagination";
+import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
 
@@ -28,6 +29,7 @@ function Products() {
   // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
   const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
 
   const [pagina, setPagina] = useState(1);
   // Los productos se vuelven a pedir si el cliente cambia de zona
@@ -100,7 +102,8 @@ function Products() {
               {zona ? (
                 <>
                   <MapPin className="mr-1.5 inline h-4 w-4 align-[-2px] text-brand-mustard" />
-                  Mostrando lo disponible en <b className="text-brand-cream">{zona.sucursalNombre}</b>
+                  Mostrando lo disponible en{" "}
+                  <b className="text-brand-cream">{zona.sucursalNombre}</b>
                 </>
               ) : (
                 "Elegí una categoría o buscá tu producto favorito."
@@ -128,13 +131,24 @@ function Products() {
           <CategoryFilter categorias={categories} seleccionada={selectedCategory} onSeleccionar={elegirCategoria} />
         </div>
 
+        {sucursalCerrada && (
+          <AvisoCierreSucursal
+            sucursal={zona?.sucursalNombre}
+            className="mt-6"
+          />
+        )}
+
         {filteredProducts.length === 0 ? (
           <div className="mx-auto mt-10 flex max-w-xl flex-col items-center gap-4 rounded-3xl border-2 border-brand-dark bg-white px-6 py-12 text-center">
             <span className="grid h-16 w-16 -rotate-6 place-items-center rounded-2xl bg-brand-mustard">
               <SearchX className="h-8 w-8" />
             </span>
-            <p className="font-display text-3xl font-extrabold tracking-tight">No encontramos productos</p>
-            <p className="text-brand-muted">Probá con otra categoría o cambiá la búsqueda.</p>
+            <p className="font-display text-3xl font-extrabold tracking-tight">
+              No encontramos productos
+            </p>
+            <p className="text-brand-muted">
+              Probá con otra categoría o cambiá la búsqueda.
+            </p>
             <button
               type="button"
               onClick={() => {

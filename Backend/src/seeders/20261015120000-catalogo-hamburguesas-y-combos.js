@@ -78,13 +78,15 @@ const HAMBURGUESAS_NUEVAS = [
   {
     nombre: 'Pickle Me Fast',
     precio: 7000,
+    imagen: '/imagenes/Hamburguesas/Pickle-Me.png',
     descripcion: 'Carne jugosa con panceta crocante y frescos pepinos. El salado intenso del bacon con un toque ácido que despierta el paladar.',
-    receta: [['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 1], ['Panceta (bacon)', 3, true], ['Pepino', 3, true]],
+    receta: [['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 1], ['Panceta (bacon)', 3, true], ['Pepino', 3, true],]
   },
   {
     nombre: 'Criolla Parrillera',
     precio: 8500,
     descripcion: 'Entraña desmechada, tierna y jugosa, con provoleta grillada, chimichurri casero y tomate. El sabor de la parrilla argentina en pan blando.',
+    imagen: '/imagenes/Hamburguesas/Criolla-Parrillera.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Entraña desmechada', 1], ['Provoleta', 1, true],
       ['Chimichurri', 1, true], ['Tomate', 2, true],
@@ -94,6 +96,7 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Modo Bestia',
     precio: 9800,
     descripcion: 'Doble carne, panceta crocante, cheddar derretido, huevo a la plancha y un toque de salsa picante. Para cuando el hambre es en serio.',
+    imagen: '/imagenes/Hamburguesas/Modo-Bestia.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 2], ['Queso (feta)', 1, true],
       ['Panceta (bacon)', 2, true], ['Huevo', 1, true], ['Salsa picante', 1, true],
@@ -103,12 +106,14 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Crack Crispy',
     precio: 6400,
     descripcion: 'Pechuga de pollo rebozada y crocante, lechuga fresca y mayonesa suave. Crujiente por fuera, tierna por dentro.',
+    imagen: '/imagenes/Hamburguesas/Crack-Crispy.png',
     receta: [['Pan de hamburguesa', 1], ['Pechuga de pollo', 1], ['Lechuga', 2, true], ['Mayonesa', 1, true]],
   },
   {
     nombre: 'Verde que te Quiero Verde',
     precio: 6000,
     descripcion: 'Medallón de legumbres, rúcula fresca, tomate y mayonesa suave. La opción vegetariana, con mucho sabor.',
+    imagen: '/imagenes/Hamburguesas/Verde.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de legumbres', 1], ['Rúcula', 2, true],
       ['Tomate', 2, true], ['Mayonesa', 1, true],
@@ -118,6 +123,7 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Fast Egg',
     precio: 7300,
     descripcion: 'Carne, huevo a la plancha, cheddar y panceta crocante. Estilo "a caballo", con la yema como salsa.',
+    imagen: '/imagenes/Hamburguesas/Fast-Egg.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 1], ['Huevo', 1, true],
       ['Queso (feta)', 1, true], ['Panceta (bacon)', 2, true],
@@ -127,12 +133,14 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Doble Habemus',
     precio: 10200,
     descripcion: 'La versión doble de la Habemus Bacon: dos carnes, panceta de sobra y salsa BBQ ahumada.',
+    imagen: '/imagenes/Hamburguesas/Habemus-Fast-Doble.png',
     receta: [['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 2], ['Panceta (bacon)', 6, true], ['Salsa BBQ', 1, true]],
   },
   {
     nombre: 'Fast Mushroom',
     precio: 7000,
     descripcion: 'Carne con champiñones salteados, cheddar derretido y mayonesa de ajo. Un sabor terroso y bien casero.',
+    imagen: '/imagenes/Hamburguesas/Fast-Mushroom.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 1], ['Champiñones salteados', 1, true],
       ['Queso (feta)', 1, true], ['Mayonesa de ajo', 1, true],
@@ -142,6 +150,7 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Picante Express',
     precio: 6800,
     descripcion: 'Carne con jalapeños, cheddar derretido y nuestra salsa picante. Para los que piden un poco más de fuego.',
+    imagen: '/imagenes/Hamburguesas/Picante-Express.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 1], ['Jalapeños', 4, true],
       ['Queso (feta)', 1, true], ['Salsa picante', 1, true],
@@ -151,7 +160,8 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Fast Ranch',
     precio: 6600,
     descripcion: 'Pollo crispy con lechuga, tomate y salsa ranch cremosa. Fresca, crocante y liviana.',
-    receta: [
+    imagen: '/imagenes/Hamburguesas/Fast-Ranch.png',
+     receta: [
       ['Pan de hamburguesa', 1], ['Pechuga de pollo', 1], ['Lechuga', 2, true],
       ['Tomate', 2, true], ['Salsa ranch', 1, true],
     ],
@@ -160,6 +170,7 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Palta Power',
     precio: 7100,
     descripcion: 'Carne con palta cremosa, tomate y rúcula. La opción más fresca y liviana del menú.',
+    imagen: '/imagenes/Hamburguesas/Palta-Power.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 1], ['Palta', 3, true],
       ['Tomate', 2, true], ['Rúcula', 2, true],
@@ -169,6 +180,7 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Magnum Fast',
     precio: 11900,
     descripcion: 'Triple carne, triple cheddar, panceta crocante y cebolla crispy. La más contundente de la casa, solo para valientes.',
+    imagen: '/imagenes/Hamburguesas/Magnum-Fast.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 3], ['Queso (feta)', 3, true],
       ['Panceta (bacon)', 3, true], ['Cebolla crispy', 1, true],
@@ -178,6 +190,7 @@ const HAMBURGUESAS_NUEVAS = [
     nombre: 'Blue Fast',
     precio: 7600,
     descripcion: 'Carne con queso azul fundido, cebolla caramelizada y rúcula. Sabor intenso para quienes buscan algo distinto.',
+    imagen: '/imagenes/Hamburguesas/Blue-Fast.png',
     receta: [
       ['Pan de hamburguesa', 1], ['Medallón de carne (vacuno)', 1], ['Queso azul', 1, true],
       ['Cebolla caramelizada', 1, true], ['Rúcula', 2, true],

@@ -11,12 +11,14 @@ import { ArrowLeft, House, Pencil, Store } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import PasosCompra from "../components/cart/PasosCompra";
 import SeccionCheckout from "../components/checkout/SeccionCheckout";
-import Aviso from "../components/checkout/Aviso";
+import Aviso from "../components/ui/Aviso";
+import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import ResumenPedido from "../components/checkout/ResumenPedido";
 import PedidoConfirmado from "../components/checkout/PedidoConfirmado";
 import OpcionesCheckout from "../components/checkout/OpcionesCheckout";
 import { FORMAS_ENTREGA, FORMAS_PAGO, type FormaEntrega, type FormaPago } from "../config/compra";
 import { buscarSucursalCercana } from "../utils/sucursales";
+import { estadoSucursal } from "../utils/horario";
 import { distanciaKm } from "../utils/distancia";
 import type { Order } from "../types/order";
 import type { Address } from "../types/address";
@@ -170,10 +172,18 @@ function Checkout() {
 
   const masCercana = buscarSucursalCercana(coordsDireccion, sucursales);
   const dentroDeZona = masCercana?.dentroDeZona ?? false;
+  const estadoPedido = masCercana
+    ? estadoSucursal(masCercana.sucursal.horario, masCercana.sucursal.zona_horaria)
+    : null;
+  const sucursalCerrada = estadoPedido
+    ? !estadoPedido.abierta
+    : Boolean(zona && zona.sucursalAbierta === false);
 
   // El pedido se armó con el stock de la sucursal de la zona: la dirección tiene que ser de esa sucursal
   const sucursalDistinta = Boolean(zona && masCercana && dentroDeZona && masCercana.sucursal.id !== zona.sucursalId);
-  const puedeConfirmar = Boolean(direccion && masCercana && dentroDeZona && !sucursalDistinta);
+  const puedeConfirmar = Boolean(
+    direccion && masCercana && dentroDeZona && !sucursalDistinta && !sucursalCerrada,
+  );
 
   // ¿La dirección de la zona ya está entre las guardadas?
   const zonaGuardada =
@@ -219,6 +229,10 @@ function Checkout() {
       setError("Esta dirección le corresponde a otra sucursal. Cambiá tu zona para confirmar.");
       return;
     }
+    if (sucursalCerrada) {
+      setError("La sucursal está cerrada en este horario. No se pueden generar pedidos por ahora.");
+      return;
+    }
 
     setError("");
     setPreguntando(true);
@@ -226,6 +240,12 @@ function Checkout() {
 
   async function enviarPedido() {
     if (!direccion || !masCercana) return;
+    const estado = estadoSucursal(masCercana.sucursal.horario, masCercana.sucursal.zona_horaria);
+    if (!estado.abierta) {
+      setPreguntando(false);
+      setError(`${estado.motivo ?? "La sucursal está cerrada"}. No se pueden generar pedidos por ahora.`);
+      return;
+    }
     setPreguntando(false);
     setLoading(true);
     setProcesando({ fase: "preparando" });
@@ -271,8 +291,8 @@ function Checkout() {
             : "Revisá todo antes de mandarlo a la cocina."
         }
       >
-        <PasosCompra actual={paso} onIrA={(i) => i === 1 && irAPaso(1)} />       
-       </PageHeader>
+        <PasosCompra actual={paso} onIrA={(i) => i === 1 && irAPaso(1)} />
+      </PageHeader>
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-5">
@@ -289,6 +309,13 @@ function Checkout() {
             <Link to="/carrito" className={`${botonChico} w-fit shadow-sticker`}>
               <ArrowLeft className="h-4 w-4" /> Volver al carrito
             </Link>
+          )}
+
+          {sucursalCerrada && (
+            <AvisoCierreSucursal
+              sucursal={masCercana?.sucursal.nombre ?? zona?.sucursalNombre}
+              motivo={estadoPedido?.motivo}
+            />
           )}
 
           {paso === 1 && (<>
@@ -429,8 +456,7 @@ function Checkout() {
                   : "Elegí una dirección para ver qué sucursal te lo envía."}
               </p>
             ) : !coordsDireccion ? (
-              <Aviso>
-                <p className="font-semibold">Esta dirección no tiene ubicación en el mapa.</p>
+              <Aviso titulo="Esta dirección no tiene ubicación en el mapa.">
                 <Link to="/direcciones" state={{ ...volverAlCheckout, editarId: direccion.id }} className="mt-1 inline-block font-bold underline">
                   Marcarla en el mapa →
                 </Link>
@@ -438,18 +464,16 @@ function Checkout() {
             ) : !masCercana ? (
               <p className="text-sm text-brand-muted">No hay sucursales disponibles.</p>
             ) : !dentroDeZona ? (
-              <Aviso tono="error">
-                <p className="font-semibold">Tu dirección está fuera de nuestra zona de entrega.</p>
+              <Aviso variante="error" titulo="Tu dirección está fuera de nuestra zona de entrega.">
                 <p className="mt-1">
                   La sucursal más cercana, {masCercana.sucursal.nombre}, está a {formatearKm(masCercana.distancia)} km y
                   entrega hasta {masCercana.sucursal.radioEntregaKm} km.
                 </p>
               </Aviso>
             ) : sucursalDistinta && zona ? (
-              <Aviso>
-                <p className="font-semibold">
-                  Tu pedido es de {zona.sucursalNombre}, pero esta dirección le corresponde a {masCercana.sucursal.nombre}.
-                </p>
+              <Aviso
+                titulo={`Tu pedido es de ${zona.sucursalNombre}, pero esta dirección le corresponde a ${masCercana.sucursal.nombre}.`}
+              >
                 <p className="mt-1">
                   Si cambiás tu zona, revisá el pedido: algunos productos pueden no estar disponibles en esa sucursal.
                 </p>
@@ -497,7 +521,7 @@ function Checkout() {
             cargando={loading}
             textoBoton={paso === 1 ? "Continuar" : "Confirmar pedido"}
           />
-          {avisoSucursal && <Aviso>{avisoSucursal}</Aviso>}
+          {avisoSucursal && <Aviso mensaje={avisoSucursal} />}
           <ErrorAlert message={error} />
         </div>
       </div>

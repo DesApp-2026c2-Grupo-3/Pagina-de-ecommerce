@@ -2,6 +2,10 @@
 const {
   Model
 } = require('sequelize');
+const {
+  HORARIO_POR_DEFECTO,
+  ZONA_HORARIA_POR_DEFECTO,
+} = require('../utils/horarioSucursal');
 module.exports = (sequelize, DataTypes) => {
   class Sucursal extends Model {
     /**
@@ -32,7 +36,8 @@ module.exports = (sequelize, DataTypes) => {
     localidad: { type: DataTypes.STRING, allowNull: false },
     provincia: { type: DataTypes.STRING, allowNull: false },
     telefono: { type: DataTypes.STRING, allowNull: true },
-    horario: { type: DataTypes.STRING, allowNull: true },
+    horario: { type: DataTypes.JSONB, allowNull: false, defaultValue: HORARIO_POR_DEFECTO },
+    zona_horaria: { type: DataTypes.STRING, allowNull: false, defaultValue: ZONA_HORARIA_POR_DEFECTO },
     latitud: { type: DataTypes.FLOAT, allowNull: false },
     longitud: { type: DataTypes.FLOAT, allowNull: false },
     codigoPostal: { type: DataTypes.STRING, allowNull: true },
