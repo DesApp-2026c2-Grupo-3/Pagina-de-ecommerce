@@ -64,8 +64,8 @@ export default function Categorias() {
   )
 
   return (
-  <main className="p-8">
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+  <main className="p-4 md:p-8">    
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
       <div>
         <h1 className="text-3xl font-bold">
           Categorías
@@ -92,8 +92,8 @@ export default function Categorias() {
     <table className="w-full">
       <thead className="bg-gray-100">
         <tr>
-          <th className="text-left px-6 py-3">Nombre</th>
-          <th className="text-right px-6 py-3">Acciones</th>
+          <th className="text-left px-4 py-3 sm:px-6">Nombre</th>
+          <th className="text-right px-4 py-3 sm:px-6">Acciones</th>
         </tr>
       </thead>
 
@@ -107,22 +107,24 @@ export default function Categorias() {
         ) : (
         categoriasPagina.map((categoria: { id: number; nombre: string }) => (
           <tr key={categoria.id} className="border-t border-b">
-            <td className="px-6 py-4">
+            <td className="px-4 py-4 sm:px-6">
               {categoria.nombre}
             </td>
 
-            <td className="flex justify-end gap-2 px-6 py-4">
-              <button onClick={() => navigate(`/admin/categorias/editar/${categoria.id}`)}
-              className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
-              hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                  <Pencil size={18} />
-              </button>
+            <td className="px-4 py-4 sm:px-6">
+              <div className="flex justify-end gap-2">
+                <button onClick={() => navigate(`/admin/categorias/editar/${categoria.id}`)}
+                className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
+                hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                    <Pencil size={18} />
+                </button>
 
-              <button onClick={() => setCategoriaAEliminar(categoria.id)}
-              className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
-              hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                <Trash2 size={18} />
-              </button>
+                <button onClick={() => setCategoriaAEliminar(categoria.id)}
+                className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
+                hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </td>
           </tr>
         )))}

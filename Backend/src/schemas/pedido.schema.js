@@ -32,6 +32,10 @@ const pedidoSchema = Joi.object({
                 'number.max': 'No se pueden pedir más de 20 unidades de un mismo producto',
                 'any.required': 'La cantidad es obligatoria'
             }),
+            // Promo con la que se agregó la línea (ver config/promociones.js)
+            promoId: Joi.string().max(60).optional().messages({
+                'string.base': 'La promo no es válida'
+            }),
             // Tamaño elegido (id de la tabla Tamanios), si el producto tiene tamaños
             tamanioId: Joi.number().integer().positive().optional().messages({
                 'number.base': 'El id de tamaño debe ser un número'

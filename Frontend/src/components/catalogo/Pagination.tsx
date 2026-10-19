@@ -8,8 +8,9 @@ interface Props {
   maxBotones?: number
 }
 
+// Mismo estilo que las cards del sitio: blanco, borde negro y sombra "sticker"
 const boton =
-  'grid h-11 min-w-11 place-items-center rounded-2xl border-2 bg-radial from-red-100 to-red-300 px-3 font-bold text-brand-dark transition hover:translate-y-0.5 disabled:pointer-events-none disabled:opacity-20 hover:from-red-300 to-red-500'
+  'grid h-11 min-w-11 place-items-center rounded-2xl border-2 border-brand-dark bg-white px-3 font-bold text-brand-dark shadow-[3px_3px_0_var(--color-brand-dark)] hover:bg-brand-cream disabled:pointer-events-none disabled:opacity-30 disabled:shadow-none'
 
 function Flecha({ Icono, label, onClick, disabled }: { Icono: LucideIcon; label: string; onClick: () => void; disabled: boolean }) {
   return (
@@ -24,29 +25,34 @@ function Pagination({ paginaActual, totalPaginas, onCambiar, maxBotones = 3 }: P
 
   // Ventana de números centrada en la página actual
   const cantidad = Math.min(maxBotones, totalPaginas)
-  const inicio = Math.max(1, Math.min(paginaActual - 1, totalPaginas - maxBotones + 1))
+  const inicio = Math.max(1, Math.min(paginaActual - 1, totalPaginas - cantidad + 1))
   const paginas = Array.from({ length: cantidad }, (_, i) => inicio + i)
 
   const esPrimera = paginaActual === 1
   const esUltima = paginaActual === totalPaginas
 
   return (
-    <nav aria-label="Paginación" className="mt-10 flex items-center justify-center gap-2">
+    <nav aria-label="Paginación" className="mt-10 flex items-center justify-center gap-2 sm:gap-3">
       <Flecha Icono={ChevronsLeft} label="Primera página" onClick={() => onCambiar(1)} disabled={esPrimera} />
       <Flecha Icono={ChevronLeft} label="Página anterior" onClick={() => onCambiar(paginaActual - 1)} disabled={esPrimera} />
 
-      {paginas.map((pagina) => (
-        <button
-          key={pagina}
-          type="button"
-          onClick={() => onCambiar(pagina)}
-          aria-current={paginaActual === pagina ? 'page' : undefined}
-          disabled={paginaActual === pagina}
-          className={`${boton} hidden sm:grid ${paginaActual === pagina ? 'bg-radial from-red-900 to-red-700 text-white cursor-default border border-black' : ''}`}
-        >
-          {pagina}
-        </button>
-      ))}
+      {paginas.map((pagina) => {
+        const actual = pagina === paginaActual
+        return (
+          <button
+            key={pagina}
+            type="button"
+            onClick={() => onCambiar(pagina)}
+            aria-current={actual ? 'page' : undefined}
+            aria-label={`Página ${pagina}`}
+            className={`${boton} hidden sm:grid ${actual ? 'pointer-events-none !bg-brand-red text-white' : ''}`}
+          >
+            {pagina}
+          </button>
+        )
+      })}
+
+      {/* En celular no entran todos los números: se muestra "2 / 5" */}
       <span className="px-2 font-bold text-brand-dark sm:hidden">
         {paginaActual} / {totalPaginas}
       </span>

@@ -36,6 +36,7 @@ export interface PedidoCompleto {
   fecha: string
   estado: string
   total: string | number
+  observaciones: string | null 
   Usuario: { nombre: string; apellido: string; email: string; telefono: string | null } | null
   Direccion: {
     alias: string

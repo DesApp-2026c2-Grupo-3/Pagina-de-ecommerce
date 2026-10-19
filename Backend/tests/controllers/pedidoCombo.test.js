@@ -2,7 +2,7 @@
 jest.mock('../../src/models', () => {
     const t = { commit: jest.fn(), rollback: jest.fn(), LOCK: { UPDATE: 'UPDATE' } };
     return {
-        Pedido: { create: jest.fn() },
+        Pedido: { create: jest.fn(), count: jest.fn().mockResolvedValue(0) },
         DetallePedido: { create: jest.fn() },
         Producto: { findByPk: jest.fn() },
         Usuario: { findByPk: jest.fn() },

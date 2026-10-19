@@ -32,11 +32,18 @@ export function esRetornoAPendienteProhibido(estadoActual: string, destino: stri
   )
 }
 
+// Flujo permitido (espejo de TRANSICIONES del backend)
+const TRANSICIONES: Record<EstadoPedido, EstadoPedido[]> = {
+  Pendiente: ['En proceso', 'Cancelado'],
+  'En proceso': ['En camino', 'Cancelado'],
+  'En camino': ['Entregado', 'Cancelado'],
+  Entregado: [],
+  Cancelado: [],
+}
+
 // ¿Se puede pedir el cambio de estado? (el backend tiene la última palabra)
 export function puedePasarA(estadoActual: string, destino: string) {
-  if (esEstadoFinal(estadoActual)) return false
-  if (esRetornoAPendienteProhibido(estadoActual, destino)) return false
-  return normalizarEstado(destino) !== normalizarEstado(estadoActual)
+  return TRANSICIONES[normalizarEstado(estadoActual)].includes(normalizarEstado(destino))
 }
 
 // Posición en la línea de tiempo (0 a 3); -1 si es Cancelado (fuera del flujo)

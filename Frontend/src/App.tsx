@@ -44,7 +44,7 @@ function App() {
       <main className={`flex-1 lg:pb-0 ${conBarraInferior ? 'pb-24' : ''}`}>
         {/* La key reinicia las páginas al cambiar de usuario: no quedan datos del anterior */}
         {/* La key con la ruta hace que cada página nueva entre con la animación */}
-        <div key={pathname} className="bf-pagina">
+        <div key={pathname} className={pathname === '/carrito' || pathname === '/checkout' ? '' : 'bf-pagina'}>        
         <Routes key={user?.id ?? 'invitado'}>          <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Products />} />
           <Route path="/promociones" element={<Promociones />} />
