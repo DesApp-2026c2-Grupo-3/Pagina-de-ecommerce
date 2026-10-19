@@ -1,4 +1,5 @@
 import { httpClient } from './httpClient'
+import { zonaHorariaDeSucursal } from '../utils/horario'
 import type { Sucursal } from '../types/sucursal'
 
 export const getSucursales = async (): Promise<Sucursal[]> => {
@@ -9,5 +10,6 @@ export const getSucursales = async (): Promise<Sucursal[]> => {
     latitud: Number(s.latitud),
     longitud: Number(s.longitud),
     radioEntregaKm: Number(s.radioEntregaKm),
+    zona_horaria: zonaHorariaDeSucursal(s.zona_horaria),
   }))
 }

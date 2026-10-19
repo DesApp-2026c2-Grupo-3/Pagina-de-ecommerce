@@ -3,6 +3,7 @@ import { AdvancedMarker, APIProvider, Map } from '@vis.gl/react-google-maps'
 import { Clock, MapPin, Navigation, Phone, Store } from 'lucide-react'
 import { useZona } from '../../context/ZonaContext'
 import { getSucursales } from '../../services/sucursalService'
+import { formatearHorario } from '../../utils/horario'
 import type { Sucursal } from '../../types/sucursal'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
@@ -80,7 +81,16 @@ function TuSucursal() {
         </div>
 
         <div className="flex flex-col gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-white p-7">
-          <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu sucursal</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu sucursal</p>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${
+                zona.sucursalAbierta === false ? 'bg-brand-red text-white' : 'bg-brand-mustard text-brand-dark'
+              }`}
+            >
+              {zona.sucursalAbierta === false ? 'Cerrada ahora' : 'Abierta ahora'}
+            </span>
+          </div>
           <h2 className="font-display text-3xl font-extrabold leading-tight tracking-tight">{sucursal.nombre}</h2>
           <p className="flex items-start gap-2 text-brand-muted">
             <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand-red" />
@@ -90,7 +100,8 @@ function TuSucursal() {
           <div className="flex flex-col gap-2 border-t-2 border-dashed border-brand-sand pt-4 text-sm">
             {sucursal.horario && (
               <p className="flex items-center gap-2">
-                <Clock className="h-4 w-4 shrink-0" /> <span className="font-bold">{sucursal.horario}</span>
+                <Clock className="h-4 w-4 shrink-0" />{' '}
+                <span className="font-bold">{formatearHorario(sucursal.horario)}</span>
               </p>
             )}
             {sucursal.telefono && (

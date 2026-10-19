@@ -4,7 +4,8 @@ import { ChevronRight, MapPin } from 'lucide-react'
 import Modal from './Modal'
 import AddressPicker from './AddressPicker'
 import ErrorAlert from './ErrorAlert'
-import { useZona, type UbicacionElegida } from '../context/ZonaContext'
+import { useZona } from '../context/ZonaContext'
+import type { UbicacionElegida } from '../types/zona'
 import { useAuth } from '../context/AuthContext'
 import { getDirecciones } from '../services/addressService'
 import type { Address } from '../types/address'
@@ -74,7 +75,13 @@ function ElegirZonaModal() {
 
   return (
     <>
-    {buscando && zona && <BuscandoSucursal sucursal={zona.sucursalNombre} distanciaKm={zona.distanciaKm} />}
+    {buscando && zona && (
+      <BuscandoSucursal
+        sucursal={zona.sucursalNombre}
+        distanciaKm={zona.distanciaKm}
+        abierta={zona.sucursalAbierta !== false}
+      />
+    )}
     <Modal
       isOpen={selectorAbierto}
       onClose={cerrarSelector}

@@ -5,6 +5,7 @@ import type { Category, ProductoBackend } from "../types/product";
 import { MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
 import Pagination from "../components/catalogo/Pagination";
+import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
 
@@ -21,6 +22,7 @@ function Products() {
     // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
   const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 8;
@@ -117,6 +119,10 @@ function Products() {
         <div className="-mt-9">
           <CategoryFilter categorias={categories} seleccionada={selectedCategory} onSeleccionar={setSelectedCategory} />
         </div>
+
+        {sucursalCerrada && (
+          <AvisoCierreSucursal sucursal={zona?.sucursalNombre} className="mt-6" />
+        )}
 
         {filteredProducts.length === 0 ? (
           <div className="mx-auto mt-10 flex max-w-xl flex-col items-center gap-4 rounded-3xl border-2 border-brand-dark bg-white px-6 py-12 text-center">

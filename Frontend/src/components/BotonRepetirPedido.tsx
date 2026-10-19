@@ -1,96 +1,118 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { RotateCcw } from 'lucide-react'
-import Modal from './Modal'
-import { useAuth } from '../context/AuthContext'
-import { useCart } from '../context/CartContext'
-import { useZona } from '../context/ZonaContext'
-import { getRepetirPedido } from '../services/orderService'
-import { getProductoDetalle } from '../services/productService'
-import type { ProductoBackend } from '../types/product'
-import type { Order } from '../types/order'
-import ArmandoPedido from './ArmandoPedido'
-import { esperar } from '../utils/esperar'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { RotateCcw } from "lucide-react";
+import Modal from "./Modal";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
+import { useZona } from "../context/ZonaContext";
+import { getRepetirPedido } from "../services/orderService";
+import { getProductoDetalle } from "../services/productService";
+import type { ProductoBackend } from "../types/product";
+import type { Order } from "../types/order";
+import ArmandoPedido from "./ArmandoPedido";
+import { esperar } from "../utils/esperar";
 
 interface Resumen {
-  agregados: number
-  noDisponibles: { nombre: string; cantidad: number; motivo: string }[]
-  avisos: string[]
-  preciosCambiaron: boolean
+  agregados: number;
+  noDisponibles: { nombre: string; cantidad: number; motivo: string }[];
+  avisos: string[];
+  preciosCambiaron: boolean;
 }
 
 const estilos = {
-  claro: 'min-h-10 border-2 border-brand-dark bg-brand-cream px-4 text-sm text-brand-dark hover:bg-brand-mustard',  
-  oscuro: 'min-h-12 bg-brand-dark px-6 text-brand-cream hover:translate-y-0.5',
-}
+  claro:
+    "min-h-10 border-2 border-brand-dark bg-brand-cream px-4 text-sm text-brand-dark hover:bg-brand-mustard",
+  oscuro: "min-h-12 bg-brand-dark px-6 text-brand-cream hover:translate-y-0.5",
+};
 
 interface Props {
   /** El pedido a repetir (se usa su id y, en la pantalla de carga, sus productos) */
-  pedido: Order
-  variante?: keyof typeof estilos
+  pedido: Order;
+  variante?: keyof typeof estilos;
 }
 
-function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
-  const { user } = useAuth()
-  const { addItem } = useCart()
-  const { zona, abrirSelector } = useZona()
-  const navigate = useNavigate()
+function BotonRepetirPedido({ pedido, variante = "claro" }: Props) {
+  const { user } = useAuth();
+  const { addItem } = useCart();
+  const { zona, abrirSelector } = useZona();
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
+  const navigate = useNavigate();
 
-  const [cargando, setCargando] = useState(false)
-  const [resumen, setResumen] = useState<Resumen | null>(null)
-  const [error, setError] = useState('')
+  const [cargando, setCargando] = useState(false);
+  const [resumen, setResumen] = useState<Resumen | null>(null);
+  const [error, setError] = useState("");
 
   async function repetir() {
-    if (!user) return
+    if (!user) return;
     // Sin zona no se sabe de qué sucursal es el stock: primero hay que elegirla
     if (!zona) {
-      abrirSelector()
-      return
+      abrirSelector();
+      return;
+    }
+    if (sucursalCerrada) {
+      setError(
+        "La sucursal está cerrada en este horario. No se pueden generar pedidos por ahora.",
+      );
+      return;
     }
 
-    setCargando(true)
-    setError('')
+    setCargando(true);
+    setError("");
     try {
       // La pantalla "Armando tu pedido otra vez" dura al menos 2,8 segundos
-      const [resultado] = await Promise.all([getRepetirPedido(pedido.id, user.id, zona.sucursalId), esperar(2800)])
+      const [resultado] = await Promise.all([
+        getRepetirPedido(pedido.id, user.id, zona.sucursalId),
+        esperar(2800),
+      ]);
 
       // Cada producto completo (con su receta y tamaños), una sola vez
-      const ids = [...new Set(resultado.disponibles.map((l) => l.productoId))]
+      const ids = [...new Set(resultado.disponibles.map((l) => l.productoId))];
       const productos = new Map<number, ProductoBackend>(
-        await Promise.all(ids.map(async (id) => [id, await getProductoDetalle(id, zona.sucursalId)] as const)),
-      )
+        await Promise.all(
+          ids.map(
+            async (id) =>
+              [id, await getProductoDetalle(id, zona.sucursalId)] as const,
+          ),
+        ),
+      );
 
-      const noDisponibles = [...resultado.noDisponibles]
-      let agregados = 0
+      const noDisponibles = [...resultado.noDisponibles];
+      let agregados = 0;
       for (const linea of resultado.disponibles) {
-        const producto = productos.get(linea.productoId)
+        const producto = productos.get(linea.productoId);
         if (!producto || !producto.disponible) {
           noDisponibles.push({
-            nombre: producto?.nombre ?? 'Un producto',
+            nombre: producto?.nombre ?? "Un producto",
             cantidad: linea.cantidad,
-            motivo: 'No hay stock en tu sucursal',
-          })
-          continue
+            motivo: "No hay stock en tu sucursal",
+          });
+          continue;
         }
         addItem(producto, linea.cantidad, linea.selectedOptions, {
           unitPrice: linea.unitPrice,
           personalizaciones: linea.personalizaciones,
           tamanioId: linea.tamanioId,
           combo: linea.combo.length > 0 ? linea.combo : undefined,
-        })
-        agregados += linea.cantidad
+        });
+        agregados += linea.cantidad;
       }
 
       setResumen({
         agregados,
         noDisponibles,
-        avisos: resultado.disponibles.map((l) => l.aviso).filter((a): a is string => Boolean(a)),
-        preciosCambiaron: resultado.disponibles.some((l) => l.unitPrice !== l.precioAnterior),
-      })
+        avisos: resultado.disponibles
+          .map((l) => l.aviso)
+          .filter((a): a is string => Boolean(a)),
+        preciosCambiaron: resultado.disponibles.some(
+          (l) => l.unitPrice !== l.precioAnterior,
+        ),
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo repetir el pedido')
+      setError(
+        err instanceof Error ? err.message : "No se pudo repetir el pedido",
+      );
     } finally {
-      setCargando(false)
+      setCargando(false);
     }
   }
 
@@ -99,33 +121,45 @@ function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
       <button
         type="button"
         onClick={repetir}
-        disabled={cargando}
-        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:opacity-50 ${estilos[variante]}`}
+        disabled={cargando || sucursalCerrada}
+        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${estilos[variante]}`}
       >
         <RotateCcw size={16} />
-        {cargando ? 'Cargando...' : 'Repetir pedido'}
+        {cargando ? "Cargando..." : "Repetir pedido"}
       </button>
-      {error && <p className="mt-2 text-sm font-semibold text-brand-red">{error}</p>}
+      {error && (
+        <p className="mt-2 text-sm font-semibold text-brand-red">{error}</p>
+      )}
+      {sucursalCerrada && !error && (
+        <p className="mt-2 text-sm font-semibold text-brand-red">
+          La sucursal está cerrada. No podés repetir el pedido ahora.
+        </p>
+      )}
       {cargando && <ArmandoPedido pedido={pedido} />}
 
       <Modal
         isOpen={resumen !== null}
         onClose={() => setResumen(null)}
-        title={resumen && resumen.agregados > 0 ? 'Listo, lo cargamos en tu carrito' : 'No pudimos repetir el pedido'}
+        title={
+          resumen && resumen.agregados > 0
+            ? "Listo, lo cargamos en tu carrito"
+            : "No pudimos repetir el pedido"
+        }
       >
         {resumen && (
           <div className="flex flex-col gap-4">
             {resumen.agregados > 0 && (
               <p className="text-gray-700">
-                Agregamos <span className="font-bold">{resumen.agregados}</span>{' '}
-                {resumen.agregados === 1 ? 'producto' : 'productos'} a tu carrito.
+                Agregamos <span className="font-bold">{resumen.agregados}</span>{" "}
+                {resumen.agregados === 1 ? "producto" : "productos"} a tu
+                carrito.
               </p>
             )}
 
-
             {resumen.preciosCambiaron && (
               <p className="rounded-xl bg-brand-cream p-3 text-sm text-brand-dark">
-                Los precios se actualizaron a los de hoy, así que el total puede ser distinto al del pedido anterior.
+                Los precios se actualizaron a los de hoy, así que el total puede
+                ser distinto al del pedido anterior.
               </p>
             )}
 
@@ -134,7 +168,10 @@ function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
                 <p className="font-bold text-brand-dark">No pudimos agregar:</p>
                 <ul className="mt-2 flex flex-col gap-2">
                   {resumen.noDisponibles.map((n, i) => (
-                    <li key={i} className="rounded-xl border border-brand-dark/10 p-3 text-sm">
+                    <li
+                      key={i}
+                      className="rounded-xl border border-brand-dark/10 p-3 text-sm"
+                    >
                       <span className="font-semibold text-brand-dark">
                         {n.cantidad}x {n.nombre}
                       </span>
@@ -164,7 +201,7 @@ function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
               {resumen.agregados > 0 && (
                 <button
                   type="button"
-                  onClick={() => navigate('/carrito')}
+                  onClick={() => navigate("/carrito")}
                   className="rounded-full bg-brand-red px-6 py-2 font-bold text-white transition-opacity hover:opacity-90"
                 >
                   Ir al carrito
@@ -175,7 +212,7 @@ function BotonRepetirPedido({ pedido, variante = 'claro' }: Props) {
         )}
       </Modal>
     </>
-  )
+  );
 }
 
-export default BotonRepetirPedido
+export default BotonRepetirPedido;
