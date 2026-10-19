@@ -53,7 +53,7 @@ const HAMBURGUESAS = [
       '¿Querés sentirte como un Dios? Ahora podés con estos exuberantes 200gr de pura carne de res, una deliciosa salsa de sésamo, rúcula y cebolla morada con pan de semillas de chía. La cura definitiva para el hambre, una deliciosa panacea.',
     receta: [
       ['Pan de chía', 1], ['Medallón de carne 200 g', 1], ['Salsa de sésamo', 1, true],
-      ['Rúcula', 2, true], ['Cebolla morada', 3, true],
+      ['Rúcula', 2, true], ['Cebolla morada', 3, true], ['Tomate', 2, true], ['Queso (feta)', 1, true],
     ],
   },
   {

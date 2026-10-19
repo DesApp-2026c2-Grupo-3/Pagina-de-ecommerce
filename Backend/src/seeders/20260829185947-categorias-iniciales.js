@@ -12,8 +12,8 @@ module.exports = {
       'Postres',
       'Ensaladas',
       'Sin TACC',
-      'Café',
       'Menú Café',
+      'Café',
       'Salsas'
     ];
 

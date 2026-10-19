@@ -15,6 +15,10 @@
 //  - Las bebidas solo usan los sabores que acepta el sistema (cola, naranja, lima, agua) o ninguno.
 //  - No hay bebidas alcohólicas: la Cajita Mágica ofrece toda la categoría Bebidas.
 //
+// También ajusta recetas de hamburguesas que ya existían (y de sus combos): Pickle Me Fast, Abominación, Fast Cheese
+// y Doble Fast Cheese. Se hace acá y no en los seeders anteriores porque algunos insumos (Ajíes asados, Cebolla morada)
+// recién existen después del seeder de las especiales, y porque los seeders no modifican una receta que ya existe.
+//
 // Es re-ejecutable: no duplica nada que ya exista. Los precios están en las constantes de abajo.
 
 const NOMBRES_TAMANIOS = ['regular', 'mediano', 'grande'];
@@ -55,6 +59,8 @@ const INSUMOS_NUEVOS = [
   { nombre: 'Agua con gas', unidadMedida: 'unidad', stock: { cantidad: 300, minimo: 60 } },
   { nombre: 'Jugo de manzana', unidadMedida: 'unidad', stock: { cantidad: 300, minimo: 60 } },
   { nombre: 'Té helado de durazno', unidadMedida: 'unidad', stock: { cantidad: 300, minimo: 60 } },
+  // Abominación y Aros de Cebolla (producto de Nuggets)
+  { nombre: 'Aros de cebolla fritos', unidadMedida: 'aro', stock: { cantidad: 800, minimo: 160 } },
   // Cajita Mágica
   { nombre: 'Juguete sorpresa', unidadMedida: 'unidad', stock: { cantidad: 300, minimo: 60 } },
 ];
@@ -63,6 +69,7 @@ const INSUMOS_NUEVOS = [
 const STOCK_POR_UNIDAD = {
   unidad: { cantidad: 200, minimo: 40 },
   hoja: { cantidad: 400, minimo: 80 },
+  aro: { cantidad: 400, minimo: 80 },
   cucharada: { cantidad: 300, minimo: 60 },
   porción: { cantidad: 150, minimo: 30 },
   feta: { cantidad: 300, minimo: 60 },
@@ -191,6 +198,11 @@ const PRODUCTOS_SIMPLES = [
     descripcion: 'Seis nuggets de pollo con rebozado picante.',
     receta: [['Nugget picante', 6]],
   },
+  {
+    categoria: 'Nuggets', nombre: 'Aros de Cebolla x8', precio: 3000,
+    descripcion: 'Ocho aros de cebolla rebozados y fritos, dorados y crocantes. Para compartir o para picar mientras esperás.',
+    receta: [['Aros de cebolla fritos', 8]],
+  },
 ];
 
 // ---------- Papas y Bebidas nuevas (con los 3 tamaños) ----------
@@ -272,6 +284,40 @@ const CAJITAS = [
     ],
   },
 ];
+// ---------- Ajustes a recetas de productos que ya existían ----------
+// Cada ajuste se aplica a la hamburguesa y a su combo (el combo tiene su propia receta).
+//   quitar: ingredientes que se sacan de la receta.
+//   fijar:  [insumo, cantidadBase, removible]: se agrega si falta y, si ya está, se le pone esa cantidad.
+//   antes:  cómo era la receta, para poder deshacer el seeder.
+const AJUSTES_RECETAS = [
+  {
+    // Pickle Me Fast: suma lechuga, tomate y ajíes asados
+    productos: ['Pickle Me Fast', 'Combo Pickle Me Fast'],
+    fijar: [['Lechuga', 1, true], ['Tomate', 1, true], ['Ajíes asados', 2, true]],
+    antes: [],
+  },
+  {
+    // Abominación: 3 aros de cebolla fritos, 2 de cebolla morada, lechuga y 2 fetas de cheddar (antes: 3 aros de cebolla)
+    productos: ['Abominación', 'Combo Abominación'],
+    quitar: ['Cebolla'],
+    fijar: [['Aros de cebolla fritos', 3, true], ['Cebolla morada', 2, true], ['Lechuga', 1, true], ['Queso (feta)', 2, true]],
+    antes: [['Cebolla', 3, true]],
+  },
+  {
+    // Fast Cheese: cheeseburger pura, sin papas fritas y con 2 fetas de queso (antes: 1)
+    productos: ['Fast Cheese', 'Combo Fast Cheese'],
+    quitar: ['Papas fritas'],
+    fijar: [['Queso (feta)', 2, true]],
+    antes: [['Queso (feta)', 1, true]],
+  },
+  {
+    // Doble Fast Cheese: 3 fetas de queso (antes: 1)
+    productos: ['Doble Fast Cheese', 'Combo Doble Fast Cheese'],
+    fijar: [['Queso (feta)', 3, true]],
+    antes: [['Queso (feta)', 1, true]],
+  },
+];
+
 const GRUPO_CAJITA = { nombre: 'Bebida', categoria: 'Bebidas', incluido: 'Agua mineral', icono: '🥤', orden: 1 };
 
 module.exports = {
@@ -413,6 +459,50 @@ module.exports = {
         );
       }
 
+      // ---------- 3b) Ajustes a recetas que ya existían ----------
+      const fijarIngrediente = async (productoId, nombreInsumo, cantidadBase, removible) => {
+        const insumo = insumoPorNombre(nombreInsumo);
+        const valores = {
+          cantidadBase,
+          esRemovible: removible,
+          // Se puede pedir de más solo si el insumo tiene precio de venta como extra
+          esAgregable: removible && insumo.precioComercial !== null,
+        };
+        const [existente] = await consultar(
+          'SELECT id FROM "RecetaInsumos" WHERE "productoId" = :productoId AND "insumoId" = :insumoId',
+          { productoId, insumoId: insumo.id }
+        );
+        if (existente) {
+          await ejecutar(
+            'UPDATE "RecetaInsumos" SET "cantidadBase" = :cantidadBase, "esRemovible" = :esRemovible, "esAgregable" = :esAgregable, "updatedAt" = NOW() WHERE id = :id',
+            { ...valores, id: existente.id }
+          );
+        } else {
+          await queryInterface.bulkInsert(
+            'RecetaInsumos',
+            [{ productoId, insumoId: insumo.id, ...valores, createdAt: ahora, updatedAt: ahora }],
+            { transaction }
+          );
+        }
+      };
+
+      for (const ajuste of AJUSTES_RECETAS) {
+        for (const nombreProducto of ajuste.productos) {
+          const producto = productos.find((p) => p.nombre === nombreProducto);
+          if (!producto) continue;
+
+          for (const nombreInsumo of ajuste.quitar ?? []) {
+            await ejecutar(
+              'DELETE FROM "RecetaInsumos" WHERE "productoId" = :productoId AND "insumoId" IN (SELECT id FROM "Insumos" WHERE nombre = :nombre)',
+              { productoId: producto.id, nombre: nombreInsumo }
+            );
+          }
+          for (const [nombreInsumo, cantidadBase, removible = false] of ajuste.fijar) {
+            await fijarIngrediente(producto.id, nombreInsumo, cantidadBase, removible);
+          }
+        }
+      }
+
       // ---------- 4) Tamaños ----------
       const tamanios = await consultar('SELECT id, nombre FROM "Tamanios"');
       const idTamanio = (nombre) => {
@@ -494,6 +584,38 @@ module.exports = {
         await ejecutar('DELETE FROM "ProductoTamanios" WHERE "productoId" IN (:ids)', { ids });
         await ejecutar('DELETE FROM "RecetaInsumos" WHERE "productoId" IN (:ids)', { ids });
         await ejecutar('DELETE FROM "Productos" WHERE id IN (:ids)', { ids });
+      }
+
+      // Las recetas ajustadas vuelven a como eran: se sacan los ingredientes que se sumaron y se restauran los anteriores
+      // (las papas que se le sacaron a Fast Cheese no se restauran: ya las había sacado el seeder de hamburguesas)
+      for (const ajuste of AJUSTES_RECETAS) {
+        const previos = ajuste.antes.map(([nombre]) => nombre);
+        const sumados = ajuste.fijar.map(([nombre]) => nombre).filter((nombre) => !previos.includes(nombre));
+
+        if (sumados.length > 0) {
+          await ejecutar(
+            `DELETE FROM "RecetaInsumos"
+              WHERE "productoId" IN (SELECT id FROM "Productos" WHERE nombre IN (:productos))
+                AND "insumoId" IN (SELECT id FROM "Insumos" WHERE nombre IN (:insumos))`,
+            { productos: ajuste.productos, insumos: sumados }
+          );
+        }
+        for (const [nombreInsumo, cantidadBase, removible] of ajuste.antes) {
+          await ejecutar(
+            `INSERT INTO "RecetaInsumos" ("productoId", "insumoId", "cantidadBase", "esRemovible", "esAgregable", "createdAt", "updatedAt")
+             SELECT p.id, i.id, :cantidadBase, :removible, (:removible AND i."precioComercial" IS NOT NULL), NOW(), NOW()
+               FROM "Productos" p CROSS JOIN "Insumos" i
+              WHERE p.nombre IN (:productos) AND p."deletedAt" IS NULL AND i.nombre = :insumo
+                AND NOT EXISTS (SELECT 1 FROM "RecetaInsumos" r WHERE r."productoId" = p.id AND r."insumoId" = i.id)`,
+            { productos: ajuste.productos, insumo: nombreInsumo, cantidadBase, removible }
+          );
+          await ejecutar(
+            `UPDATE "RecetaInsumos" SET "cantidadBase" = :cantidadBase, "updatedAt" = NOW()
+              WHERE "productoId" IN (SELECT id FROM "Productos" WHERE nombre IN (:productos))
+                AND "insumoId" IN (SELECT id FROM "Insumos" WHERE nombre = :insumo)`,
+            { productos: ajuste.productos, insumo: nombreInsumo, cantidadBase }
+          );
+        }
       }
 
       // La categoría nueva se borra solo si quedó vacía
