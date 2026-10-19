@@ -7,11 +7,12 @@ interface Props {
   cantidad: number
   subtotal: number
   logueado: boolean
+  deshabilitado?: boolean
   onConfirmar: () => void
 }
 
 // Resumen del carrito: subtotal, envío, cupón, total y botón para pasar al checkout
-function ResumenCarrito({ cantidad, subtotal, logueado, onConfirmar }: Props) {
+function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, onConfirmar }: Props) {
   const total = subtotal + (COSTO_ENVIO ?? 0)
 
   return (
@@ -45,11 +46,18 @@ function ResumenCarrito({ cantidad, subtotal, logueado, onConfirmar }: Props) {
       <button
         type="button"
         onClick={onConfirmar}
-        className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
+        disabled={deshabilitado}
+        className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {logueado ? 'Continuar' : 'Iniciá sesión para continuar'}
         <ArrowRight className="h-5 w-5" />
       </button>
+
+      {deshabilitado && (
+        <p className="text-center text-sm font-semibold text-brand-red">
+          La sucursal está cerrada. No se pueden generar pedidos ahora.
+        </p>
+      )}
     </aside>
   )
 }

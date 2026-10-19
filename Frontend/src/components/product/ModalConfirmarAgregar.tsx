@@ -10,12 +10,23 @@ interface Props {
   detalle: string
   cantidad: number
   total: number
+  deshabilitado?: boolean
   onCancelar: () => void
   onConfirmar: () => void
 }
 
 // "¿Lo sumamos al carrito?": repaso del producto antes de agregarlo
-function ModalConfirmarAgregar({ abierto, nombre, imagen, detalle, cantidad, total, onCancelar, onConfirmar }: Props) {
+function ModalConfirmarAgregar({
+  abierto,
+  nombre,
+  imagen,
+  detalle,
+  cantidad,
+  total,
+  deshabilitado = false,
+  onCancelar,
+  onConfirmar,
+}: Props) {
   return (
     <Modal isOpen={abierto} onClose={onCancelar} title="¿Lo sumamos al carrito?" tamanio="sm">
       <div className="flex items-center gap-4 rounded-2xl border-2 border-brand-dark bg-white p-3">
@@ -35,6 +46,12 @@ function ModalConfirmarAgregar({ abierto, nombre, imagen, detalle, cantidad, tot
         <span className="font-display text-3xl font-extrabold">{formatearPrecio(total)}</span>
       </div>
 
+      {deshabilitado && (
+        <p className="mt-4 rounded-xl border-2 border-brand-red/40 bg-brand-red/5 px-4 py-3 text-sm font-semibold text-brand-red">
+          La sucursal está cerrada. No se pueden generar pedidos ahora.
+        </p>
+      )}
+
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
@@ -46,7 +63,8 @@ function ModalConfirmarAgregar({ abierto, nombre, imagen, detalle, cantidad, tot
         <button
           type="button"
           onClick={onConfirmar}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
+          disabled={deshabilitado}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ShoppingBag className="h-4 w-4" /> Sí, agregar
         </button>

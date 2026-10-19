@@ -4,6 +4,7 @@ import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
 import { ChevronDown, MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
+import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
 
@@ -16,14 +17,17 @@ function Products() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchParams] = useSearchParams();
   // Si viene del Home con ?categoria=3, arranca filtrado
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(() => {
-    const id = Number(searchParams.get("categoria"));
-    return id > 0 ? id : null;
-  });
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(
+    () => {
+      const id = Number(searchParams.get("categoria"));
+      return id > 0 ? id : null;
+    },
+  );
   const [search, setSearch] = useState("");
   // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
   const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
 
   // Cuántos productos se ven ahora: arranca con un lote y "Mostrar más" suma otro
   const [visibles, setVisibles] = useState(LOTE_PRODUCTOS);
@@ -83,7 +87,8 @@ function Products() {
               {zona ? (
                 <>
                   <MapPin className="mr-1.5 inline h-4 w-4 align-[-2px] text-brand-mustard" />
-                  Mostrando lo disponible en <b className="text-brand-cream">{zona.sucursalNombre}</b>
+                  Mostrando lo disponible en{" "}
+                  <b className="text-brand-cream">{zona.sucursalNombre}</b>
                 </>
               ) : (
                 "Elegí una categoría o buscá tu producto favorito."
@@ -108,16 +113,31 @@ function Products() {
       <div className="mx-auto max-w-7xl px-4 pb-16">
         {/* Categorías: barra blanca montada sobre la banda */}
         <div className="-mt-9">
-          <CategoryFilter categorias={categories} seleccionada={selectedCategory} onSeleccionar={setSelectedCategory} />
+          <CategoryFilter
+            categorias={categories}
+            seleccionada={selectedCategory}
+            onSeleccionar={setSelectedCategory}
+          />
         </div>
+
+        {sucursalCerrada && (
+          <AvisoCierreSucursal
+            sucursal={zona?.sucursalNombre}
+            className="mt-6"
+          />
+        )}
 
         {filteredProducts.length === 0 ? (
           <div className="mx-auto mt-10 flex max-w-xl flex-col items-center gap-4 rounded-3xl border-2 border-brand-dark bg-white px-6 py-12 text-center">
             <span className="grid h-16 w-16 -rotate-6 place-items-center rounded-2xl bg-brand-mustard">
               <SearchX className="h-8 w-8" />
             </span>
-            <p className="font-display text-3xl font-extrabold tracking-tight">No encontramos productos</p>
-            <p className="text-brand-muted">Probá con otra categoría o cambiá la búsqueda.</p>
+            <p className="font-display text-3xl font-extrabold tracking-tight">
+              No encontramos productos
+            </p>
+            <p className="text-brand-muted">
+              Probá con otra categoría o cambiá la búsqueda.
+            </p>
             <button
               type="button"
               onClick={() => {
@@ -144,12 +164,15 @@ function Products() {
 
             <div className="mt-10 flex flex-col items-center gap-3">
               <p role="status" className="text-sm text-brand-muted">
-                Mostrando {mostrados.length} de {filteredProducts.length} productos
+                Mostrando {mostrados.length} de {filteredProducts.length}{" "}
+                productos
               </p>
               {restantes > 0 && (
                 <button
                   type="button"
-                  onClick={() => setVisibles((actual) => actual + LOTE_PRODUCTOS)}
+                  onClick={() =>
+                    setVisibles((actual) => actual + LOTE_PRODUCTOS)
+                  }
                   className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-6 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
                 >
                   Mostrar más <ChevronDown className="h-4 w-4" />

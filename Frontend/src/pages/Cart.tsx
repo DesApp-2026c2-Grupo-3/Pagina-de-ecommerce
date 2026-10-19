@@ -3,18 +3,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ShoppingBag } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useZona } from "../context/ZonaContext";
 import EditarItemModal from "../components/EditarItemModal";
 import PageHeader from "../components/ui/PageHeader";
 import PasosCompra from "../components/cart/PasosCompra";
 import CartItemRow from "../components/cart/CartItemRow";
 import SugerenciasCarrito from "../components/cart/SugerenciaCarrito";
 import ResumenCarrito from "../components/cart/ResumenCarrito";
+import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal";
 import type { CartItem } from "../types/cart";
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice } = useCart();
   const { isAuthenticated } = useAuth();
+  const { zona } = useZona();
   const navigate = useNavigate();
   const [editando, setEditando] = useState<CartItem | null>(null);
   const [itemAEliminar, setItemAEliminar] = useState<CartItem | null>(null);
@@ -27,7 +30,10 @@ function Cart() {
         item.product.ingredientes?.some((i) => i.esRemovible || i.esAgregable),
     );
 
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
+
   function handleCheckout() {
+    if (sucursalCerrada) return;
     if (!isAuthenticated) {
       navigate("/login", { state: { from: "/carrito" } });
       return;
@@ -71,6 +77,8 @@ function Cart() {
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start">
         <div className="flex flex-col gap-3">
+          {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} />}
+
           <Link
             to="/catalogo"
             className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-5 text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
@@ -117,6 +125,7 @@ function Cart() {
           cantidad={cantidadTotal}
           subtotal={totalPrice}
           logueado={isAuthenticated}
+          deshabilitado={sucursalCerrada}
           onConfirmar={handleCheckout}
         />
       </div>
