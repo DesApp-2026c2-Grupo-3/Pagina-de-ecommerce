@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useZona } from "../context/ZonaContext";
-import { createOrder } from "../services/orderService";
+import { createOrder, getHistorialPedidos } from "../services/orderService";
 import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
@@ -34,6 +34,10 @@ function formatearKm(km: number) {
 
 // Dos puntos a menos de 50 metros se consideran la misma dirección
 const MISMA_DIRECCION_KM = 0.05;
+
+// Igual que en el backend: no se puede tener más de 2 pedidos sin entregar ni cancelar
+const MAX_PEDIDOS_EN_CURSO = 2;
+const estaEnCurso = (o: Order) => !["entregado", "cancelado"].includes(o.estado.trim().toLowerCase());
 
 function Checkout() {
   const { user, isAuthenticated } = useAuth();
@@ -88,10 +92,11 @@ function Checkout() {
   const [formaPago, setFormaPago] = useState<FormaPago>("efectivo");
   // Pregunta "¿Confirmás tu pedido?" antes de enviarlo
   const [preguntando, setPreguntando] = useState(false);
-    // Pantalla decorativa mientras se crea el pedido: null = no se muestra
+  // Pantalla decorativa mientras se crea el pedido: null = no se muestra
   const [procesando, setProcesando] = useState<{ fase: "preparando" | "listo"; numero?: number } | null>(null);
   const [error, setError] = useState("");
   const [avisoSucursal, setAvisoSucursal] = useState("");
+  const [pedidosEnCurso, setPedidosEnCurso] = useState(0);
 
   // La dirección elegida pasa a ser la zona: el Navbar y el checkout muestran siempre lo mismo
   function usarComoZona(d: Address) {
@@ -154,6 +159,14 @@ function Checkout() {
       .finally(() => setSucursalesLoading(false));
   }, []);
 
+  // Cuenta los pedidos en curso del cliente para avisar antes de confirmar
+  useEffect(() => {
+    if (!user) return;
+    getHistorialPedidos(user.id)
+      .then((pedidos) => setPedidosEnCurso(pedidos.filter(estaEnCurso).length))
+      .catch(() => setPedidosEnCurso(0));
+  }, [user]);
+
   // Si no está logueado o no hay nada para comprar, no debería estar acá
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -181,8 +194,9 @@ function Checkout() {
 
   // El pedido se armó con el stock de la sucursal de la zona: la dirección tiene que ser de esa sucursal
   const sucursalDistinta = Boolean(zona && masCercana && dentroDeZona && masCercana.sucursal.id !== zona.sucursalId);
+  const limiteAlcanzado = pedidosEnCurso >= MAX_PEDIDOS_EN_CURSO;
   const puedeConfirmar = Boolean(
-    direccion && masCercana && dentroDeZona && !sucursalDistinta && !sucursalCerrada,
+    direccion && masCercana && dentroDeZona && !sucursalDistinta && !sucursalCerrada && !limiteAlcanzado,
   );
 
   // ¿La dirección de la zona ya está entre las guardadas?
@@ -233,6 +247,10 @@ function Checkout() {
       setError("La sucursal está cerrada en este horario. No se pueden generar pedidos por ahora.");
       return;
     }
+    if (limiteAlcanzado) {
+      setError(`Ya tenés ${pedidosEnCurso} pedidos en curso. Esperá a que se entregue alguno para hacer otro.`);
+      return;
+    }
 
     setError("");
     setPreguntando(true);
@@ -252,7 +270,8 @@ function Checkout() {
     try {
       // La pantalla "Preparando tu pedido" dura al menos 3 segundos, aunque el backend responda antes
       const [order] = await Promise.all([
-      createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id, compraDirecta ? "" : observaciones),        esperar(3000),
+        createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id, compraDirecta ? "" : observaciones),
+        esperar(3000),
       ]);
       setProcesando({ fase: "listo", numero: order.id });
       await esperar(1600);
@@ -309,6 +328,13 @@ function Checkout() {
             <Link to="/carrito" className={`${botonChico} w-fit shadow-sticker`}>
               <ArrowLeft className="h-4 w-4" /> Volver al carrito
             </Link>
+          )}
+
+          {limiteAlcanzado && (
+            <Aviso variante="error" titulo={`Ya tenés ${pedidosEnCurso} pedidos en curso.`}>
+              Podés hacer uno nuevo cuando se entregue o se cancele alguno.{" "}
+              <Link to="/historial" className="font-bold underline">Ver mis pedidos</Link>
+            </Aviso>
           )}
 
           {sucursalCerrada && (
@@ -511,8 +537,10 @@ function Checkout() {
 
         </div>
 
-        {/* Resumen y, debajo del botón de confirmar, los avisos y errores (así se ven al confirmar) */}
+        {/* Arriba de "Tu pedido" van los avisos y errores, así se ven antes que el botón */}
         <div className="flex flex-col gap-4">
+          <ErrorAlert message={error} />
+          {avisoSucursal && <Aviso mensaje={avisoSucursal} />}
           <ResumenPedido
             lineas={lineas}
             total={total}
@@ -521,11 +549,9 @@ function Checkout() {
             cargando={loading}
             textoBoton={paso === 1 ? "Continuar" : "Confirmar pedido"}
           />
-          {avisoSucursal && <Aviso mensaje={avisoSucursal} />}
-          <ErrorAlert message={error} />
         </div>
       </div>
-      
+
       <ModalConfirmarPedido
         abierto={preguntando}
         total={total}
@@ -537,7 +563,7 @@ function Checkout() {
         onCancelar={() => setPreguntando(false)}
         onConfirmar={enviarPedido}
       />
-      
+
       {procesando && (
         <PreparandoPedido
           fase={procesando.fase}

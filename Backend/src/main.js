@@ -60,6 +60,7 @@ app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
+app.use('/promociones', require('./routes/promocionRoutes'));
 
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones

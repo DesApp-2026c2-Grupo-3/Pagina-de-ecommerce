@@ -6,6 +6,9 @@ import { useCart } from '../context/CartContext'
 import { useToast } from '../context/ToastContext'
 import { etiquetaTamanio, ordenarTamanios } from '../config/combo'
 import ChoiceSheet, { type OpcionElegible } from '../components/product/ChoiceSheet'
+import { SIN_OPCION, eleccionPorDefecto, opcionesDeGrupo, textoSin } from '../utils/comboOpciones'
+import { usePromociones } from '../hooks/usePromociones'
+import { conDescuento } from '../utils/promosUtils'
 import IngredientesEditables from '../components/product/IngredientesEditables'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
@@ -20,13 +23,6 @@ function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
 }
 
-// Precio de un producto en un tamaño (o el precio único si no tiene tamaños)
-function precioEn(p: ProductoBackend, tamanioId: number | null): number | null {
-  if (!p.tamanios || p.tamanios.length === 0) return Number(p.precio)
-  const t = p.tamanios.find((x) => x.tamanioId === tamanioId)
-  return t ? Number(t.precio) : null
-}
-
 function ProductDetail() {
   const { id } = useParams<{ id: string }>()
   // Con key, al pasar de un producto a otro el estado (cantidad, elecciones) arranca de cero
@@ -38,6 +34,7 @@ function DetalleProducto({ id }: { id: number }) {
   const { addItem } = useCart()
   const { showToast } = useToast()
   const { zona } = useZona()
+  const promos = usePromociones()
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
   const [product, setProduct] = useState<ProductoBackend | null>(null)
   const [catalogo, setCatalogo] = useState<ProductoBackend[]>([])
@@ -100,26 +97,13 @@ function DetalleProducto({ id }: { id: number }) {
 
   const cantidadFinal = (ing: ProductIngredient) => cantidades[ing.insumoId] ?? ing.cantidadBase
 
-  // Opciones de un grupo del combo, con lo que cuestan de más que la opción incluida.
-  function opcionesDe(grupo: ComboGrupo): OpcionElegible[] {
-    const delGrupo = catalogo.filter((p) => p.categoriaId === grupo.categoriaId)
-    // La opción más barata del lugar (en este tamaño) va incluida: las demás cobran la diferencia
-    const precios = delGrupo.map((p) => precioEn(p, tamanioId)).filter((x): x is number => x !== null)
-    const referencia = precios.length > 0 ? Math.min(...precios) : null
-
-    return delGrupo
-      .filter((p) => p.disponible && precioEn(p, tamanioId) !== null)
-      .map((p) => ({
-        id: p.id,
-        nombre: p.nombre,
-        imagen: p.imagen,
-        icono: grupo.icono ?? '🍽️',
-        recargo: referencia === null ? 0 : Math.max(0, (precioEn(p, tamanioId) ?? 0) - referencia),
-      }))
-  }
-
-  const opciones: Record<number, OpcionElegible[]> = Object.fromEntries(grupos.map((g) => [g.id, opcionesDe(g)]))
-  const elegida = (grupo: ComboGrupo) => opciones[grupo.id]?.find((o) => o.id === eleccion[grupo.id]) ?? null
+  const opciones: Record<number, OpcionElegible[]> = Object.fromEntries(
+    grupos.map((g) => [g.id, opcionesDeGrupo(g, catalogo, tamanioId)]),
+  )
+  // Si el cliente no tocó un lugar, va la opción incluida. SIN_OPCION = lo pidió sin eso (mismo precio).
+  const eleccionDe = (grupo: ComboGrupo) => eleccion[grupo.id] ?? eleccionPorDefecto(grupo, opciones[grupo.id] ?? [])
+  const sinOpcion = (grupo: ComboGrupo) => eleccionDe(grupo) === SIN_OPCION
+  const elegida = (grupo: ComboGrupo) => opciones[grupo.id]?.find((o) => o.id === eleccionDe(grupo)) ?? null
 
   // Cambiar el tamaño cambia las opciones disponibles y sus recargos: se vuelve a elegir
   function cambiarTamanio(nuevo: number) {
@@ -134,10 +118,14 @@ function DetalleProducto({ id }: { id: number }) {
     0,
   )
   const recargoCombo = grupos.reduce((suma, g) => suma + (elegida(g)?.recargo ?? 0), 0)
-  const precioUnitario = precioBase + precioExtras + recargoCombo
+  // Producto de la semana: el descuento se aplica sobre todo (igual que el backend)
+  const semana = promos?.productoSemana
+  const descuentoSemana = semana?.items.find((i) => i.productoId === product?.id)?.descuento ?? 0
+  const precioLista = precioBase + precioExtras + recargoCombo
+  const precioUnitario = descuentoSemana > 0 ? conDescuento(precioLista, descuentoSemana) : precioLista
   const total = precioUnitario * cantidad
 
-  const comboCompleto = grupos.every((g) => !g.obligatorio || eleccion[g.id] !== undefined)
+  const comboCompleto = grupos.every((g) => !g.obligatorio || elegida(g) !== null)
   const grupoActivo = grupos.find((g) => g.id === grupoAbierto) ?? null
   const puedeAgregar = !!product?.disponible && comboCompleto
   const puedeComprar = puedeAgregar && !sucursalCerrada
@@ -178,7 +166,7 @@ function DetalleProducto({ id }: { id: number }) {
   function resumenEleccion() {
     return [
       tamanioActivo ? etiquetaTamanio(tamanioActivo.tamanio) : '',
-      ...grupos.map((g) => elegida(g)?.nombre ?? ''),
+      ...grupos.map((g) => (sinOpcion(g) ? textoSin(g) : (elegida(g)?.nombre ?? ''))),
       ...textoPersonalizacion(),
     ]
       .filter(Boolean)
@@ -189,6 +177,7 @@ function DetalleProducto({ id }: { id: number }) {
   function armarEleccion() {
     const textos = textoPersonalizacion()
     const opcionesCombo = grupos.map((g) => {
+      if (sinOpcion(g)) return textoSin(g)
       const o = elegida(g)
       return o ? `${o.nombre}${o.recargo > 0 ? ` (+${precio(o.recargo)})` : ''}` : ''
     })
@@ -197,12 +186,15 @@ function DetalleProducto({ id }: { id: number }) {
       opciones: [...opcionesCombo, ...textos, nota.trim() ? `Nota: ${nota.trim()}` : ''].filter(Boolean),
       extras: {
         unitPrice: precioUnitario,
+        ...(descuentoSemana > 0 && semana
+          ? { promoId: semana.id, descuento: descuentoSemana, precioLista, promoFija: false }
+          : {}),
         personalizaciones: tocados.map((ing) => ({ insumoId: ing.insumoId, cantidad: cantidadFinal(ing) })),
         tamanioId,
         combo: esCombo
           ? grupos
-              .filter((g) => eleccion[g.id] !== undefined)
-              .map((g) => ({ grupoId: g.id, productoId: eleccion[g.id] }))
+              .filter((g) => elegida(g) !== null)
+              .map((g) => ({ grupoId: g.id, productoId: elegida(g)!.id }))
           : undefined,
       },
     }
@@ -365,7 +357,17 @@ function DetalleProducto({ id }: { id: number }) {
       <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
         {product.nombre}
       </h1>
-      <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
+      {descuentoSemana > 0 ? (
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-2xl font-extrabold text-brand-red">{precio(conDescuento(precioBase, descuentoSemana))}</span>
+          <s className="font-bold text-brand-muted">{precio(precioBase)}</s>
+          <span className="rounded-full bg-brand-red px-2.5 py-0.5 text-xs font-extrabold text-white">
+            Producto de la semana · {Math.round(descuentoSemana * 100)}% OFF
+          </span>
+        </div>
+      ) : (
+        <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
+      )}
       <p className="mt-3 w-full whitespace-normal break-words leading-relaxed text-brand-muted">
         {product.descripcion}
         {esCombo && <span className="block">{textoGruposCombo}</span>}
@@ -467,7 +469,9 @@ function DetalleProducto({ id }: { id: number }) {
                     <div key={grupo.id} className={filaGrupo}>
                       <div className="min-w-0 flex-1">
                         <p className="font-display text-lg font-extrabold">{grupo.nombre}</p>
-                        {elegido ? (
+                        {sinOpcion(grupo) ? (
+                          <p className="text-sm text-brand-muted">{textoSin(grupo)}</p>
+                        ) : elegido ? (
                           <p className="text-sm text-brand-muted">
                             {elegido.nombre}
                             {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
@@ -481,7 +485,7 @@ function DetalleProducto({ id }: { id: number }) {
                         )}
                       </div>
                       <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
-                        {elegido ? 'Cambiar' : 'Elegir'}
+                        {elegido || sinOpcion(grupo) ? 'Cambiar' : 'Elegir'}
                       </button>
                     </div>
                   )
@@ -578,7 +582,8 @@ function DetalleProducto({ id }: { id: number }) {
         <ChoiceSheet
           title={grupoActivo.nombre}
           opciones={opciones[grupoActivo.id] ?? []}
-          seleccionadoId={eleccion[grupoActivo.id] ?? null}
+          seleccionadoId={eleccionDe(grupoActivo) ?? null}
+          textoSin={grupoActivo.obligatorio ? undefined : textoSin(grupoActivo)}
           onClose={() => setGrupoAbierto(null)}
           onElegir={(opcionId) => {
             setEleccion((prev) => ({ ...prev, [grupoActivo.id]: opcionId }))

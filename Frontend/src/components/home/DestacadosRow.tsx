@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { DESTACADOS, type Destacado } from '../../config/home'
+import { useCatalogo } from '../../hooks/usePromociones'
 
 const FONDO_RECUADRO: Record<Destacado['acento'], string> = {
   red: 'bg-brand-red',
@@ -9,11 +10,11 @@ const FONDO_RECUADRO: Record<Destacado['acento'], string> = {
 
 // Imagen sobre un recuadro inclinado, con sticker abajo y badge en la esquina (el estilo del carrusel anterior).
 // Con "invertido" se espeja: el recuadro se inclina al revés, el sticker va a la derecha y el badge a la izquierda.
-function DestacadoCard({ destacado }: { destacado: Destacado }) {
+function DestacadoCard({ destacado, link }: { destacado: Destacado; link: string }) {
   const inv = destacado.invertido
 
   return (
-    <Link to={destacado.link} className="group relative mx-auto block w-full max-w-xs pb-6 pt-3">
+    <Link to={link} className="group relative mx-auto block w-full max-w-xs pb-6 pt-3">
       <div
         className={`relative grid aspect-square place-items-center rounded-[2.5rem] border-2 border-brand-dark transition-transform group-hover:rotate-0 ${
           inv ? '-rotate-3' : 'rotate-3'
@@ -52,11 +53,18 @@ function DestacadoCard({ destacado }: { destacado: Destacado }) {
 }
 
 function DestacadosRow() {
+  // Las tarjetas con producto llevan a su detalle (el id se busca por nombre)
+  const { catalogo } = useCatalogo()
+  const linkDe = (d: Destacado) => {
+    const p = d.producto ? catalogo.find((x) => x.nombre === d.producto) : undefined
+    return p ? `/producto/${p.id}` : d.link
+  }
+
   return (
     <section className="px-4 pb-16">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
         {DESTACADOS.map((d) => (
-          <DestacadoCard key={d.id} destacado={d} />
+          <DestacadoCard key={d.id} destacado={d} link={linkDe(d)} />
         ))}
       </div>
     </section>

@@ -1,65 +1,81 @@
-import type { Promo } from '../config/promosConfig'
+import type { Promo, Promociones } from '../types/promo'
 import type { ComboElecciones } from '../types/cart'
 import type { ProductoBackend } from '../types/product'
 import { ordenarTamanios } from '../config/combo'
 import { precioDe } from './precio'
+import { eleccionPorDefecto, opcionesDeGrupo } from './comboOpciones'
 
-// "Dúo Carnívoro" y "duo carnivoro" son el mismo nombre
-const normalizar = (texto: string) =>
-  texto.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
+/** Precio de una unidad con descuento, en pesos enteros (igual que el backend) */
+export const conDescuento = (precio: number, descuento: number) => Math.round(precio * (1 - descuento))
+
+/** Una promo con más de un producto, o de a varias unidades, va "cerrada": no se cambia la cantidad en el carrito */
+export const esPromoFija = (promo: Promo) =>
+  promo.items.length > 1 || promo.items.some((i) => i.cantidad > 1) || Boolean(promo.maxPorPedido)
 
 export interface LineaPromo {
   producto: ProductoBackend
   cantidad: number
+  descuento: number
+  tamanioId: number | null
   combo?: ComboElecciones
+  /** Precio de lista de una unidad (sin descuento) */
+  precioLista: number
+  /** Precio final de una unidad */
+  precio: number
 }
 
 export interface PromoResuelta {
   lineas: LineaPromo[]
-  /** Suma de los precios reales de lo que se agrega (lo que cobra el carrito) */
+  totalLista: number
   total: number
   /** false si falta algún producto o no está disponible en la sucursal */
   disponible: boolean
 }
 
-// Un combo va al carrito con la opción incluida de cada lugar (la que no cobra extra)
-function eleccionPorDefecto(combo: ProductoBackend, catalogo: ProductoBackend[]): ComboElecciones {
-  return (combo.grupos ?? []).map((g) => {
-    const incluido = catalogo.find((p) => p.id === g.productoIncluidoId && p.disponible)
-    const alternativo = catalogo.find((p) => p.categoriaId === g.categoriaId && p.disponible)
-    return { grupoId: g.id, productoId: (incluido ?? alternativo ?? { id: g.productoIncluidoId }).id }
-  })
-}
-
+// Arma las líneas de la promo con los productos del catálogo: tamaño más chico y, en combos, la opción incluida
 export function resolverPromo(promo: Promo, catalogo: ProductoBackend[]): PromoResuelta {
-  const porNombre = new Map(catalogo.map((p) => [normalizar(p.nombre), p]))
   const lineas: LineaPromo[] = []
   let disponible = true
 
   for (const item of promo.items) {
-    // El primer nombre de la lista que exista y esté disponible; si ninguno, el primero que exista
-    const candidatos = item.nombres.map((n) => porNombre.get(normalizar(n))).filter((p): p is ProductoBackend => !!p)
-    const producto = candidatos.find((p) => p.disponible) ?? candidatos[0]
+    const producto = catalogo.find((p) => p.id === item.productoId)
     if (!producto || !producto.disponible) {
       disponible = false
       continue
     }
+    const tamanioId = ordenarTamanios(producto.tamanios)[0]?.tamanioId ?? null
+    const combo = producto.grupos?.length
+      ? producto.grupos
+          .map((g) => ({ grupoId: g.id, productoId: eleccionPorDefecto(g, opcionesDeGrupo(g, catalogo, tamanioId)) }))
+          .filter((e): e is { grupoId: number; productoId: number } => e.productoId !== undefined)
+      : undefined
+    const precioLista = precioDe(producto, tamanioId)
     lineas.push({
       producto,
       cantidad: item.cantidad,
-      combo: producto.grupos?.length ? eleccionPorDefecto(producto, catalogo) : undefined,
+      descuento: item.descuento,
+      tamanioId,
+      combo,
+      precioLista,
+      precio: conDescuento(precioLista, item.descuento),
     })
   }
 
-  const total = lineas.reduce((suma, l) => {
-    const tamanioId = ordenarTamanios(l.producto.tamanios)[0]?.tamanioId ?? null
-    return suma + Number(precioDe(l.producto, tamanioId)) * l.cantidad
-  }, 0)
-
-  return { lineas, total, disponible }
+  return {
+    lineas,
+    totalLista: lineas.reduce((s, l) => s + l.precioLista * l.cantidad, 0),
+    total: lineas.reduce((s, l) => s + l.precio * l.cantidad, 0),
+    disponible: disponible && lineas.length > 0,
+  }
 }
 
-// "2× Fast Classic · 1× Coca Cola"
-export function resumenLineas(lineas: LineaPromo[]) {
-  return lineas.map((l) => `${l.cantidad}× ${l.producto.nombre}`).join(' · ')
+/** Promo de hoy (o de la semana) que incluye a este producto, para la etiqueta del catálogo */
+export function promoDelProducto(promos: Promociones | null, productoId: number): Promo | null {
+  if (!promos) return null
+  const deHoy = promos.dias.find((d) => d.dia === promos.hoy)?.promos ?? []
+  const candidatas = [promos.productoSemana, ...deHoy].filter((p): p is Promo => Boolean(p))
+  return candidatas.find((p) => p.items.some((i) => i.productoId === productoId && i.descuento > 0)) ?? null
 }
+
+/** "2× Fast Classic · 1× Coca Cola" */
+export const resumenLineas = (lineas: LineaPromo[]) => lineas.map((l) => `${l.cantidad}× ${l.producto.nombre}`).join(' · ')
