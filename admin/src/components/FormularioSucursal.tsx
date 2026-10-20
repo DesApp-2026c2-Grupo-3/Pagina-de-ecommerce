@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import AddressPicker from './AddressPicker'
 import EditorHorario from './EditorHorario'
-import type { DatosSucursal, DiaSemana, HorarioDia } from '../types/sucursal'
+import type { DatosSucursal, DiaSemana, HorarioDia } from '../types/sucursal.types'
 import { aplicarDiaATodos, formatearHorario, opcionesZonaHoraria } from '../utils/horario'
 import { validarPaso } from '../utils/sucursalForm'
 

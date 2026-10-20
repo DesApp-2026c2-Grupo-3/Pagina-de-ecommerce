@@ -1,96 +1,61 @@
-const API = "http://localhost:3000";
-const API_URL = `${API}/admin/productos`;
+import { apiFetch, API_URL } from './httpClient'
 
-// Usa el mensaje que manda el backend ({ code } de las validaciones, o { mensaje }),
-// o uno por defecto si no vino ninguno
-async function errorDe(respuesta: Response, porDefecto: string) {
-  try {
-    const datos = await respuesta.json();
-    return new Error(datos.code ?? datos.mensaje ?? porDefecto);
-  } catch {
-    return new Error(porDefecto);
-  }
-}
+const API = `${API_URL}/admin/productos`
 
 export async function obtenerProductos() {
-  const respuesta = await fetch(`${API_URL}/`, {
-    credentials: "include",
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al obtener los productos");
-  return respuesta.json();
+  return apiFetch(`${API}/`, {
+    mensajePorDefecto: 'Error al obtener los productos',
+  })
 }
 
 export async function obtenerProductoPorId(id: number) {
-  const respuesta = await fetch(`${API_URL}/${id}`, {
-    credentials: "include",
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al obtener el producto");
-  return respuesta.json();
+  return apiFetch(`${API}/${id}`, {
+    mensajePorDefecto: 'Error al obtener el producto',
+  })
 }
 
 export async function crearProducto(producto: unknown) {
-  const respuesta = await fetch(`${API_URL}/nuevo`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
+  return apiFetch(`${API}/nuevo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(producto),
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al crear el producto");
-  return respuesta.json();
+    mensajePorDefecto: 'Error al crear el producto',
+  })
 }
 
 export async function actualizarProducto(id: number, producto: unknown) {
-  const respuesta = await fetch(`${API_URL}/editar/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-
-    credentials: "include",
-
+  return apiFetch(`${API}/editar/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(producto),
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al actualizar el producto");
-  return respuesta.json();
+    mensajePorDefecto: 'Error al actualizar el producto',
+  })
 }
 
 export async function eliminarProducto(id: number) {
-  const respuesta = await fetch(`${API_URL}/eliminar/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al eliminar el producto");
+  await apiFetch(`${API}/eliminar/${id}`, {
+    method: 'DELETE',
+    mensajePorDefecto: 'Error al eliminar el producto',
+  })
 }
 
 // Para elegir los ingredientes de la receta
 export async function obtenerInsumos() {
-  const respuesta = await fetch(`${API}/admin/insumos`, {
-    credentials: "include",
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al obtener los insumos");
-  return respuesta.json();
+  return apiFetch(`${API_URL}/admin/insumos`, {
+    mensajePorDefecto: 'Error al obtener los insumos',
+  })
 }
 
 // Regular, mediano y grande, en orden
 export async function obtenerTamanios() {
-  const respuesta = await fetch(`${API}/tamanios`, {
-    credentials: "include",
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al obtener los tamaños");
-  return respuesta.json();
+  return apiFetch(`${API_URL}/tamanios`, {
+    mensajePorDefecto: 'Error al obtener los tamaños',
+  })
 }
 
 // Por sucursal, cuántas unidades se pueden preparar con el stock actual
 export async function verStockProducto(id: number) {
-  const respuesta = await fetch(`${API_URL}/${id}/stock`, {
-    credentials: "include",
-  });
-  if (!respuesta.ok)
-    throw await errorDe(respuesta, "Error al obtener el stock del producto");
-  return respuesta.json();
+  return apiFetch(`${API}/${id}/stock`, {
+    mensajePorDefecto: 'Error al obtener el stock del producto',
+  })
 }

@@ -1,16 +1,13 @@
 import { Link } from 'react-router-dom'
 import { Boxes, ClipboardList, Package, Store, Tags, Users, Wheat } from 'lucide-react'
-import type { AdministradorSesion } from '../App'
+import { useAuth } from '../context/AuthContext'
 import UltimosMovimientos from '../components/UltimosMovimientos'
-
-interface AdminHomeProps {
-  administrador: AdministradorSesion | null
-}
 
 const accesoClase =
   'flex items-center gap-3 rounded-lg border bg-white p-4 font-semibold shadow-sm transition-shadow hover:shadow-md'
 
-export default function AdminHome({ administrador }: AdminHomeProps) {
+export default function AdminHome() {
+  const { administrador } = useAuth()
   const esMaster = administrador?.rol === 'MASTER'
   const sucursalId = administrador?.sucursalId
 

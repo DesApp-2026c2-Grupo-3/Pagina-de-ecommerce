@@ -1,4 +1,4 @@
-import { DIAS_SEMANA, type DiaSemana, type HorarioDia, type HorarioSemana } from '../types/sucursal'
+import { DIAS_SEMANA, type DiaSemana, type HorarioDia, type HorarioSemana } from '../types/sucursal.types'
 import { ETIQUETA_DIA } from '../utils/horario'
 
 interface Props {

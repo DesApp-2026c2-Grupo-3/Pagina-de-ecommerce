@@ -1,4 +1,4 @@
-import type { AdministradorSesion } from '../App'
+import type { AdministradorSesion } from '../types/sesion.types'
 
 export interface Enlace {
   to: string

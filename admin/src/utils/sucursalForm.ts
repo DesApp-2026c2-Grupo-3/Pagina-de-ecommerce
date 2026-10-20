@@ -3,7 +3,7 @@ import {
   type DatosSucursal,
   type PayloadSucursal,
   type Sucursal,
-} from '../types/sucursal'
+} from '../types/sucursal.types'
 import { horarioPorDefecto, normalizarHorario, validarHorario, validarZonaHoraria } from './horario'
 
 // Formulario vacío para una sucursal nueva (objeto nuevo en cada llamada)

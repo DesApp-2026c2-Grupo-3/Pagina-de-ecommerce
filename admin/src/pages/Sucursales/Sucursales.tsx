@@ -6,7 +6,7 @@ import MensajeVacio from '../../components/MensajeVacio'
 import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
 import { obtenerSucursales, cambiarEstadoSucursal } from '../../services/sucursalService'
-import type { Sucursal } from '../../types/sucursal'
+import type { Sucursal } from '../../types/sucursal.types'
 import { formatearHorario } from '../../utils/horario'
 
 const POR_PAGINA = 8

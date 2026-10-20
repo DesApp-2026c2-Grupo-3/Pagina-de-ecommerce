@@ -1,122 +1,50 @@
-const API_URL = "http://localhost:3000/admin/reportes";
+import type {
+  ProductoMasVendido,
+  ProductoMayorFacturacion,
+  ProductoMenosVendido,
+  ProductoSinStock,
+} from '../types/reporte.types'
+import { apiFetch, API_URL } from './httpClient'
 
-export interface ProductoMasVendido {
-  productoId: number;
-  unidadesVendidas: string | number;
-  Producto: {
-    nombre: string;
-    imagen: string | null;
-  };
-}
+const API = `${API_URL}/admin/reportes`
 
 export async function obtenerProductosMasVendidos(): Promise<ProductoMasVendido[]> {
-  const respuesta = await fetch(`${API_URL}/productos-mas-vendidos`, {
-    credentials: "include",
-  });
-
-  const datos = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(
-      datos.mensaje || datos.msj || "Error al obtener los productos más vendidos",
-    );
-  }
-
-  return datos;
+  return apiFetch(`${API}/productos-mas-vendidos`, {
+    mensajePorDefecto: 'Error al obtener los productos más vendidos',
+  })
 }
 
 //------------------------------------------------------
 
-export interface ProductoMenosVendido {
-  productoId: number;
-  nombre: string;
-  imagen: string | null;
-  unidadesVendidas: string | number;
-}
-
 export async function obtenerProductosMenosVendidos(): Promise<ProductoMenosVendido[]> {
-  const respuesta = await fetch(
-    `${API_URL}/productos-menos-vendidos`,
-    {
-      credentials: "include",
-    },
-  );
-
-  const datos = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(
-      datos.mensaje ||
-        datos.msj ||
-        "Error al obtener los productos menos vendidos",
-    );
-  }
-
-  return datos;
+  return apiFetch(`${API}/productos-menos-vendidos`, {
+    mensajePorDefecto: 'Error al obtener los productos menos vendidos',
+  })
 }
 
 //---------------------------------------------------------
-
-export interface ProductoMayorFacturacion {
-  productoId: number;
-  nombre: string;
-  imagen: string | null;
-  facturacion: string | number;
-}
 
 export async function obtenerProductosMayorFacturacion(): Promise<ProductoMayorFacturacion[]> {
-  const response = await fetch(
-    `${API_URL}/productos-mayor-facturacion`,
-    {
-      credentials: "include",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Error al obtener el reporte de facturación");
-  }
-
-  return response.json();
+  return apiFetch(`${API}/productos-mayor-facturacion`, {
+    mensajePorDefecto: 'Error al obtener el reporte de facturación',
+  })
 }
-
 
 //---------------------------------------------------------
-
-export interface ProductoSinStock {
-  productoId: number;
-  nombre: string;
-  imagen: string | null;
-  sucursalId: number;
-  sucursalNombre: string;
-  unidadesDisponibles: number;
-  insumoLimitante: string | null;
-}
 
 export async function obtenerProductosSinStock(
   sucursalId?: number,
 ): Promise<ProductoSinStock[]> {
-  const parametros = new URLSearchParams();
+  const parametros = new URLSearchParams()
 
   if (sucursalId !== undefined) {
-    parametros.set("sucursalId", String(sucursalId));
+    parametros.set('sucursalId', String(sucursalId))
   }
 
-  const query = parametros.toString();
-  const url = `${API_URL}/productos-sin-stock${query ? `?${query}` : ""}`;
+  const query = parametros.toString()
+  const url = `${API}/productos-sin-stock${query ? `?${query}` : ''}`
 
-  const respuesta = await fetch(url, {
-    credentials: "include",
-  });
-
-  const datos = await respuesta.json().catch(() => ({}));
-
-  if (!respuesta.ok) {
-    throw new Error(
-      datos.mensaje ||
-        datos.msj ||
-        "Error al obtener los productos sin stock",
-    );
-  }
-
-  return datos;
+  return apiFetch(url, {
+    mensajePorDefecto: 'Error al obtener los productos sin stock',
+  })
 }

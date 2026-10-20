@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
 import { obtenerSucursalPorId, actualizarSucursal } from '../../services/sucursalService'
 import FormularioSucursal from '../../components/FormularioSucursal'
-import type { DatosSucursal } from '../../types/sucursal'
+import type { DatosSucursal } from '../../types/sucursal.types'
 import { aPedido, desdeSucursal } from '../../utils/sucursalForm'
 
 export default function EditarSucursal() {

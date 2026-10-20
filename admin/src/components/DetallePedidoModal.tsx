@@ -11,7 +11,7 @@ import type {
   PedidoCompleto,
   ProductoCatalogo,
   PropsDetallePedidoModal,
-} from "../types/pedido";
+} from "../types/pedido.types";
 
 const TAMANIOS: Record<number, string> = {
   1: "Regular",
