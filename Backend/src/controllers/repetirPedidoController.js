@@ -13,7 +13,7 @@ const {
 const { productoDisponible, stockComoMapa, pasoExtra } = require('../utils/disponibilidad');
 const { precioMasBarato } = require('../utils/combo');
 // Igual que en crearPedido y en el front
-const EXTRA_MAX_INCREMENTO = 3;
+const EXTRA_MAX_INCREMENTO = 1;
 
 const precio = (n) => `$${n.toLocaleString('es-AR')}`;
 

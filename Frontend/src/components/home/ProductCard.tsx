@@ -3,16 +3,21 @@ import { Plus } from 'lucide-react'
 import CategoryIcon from '../icons/CategoryIcon'
 import { formatearPrecio, precioDesde } from '../../utils/precio'
 import type { ProductoBackend } from '../../types/product'
+import { usePromociones } from '../../hooks/usePromociones'
+import { promoDelProducto } from '../../utils/promosUtils'
 
 interface ProductCardProps {
   product: ProductoBackend
+  indice?: number
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, indice }: ProductCardProps) {
   const isUnavailable = !product.disponible
   const tieneTamanios = (product.tamanios?.length ?? 0) > 0
   // Fondo de la foto intercalado entre mostaza y arena, como en el diseño
-  const fondoFoto = product.id % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'
+  const fondoFoto = (indice ?? product.id) % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'  
+  // Si hoy está en promo (o es el producto de la semana), lleva una etiqueta
+  const promo = promoDelProducto(usePromociones(), product.id)
 
   return (
     <Link to={`/producto/${product.id}`} className="group block h-full">
@@ -23,6 +28,13 @@ export default function ProductCard({ product }: ProductCardProps) {
             : 'border-brand-dark group-hover:-translate-y-1 group-hover:shadow-sticker'
         }`}
       >
+        {promo && !isUnavailable && (
+          <span className="absolute right-3 top-3 z-10 grid h-14 w-14 rotate-12 place-items-center rounded-full border-2 border-brand-dark bg-brand-red text-center font-display text-sm font-extrabold leading-none text-white">
+            {promo.destacado}
+            {promo.destacado.endsWith('%') && <span className="block text-[10px]">OFF</span>}
+          </span>
+        )}
+
         {isUnavailable && (
           <span className="absolute left-3 top-3 z-10 rounded-full bg-brand-dark px-3 py-1 text-xs font-bold text-white">
             No disponible

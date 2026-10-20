@@ -2,77 +2,141 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
-import { ChevronDown, MapPin, Search, SearchX } from "lucide-react";
+import { MapPin, Search, SearchX } from "lucide-react";
 import CategoryFilter from "../components/catalogo/CategoryFilter";
+import Pagination from "../components/catalogo/Pagination";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
+import CategoryIcon from "../components/icons/CategoryIcon";
+import { estiloCategoria } from "../config/categorias";
+import {
+  GRUPO_INICIAL,
+  GRUPOS_CATALOGO,
+  grupoDeCategoria,
+  normalizarNombre,
+  type GrupoCatalogo,
+} from "../config/gruposCatalogo";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
 
-// Cuántos productos se suman cada vez que se toca "Mostrar más".
-// 12 es múltiplo de 2, 3 y 4 (las columnas de la grilla), así la última fila siempre queda completa.
-const LOTE_PRODUCTOS = 12;
+// Productos por página: 8 entra justo en 2 filas de 4 (o 4 de 2) sin dejar huecos
+const POR_PAGINA = 8;
+
+// Los disponibles primero
+const disponiblesPrimero = (a: ProductoBackend, b: ProductoBackend) =>
+  Number(b.disponible) - Number(a.disponible);
 
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [searchParams] = useSearchParams();
-  // Si viene del Home con ?categoria=3, arranca filtrado
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(
-    () => {
-      const id = Number(searchParams.get("categoria"));
-      return id > 0 ? id : null;
-    },
-  );
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ?grupo=cafeteria → ese grupo. Sin nada → Combos.
+  // (?categoria=3, que usa el Home, se traduce a su grupo cuando llegan las categorías)
+  const [grupoId, setGrupoId] = useState<number | null>(() => {
+    const slug = searchParams.get("grupo");
+    if (slug === "todos") return null;
+    return GRUPOS_CATALOGO.find((g) => g.slug === slug)?.id ?? GRUPO_INICIAL;
+  });
+  function elegirGrupo(id: number | null) {
+    setGrupoId(id);
+    const slug = id === null ? "todos" : GRUPOS_CATALOGO.find((g) => g.id === id)?.slug;
+    setSearchParams(slug ? { grupo: slug } : {}, { replace: true });
+  }
+
   const [search, setSearch] = useState("");
   // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
   const [busqueda, setBusqueda] = useState("");
   const { zona } = useZona();
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
 
-  // Cuántos productos se ven ahora: arranca con un lote y "Mostrar más" suma otro
-  const [visibles, setVisibles] = useState(LOTE_PRODUCTOS);
+  const [pagina, setPagina] = useState(1);
+    // Sección a la que hay que bajar al llegar desde el Home (ej: "Nuggets" dentro de Para acompañar)
+  const [seccionDestino, setSeccionDestino] = useState<string | null>(null);
+
   // Los productos se vuelven a pedir si el cliente cambia de zona
   useEffect(() => {
     getProducts(zona?.sucursalId).then(setProducts);
   }, [zona?.sucursalId]);
 
   useEffect(() => {
-    getCategories().then(setCategories);
+    getCategories().then((cats) => {
+      setCategories(cats);
+      // Viene del Home con ?categoria=3: se abre el grupo que la contiene
+      const categoriaId = Number(searchParams.get("categoria"));
+      const categoria = cats.find((c) => c.id === categoriaId);
+      const grupo = categoria && grupoDeCategoria(categoria.nombre);
+      if (grupo) {
+        elegirGrupo(grupo.id);
+        if (grupo.porSecciones) setSeccionDestino(categoria.nombre);
+      }    
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Volver al primer lote si cambia cualquier filtro o la zona
+  // Volver a la primera página si cambia cualquier filtro o la zona
   useEffect(() => {
-    setVisibles(LOTE_PRODUCTOS);
-  }, [selectedCategory, busqueda, zona?.sucursalId]);
+    setPagina(1);
+  }, [grupoId, busqueda, zona?.sucursalId]);
 
   useEffect(() => {
     const timer = setTimeout(() => setBusqueda(search), 250);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const filteredProducts = useMemo(() => {
-    const query = busqueda.trim().toLowerCase();
+  const grupo: GrupoCatalogo | null = GRUPOS_CATALOGO.find((g) => g.id === grupoId) ?? null;
+  const query = busqueda.trim().toLowerCase();
 
+  // Id de categoría del backend → nombre normalizado
+  const nombrePorId = useMemo(
+    () => new Map(categories.map((c) => [c.id, normalizarNombre(c.nombre)])),
+    [categories],
+  );
+
+  const filteredProducts = useMemo(() => {
+    const delGrupo = grupo ? new Set(grupo.secciones.map((s) => normalizarNombre(s.categoria))) : null;
     return products
       .filter((product) => {
-        if (
-          selectedCategory !== null &&
-          product.categoriaId !== selectedCategory
-        ) {
-          return false;
-        }
-
-        if (query && !product.nombre.toLowerCase().includes(query)) {
-          return false;
-        }
-
+        if (delGrupo && !delGrupo.has(nombrePorId.get(product.categoriaId) ?? "")) return false;
+        if (query && !product.nombre.toLowerCase().includes(query)) return false;
         return true;
       })
-      .sort((a, b) => Number(b.disponible) - Number(a.disponible));
-  }, [products, selectedCategory, busqueda]);
+      .sort(disponiblesPrimero);
+  }, [products, grupo, nombrePorId, query]);
 
-  const mostrados = filteredProducts.slice(0, visibles);
-  const restantes = filteredProducts.length - mostrados.length;
+  // Para acompañar y Cafetería se muestran en secciones (sin paginación), salvo que se esté buscando
+  const enSecciones = Boolean(grupo?.porSecciones && !query);
+  const secciones = enSecciones
+    ? grupo!.secciones
+        .map((s) => ({
+          ...s,
+          productos: filteredProducts.filter(
+            (p) => nombrePorId.get(p.categoriaId) === normalizarNombre(s.categoria),
+          ),
+        }))
+        .filter((s) => s.productos.length > 0)
+    : [];
+
+      // Cuando ya se ven las secciones, baja directo a la que se eligió en el Home (sin animación)
+  useEffect(() => {
+    if (!seccionDestino || !enSecciones || products.length === 0) return;
+    const seccion = grupo?.secciones.find(
+      (s) => normalizarNombre(s.categoria) === normalizarNombre(seccionDestino),
+    );
+    if (seccion) document.getElementById(`seccion-${seccion.categoria}`)?.scrollIntoView({ block: "start" });
+    setSeccionDestino(null);
+  }, [seccionDestino, enSecciones, products.length, grupo]);
+
+  const totalPaginas = Math.ceil(filteredProducts.length / POR_PAGINA);
+  const desde = (pagina - 1) * POR_PAGINA;
+  const mostrados = filteredProducts.slice(desde, desde + POR_PAGINA);
+
+  function cambiarPagina(nueva: number) {
+    setPagina(nueva);
+    window.scrollTo(0, 0);
+  }
+
+  // Los 4 grupos, con la forma que espera el filtro de chips
+  const opcionesFiltro = GRUPOS_CATALOGO.map((g) => ({ id: g.id, nombre: g.nombre }));
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
@@ -111,20 +175,13 @@ function Products() {
       </section>
 
       <div className="mx-auto max-w-7xl px-4 pb-16">
-        {/* Categorías: barra blanca montada sobre la banda */}
+        {/* Grupos: barra blanca montada sobre la banda */}
         <div className="-mt-9">
-          <CategoryFilter
-            categorias={categories}
-            seleccionada={selectedCategory}
-            onSeleccionar={setSelectedCategory}
-          />
+          <CategoryFilter categorias={opcionesFiltro} seleccionada={grupoId} onSeleccionar={elegirGrupo} />
         </div>
 
         {sucursalCerrada && (
-          <AvisoCierreSucursal
-            sucursal={zona?.sucursalNombre}
-            className="mt-6"
-          />
+          <AvisoCierreSucursal sucursal={zona?.sucursalNombre} className="mt-6" />
         )}
 
         {filteredProducts.length === 0 ? (
@@ -132,53 +189,62 @@ function Products() {
             <span className="grid h-16 w-16 -rotate-6 place-items-center rounded-2xl bg-brand-mustard">
               <SearchX className="h-8 w-8" />
             </span>
-            <p className="font-display text-3xl font-extrabold tracking-tight">
-              No encontramos productos
-            </p>
-            <p className="text-brand-muted">
-              Probá con otra categoría o cambiá la búsqueda.
-            </p>
+            <p className="font-display text-3xl font-extrabold tracking-tight">No encontramos productos</p>
+            <p className="text-brand-muted">Probá con otra categoría o cambiá la búsqueda.</p>
             <button
               type="button"
               onClick={() => {
                 setSearch("");
-                setSelectedCategory(null);
+                elegirGrupo(null);
               }}
               className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
             >
               Ver todo el menú
             </button>
           </div>
+        ) : enSecciones ? (
+          // ---------- Por secciones: Papas / Nuggets / Bebidas, Café / Para comer ----------
+          <div key={`${grupoId}`} className="mt-10 flex flex-col gap-12">
+            {secciones.map((seccion) => {
+              const estilo = estiloCategoria(seccion.categoria);
+              return (
+                <section key={seccion.categoria} aria-labelledby={`seccion-${seccion.categoria}`}>
+                  <h2
+                    id={`seccion-${seccion.categoria}`}
+                    className="scroll-mt-28 mb-5 flex items-center gap-3 font-display text-3xl font-extrabold tracking-tight"
+                  >
+                    <span className={`grid h-11 w-11 place-items-center rounded-2xl border-2 border-brand-dark ${estilo.fondo}`}>
+                      <CategoryIcon icono={estilo.icono} className="h-6 w-6" />
+                    </span>
+                    {seccion.titulo}
+                    <span className="text-base font-bold text-brand-muted">({seccion.productos.length})</span>
+                  </h2>
+                  <div className="bf-escalonado grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {seccion.productos.map((product, i) => (
+                      <ProductCard key={product.id} product={product} indice={i} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         ) : (
+          // ---------- Grilla con paginación: Hamburguesas, Combos, Todos o una búsqueda ----------
           <>
-            {/* La key cambia con cada filtro: la grilla se vuelve a armar y las tarjetas entran de nuevo.
-                Con "Mostrar más" NO cambia: las tarjetas que ya se veían no se reanimian, solo entran las nuevas */}
+            {/* La key cambia con cada filtro o página: la grilla se vuelve a armar */}
             <div
-              key={`${selectedCategory}-${busqueda}`}
+              key={`${grupoId}-${busqueda}-${pagina}`}
               className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
-              {mostrados.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {mostrados.map((product, i) => (
+                <ProductCard key={product.id} product={product} indice={i} />
               ))}
             </div>
 
-            <div className="mt-10 flex flex-col items-center gap-3">
-              <p role="status" className="text-sm text-brand-muted">
-                Mostrando {mostrados.length} de {filteredProducts.length}{" "}
-                productos
-              </p>
-              {restantes > 0 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setVisibles((actual) => actual + LOTE_PRODUCTOS)
-                  }
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-6 text-sm font-bold shadow-sticker transition-transform hover:-translate-y-0.5"
-                >
-                  Mostrar más <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <Pagination paginaActual={pagina} totalPaginas={totalPaginas} onCambiar={cambiarPagina} />
+            <p role="status" className="mt-4 text-center text-sm text-brand-muted">
+              Mostrando {desde + 1}–{desde + mostrados.length} de {filteredProducts.length} productos
+            </p>
           </>
         )}
       </div>

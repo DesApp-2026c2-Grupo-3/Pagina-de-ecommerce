@@ -1,36 +1,100 @@
-import { Link } from 'react-router-dom'
-import { PROMO_DESTACADA } from '../../config/home'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useToast } from '../../context/ToastContext'
+import { useAgregarPromo, useCatalogo, usePromociones } from '../../hooks/usePromociones'
+import { resolverPromo } from '../../utils/promosUtils'
+import PromoBanner from '../promos/PromoBanner'
+import type { Promo } from '../../types/promo'
+import { ArrowBigLeft, ArrowBigRight } from 'lucide-react'
 
-// Bloque rojo con la promo principal y el círculo mostaza del descuento
+const CADA_MS = 6000
+
+// Carrusel con las 3 promos de HOY: cambia solo cada 6 s y se mueve con los puntitos (como el carrusel de arriba).
+// Las 3 se dibujan una encima de la otra en la misma celda, así el alto es siempre el de la más alta y no salta.
 function PromoDestacadaBanner() {
-  const promo = PROMO_DESTACADA
+  const navigate = useNavigate()
+  const { showToast } = useToast()
+  const promos = usePromociones()
+  const { catalogo, cargando } = useCatalogo()
+  const agregar = useAgregarPromo(catalogo)
+  const [actual, setActual] = useState(0)
+  const [pausado, setPausado] = useState(false)
+
+  const hoy = promos?.dias.find((d) => d.dia === promos.hoy)
+  const lista = hoy?.promos ?? []
+
+  useEffect(() => {
+    if (pausado || lista.length < 2) return
+    const id = setInterval(() => setActual((i) => (i + 1) % lista.length), CADA_MS)
+    return () => clearInterval(id)
+  }, [pausado, lista.length])
+
+  if (!hoy || lista.length === 0) return null
+  const visible = actual % lista.length
+
+  function pedir(p: Promo) {
+    const error = agregar(p)
+    if (error) {
+      showToast(error)
+      return
+    }
+    showToast(`"${p.titulo}" se sumó a tu carrito`)
+    navigate('/carrito')
+  }
+  const mover = (paso: number) => setActual((i) => (i + paso + lista.length) % lista.length)
+  const flecha =
+    'absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 md:block'
 
   return (
-    <section className="px-4 pb-14">
-      <div className="mx-auto flex max-w-7xl flex-wrap overflow-hidden rounded-[2.25rem] border-2 border-brand-dark bg-brand-red text-white">
-        <div className="flex flex-1 basis-80 flex-col items-start gap-5 p-8 sm:p-12">
-          <span className="rounded-full bg-brand-dark px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider text-brand-mustard">
-            {promo.etiqueta}
-          </span>
-          <h2 className="font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl">{promo.titulo}</h2>
-          <p className="max-w-md text-lg text-white/85">{promo.descripcion}</p>
-          <Link
-            to={promo.link}
-            className="inline-flex min-h-12 items-center rounded-full bg-brand-cream px-6 font-bold text-brand-dark transition-transform hover:translate-y-0.5"
-          >
-            {promo.boton}
-          </Link>
+    <section
+      className="px-4 pb-14"
+      aria-roledescription="carrusel"
+      aria-label={`Promos de hoy, ${hoy.nombre.toLowerCase()}`}
+      onMouseEnter={() => setPausado(true)}
+      onMouseLeave={() => setPausado(false)}
+    >
+      <div className="mx-auto max-w-7xl">
+        <div className="relative grid [&>*]:col-start-1 [&>*]:row-start-1">          {lista.map((p, i) => (
+            <div
+              key={p.id}
+              aria-hidden={i !== visible}
+              className={`grid ${i === visible ? '' : 'invisible'}`}
+            >
+              <PromoBanner
+                promo={p}
+                resuelta={resolverPromo(p, catalogo)}
+                etiqueta={`Hoy · ${hoy.nombre}`}
+                cargando={cargando}
+                onPedir={() => pedir(p)}
+              />
+            </div>
+          ))}
+            {lista.length > 1 && (
+            <>
+              <button type="button" onClick={() => mover(-1)} aria-label="Promo anterior" className={`${flecha} left-3`}>
+                <ArrowBigLeft size={18} />
+              </button>
+              <button type="button" onClick={() => mover(1)} aria-label="Promo siguiente" className={`${flecha} right-3`}>
+                <ArrowBigRight size={18} />
+              </button>
+            </>
+          )}
         </div>
 
-        <div className="relative grid min-h-64 flex-1 basis-72 place-items-center bg-black/15 p-8">
-          <img src={promo.imagen} alt="" className="w-full max-w-[13rem] object-contain drop-shadow-2xl sm:max-w-xs" />
-          <div className="absolute bottom-6 right-6 grid h-28 w-28 -rotate-12 place-items-center rounded-full border-[3px] border-brand-dark bg-brand-mustard text-center font-display font-extrabold leading-none text-brand-dark sm:h-32 sm:w-32">
-            <span>
-              <span className="block text-4xl">{promo.destacado}</span>
-              {promo.bajada && <span className="block text-sm">{promo.bajada}</span>}
-            </span>
+        {lista.length > 1 && (
+          <div className="mt-4 flex justify-center gap-2">
+            {lista.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setActual(i)}
+                aria-label={`Ver promo ${i + 1}: ${p.titulo}`}
+                aria-current={i === visible ? 'true' : undefined}
+                className={`h-2 rounded-full ${i === visible ? 'w-6 bg-brand-red' : 'w-2 bg-brand-dark/25 hover:bg-brand-dark/40'}`}
+              />
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </section>
   )

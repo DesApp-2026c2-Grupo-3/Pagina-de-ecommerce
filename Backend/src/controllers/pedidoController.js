@@ -1,4 +1,9 @@
+const { Op } = require('sequelize');
 const { precioMasBarato } = require('../utils/combo');
+const { buscarPromo, vigenteHoy, aplicarDescuento } = require('../config/promociones');
+
+// Regla de negocio: pedidos en curso simultáneos por cliente
+const MAX_PEDIDOS_EN_CURSO = 2;
 const {
     Pedido,
     DetallePedido,
@@ -19,8 +24,8 @@ const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 const { estadoSucursal } = require('../utils/horarioSucursal');
 
-// Cuántas unidades de más se pueden pedir de un ingrediente (igual que el front)
-const EXTRA_MAX_INCREMENTO = 3;
+// Regla de negocio: 1 porción extra por ingrediente (checkbox)
+const EXTRA_MAX_INCREMENTO = 1;
 
 // Error "esperable" (datos inválidos, sin stock...): corta el pedido y responde con este estado
 class ErrorPedido extends Error {
@@ -123,8 +128,12 @@ const obtenerPedidosPorUsuario = async (req, res) => {
                 include: [{ model: Producto, paranoid: false }],
             }, {
                 model: Sucursal,
+            }, {
+                model: historialDeTiemposPedido,
+                as: 'historialDeTiemposPedidos',
+                attributes: ['estado', 'fecha'],
             }],
-            order: [['fecha', 'DESC']],
+            order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
         });
 
 
@@ -157,6 +166,56 @@ const obtenerPedidoId = async (req, res) => {
     };
 };
 
+// Valida las líneas con promoId y devuelve Map(índice de línea -> descuento).
+// Reglas: la promo existe y vale hoy; cada producto pertenece a la promo; todos sus productos vienen,
+// en la misma proporción (la promo se pide k veces completa) y sin pasar el máximo por pedido.
+async function validarPromociones(productos) {
+    const descuentos = new Map();
+    const porPromo = new Map();
+    productos.forEach((linea, indice) => {
+        if (!linea.promoId) return;
+        if (!porPromo.has(linea.promoId)) porPromo.set(linea.promoId, []);
+        porPromo.get(linea.promoId).push({ linea, indice });
+    });
+    if (porPromo.size === 0) return descuentos;
+
+    for (const [promoId, lineas] of porPromo) {
+        const promo = buscarPromo(promoId);
+        if (!promo || !vigenteHoy(promo)) {
+            throw new ErrorPedido(400, 'Una de las promos de tu carrito ya no está vigente. Quitala y volvé a agregarla.');
+        }
+
+        const ids = await Producto.findAll({
+            where: { nombre: { [Op.in]: promo.items.map((i) => i.nombre) } },
+            attributes: ['id', 'nombre'],
+        });
+        const itemPorId = new Map(
+            ids.map((p) => [p.id, promo.items.find((i) => i.nombre === p.nombre)])
+        );
+
+        // Unidades pedidas de cada producto de la promo
+        const unidades = new Map();
+        for (const { linea, indice } of lineas) {
+            const item = itemPorId.get(Number(linea.productoId));
+            if (!item) {
+                throw new ErrorPedido(400, `Un producto no corresponde a la promo "${promo.titulo}"`);
+            }
+            unidades.set(item.nombre, (unidades.get(item.nombre) ?? 0) + Number(linea.cantidad));
+            descuentos.set(indice, item.descuento);
+        }
+
+        const veces = promo.items.map((i) => (unidades.get(i.nombre) ?? 0) / i.cantidad);
+        const k = veces[0];
+        if (!Number.isInteger(k) || k < 1 || veces.some((v) => v !== k)) {
+            throw new ErrorPedido(400, `La promo "${promo.titulo}" tiene que pedirse completa`);
+        }
+        if (promo.maxPorPedido && k > promo.maxPorPedido) {
+            throw new ErrorPedido(400, `La promo "${promo.titulo}" se puede pedir ${promo.maxPorPedido} vez por pedido`);
+        }
+    }
+    return descuentos;
+}
+
 const crearPedido = async (req, res) => {
 
     const t = await sequelize.transaction();
@@ -169,6 +228,19 @@ const crearPedido = async (req, res) => {
         if (!usuario) {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Usuario no encontrado' })
+        }
+
+        const enCurso = await Pedido.count({
+            where: {
+                usuarioId,
+                estado: { [Op.notIn]: ['Entregado', 'Cancelado', 'entregado', 'cancelado'] },
+            },
+        });
+        if (enCurso >= MAX_PEDIDOS_EN_CURSO) {
+            await t.rollback();
+            return res.status(409).json({
+                mensaje: `Ya tenés ${enCurso} pedidos en curso. Esperá a que se entregue alguno para hacer otro.`
+            });
         }
 
         const sucursal = await Sucursal.findByPk(sucursalId);
@@ -209,6 +281,9 @@ const crearPedido = async (req, res) => {
             });
         }
 
+        // Promociones: descuento de cada línea (por índice). Se valida antes de crear el pedido.
+        const descuentos = await validarPromociones(productos);
+
         const nuevoPedido = await Pedido.create({
 
             usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0,
@@ -220,7 +295,7 @@ const crearPedido = async (req, res) => {
         let total = 0;
 
         // Recorrer los productos recibidos
-        for (const producto of productos) {
+        for (const [indice, producto] of productos.entries()) {
 
             if (!producto.productoId || !producto.cantidad) {
                 throw new ErrorPedido(400, 'Cada producto debe tener productoId y cantidad');
@@ -287,7 +362,7 @@ const crearPedido = async (req, res) => {
                     throw new ErrorPedido(400, `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede aumentar en ${productoBD.nombre}`);
                 }
                 if (cantidad - base > EXTRA_MAX_INCREMENTO * pasoExtra(base)) {
-                    throw new ErrorPedido(400, `No se pueden agregar más de ${EXTRA_MAX_INCREMENTO} ${item.Insumo?.nombre ?? 'unidades'} extra`);
+                    throw new ErrorPedido(400, `Solo se puede agregar 1 porción extra de ${item.Insumo?.nombre ?? 'cada ingrediente'}`);
                 }
             }
 
@@ -378,7 +453,9 @@ const crearPedido = async (req, res) => {
 
             // Calcular subtotal (precio base + extras agregados + recargos del combo;
             // la personalización de sacar no descuenta)
-            const precioUnitario = precioBase + extraUnitario + recargoCombo;
+            // Con promo, el descuento se aplica sobre todo (igual que el front)
+            const precioLista = precioBase + extraUnitario + recargoCombo;
+            const precioUnitario = aplicarDescuento(precioLista, descuentos.get(indice) ?? 0);
             const subtotal = precioUnitario * producto.cantidad;
 
             // Acumular al total

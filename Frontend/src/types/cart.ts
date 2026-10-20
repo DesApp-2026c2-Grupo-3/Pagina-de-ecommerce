@@ -19,4 +19,8 @@ export interface CartItem {
   tamanio?: string | null  // nombre del tamaño elegido (regular, mediano, grande), si el producto tiene tamaños
   tamanioId?: number | null  // id del tamaño elegido (tabla Tamanios)
   combo?: ComboElecciones  // solo combos: lo que eligió el cliente
+  promoId?: string  // promo con la que se agregó (el backend la valida y aplica el descuento)
+  descuento?: number  // 0.2 = 20 % menos (unitPrice ya lo tiene aplicado)
+  precioLista?: number  // precio de una unidad sin el descuento, para mostrarlo tachado
+  promoFija?: boolean  // promo de varios productos: no se cambia la cantidad, se quita completa
 }

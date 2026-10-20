@@ -11,12 +11,18 @@ const CLIENTE = { model: Usuario, attributes: ['id', 'nombre', 'apellido', 'emai
 const DIRECCION = {
     model: Direccion,
     attributes: ['id', 'alias', 'calle', 'numero', 'piso', 'localidad', 'provincia', 'observaciones', 'latitud', 'longitud'],
+    paranoid: false,
 };
 const SUCURSAL = { model: Sucursal, attributes: ['id', 'nombre'] };
 // Línea de tiempo de estados: se devuelve ordenada cronológicamente en el detalle
 // `as` explícito: coincide con el alias del modelo y la clave que espera el front (`historialDeTiemposPedidos`)
 const HISTORIAL = { model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos', attributes: ['id', 'estado', 'estadoAnterior', 'fecha'] };
-
+// Flujo permitido: desde cada estado, a cuáles se puede pasar (en minúscula)
+const TRANSICIONES = {
+    'pendiente': ['en proceso', 'cancelado'],
+    'en proceso': ['en camino', 'cancelado'],
+    'en camino': ['entregado', 'cancelado'],
+};
 // Un pedido en estos estados ya está cerrado: no se puede cambiar
 const ESTADOS_FINALES = ['entregado', 'cancelado'];
 
@@ -123,12 +129,13 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
         }
         // Una vez que el pedido abandona Pendiente nunca puede volver:
         // Pendiente es solo el estado inicial
-        if (mismoEstado(estado, 'pendiente') && !mismoEstado(pedido.estado, 'pendiente')) {
+        const actual = String(pedido.estado).toLowerCase();
+        const permitidos = TRANSICIONES[actual] ?? [];
+        if (!permitidos.includes(String(estado).toLowerCase())) {
             return res.status(400).json({
-                mensaje: 'Un pedido que salió de Pendiente no puede volver a Pendiente'
+                mensaje: `No se puede pasar de "${pedido.estado}" a "${estado}"`
             });
         }
-
         // El cambio de estado y su registro en la línea de tiempo van juntos
         // (igual que la eventual devolución de stock): o se hacen todos, o ninguno
         const t = await sequelize.transaction();

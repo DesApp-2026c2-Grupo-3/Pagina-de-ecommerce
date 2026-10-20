@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { COSTO_ENVIO } from '../../config/compra'
 import { formatearPrecio } from '../../utils/precio'
-import CampoCupon from './CampoCupon'
+//import CampoCupon from './CampoCupon'
 
 interface Props {
   cantidad: number
@@ -26,18 +26,20 @@ function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, o
           </span>
           <span className="font-bold text-brand-dark">{formatearPrecio(subtotal)}</span>
         </div>
+        {/*
         <div className="flex justify-between">
           <span>Envío</span>
           <span className="font-bold text-brand-dark">
             {COSTO_ENVIO === null ? 'A calcular' : COSTO_ENVIO === 0 ? 'Gratis' : formatearPrecio(COSTO_ENVIO)}
           </span>
         </div>
+        */}
       </div>
-
+      {/*
       <div className="border-t-2 border-dashed border-brand-sand pt-4">
         <CampoCupon />
       </div>
-
+      */}
       <div className="flex items-baseline justify-between border-t-2 border-dashed border-brand-sand pt-4">
         <span className="font-extrabold">Total</span>
         <span className="font-display text-4xl font-extrabold">{formatearPrecio(total)}</span>

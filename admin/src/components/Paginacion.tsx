@@ -25,14 +25,11 @@ export default function Paginacion({
     return null
   }
 
+  // Ventana de hasta 3 botones que siempre incluye la página actual
+  const inicio = Math.max(1, Math.min(paginaActual - 1, totalPaginas - 2))
   const paginas: number[] = []
-
-  if (paginaActual === 1) {
-    paginas.push(2, 3)
-  } else if (paginaActual === totalPaginas) {
-    paginas.push(totalPaginas - 2, totalPaginas - 1)
-  } else {
-    paginas.push(paginaActual - 1, paginaActual + 1)
+  for (let p = inicio; p <= Math.min(totalPaginas, inicio + 2); p++) {
+    paginas.push(p)
   }
 
   return (

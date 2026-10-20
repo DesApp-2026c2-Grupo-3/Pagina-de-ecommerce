@@ -17,17 +17,24 @@ interface ChoiceSheetProps {
   seleccionadoId: number | null
   onElegir: (id: number) => void
   onClose: () => void
+  /** Si viene, se ofrece primero la opción de no llevarlo (ej: "Sin bebida"), con id 0 */
+  textoSin?: string
 }
 
 // Lista de opciones de un lugar del combo (acompañamiento, bebida...): se elige una
-function ChoiceSheet({ title, opciones, seleccionadoId, onElegir, onClose }: ChoiceSheetProps) {
+function ChoiceSheet({ title, opciones, seleccionadoId, onElegir, onClose, textoSin }: ChoiceSheetProps) {
+  // La opción "Sin ..." va primera, con el mismo formato que las demás
+  const lista: OpcionElegible[] = textoSin
+    ? [{ id: 0, nombre: textoSin, recargo: 0, icono: '—' }, ...opciones]
+    : opciones
+
   return (
     <Sheet title={title} onClose={onClose}>
-      {opciones.length === 0 ? (
+      {lista.length === 0 ? (
         <p className="py-6 text-center text-brand-muted">No hay opciones disponibles por el momento.</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {opciones.map((o) => {
+          {lista.map((o) => {
             const elegida = o.id === seleccionadoId
             return (
               <li key={o.id}>

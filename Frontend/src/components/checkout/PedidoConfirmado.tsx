@@ -16,7 +16,7 @@ function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       <PageHeader titulo="¡Listo!">
-        <PasosCompra actual={2} />
+        <PasosCompra actual={3} />
       </PageHeader>
 
       <div className="mx-auto -mt-12 max-w-md px-4 pb-16">

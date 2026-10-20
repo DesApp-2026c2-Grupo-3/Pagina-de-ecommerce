@@ -1,5 +1,5 @@
 // Cuántas unidades de más se pueden pedir de un ingrediente agregable (ej: hasta 3 fetas extra)
-export const EXTRA_MAX_INCREMENTO = 3
+export const EXTRA_MAX_INCREMENTO = 1
 
 export const TAMANIOS = [
   { valor: 'regular', etiqueta: 'Regular' },

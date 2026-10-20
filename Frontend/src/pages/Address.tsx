@@ -60,6 +60,8 @@ function Address() {
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const [form, setForm] = useState<AddressFormData>(formVacio)
   const [paso, setPaso] = useState(1)
+    const [aEliminar, setAEliminar] = useState<AddressData | null>(null)
+  const [eliminando, setEliminando] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -186,15 +188,18 @@ function Address() {
     }
   }
 
-  async function handleEliminar(id: number) {
-    const confirmar = window.confirm('¿Seguro que querés eliminar esta dirección?')
-    if (!confirmar) return
-
+  async function confirmarEliminar() {
+    if (!aEliminar) return
+    setEliminando(true)
     try {
-      await eliminarDireccion(id)
+      await eliminarDireccion(aEliminar.id)
+      setAEliminar(null)
       cargarDirecciones()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar la dirección')
+      setAEliminar(null)
+    } finally {
+      setEliminando(false)
     }
   }
 
@@ -239,7 +244,7 @@ function Address() {
           key={direccion.id}
           direccion={direccion}
           onEditar={() => abrirEditar(direccion)}
-          onEliminar={() => handleEliminar(direccion.id)}
+          onEliminar={() => setAEliminar(direccion)}          
           onPredeterminada={() => handlePredeterminada(direccion.id)}
         />
       ))}
@@ -255,6 +260,45 @@ function Address() {
         Agregar una dirección
       </button>
 
+      <Modal
+        isOpen={aEliminar !== null}
+        onClose={() => !eliminando && setAEliminar(null)}
+        title="¿Eliminar dirección?"
+        subtitle="Tus pedidos anteriores la van a seguir mostrando."
+        tamanio="sm"
+      >
+        {aEliminar && (
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-brand-dark bg-white p-4">
+            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand-red" />
+            <div>
+              {aEliminar.alias && <p className="font-extrabold">{aEliminar.alias}</p>}
+              <p className="text-sm text-brand-muted">
+                {aEliminar.calle} {aEliminar.numero}
+                {aEliminar.localidad && `, ${aEliminar.localidad}`}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setAEliminar(null)}
+            disabled={eliminando}
+            className="min-h-11 rounded-full border-2 border-brand-dark px-5 font-bold text-brand-dark transition-colors hover:bg-brand-dark hover:text-brand-cream disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={confirmarEliminar}
+            disabled={eliminando}
+            className="min-h-11 rounded-full border-2 border-brand-dark bg-brand-red px-5 font-bold text-white transition-transform hover:translate-y-0.5 disabled:opacity-50"
+          >
+            {eliminando ? 'Eliminando…' : 'Eliminar'}
+          </button>
+        </div>
+      </Modal>
       <Modal
         isOpen={modalAbierto}
         onClose={() => setModalAbierto(false)}

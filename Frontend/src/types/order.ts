@@ -22,4 +22,5 @@ export interface Order {
   DetallePedidos: DetallePedido[]
   Sucursal:{id: number, nombre:string}
   observaciones?: string | null;
+  historialDeTiemposPedidos?: { estado: string; fecha: string }[]
 }
