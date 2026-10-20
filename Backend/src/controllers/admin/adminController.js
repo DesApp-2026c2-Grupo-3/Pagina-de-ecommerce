@@ -106,14 +106,14 @@ const login = async (req, res) => {
         }
         const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
 
-        const token = jwt.sign({ id: admin.id, nombre: admin.nombre, rol: admin.rol }, SECRET_JWT_TOKEN, { expiresIn: "4h" })
+        const token = jwt.sign({ id: admin.id, nombre: admin.nombre, rol: admin.rol }, SECRET_JWT_TOKEN, { expiresIn: "120s" })
 
         return res.cookie("access_token", token, {
             httpOnly: true,
             sameSite: "lax",
             path: '/',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 1000 * 60 * 60 * 4
+            maxAge: 2 * 60 * 1000
         }).status(200).json(datosDe(admin));
     } catch (error) {
         console.error('Error al loguear:', error.message);
