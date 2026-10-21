@@ -1,5 +1,5 @@
 import { Check, X } from 'lucide-react'
-import type { RegistroTiempoPedido } from '../types/pedido'
+import type { RegistroTiempoPedido } from '../types/pedido.types'
 import {
   PASOS_SEGUIMIENTO,
   fechaCancelacion,

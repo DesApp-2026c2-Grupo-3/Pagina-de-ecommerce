@@ -3,12 +3,12 @@ import { Pencil, Search, Trash2 } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
 import { useToast } from '../../context/ToastContext'
+import type { Insumo } from '../../types/insumo.types'
 import {
   obtenerInsumos,
   crearInsumo,
   actualizarInsumo,
   eliminarInsumo,
-  type Insumo,
 } from '../../services/insumoService'
 
 const formularioVacio = { nombre: '', precioComercial: '' }

@@ -14,14 +14,15 @@ import {
   obtenerProductosMenosVendidos,
   obtenerProductosMayorFacturacion,
   obtenerProductosSinStock,
-  type ProductoMasVendido,
-  type ProductoMenosVendido,
-  type ProductoMayorFacturacion,
-  type ProductoSinStock,
 } from "../../services/reporteService";
 
+import {type ProductoMasVendido,
+  type ProductoMenosVendido,
+  type ProductoMayorFacturacion,
+  type ProductoSinStock,} from "../../types/reporte.types"
+
 import { obtenerSucursales } from "../../services/sucursalService";
-import {type Sucursal} from "../../types/sucursal"
+import {type Sucursal} from "../../types/sucursal.types"
 import GraficoProductos from "./GraficoProductos";
 import GraficoFacturacion from "./GraficoFacturacion";
 

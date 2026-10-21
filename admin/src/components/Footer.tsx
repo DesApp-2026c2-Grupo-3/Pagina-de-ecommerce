@@ -1,12 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import type { AdministradorSesion } from '../App'
+import { useAuth } from '../context/AuthContext'
 import { enlacesDe } from '../config/menu'
 
-interface FooterProps {
-  administrador: AdministradorSesion | null
-}
-
-export default function Footer({ administrador }: FooterProps) {
+export default function Footer() {
+  const { administrador } = useAuth()
   // Los mismos links que el menú, según el rol (sin "Inicio")
   const enlaces = enlacesDe(administrador).filter((e) => e.to !== '/admin')
 

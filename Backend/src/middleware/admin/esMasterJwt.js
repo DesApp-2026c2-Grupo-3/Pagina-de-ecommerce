@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { limpiarCookieSesion } = require('../../utils/sesionAdmin');
 
 const esMasterJwt = (req, res, next) => {
     try {
@@ -18,6 +19,7 @@ const esMasterJwt = (req, res, next) => {
         next();
 
     } catch (error) {
+        limpiarCookieSesion(res);
         return res.status(401).json({ msj: "Token inválido o expirado" });
     }
 };

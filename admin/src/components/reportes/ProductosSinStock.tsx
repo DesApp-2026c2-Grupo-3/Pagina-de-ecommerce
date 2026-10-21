@@ -1,13 +1,10 @@
 
 import { useCallback, useEffect, useState } from "react";
-import { obtenerProductosSinStock, type ProductoSinStock } from "../../services/reporteService";
-import type { AdministradorSesion } from "../../App";
+import type { ProductoSinStock } from "../../types/reporte.types";
+import { obtenerProductosSinStock } from "../../services/reporteService";
+import { useAuth } from "../../context/AuthContext";
 import { obtenerSucursales } from "../../services/sucursalService";
 import Paginacion from "../Paginacion";
-
-interface Props {
-  administrador: AdministradorSesion | null;
-}
 
 interface Sucursal {
   id: number;
@@ -16,7 +13,8 @@ interface Sucursal {
 
 const API_BASE = "http://localhost:3000";
 
-export default function ProductosSinStock({administrador}:Props) {
+export default function ProductosSinStock() {
+  const { administrador } = useAuth();
   const [productos, setProductos] = useState<ProductoSinStock[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
