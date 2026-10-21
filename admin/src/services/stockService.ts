@@ -1,84 +1,61 @@
-const API_URL = "http://localhost:3000/admin/stock";
+import { apiFetch, API_URL } from './httpClient'
+import { leerSesion } from '../utils/sesion'
+
+const API = `${API_URL}/admin/stock`
 
 export const MOTIVOS_BAJA = [
-  { valor: "merma", etiqueta: "Merma (se echó a perder)" },
-  { valor: "vencimiento", etiqueta: "Vencimiento" },
-  { valor: "rotura", etiqueta: "Rotura" },
-  { valor: "faltante", etiqueta: "Faltante" },
-  { valor: "correccion", etiqueta: "Corrección de carga" },
-  { valor: "otro", etiqueta: "Otro" },
-] as const;
-
-async function pedir(url: string, opciones: RequestInit, porDefecto: string) {
-  const respuesta = await fetch(url, opciones);
-  const datos = await respuesta.json().catch(() => ({}));
-  if (!respuesta.ok) {
-    throw new Error(datos.code || datos.mensaje || porDefecto);
-  }
-  return datos;
-}
+  { valor: 'merma', etiqueta: 'Merma (se echó a perder)' },
+  { valor: 'vencimiento', etiqueta: 'Vencimiento' },
+  { valor: 'rotura', etiqueta: 'Rotura' },
+  { valor: 'faltante', etiqueta: 'Faltante' },
+  { valor: 'correccion', etiqueta: 'Corrección de carga' },
+  { valor: 'otro', etiqueta: 'Otro' },
+] as const
 
 const patch = (body: unknown): RequestInit => ({
-  method: "PATCH",
-  headers: { "Content-Type": "application/json" },
-  credentials: "include",
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(body),
-});
+})
+
 // Quién está logueado: queda registrado en el historial de movimientos
 function adminIdSesion(): number | undefined {
-  try {
-    return (
-      JSON.parse(localStorage.getItem("administrador") ?? "null")?.id ??
-      undefined
-    );
-  } catch {
-    return undefined;
-  }
+  return leerSesion()?.id ?? undefined
 }
 
 export function obtenerStockPorSucursal(sucursalId: number) {
-  return pedir(
-    `${API_URL}/sucursal/${sucursalId}`,
-    {
-      credentials: "include",
-    },
-    "Error al obtener el stock",
-  );
+  return apiFetch(`${API}/sucursal/${sucursalId}`, {
+    mensajePorDefecto: 'Error al obtener el stock',
+  })
 }
 
 export function obtenerMovimientos(sucursalId: number) {
-  return pedir(
-    `${API_URL}/sucursal/${sucursalId}/movimientos`,
-    {
-      credentials: "include",
-    },
-    "Error al obtener los movimientos",
-  );
+  return apiFetch(`${API}/sucursal/${sucursalId}/movimientos`, {
+    mensajePorDefecto: 'Error al obtener los movimientos',
+  })
 }
 
 export function cargarAumento(id: number, cantidad: number) {
-  return pedir(
-    `${API_URL}/${id}/aumentar`,
-    patch({ cantidad, adminId: adminIdSesion() }),
-    "Error al cargar stock",
-  );
+  return apiFetch(`${API}/${id}/aumentar`, {
+    ...patch({ cantidad, adminId: adminIdSesion() }),
+    mensajePorDefecto: 'Error al cargar stock',
+  })
 }
 
 export function registrarBaja(
   id: number,
   datos: { cantidad: number; motivo: string; detalle: string },
 ) {
-  return pedir(
-    `${API_URL}/${id}/bajar`,
-    patch({ ...datos, adminId: adminIdSesion() }),
-    "Error al registrar la baja",
-  );
+  return apiFetch(`${API}/${id}/bajar`, {
+    ...patch({ ...datos, adminId: adminIdSesion() }),
+    mensajePorDefecto: 'Error al registrar la baja',
+  })
 }
+
 // null = sin alerta
 export function definirMinimo(id: number, stockMinimo: number | null) {
-  return pedir(
-    `${API_URL}/${id}/minimo`,
-    patch({ stockMinimo }),
-    "Error al definir el mínimo",
-  );
+  return apiFetch(`${API}/${id}/minimo`, {
+    ...patch({ stockMinimo }),
+    mensajePorDefecto: 'Error al definir el mínimo',
+  })
 }

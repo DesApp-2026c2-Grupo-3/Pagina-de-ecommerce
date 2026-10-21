@@ -1,4 +1,4 @@
-import type { RegistroTiempoPedido } from '../types/pedido'
+import type { RegistroTiempoPedido } from '../types/pedido.types'
 
 // Pasos de la línea de tiempo, en el mismo orden que valida el backend
 export const PASOS_SEGUIMIENTO = ['Pendiente', 'En proceso', 'En camino', 'Entregado'] as const

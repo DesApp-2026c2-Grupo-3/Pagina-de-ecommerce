@@ -1,45 +1,35 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, LogOut, X } from "lucide-react";
-import type { AdministradorSesion } from "../App";
-import { cerrarSesionService } from "../services/authService";
-import { enlacesDe } from "../config/menu";
-
-interface NavbarProps {
-  administrador: AdministradorSesion | null;
-  setAdministrador: React.Dispatch<
-    React.SetStateAction<AdministradorSesion | null>
-  >;
-}
+import { useState } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { Menu, LogOut, X } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { cerrarSesionService } from '../services/authService'
+import { enlacesDe } from '../config/menu'
 
 const claseEnlace = ({ isActive }: { isActive: boolean }) =>
   isActive
-    ? "font-bold text-action drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]"
-    : "hover:text-action-hover";
+    ? 'font-bold text-action drop-shadow-[0_0_6px_rgba(249,115,22,0.8)]'
+    : 'hover:text-action-hover'
 
-export default function Navbar({
-  administrador,
-  setAdministrador,
-}: NavbarProps) {
-  const [menuAbierto, setMenuAbierto] = useState(false);
-  const navigate = useNavigate();
+export default function Navbar() {
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  const navigate = useNavigate()
+  const { administrador, cerrarSesion } = useAuth()
 
-  const enlaces = enlacesDe(administrador);
+  const enlaces = enlacesDe(administrador)
   const rolTexto =
-    administrador?.rol === "MASTER"
-      ? "Administrador general"
-      : `Sucursal ${administrador?.sucursal?.nombre ?? "sin asignar"}`;
+    administrador?.rol === 'MASTER'
+      ? 'Administrador general'
+      : `Sucursal ${administrador?.sucursal?.nombre ?? 'sin asignar'}`
 
-  const cerrarSesion = async () => {
+  const salir = async () => {
     try {
-      await cerrarSesionService();
+      await cerrarSesionService()
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+      console.error('Error al cerrar sesión:', error)
     }
-    setAdministrador(null);
-    localStorage.removeItem("administrador");
-    navigate("/");
-  };
+    cerrarSesion()
+    navigate('/')
+  }
 
   // Nombre, rol y botón de salir (se repite en escritorio y celular)
   const usuario = (
@@ -50,7 +40,7 @@ export default function Navbar({
       </div>
       <button
         type="button"
-        onClick={cerrarSesion}
+        onClick={salir}
         aria-label="Cerrar sesión"
         title="Cerrar sesión"
         className="rounded border bg-danger px-3 py-2 hover:bg-danger-hover"
@@ -58,7 +48,7 @@ export default function Navbar({
         <LogOut size={18} />
       </button>
     </div>
-  );
+  )
 
   return (
     <nav className="bg-gray-900 text-white">
@@ -71,7 +61,7 @@ export default function Navbar({
           type="button"
           onClick={() => setMenuAbierto(!menuAbierto)}
           className="text-2xl md:hidden"
-          aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+          aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={menuAbierto}
         >
           {menuAbierto ? <X size={20} /> : <Menu size={20} />}
@@ -81,14 +71,14 @@ export default function Navbar({
         <div className="hidden md:block">{usuario}</div>
       </div>
 
-        {/* Enlaces en un segundo renglón */}
-      <div className="hidden border-t border-gray-700 px-6 py-3 md:flex md:items-center md:gap-6">           
+      {/* Enlaces en un segundo renglón */}
+      <div className="hidden border-t border-gray-700 px-6 py-3 md:flex md:items-center md:gap-6">
         {enlaces.map((e) => (
-          <NavLink 
-          key={e.to}
-          to={e.to}
-          end={e.end}
-          className={claseEnlace}
+          <NavLink
+            key={e.to}
+            to={e.to}
+            end={e.end}
+            className={claseEnlace}
           >
             {e.label}
           </NavLink>
@@ -113,5 +103,5 @@ export default function Navbar({
         </div>
       )}
     </nav>
-  );
+  )
 }

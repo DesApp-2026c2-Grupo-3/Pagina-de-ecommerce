@@ -1,29 +1,23 @@
-const API_URL = "http://localhost:3000/admin";
+import type { AdministradorSesion } from '../types/sesion.types'
+import { apiFetch, API_URL } from './httpClient'
 
-export async function iniciarSesion(email: string, password: string) {
-  const respuesta = await fetch(`${API_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
+export async function iniciarSesion(
+  email: string,
+  password: string,
+): Promise<AdministradorSesion> {
+  return apiFetch(`${API_URL}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  });
-
-  if (!respuesta.ok) {
-    throw new Error("Error al iniciar sesión");
-  }
-
-  return respuesta.json();
+    omitirExpiracion: true,
+    mensajePorDefecto: 'Error al iniciar sesión',
+  })
 }
 
 export async function cerrarSesionService() {
-  const respuesta = await fetch(`${API_URL}/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-
-  if (!respuesta.ok) {
-    throw new Error("Error al cerrar sesión");
-  }
-
-  return respuesta.json();
+  return apiFetch(`${API_URL}/admin/logout`, {
+    method: 'POST',
+    omitirExpiracion: true,
+    mensajePorDefecto: 'Error al cerrar sesión',
+  })
 }

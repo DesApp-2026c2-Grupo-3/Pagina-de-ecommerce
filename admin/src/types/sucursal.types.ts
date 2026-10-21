@@ -55,6 +55,12 @@ export interface DatosSucursal {
   radioEntregaKm: string
 }
 
+// Respuesta de crear/editar/cambiar estado
+export interface RespuestaSucursal {
+  mensaje?: string
+  sucursal: Sucursal
+}
+
 // Lo que espera el backend al crear o editar (claves exactas del schema Joi, sin extras)
 export interface PayloadSucursal {
   nombre: string

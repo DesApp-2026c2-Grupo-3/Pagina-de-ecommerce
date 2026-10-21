@@ -15,15 +15,11 @@ import {
   esRetornoAPendienteProhibido,
   puedePasarA,
 } from "../../utils/pedidoEstado";
-import type { Etapa, PedidoFila, SucursalOpcion } from "../../types/pedido";
-import { ETAPAS } from "../../types/pedido";
-import type { AdministradorSesion } from "../../App";
+import type { Etapa, PedidoFila, SucursalOpcion } from "../../types/pedido.types";
+import { ETAPAS } from "../../types/pedido.types";
+import { useAuth } from "../../context/AuthContext";
 
 const POR_PAGINA = 8;
-
-interface PedidosProps {
-  administrador: AdministradorSesion | null;
-}
 
 // Colores de cada etapa (badge)
 const coloresEtapa: Record<Etapa, string> = {
@@ -150,8 +146,9 @@ function SelectorEtapa({
 const botonAceptar =
   "rounded border border-orange-300 bg-action px-4 py-2 font-semibold text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40";
 
-export default function Pedidos({ administrador }: PedidosProps) {
+export default function Pedidos() {
   const { mostrarToast } = useToast();
+  const { administrador } = useAuth();
   const esMaster = administrador?.rol === "MASTER";
 
   // El admin de sucursal ve la suya; el master elige cuál ver

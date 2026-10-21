@@ -4,7 +4,7 @@ import {
   type DiaSemana,
   type HorarioDia,
   type HorarioSemana,
-} from '../types/sucursal'
+} from '../types/sucursal.types'
 
 // Etiquetas para mostrar (el backend usa claves sin acentos)
 export const ETIQUETA_DIA: Record<DiaSemana, string> = {

@@ -1,9 +1,7 @@
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  obtenerProductosMenosVendidos,
-  type ProductoMenosVendido,
-} from "../../services/reporteService";
+import type { ProductoMenosVendido } from "../../types/reporte.types";
+import { obtenerProductosMenosVendidos } from "../../services/reporteService";
 import Paginacion from "../Paginacion";
 
 const API_BASE = "http://localhost:3000";
