@@ -1,5 +1,20 @@
 const API_URL = "http://localhost:3000/admin/reportes";
 
+function construirUrlReporte(
+  endpoint: string,
+  sucursalId?: number,
+): string {
+  const parametros = new URLSearchParams();
+
+  if (sucursalId !== undefined) {
+    parametros.set("sucursalId", String(sucursalId));
+  }
+
+  const query = parametros.toString();
+
+  return `${API_URL}/${endpoint}${query ? `?${query}` : ""}`;
+}
+
 export interface ProductoMasVendido {
   productoId: number;
   unidadesVendidas: string | number;
@@ -9,10 +24,13 @@ export interface ProductoMasVendido {
   };
 }
 
-export async function obtenerProductosMasVendidos(): Promise<ProductoMasVendido[]> {
-  const respuesta = await fetch(`${API_URL}/productos-mas-vendidos`, {
-    credentials: "include",
-  });
+export async function obtenerProductosMasVendidos(
+  sucursalId?: number,
+): Promise<ProductoMasVendido[]> {
+  const respuesta = await fetch(
+    construirUrlReporte("productos-mas-vendidos", sucursalId),
+    { credentials: "include" },
+  );
 
   const datos = await respuesta.json().catch(() => ({}));
 
@@ -34,12 +52,12 @@ export interface ProductoMenosVendido {
   unidadesVendidas: string | number;
 }
 
-export async function obtenerProductosMenosVendidos(): Promise<ProductoMenosVendido[]> {
+export async function obtenerProductosMenosVendidos(
+  sucursalId?: number,
+): Promise<ProductoMenosVendido[]> {
   const respuesta = await fetch(
-    `${API_URL}/productos-menos-vendidos`,
-    {
-      credentials: "include",
-    },
+    construirUrlReporte("productos-menos-vendidos", sucursalId),
+    { credentials: "include" },
   );
 
   const datos = await respuesta.json().catch(() => ({}));
@@ -64,21 +82,26 @@ export interface ProductoMayorFacturacion {
   facturacion: string | number;
 }
 
-export async function obtenerProductosMayorFacturacion(): Promise<ProductoMayorFacturacion[]> {
-  const response = await fetch(
-    `${API_URL}/productos-mayor-facturacion`,
-    {
-      credentials: "include",
-    }
+export async function obtenerProductosMayorFacturacion(
+  sucursalId?: number,
+): Promise<ProductoMayorFacturacion[]> {
+  const respuesta = await fetch(
+    construirUrlReporte("productos-mayor-facturacion", sucursalId),
+    { credentials: "include" },
   );
 
-  if (!response.ok) {
-    throw new Error("Error al obtener el reporte de facturación");
+  const datos = await respuesta.json().catch(() => ({}));
+
+  if (!respuesta.ok) {
+    throw new Error(
+      datos.mensaje ||
+        datos.msj ||
+        "Error al obtener el reporte de facturación",
+    );
   }
 
-  return response.json();
+  return datos;
 }
-
 
 //---------------------------------------------------------
 
