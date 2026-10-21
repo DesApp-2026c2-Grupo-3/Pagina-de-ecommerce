@@ -8,33 +8,10 @@ import { apiFetch, API_URL } from './httpClient'
 
 const API = `${API_URL}/admin/reportes`
 
-export async function obtenerProductosMasVendidos(): Promise<ProductoMasVendido[]> {
-  return apiFetch(`${API}/productos-mas-vendidos`, {
-    mensajePorDefecto: 'Error al obtener los productos más vendidos',
-  })
-}
-
-//------------------------------------------------------
-
-export async function obtenerProductosMenosVendidos(): Promise<ProductoMenosVendido[]> {
-  return apiFetch(`${API}/productos-menos-vendidos`, {
-    mensajePorDefecto: 'Error al obtener los productos menos vendidos',
-  })
-}
-
-//---------------------------------------------------------
-
-export async function obtenerProductosMayorFacturacion(): Promise<ProductoMayorFacturacion[]> {
-  return apiFetch(`${API}/productos-mayor-facturacion`, {
-    mensajePorDefecto: 'Error al obtener el reporte de facturación',
-  })
-}
-
-//---------------------------------------------------------
-
-export async function obtenerProductosSinStock(
+function construirUrlReporte(
+  endpoint: string,
   sucursalId?: number,
-): Promise<ProductoSinStock[]> {
+): string {
   const parametros = new URLSearchParams()
 
   if (sucursalId !== undefined) {
@@ -42,9 +19,44 @@ export async function obtenerProductosSinStock(
   }
 
   const query = parametros.toString()
-  const url = `${API}/productos-sin-stock${query ? `?${query}` : ''}`
 
-  return apiFetch(url, {
+  return `${API}/${endpoint}${query ? `?${query}` : ''}`
+}
+
+export async function obtenerProductosMasVendidos(
+  sucursalId?: number,
+): Promise<ProductoMasVendido[]> {
+  return apiFetch(construirUrlReporte('productos-mas-vendidos', sucursalId), {
+    mensajePorDefecto: 'Error al obtener los productos más vendidos',
+  })
+}
+
+//------------------------------------------------------
+
+export async function obtenerProductosMenosVendidos(
+  sucursalId?: number,
+): Promise<ProductoMenosVendido[]> {
+  return apiFetch(construirUrlReporte('productos-menos-vendidos', sucursalId), {
+    mensajePorDefecto: 'Error al obtener los productos menos vendidos',
+  })
+}
+
+//------------------------------------------------------
+
+export async function obtenerProductosMayorFacturacion(
+  sucursalId?: number,
+): Promise<ProductoMayorFacturacion[]> {
+  return apiFetch(construirUrlReporte('productos-mayor-facturacion', sucursalId), {
+    mensajePorDefecto: 'Error al obtener el reporte de facturación',
+  })
+}
+
+//------------------------------------------------------
+
+export async function obtenerProductosSinStock(
+  sucursalId?: number,
+): Promise<ProductoSinStock[]> {
+  return apiFetch(construirUrlReporte('productos-sin-stock', sucursalId), {
     mensajePorDefecto: 'Error al obtener los productos sin stock',
   })
 }

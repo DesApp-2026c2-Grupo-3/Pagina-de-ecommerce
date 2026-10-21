@@ -1,101 +1,142 @@
 
-import { Link } from "react-router-dom";
-import { Crown, TrendingDown, Boxes, BadgeDollarSign} from "lucide-react";
+import { useState } from "react";
+import {
+  ChartNoAxesCombined,
+  Store,
+  ShoppingCart,
+  UserRoundGroupIcon,
+  TicketPercent
+} from "lucide-react";
 
-const reportes = [
+import ReportesProductos from "../../components/reportes/ReportesProductos";
+
+type SeccionReporte = "productos" | "sucursales" | "pedidos" | "clientes" | "promociones";
+
+const secciones = [
   {
-    titulo: "Productos más vendidos",
-    descripcion: "Consultá qué productos lideran las ventas.",
-    icono: <Crown size={20} className="text-yellow-400"/>,
-    ruta: "/admin/reportes/productos-mas-vendidos",
-    disponible: true,
+    id: "productos",
+    nombre: "Productos",
+    icono: ChartNoAxesCombined,
   },
   {
-    titulo: "Productos menos vendidos",
-    descripcion: "Encontrá los productos con menor movimiento, incluidos los que no registran ventas.",
-    icono: <TrendingDown size={20} className="text-red-500"/>,
-    ruta: "/admin/reportes/productos-menos-vendidos",
-    disponible: true,
+    id: "pedidos",
+    nombre: "Pedidos",
+    icono: ShoppingCart,
   },
   {
-    titulo: "Productos sin stock",
-    descripcion: "Identificá los productos que no se pueden preparar por falta de insumos.",
-    icono: <Boxes size={20} className="text-orange-700"/>,
-    ruta: "/admin/reportes/productos-sin-stock",
-    disponible: true,
+    id: "clientes",
+    nombre: "Clientes",
+    icono: UserRoundGroupIcon,
   },
   {
-    titulo: "Productos con mayor facturación",
-    descripcion: "Conocé qué productos generan más ingresos por ventas.",
-    icono: <BadgeDollarSign size={20} className="text-orange-500"/>,
-    ruta: "/admin/reportes/productos-mayor-facturacion",
-    disponible: true,
+    id: "sucursales",
+    nombre: "Sucursales",
+    icono: Store,
   },
-];
+  {
+    id: "promociones",
+    nombre: "Promociones",
+    icono: TicketPercent,
+  },
+] as const;
 
 export default function Reportes() {
+  const [seccionActiva, setSeccionActiva] =
+    useState<SeccionReporte>("productos");
+
   return (
-    <section className="space-y-6 p-3">
+    <section className="space-y-6 p-4 sm:p-6">
       <header>
-        <p className="text-sm font-medium text-orange-600">
-          ANÁLISIS DEL NEGOCIO
+        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+          Análisis del negocio
         </p>
+
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">
           Reportes
         </h1>
+
         <p className="mt-2 text-sm text-gray-500">
-          Elegí un informe para analizar las ventas y el estado de los productos.
+          Analizá el rendimiento de tus productos y del negocio.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {reportes.map((reporte) => {
-          const contenido = (
-            <>
-              <div className="flex items-start justify-between gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-2xl">
-                  {reporte.icono}
-                </span>
+      <nav
+        aria-label="Secciones de reportes"
+        className="flex flex-wrap gap-2 border-b border-gray-200 pb-3"
+      >
+        {secciones.map(({ id, nombre, icono: Icono }) => {
+          const activa = seccionActiva === id;
 
-                {reporte.disponible ? (
-                  <span className="text-sm font-semibold text-orange-600">
-                    Ver reporte →
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500">
-                    Próximamente
-                  </span>
-                )}
-              </div>
-
-              <h2 className="mt-5 text-lg font-bold text-gray-900">
-                {reporte.titulo}
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                {reporte.descripcion}
-              </p>
-            </>
-          );
-
-          return reporte.disponible ? (
-            <Link
-              key={reporte.titulo}
-              to={reporte.ruta}
-              className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSeccionActiva(id)}
+              aria-pressed={activa}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                activa
+                  ? "bg-orange-500 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-orange-50 hover:text-orange-700"
+              }`}
             >
-              {contenido}
-            </Link>
-          ) : (
-            <article
-              key={reporte.titulo}
-              className="rounded-xl border border-gray-200 bg-white p-5 opacity-75"
-            >
-              {contenido}
-            </article>
+              <Icono size={18} />
+              {nombre}
+            </button>
           );
         })}
-      </div>
+      </nav>
+
+      {seccionActiva === "productos" && (
+        <ReportesProductos />
+      )}
+
+      {seccionActiva === "sucursales" && (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+          <Store className="mx-auto text-gray-400" size={32} />
+          <h2 className="mt-3 font-semibold text-gray-900">
+            Reportes de sucursales
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Esta sección estará disponible cuando implementemos sus reportes.
+          </p>
+        </div>
+      )}
+
+      {seccionActiva === "pedidos" && (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+          <ShoppingCart className="mx-auto text-gray-400" size={32} />
+          <h2 className="mt-3 font-semibold text-gray-900">
+            Reportes de ventas
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Esta sección estará disponible cuando implementemos sus reportes.
+          </p>
+        </div>
+      )}
+
+      {seccionActiva === "clientes" && (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+          <ShoppingCart className="mx-auto text-gray-400" size={32} />
+          <h2 className="mt-3 font-semibold text-gray-900">
+            Reportes de ventas
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Esta sección estará disponible cuando implementemos sus reportes.
+          </p>
+        </div>
+      )}
+
+      {seccionActiva === "promociones" && (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+          <ShoppingCart className="mx-auto text-gray-400" size={32} />
+          <h2 className="mt-3 font-semibold text-gray-900">
+            Reportes de ventas
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Esta sección estará disponible cuando implementemos sus reportes.
+          </p>
+        </div>
+      )}
     </section>
   );
 }
