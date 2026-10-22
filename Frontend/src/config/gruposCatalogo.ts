@@ -59,7 +59,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     nombre: 'Para acompañar',
     categorias: ['Papas Fritas', 'Nuggets', 'Ensaladas'],
     subgrupos: [
-      { slug: 'papas-fritas', nombre: 'Papas Fritas', estilo: 'Papas Fritas', categorias: ['Papas Fritas'] },
+      { slug: 'papas-fritas', nombre: 'Papas', estilo: 'Papas Fritas', categorias: ['Papas Fritas'] },
       { slug: 'nuggets', nombre: 'Nuggets', estilo: 'Nuggets', categorias: ['Nuggets'] },
       {
         slug: 'otros',
