@@ -12,12 +12,12 @@ import { conDescuento } from '../utils/promosUtils'
 import IngredientesEditables from '../components/product/IngredientesEditables'
 import QuantityStepper from '../components/product/QuantityStepper'
 import SelectorTamanio from '../components/product/SelectorTamanio'
+import ImagenProducto from '../components/ui/ImagenProducto'
 import { useZona } from '../context/ZonaContext'
 import AvisoCierreSucursal from '../components/sucursal/AvisoCierreSucursal'
 import { ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react'
 import Stepper from '../components/Stepper'
 import ModalConfirmarAgregar from '../components/product/ModalConfirmarAgregar'
-import CategoryIcon from '../components/icons/CategoryIcon'
 
 function precio(n: number) {
   return `$${n.toLocaleString('es-AR')}`
@@ -335,16 +335,14 @@ function DetalleProducto({ id }: { id: number }) {
     setPaso(1)
   }
 
-  const imagenProducto = (claseImg: string, claseIcono: string) =>
-    product.imagen ? (
-      <img
-        src={product.imagen}
-        alt={product.nombre}
-        className={`${claseImg} ${product.disponible ? '' : 'opacity-60 grayscale'}`}
-      />
-    ) : (
-      <CategoryIcon icono="generico" className={claseIcono} />
-    )
+  const imagenProducto = (claseImg: string, claseIcono: string) => (
+    <ImagenProducto
+      src={product.imagen}
+      alt={product.nombre}
+      className={`${claseImg} ${product.disponible ? '' : 'opacity-60 grayscale'}`}
+      claseIcono={claseIcono}
+    />
+  )
 
   // Categoría, nombre, precio y descripción (se usa en las dos vistas)
   const infoProducto = (
@@ -449,7 +447,7 @@ function DetalleProducto({ id }: { id: number }) {
             )}
 
             {pasoActual === 'tamanio' && (
-              <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
+              <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} conImagen={esCombo} />
             )}
 
             {pasoActual === 'combo' && (

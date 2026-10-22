@@ -4,7 +4,7 @@ const { Tamanio } = require('../models');
 const obtenerTamanios = async (req, res) => {
     try {
         const tamanios = await Tamanio.findAll({
-            attributes: ['id', 'nombre', 'orden'],
+            attributes: ['id', 'nombre', 'orden', 'imagen'],
             order: [['orden', 'ASC']],
         });
         res.json(tamanios);

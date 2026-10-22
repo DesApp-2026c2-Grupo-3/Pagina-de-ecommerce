@@ -59,6 +59,7 @@ function mapTamanios(tamanios) {
             tamanioId: pt.tamanioId,
             tamanio: pt.Tamanio ? pt.Tamanio.nombre : null,
             orden: pt.Tamanio ? pt.Tamanio.orden : 0,
+            imagen: pt.Tamanio ? pt.Tamanio.imagen : null,
             precio: pt.precio,
             etiqueta: pt.etiqueta,
             factorStock: Number(pt.factorStock ?? 1),
@@ -72,7 +73,7 @@ function incluirTamanios() {
         model: ProductoTamanio,
         as: 'tamanios',
         attributes: ['tamanioId', 'precio', 'etiqueta', 'factorStock'],
-        include: [{ model: Tamanio, attributes: ['nombre', 'orden'] }]
+        include: [{ model: Tamanio, attributes: ['nombre', 'orden', 'imagen'] }]
     };
 }
 

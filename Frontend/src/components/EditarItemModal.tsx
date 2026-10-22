@@ -194,7 +194,7 @@ function EditarItemModal({ item, onClose }: EditarItemModalProps) {
           <div className="flex flex-col gap-5">
             {pasos.length > 1 && <Stepper pasos={pasos.map((x) => x.nombre)} actual={paso} onIrA={irAPaso} />}
 
-            {pasoActual === 'tamanio' && <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />}
+            {pasoActual === 'tamanio' && <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} conImagen={esCombo} />}
 
             {/* Lugares del combo: papas, bebida... (se pueden pedir "sin", al mismo precio) */}
             {pasoActual === 'combo' && (

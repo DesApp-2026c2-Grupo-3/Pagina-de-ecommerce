@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Pencil, Tag, Trash2 } from 'lucide-react'
 import QuantityStepper from '../product/QuantityStepper'
 import CategoryIcon from '../icons/CategoryIcon'
@@ -24,6 +25,8 @@ const etiquetaDescuento = (d: number) => (d >= 1 ? 'GRATIS' : `${Math.round(d * 
 // y al quitarlas se va la promo completa.
 function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
   const { removePromo } = useCart()
+  // Si la imagen no carga (ruta vieja o archivo faltante) se muestra el ícono en vez de una imagen rota
+  const [imagenRota, setImagenRota] = useState(false)
   const { product } = item
   const conDescuento = Boolean(item.descuento && item.precioLista && item.precioLista > item.unitPrice)
   const detalle = [
@@ -39,8 +42,13 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
   return (
     <article className="flex flex-wrap items-center gap-4 rounded-3xl border-2 border-brand-dark bg-white p-4">
       <div className={`grid h-20 w-20 shrink-0 place-items-center rounded-2xl ${product.id % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'}`}>
-        {product.imagen ? (
-          <img src={product.imagen} alt={product.nombre} className="h-16 w-16 object-contain" />
+        {product.imagen && !imagenRota ? (
+          <img
+            src={product.imagen}
+            alt={product.nombre}
+            onError={() => setImagenRota(true)}
+            className="h-16 w-16 object-contain"
+          />
         ) : (
           <CategoryIcon icono="generico" className="h-10 w-10" />
         )}

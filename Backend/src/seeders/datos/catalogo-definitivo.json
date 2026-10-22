@@ -11,15 +11,18 @@
  "tamanios": [
   {
    "orden": 1,
-   "nombre": "regular"
+   "nombre": "regular",
+   "imagen": "/imagenes/Formatos/Formato-Regular.png"
   },
   {
    "orden": 2,
-   "nombre": "mediano"
+   "nombre": "mediano",
+   "imagen": "/imagenes/Formatos/Formato-Mediano.png"
   },
   {
    "orden": 3,
-   "nombre": "grande"
+   "nombre": "grande",
+   "imagen": "/imagenes/Formatos/Formato-Grande.png"
   }
  ],
  "sucursales": [
@@ -3282,7 +3285,7 @@
   },
   {
    "sabor": null,
-   "imagen": "/imagenes/Cafe/Esspreso.png",
+   "imagen": "/imagenes/Café/Esspreso.png",
    "nombre": "Espresso",
    "precio": 1300,
    "categoria": "Café",
@@ -3291,7 +3294,7 @@
   },
   {
    "sabor": null,
-   "imagen": "/imagenes/Cafe/Cortado.png",
+   "imagen": "/imagenes/Café/Latte.png",
    "nombre": "Latte",
    "precio": 1600,
    "categoria": "Café",

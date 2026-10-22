@@ -1,0 +1,944 @@
+{
+  "categorias": [
+    "Postres",
+    "Ensaladas",
+    "Salsas"
+  ],
+  "insumos": [
+    {
+      "nombre": "Cacao",
+      "unidadMedida": "cucharada",
+      "precioComercial": null,
+      "stockCantidad": 300,
+      "stockMinimo": 60
+    },
+    {
+      "nombre": "Jarabe de vainilla",
+      "unidadMedida": "cucharada",
+      "precioComercial": null,
+      "stockCantidad": 300,
+      "stockMinimo": 60
+    },
+    {
+      "nombre": "Canela",
+      "unidadMedida": "cucharada",
+      "precioComercial": null,
+      "stockCantidad": 300,
+      "stockMinimo": 60
+    },
+    {
+      "nombre": "Hielo",
+      "unidadMedida": "porción",
+      "precioComercial": null,
+      "stockCantidad": 500,
+      "stockMinimo": 100
+    },
+    {
+      "nombre": "Helado de vainilla",
+      "unidadMedida": "porción",
+      "precioComercial": null,
+      "stockCantidad": 500,
+      "stockMinimo": 100
+    },
+    {
+      "nombre": "Salsa de chocolate",
+      "unidadMedida": "cucharada",
+      "precioComercial": null,
+      "stockCantidad": 300,
+      "stockMinimo": 60
+    },
+    {
+      "nombre": "Salsa de frutilla",
+      "unidadMedida": "cucharada",
+      "precioComercial": null,
+      "stockCantidad": 300,
+      "stockMinimo": 60
+    },
+    {
+      "nombre": "Brownie",
+      "unidadMedida": "unidad",
+      "precioComercial": null,
+      "stockCantidad": 200,
+      "stockMinimo": 40
+    },
+    {
+      "nombre": "Cheesecake de frutos rojos",
+      "unidadMedida": "porción",
+      "precioComercial": null,
+      "stockCantidad": 150,
+      "stockMinimo": 30
+    },
+    {
+      "nombre": "Galletitas trituradas",
+      "unidadMedida": "porción",
+      "precioComercial": null,
+      "stockCantidad": 150,
+      "stockMinimo": 30
+    },
+    {
+      "nombre": "Dona glaseada",
+      "unidadMedida": "unidad",
+      "precioComercial": null,
+      "stockCantidad": 400,
+      "stockMinimo": 80
+    },
+    {
+      "nombre": "Croutons",
+      "unidadMedida": "porción",
+      "precioComercial": null,
+      "stockCantidad": 150,
+      "stockMinimo": 30
+    },
+    {
+      "nombre": "Zanahoria",
+      "unidadMedida": "porción",
+      "precioComercial": null,
+      "stockCantidad": 300,
+      "stockMinimo": 60
+    },
+    {
+      "nombre": "Mozzarella fresca",
+      "unidadMedida": "porción",
+      "precioComercial": null,
+      "stockCantidad": 150,
+      "stockMinimo": 30
+    },
+    {
+      "nombre": "Albahaca",
+      "unidadMedida": "hoja",
+      "precioComercial": null,
+      "stockCantidad": 400,
+      "stockMinimo": 80
+    },
+    {
+      "nombre": "Queso parmesano",
+      "unidadMedida": "porción",
+      "precioComercial": 500,
+      "stockCantidad": 150,
+      "stockMinimo": 30
+    },
+    {
+      "nombre": "Ketchup",
+      "unidadMedida": "cucharada",
+      "precioComercial": null,
+      "stockCantidad": 600,
+      "stockMinimo": 120
+    },
+    {
+      "nombre": "Mostaza",
+      "unidadMedida": "cucharada",
+      "precioComercial": null,
+      "stockCantidad": 600,
+      "stockMinimo": 120
+    },
+    {
+      "nombre": "Medallón de legumbres",
+      "unidadMedida": "unidad",
+      "precioComercial": null,
+      "stockCantidad": 200,
+      "stockMinimo": 40
+    }
+  ],
+  "productos": [
+    {
+      "nombre": "Seed Vicious",
+      "categoria": "Hamburguesas",
+      "precio": 6000,
+      "descripcion": "Medallón de legumbres, rúcula fresca, tomate y mayonesa suave. La opción vegetariana, con mucho sabor. Si eres fan de lo verde ¡te pondrá los pelos de punta!",
+      "imagen": "/imagenes/Hamburguesas/Verde.png",
+      "sabor": null,
+      "disponible": true,
+      "antes": [
+        "Verde que te Quiero Verde"
+      ]
+    },
+    {
+      "nombre": "Combo Seed Vicious",
+      "categoria": "Combos",
+      "precio": 8500,
+      "descripcion": "Seed Vicious en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa.",
+      "imagen": "/imagenes/Combos/Combo-Verde.png",
+      "sabor": null,
+      "disponible": true,
+      "antes": [
+        "Combo Verde que te Quiero Verde"
+      ]
+    },
+    {
+      "nombre": "Café con Leche",
+      "categoria": "Café",
+      "precio": 1900,
+      "descripcion": "Café suave con leche caliente. El de todos los días.",
+      "imagen": "/imagenes/Café/Café-con-Leche.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Capuchino",
+      "categoria": "Café",
+      "precio": 2200,
+      "descripcion": "Espresso, leche vaporizada y una capa de espuma, con canela por encima.",
+      "imagen": "/imagenes/Café/Capuchino.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Latte Vainilla",
+      "categoria": "Café",
+      "precio": 2400,
+      "descripcion": "Café con abundante leche cremosa y un toque de jarabe de vainilla.",
+      "imagen": "/imagenes/Café/Latte-Vainilla.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Submarino",
+      "categoria": "Café",
+      "precio": 2200,
+      "descripcion": "El clásico argentino: leche bien caliente con una barra de chocolate para derretir adentro. Cremoso y reconfortante, sin café.",
+      "imagen": "/imagenes/Café/Chocolatada-Caliente.png",
+      "sabor": null,
+      "disponible": true,
+      "antes": [
+        "Chocolatada Caliente"
+      ]
+    },
+    {
+      "nombre": "Frappé de Café",
+      "categoria": "Café",
+      "precio": 2800,
+      "descripcion": "Café frío licuado con hielo y leche. Refrescante, para los días de calor.",
+      "imagen": "/imagenes/Café/Frappé-de-Café.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Helado Sundae",
+      "categoria": "Postres",
+      "precio": 2800,
+      "descripcion": "Helado de vainilla cremoso con salsa de chocolate o de frutilla. Clásico, simple y siempre rico.",
+      "imagen": "/imagenes/Postres/Helado-Sundae.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Helado Crunch",
+      "categoria": "Postres",
+      "precio": 3300,
+      "descripcion": "Helado de vainilla batido con galletitas trituradas y salsa de chocolate. Cremoso y crocante a la vez.",
+      "imagen": "/imagenes/Postres/Helado-Crunch.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Batido de Vainilla",
+      "categoria": "Postres",
+      "precio": 2600,
+      "descripcion": "Batido cremoso de helado y leche con vainilla.",
+      "imagen": "/imagenes/Bebidas/Batido-de-Vainilla.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Brownie con Helado",
+      "categoria": "Postres",
+      "precio": 3800,
+      "descripcion": "Brownie de chocolate tibio con una bocha de helado de vainilla y salsa de chocolate.",
+      "imagen": "/imagenes/Postres/Brownie-con-Helado.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Cheesecake de Frutos Rojos",
+      "categoria": "Postres",
+      "precio": 4200,
+      "descripcion": "Porción de cheesecake cremoso con salsa de frutos rojos sobre base de galleta.",
+      "imagen": "/imagenes/Postres/Cheesecake-de-Frutos-Rojos.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Donas Glaseadas x3",
+      "categoria": "Menú Café",
+      "precio": 3200,
+      "descripcion": "Tres donas esponjosas con glaseado dulce.",
+      "imagen": "/imagenes/Postres/Donas-Glaseadas-x3.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Ensalada César",
+      "categoria": "Ensaladas",
+      "precio": 5400,
+      "descripcion": "Lechuga fresca con pollo grillado, croutons crocantes y parmesano.",
+      "imagen": "/imagenes/Ensaladas/Ensalada-Cesar.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Ensalada Mixta",
+      "categoria": "Ensaladas",
+      "precio": 3800,
+      "descripcion": "Lechuga, tomate, zanahoria y cebolla. Simple, fresca y liviana.",
+      "imagen": "/imagenes/Ensaladas/Ensalada-Mixta.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Ensalada Caprese",
+      "categoria": "Ensaladas",
+      "precio": 4800,
+      "descripcion": "Tomate maduro con mozzarella fresca y hojas de albahaca.",
+      "imagen": "/imagenes/Ensaladas/Ensalada-Caprese.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Ensalada de Pollo y Palta",
+      "categoria": "Ensaladas",
+      "precio": 6200,
+      "descripcion": "Lechuga con pollo grillado, palta cremosa y tomate. Completa y bien fresca.",
+      "imagen": "/imagenes/Ensaladas/Ensalada-de-Pollo-y-Palta.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Ketchup",
+      "categoria": "Salsas",
+      "precio": 500,
+      "descripcion": "Porción de ketchup.",
+      "imagen": "/imagenes/Salsas/Ketchup.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Mostaza",
+      "categoria": "Salsas",
+      "precio": 500,
+      "descripcion": "Porción de mostaza.",
+      "imagen": "/imagenes/Salsas/Mostaza.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Mayonesa",
+      "categoria": "Salsas",
+      "precio": 500,
+      "descripcion": "Porción de mayonesa.",
+      "imagen": "/imagenes/Salsas/Mayonesa.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Salsa Barbacoa",
+      "categoria": "Salsas",
+      "precio": 600,
+      "descripcion": "Porción de salsa barbacoa ahumada.",
+      "imagen": "/imagenes/Salsas/Salsa-Barbacoa.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Cheddar Fundido",
+      "categoria": "Salsas",
+      "precio": 700,
+      "descripcion": "Porción de salsa cheddar caliente para mojar.",
+      "imagen": "/imagenes/Salsas/Cheddar-Fundido.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Salsa Picante de la Casa",
+      "categoria": "Salsas",
+      "precio": 600,
+      "descripcion": "Porción de nuestra salsa picante. Para los que piden más fuego.",
+      "imagen": "/imagenes/Salsas/Salsa-Picante-de-la-Casa.png",
+      "sabor": null,
+      "disponible": true
+    }
+  ],
+  "productoTamanios": [
+    {
+      "producto": "Combo Seed Vicious",
+      "tamanio": "regular",
+      "precio": 8500,
+      "etiqueta": null,
+      "factorStock": 1
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "tamanio": "mediano",
+      "precio": 9500,
+      "etiqueta": null,
+      "factorStock": 1
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "tamanio": "grande",
+      "precio": 10800,
+      "etiqueta": null,
+      "factorStock": 1
+    },
+    {
+      "producto": "Café con Leche",
+      "tamanio": "regular",
+      "precio": 1900,
+      "etiqueta": "240 ml",
+      "factorStock": 1
+    },
+    {
+      "producto": "Café con Leche",
+      "tamanio": "mediano",
+      "precio": 2300,
+      "etiqueta": "350 ml",
+      "factorStock": 1.5
+    },
+    {
+      "producto": "Café con Leche",
+      "tamanio": "grande",
+      "precio": 2700,
+      "etiqueta": "470 ml",
+      "factorStock": 2
+    },
+    {
+      "producto": "Capuchino",
+      "tamanio": "regular",
+      "precio": 2200,
+      "etiqueta": "240 ml",
+      "factorStock": 1
+    },
+    {
+      "producto": "Capuchino",
+      "tamanio": "mediano",
+      "precio": 2600,
+      "etiqueta": "350 ml",
+      "factorStock": 1.5
+    },
+    {
+      "producto": "Capuchino",
+      "tamanio": "grande",
+      "precio": 3000,
+      "etiqueta": "470 ml",
+      "factorStock": 2
+    },
+    {
+      "producto": "Latte Vainilla",
+      "tamanio": "regular",
+      "precio": 2400,
+      "etiqueta": "240 ml",
+      "factorStock": 1
+    },
+    {
+      "producto": "Latte Vainilla",
+      "tamanio": "mediano",
+      "precio": 2800,
+      "etiqueta": "350 ml",
+      "factorStock": 1.5
+    },
+    {
+      "producto": "Latte Vainilla",
+      "tamanio": "grande",
+      "precio": 3200,
+      "etiqueta": "470 ml",
+      "factorStock": 2
+    },
+    {
+      "producto": "Submarino",
+      "tamanio": "regular",
+      "precio": 2200,
+      "etiqueta": "240 ml",
+      "factorStock": 1
+    },
+    {
+      "producto": "Submarino",
+      "tamanio": "mediano",
+      "precio": 2600,
+      "etiqueta": "350 ml",
+      "factorStock": 1.5
+    },
+    {
+      "producto": "Submarino",
+      "tamanio": "grande",
+      "precio": 3000,
+      "etiqueta": "470 ml",
+      "factorStock": 2
+    },
+    {
+      "producto": "Frappé de Café",
+      "tamanio": "regular",
+      "precio": 2800,
+      "etiqueta": "300 ml",
+      "factorStock": 1
+    },
+    {
+      "producto": "Frappé de Café",
+      "tamanio": "mediano",
+      "precio": 3300,
+      "etiqueta": "400 ml",
+      "factorStock": 1.4
+    },
+    {
+      "producto": "Frappé de Café",
+      "tamanio": "grande",
+      "precio": 3800,
+      "etiqueta": "500 ml",
+      "factorStock": 1.8
+    },
+    {
+      "producto": "Batido de Vainilla",
+      "tamanio": "regular",
+      "precio": 2600,
+      "etiqueta": "300 ml",
+      "factorStock": 1
+    },
+    {
+      "producto": "Batido de Vainilla",
+      "tamanio": "mediano",
+      "precio": 3200,
+      "etiqueta": "450 ml",
+      "factorStock": 1.5
+    },
+    {
+      "producto": "Batido de Vainilla",
+      "tamanio": "grande",
+      "precio": 4000,
+      "etiqueta": "650 ml",
+      "factorStock": 2.2
+    },
+    {
+      "producto": "Donas Glaseadas x3",
+      "tamanio": "regular",
+      "precio": 3200,
+      "etiqueta": null,
+      "factorStock": 1
+    }
+  ],
+  "recetas": [
+    {
+      "producto": "Seed Vicious",
+      "insumo": "Pan de hamburguesa",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Seed Vicious",
+      "insumo": "Medallón de legumbres",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Seed Vicious",
+      "insumo": "Rúcula",
+      "cantidadBase": 2,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Seed Vicious",
+      "insumo": "Tomate",
+      "cantidadBase": 2,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Seed Vicious",
+      "insumo": "Mayonesa",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "insumo": "Pan de hamburguesa",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "insumo": "Medallón de legumbres",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "insumo": "Rúcula",
+      "cantidadBase": 2,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "insumo": "Tomate",
+      "cantidadBase": 2,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "insumo": "Mayonesa",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Café con Leche",
+      "insumo": "Dosis de café espresso",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Café con Leche",
+      "insumo": "Leche",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Capuchino",
+      "insumo": "Dosis de café espresso",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Capuchino",
+      "insumo": "Leche",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Capuchino",
+      "insumo": "Canela",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Latte Vainilla",
+      "insumo": "Dosis de café espresso",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Latte Vainilla",
+      "insumo": "Leche",
+      "cantidadBase": 3,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Latte Vainilla",
+      "insumo": "Jarabe de vainilla",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Submarino",
+      "insumo": "Leche",
+      "cantidadBase": 3,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Submarino",
+      "insumo": "Cacao",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Frappé de Café",
+      "insumo": "Dosis de café espresso",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Frappé de Café",
+      "insumo": "Leche",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Frappé de Café",
+      "insumo": "Hielo",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Helado Sundae",
+      "insumo": "Helado de vainilla",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Helado Sundae",
+      "insumo": "Salsa de chocolate",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Helado Sundae",
+      "insumo": "Salsa de frutilla",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Helado Crunch",
+      "insumo": "Helado de vainilla",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Helado Crunch",
+      "insumo": "Galletitas trituradas",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Helado Crunch",
+      "insumo": "Salsa de chocolate",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Batido de Vainilla",
+      "insumo": "Leche",
+      "cantidadBase": 3,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Batido de Vainilla",
+      "insumo": "Helado de vainilla",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Batido de Vainilla",
+      "insumo": "Jarabe de vainilla",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Brownie con Helado",
+      "insumo": "Brownie",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Brownie con Helado",
+      "insumo": "Helado de vainilla",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Brownie con Helado",
+      "insumo": "Salsa de chocolate",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Cheesecake de Frutos Rojos",
+      "insumo": "Cheesecake de frutos rojos",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Donas Glaseadas x3",
+      "insumo": "Dona glaseada",
+      "cantidadBase": 3,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada César",
+      "insumo": "Lechuga",
+      "cantidadBase": 3,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada César",
+      "insumo": "Pechuga de pollo",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada César",
+      "insumo": "Croutons",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada César",
+      "insumo": "Queso parmesano",
+      "cantidadBase": 1,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada Mixta",
+      "insumo": "Lechuga",
+      "cantidadBase": 3,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada Mixta",
+      "insumo": "Tomate",
+      "cantidadBase": 3,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada Mixta",
+      "insumo": "Zanahoria",
+      "cantidadBase": 2,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada Mixta",
+      "insumo": "Cebolla",
+      "cantidadBase": 2,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada Caprese",
+      "insumo": "Tomate",
+      "cantidadBase": 4,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada Caprese",
+      "insumo": "Mozzarella fresca",
+      "cantidadBase": 3,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada Caprese",
+      "insumo": "Albahaca",
+      "cantidadBase": 4,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada de Pollo y Palta",
+      "insumo": "Lechuga",
+      "cantidadBase": 3,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada de Pollo y Palta",
+      "insumo": "Pechuga de pollo",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada de Pollo y Palta",
+      "insumo": "Palta",
+      "cantidadBase": 3,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ensalada de Pollo y Palta",
+      "insumo": "Tomate",
+      "cantidadBase": 2,
+      "esRemovible": true,
+      "esAgregable": false
+    },
+    {
+      "producto": "Ketchup",
+      "insumo": "Ketchup",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Mostaza",
+      "insumo": "Mostaza",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Mayonesa",
+      "insumo": "Mayonesa",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Salsa Barbacoa",
+      "insumo": "Salsa BBQ",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Cheddar Fundido",
+      "insumo": "Salsa cheddar",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Salsa Picante de la Casa",
+      "insumo": "Salsa picante",
+      "cantidadBase": 1,
+      "esRemovible": false,
+      "esAgregable": false
+    }
+  ],
+  "comboGrupos": [
+    {
+      "producto": "Combo Seed Vicious",
+      "nombre": "Acompañamiento",
+      "categoria": "Papas Fritas",
+      "incluido": "Papas fritas",
+      "obligatorio": false,
+      "icono": "🍟",
+      "orden": 1
+    },
+    {
+      "producto": "Combo Seed Vicious",
+      "nombre": "Una bebida",
+      "categoria": "Bebidas",
+      "incluido": "Coca Cola",
+      "obligatorio": false,
+      "icono": "🥤",
+      "orden": 2
+    }
+  ]
+}
