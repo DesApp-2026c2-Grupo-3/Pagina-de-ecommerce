@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useCart } from '../../context/CartContext'
 import { useZona } from '../../context/ZonaContext'
-import { getMasPedidos, getProducts } from '../../services/productService'
+import { getCategories, getMasPedidos, getProducts } from '../../services/productService'
+import { esCategoriaOculta } from '../../config/gruposCatalogo'
 import ProductCard from '../home/ProductCard'
 import type { ProductoBackend } from '../../types/product'
 
@@ -15,13 +16,15 @@ function SugerenciasCarrito() {
   const [ranking, setRanking] = useState<ProductoBackend[]>([])
 
   useEffect(() => {
-    Promise.all([getMasPedidos(sucursalId, 12), getProducts(sucursalId)])
-      .then(([masPedidos, catalogo]) => {
+    Promise.all([getMasPedidos(sucursalId, 12), getProducts(sucursalId), getCategories()])
+      .then(([masPedidos, catalogo, categorias]) => {
         const porId = new Map(catalogo.map((p) => [p.id, p]))
+        // Las salsas ya se ofrecen aparte en el carrito
+        const ocultas = new Set(categorias.filter((c) => esCategoriaOculta(c.nombre)).map((c) => c.id))
         setRanking(
           masPedidos
             .map((r) => porId.get(r.productoId))
-            .filter((p): p is ProductoBackend => Boolean(p?.disponible)),
+            .filter((p): p is ProductoBackend => Boolean(p?.disponible) && !ocultas.has(p!.categoriaId)),
         )
       })
       .catch(() => setRanking([]))

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { ProductoBackend } from '../types/product'
 import type { CartItem } from '../types/cart'
 import { ordenarTamanios } from '../config/combo'
+import { getProducts } from '../services/productService'
 
 interface AddItemOptions {
   unitPrice?: number
@@ -135,6 +136,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
   }, [items])
+
+  // El carrito guarda una copia del producto: si su imagen cambió de ruta desde que se agregó
+  // (ej: catálogo nuevo), se actualiza con la del catálogo actual para que no se vea rota.
+  useEffect(() => {
+    if (items.length === 0) return
+    let vigente = true
+    getProducts()
+      .then((catalogo) => {
+        if (!vigente) return
+        const imagenes = new Map(catalogo.map((p) => [p.id, p.imagen]))
+        setItems((prev) => {
+          const hayCambios = prev.some((i) => imagenes.has(i.product.id) && imagenes.get(i.product.id) !== i.product.imagen)
+          if (!hayCambios) return prev
+          return prev.map((i) =>
+            imagenes.has(i.product.id) && imagenes.get(i.product.id) !== i.product.imagen
+              ? { ...i, product: { ...i.product, imagen: imagenes.get(i.product.id) as string } }
+              : i,
+          )
+        })
+      })
+      .catch(() => {})
+    return () => {
+      vigente = false
+    }
+    // Solo al abrir la app: los ítems que se agregan después ya traen la imagen actual
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function addItem(
     product: ProductoBackend,

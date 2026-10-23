@@ -1,3 +1,4 @@
+import ImagenProducto from '../ui/ImagenProducto'
 import { Check } from 'lucide-react'
 import Sheet from './Sheet'
 import { formatearPrecio } from '../../utils/precio'
@@ -49,7 +50,12 @@ function ChoiceSheet({ title, opciones, seleccionadoId, onElegir, onClose, texto
                   }`}
                 >
                   {o.imagen ? (
-                    <img src={o.imagen} alt="" className="h-14 w-14 shrink-0 rounded-2xl bg-brand-mustard object-contain p-1" />
+                    <ImagenProducto
+                      src={o.imagen}
+                      alt=""
+                      className="h-14 w-14 shrink-0 rounded-2xl bg-brand-mustard object-contain p-1"
+                      claseIcono="h-14 w-14 shrink-0 rounded-2xl bg-brand-sand p-2 text-brand-dark"
+                    />
                   ) : (
                     <span
                       aria-hidden="true"

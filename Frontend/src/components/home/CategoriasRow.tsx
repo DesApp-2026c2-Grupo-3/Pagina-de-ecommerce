@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCategories } from '../../services/productService'
 import { estiloCategoria, type IconoCategoria } from '../../config/categorias'
-import { grupoDeCategoria } from '../../config/gruposCatalogo'
+import { esCategoriaOculta, grupoDeCategoria } from '../../config/gruposCatalogo'
 import CategoryIcon from '../icons/CategoryIcon'
 import FilaDeslizable from '../ui/FilaDeslizable'
 import type { Category } from '../../types/product'
@@ -23,10 +23,12 @@ const GRUPO_UNIDO = 'cafeteria'
 function accesos(categorias: Category[]): Acceso[] {
   const lista: Acceso[] = []
   for (const categoria of categorias) {
+    // Las salsas no van en el menú (se ofrecen en el carrito)
+    if (esCategoriaOculta(categoria.nombre)) continue
     const grupo = grupoDeCategoria(categoria.nombre)
     if (grupo?.slug === GRUPO_UNIDO) {
       if (!lista.some((a) => a.clave === GRUPO_UNIDO)) {
-        lista.push({ clave: GRUPO_UNIDO, nombre: grupo.nombre, to: `/catalogo?grupo=${GRUPO_UNIDO}`, icono: 'cafe', fondo: 'bg-brand-mustard' })
+        lista.push({ clave: GRUPO_UNIDO, nombre: grupo.nombre, to: `/catalogo?grupo=${GRUPO_UNIDO}`, icono: 'desayuno', fondo: 'bg-brand-mustard' })
       }
       continue
     }

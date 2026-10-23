@@ -31,8 +31,9 @@ const ESTILOS: Record<string, EstiloCategoria> = {
   ensaladas: { icono: 'ensalada', fondo: 'bg-brand-sand' },
   'sin tacc': { icono: 'sinTacc', fondo: 'bg-brand-red' },
   'desayunos y meriendas': { icono: 'desayuno', fondo: 'bg-brand-mustard' },
-  'cafe': { icono: 'cafe', fondo: 'bg-brand-sand' },
-  'menu cafe': { icono: 'desayuno', fondo: 'bg-brand-mustard' },
+  // "Café" son las bebidas calientes (taza) y "Menú Café" las comidas (medialuna)
+  'cafe': { icono: 'desayuno', fondo: 'bg-brand-sand' },
+  'menu cafe': { icono: 'cafe', fondo: 'bg-brand-mustard' },
   salsas: { icono: 'salsa', fondo: 'bg-brand-red' },
 }
 

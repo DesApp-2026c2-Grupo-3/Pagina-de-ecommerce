@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import CategoryIcon from '../icons/CategoryIcon'
+import ImagenProducto from '../ui/ImagenProducto'
 import { formatearPrecio, precioDesde } from '../../utils/precio'
 import type { ProductoBackend } from '../../types/product'
 import { usePromociones } from '../../hooks/usePromociones'
@@ -42,17 +42,14 @@ export default function ProductCard({ product, indice }: ProductCardProps) {
         )}
 
         <div className={`grid h-44 place-items-center ${isUnavailable ? 'bg-brand-sand/60' : fondoFoto}`}>
-          {product.imagen ? (
-            <img
-              src={product.imagen}
-              alt={product.nombre}
-              className={`h-36 w-full object-contain drop-shadow-lg transition-transform duration-300 ${
-                isUnavailable ? 'opacity-50 grayscale' : 'group-hover:scale-110 group-hover:-rotate-3'
-              }`}
-            />
-          ) : (
-            <CategoryIcon icono="generico" className={`h-20 w-20 text-brand-dark ${isUnavailable ? 'opacity-40' : ''}`} />
-          )}
+          <ImagenProducto
+            src={product.imagen}
+            alt={product.nombre}
+            className={`h-36 w-full object-contain drop-shadow-lg transition-transform duration-300 ${
+              isUnavailable ? 'opacity-50 grayscale' : 'group-hover:scale-110 group-hover:-rotate-3'
+            }`}
+            claseIcono={`h-20 w-20 text-brand-dark ${isUnavailable ? 'opacity-40' : ''}`}
+          />
         </div>
 
         <div className="flex flex-1 flex-col gap-1 border-t-2 border-brand-dark p-5">

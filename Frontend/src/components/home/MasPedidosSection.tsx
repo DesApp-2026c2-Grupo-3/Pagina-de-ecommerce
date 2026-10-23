@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useZona } from '../../context/ZonaContext'
-import { getMasPedidos, getProducts } from '../../services/productService'
+import { getCategories, getMasPedidos, getProducts } from '../../services/productService'
+import { esCategoriaOculta } from '../../config/gruposCatalogo'
 import ProductCard from './ProductCard'
 import type { ProductoBackend } from '../../types/product'
 
@@ -11,13 +12,15 @@ function MasPedidosSection() {
   const [productos, setProductos] = useState<ProductoBackend[]>([])
 
   useEffect(() => {
-    Promise.all([getMasPedidos(sucursalId), getProducts(sucursalId)])
-      .then(([ranking, catalogo]) => {
+    Promise.all([getMasPedidos(sucursalId), getProducts(sucursalId), getCategories()])
+      .then(([ranking, catalogo, categorias]) => {
         const porId = new Map(catalogo.map((p) => [p.id, p]))
+        // Las salsas se piden desde el carrito: no entran al ranking
+        const ocultas = new Set(categorias.filter((c) => esCategoriaOculta(c.nombre)).map((c) => c.id))
         setProductos(
           ranking
             .map((r) => porId.get(r.productoId))
-            .filter((p): p is ProductoBackend => Boolean(p?.disponible)),
+            .filter((p): p is ProductoBackend => Boolean(p?.disponible) && !ocultas.has(p!.categoriaId)),
         )
       })
       .catch(() => setProductos([]))
@@ -36,7 +39,7 @@ function MasPedidosSection() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {productos.map((producto, i) => (
             <div key={producto.id} className="relative">
-              <span className="absolute right-3 top-3 z-10 grid h-10 w-10 rotate-6 place-items-center rounded-full border-2 border-brand-dark bg-brand-mustard font-display text-sm font-extrabold">
+              <span className="absolute left-3 top-3 z-10 grid h-10 w-10 -rotate-6 place-items-center rounded-full border-2 border-brand-dark bg-brand-dark font-display text-sm font-extrabold text-white">
                 #{i + 1}
               </span>
               <ProductCard product={producto} />

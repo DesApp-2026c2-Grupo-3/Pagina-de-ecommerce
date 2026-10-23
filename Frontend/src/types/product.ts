@@ -44,6 +44,8 @@ export interface ProductoTamanio {
   tamanio: string // regular, mediano, grande
   precio: number | string // DECIMAL: Postgres lo devuelve como texto
   etiqueta: string | null // ej: "354 ml"
+  /** Imagen representativa del tamaño (carpeta /imagenes/Formatos). Se usa en el selector de los combos. */
+  imagen?: string | null
 }
 
 /** Solo combos: un lugar donde el cliente elige un producto (ej: Acompañamiento, Una bebida). */
