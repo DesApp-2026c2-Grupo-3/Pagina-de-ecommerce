@@ -30,3 +30,8 @@ export interface ProductoSinStock {
   unidadesDisponibles: number
   insumoLimitante: string | null
 }
+
+export interface PedidoPorEstado {
+  estado: string
+  cantidad: number
+}
