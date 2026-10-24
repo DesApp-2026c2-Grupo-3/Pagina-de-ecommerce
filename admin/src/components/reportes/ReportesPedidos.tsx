@@ -17,9 +17,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { obtenerPedidosPorEstado, obtenerPedidosPorDia } from "../../services/reporteService";
+import { obtenerPedidosPorEstado, obtenerPedidosPorDia, obtenerPedidosPorSucursal } from "../../services/reporteService";
 import { obtenerSucursales } from "../../services/sucursalService";
-import type { PedidoPorEstado, PedidoPorDia } from "../../types/reporte.types";
+import type { PedidoPorEstado, PedidoPorDia, PedidoPorSucursal } from "../../types/reporte.types";
 import type { Sucursal } from "../../types/sucursal.types";
 
 function formatearEstado(estado: string): string {
@@ -51,6 +51,10 @@ export default function ReportesPedidos() {
   const [pedidosPorDia, setPedidosPorDia] = useState<PedidoPorDia[]>([]);
   const [cargandoPorDia, setCargandoPorDia] = useState(true);
   const [errorPorDia, setErrorPorDia] = useState("");
+
+  const [pedidosPorSucursal, setPedidosPorSucursal] = useState<PedidoPorSucursal[]>([]);
+  const [cargandoPorSucursal, setCargandoPorSucursal] = useState(true);
+  const [errorPorSucursal, setErrorPorSucursal] = useState("");
 
   const cargarPedidos = useCallback(async () => {
     setCargando(true);
@@ -88,6 +92,30 @@ export default function ReportesPedidos() {
       setCargandoPorDia(false);
     }
   }, [sucursalSeleccionada]);
+
+  
+  const cargarPedidosPorSucursal = useCallback(async () => {
+    setCargandoPorSucursal(true);
+    setErrorPorSucursal("");
+
+    try {
+      const resultado = await obtenerPedidosPorSucursal();
+      setPedidosPorSucursal(resultado);
+    } catch (err) {
+      setErrorPorSucursal(
+        err instanceof Error
+         ? err.message
+         : "No se pudieron cargar los pedidos por sucursal.",
+      );
+    } finally {
+     setCargandoPorSucursal(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void cargarPedidosPorSucursal();
+  }, [cargarPedidosPorSucursal]);
+
 
 
   useEffect(() => {
@@ -137,7 +165,7 @@ export default function ReportesPedidos() {
 
         <button
           type="button"
-          onClick={() => {void cargarPedidos(); void cargarPedidosPorDia()}}
+          onClick={() => {void cargarPedidos(); void cargarPedidosPorDia(); void cargarPedidosPorSucursal();}}
           disabled={cargando || cargandoPorDia}
           className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
         >
@@ -412,6 +440,107 @@ export default function ReportesPedidos() {
     </div>
   )}
 </section>
+
+
+<section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+  <header className="flex items-center gap-3 border-b border-gray-100 p-5">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+      <Store size={22} />
+    </div>
+
+    <div className="min-w-0 flex-1">
+      <h3 className="font-bold text-gray-900">
+        Pedidos por sucursal
+      </h3>
+      <p className="mt-1 text-sm text-gray-500">
+        Comparación de la cantidad de pedidos recibidos por sucursal.
+      </p>
+    </div>
+
+    {!cargandoPorSucursal && !errorPorSucursal && (
+      <span className="shrink-0 rounded-full bg-purple-50 px-3 py-1 text-sm font-bold text-purple-700">
+        {pedidosPorSucursal.reduce(
+          (total, pedido) => total + pedido.cantidad,
+          0,
+        ).toLocaleString("es-AR")} pedidos
+      </span>
+    )}
+  </header>
+
+  {cargandoPorSucursal ? (
+    <div className="p-10 text-center text-sm text-gray-500">
+      Cargando pedidos por sucursal...
+    </div>
+  ) : errorPorSucursal ? (
+    <div className="p-5">
+      <div
+        role="alert"
+        className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+      >
+        <AlertCircle size={18} className="shrink-0" />
+        <p>{errorPorSucursal}</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => void cargarPedidosPorSucursal()}
+        className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
+      >
+        Reintentar
+      </button>
+    </div>
+  ) : pedidosPorSucursal.length === 0 ? (
+    <div className="px-5 py-12 text-center">
+      <Store size={30} className="mx-auto text-gray-300" />
+      <p className="mt-3 text-sm font-semibold text-gray-700">
+        No hay pedidos para mostrar.
+      </p>
+      <p className="mt-1 text-sm text-gray-500">
+        Cuando las sucursales reciban pedidos, aparecerán acá.
+      </p>
+    </div>
+  ) : (
+    <div className="h-[320px] w-full p-3 sm:h-[380px] sm:p-5">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={pedidosPorSucursal}
+          layout="vertical"
+          margin={{ top: 8, right: 20, left: 12, bottom: 8 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+
+          <XAxis
+            type="number"
+            allowDecimals={false}
+          />
+
+          <YAxis
+            type="category"
+            dataKey="nombre"
+            width={110}
+            tick={{ fontSize: 12 }}
+          />
+
+          <Tooltip
+            formatter={(valor) => [
+              Number(valor).toLocaleString("es-AR"),
+              "Pedidos",
+            ]}
+          />
+
+          <Bar
+            dataKey="cantidad"
+            name="Pedidos"
+            fill="#9333ea"
+            radius={[0, 6, 6, 0]}
+            maxBarSize={32}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )}
+</section>
+
 
 
     </section>

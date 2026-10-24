@@ -40,3 +40,9 @@ export interface PedidoPorDia {
   fecha: string
   cantidad: number
 }
+
+export interface PedidoPorSucursal {
+  sucursalId: number;
+  nombre: string;
+  cantidad: number;
+}

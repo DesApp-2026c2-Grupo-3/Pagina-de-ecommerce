@@ -690,7 +690,65 @@ const obtenerPedidosPorDia = async (req, res) => {
 };
 
 
+const obtenerPedidosPorSucursal = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        const wherePedido = {};
+
+        // El administrador de sucursal solo consulta la propia.
+        if (admin.sucursalId !== null) {
+            wherePedido.sucursalId = admin.sucursalId;
+        }
+
+        const pedidos = await Pedido.findAll({
+            attributes: [
+                'sucursalId',
+                [
+                    sequelize.fn('COUNT', sequelize.col('Pedido.id')),
+                    'cantidad',
+                ],
+            ],
+            where: wherePedido,
+            include: [
+                {
+                    model: Sucursal,
+                    attributes: ['nombre'],
+                    required: true,
+                    where: { activa: true },
+                },
+            ],
+            group: ['Pedido.sucursalId', 'Sucursal.id'],
+            order: [
+                [sequelize.literal('"cantidad"'), 'DESC'],
+            ],
+        });
+
+        return res.json(
+            pedidos.map((pedido) => ({
+                sucursalId: pedido.sucursalId,
+                nombre: pedido.Sucursal.nombre,
+                cantidad: Number(pedido.get('cantidad')),
+            })),
+        );
+    } catch (error) {
+        console.error('Error al obtener pedidos por sucursal:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el reporte de pedidos por sucursal',
+        });
+    }
+};
+
+
+
 
 module.exports = {
-    obtenerProductosMasVendidos, obtenerProductosMenosVendidos, obtenerProductosMayorFacturacion, obtenerProductosSinStock, obtenerPedidosPorEstado, obtenerPedidosPorDia
+    obtenerProductosMasVendidos, obtenerProductosMenosVendidos, obtenerProductosMayorFacturacion, obtenerProductosSinStock, obtenerPedidosPorEstado, obtenerPedidosPorDia, obtenerPedidosPorSucursal
 };

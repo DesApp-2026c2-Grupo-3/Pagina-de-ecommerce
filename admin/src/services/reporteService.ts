@@ -4,7 +4,8 @@ import type {
   ProductoMenosVendido,
   ProductoSinStock,
   PedidoPorEstado,
-  PedidoPorDia
+  PedidoPorDia,
+  PedidoPorSucursal
 } from '../types/reporte.types'
 import { apiFetch, API_URL } from './httpClient'
 
@@ -89,3 +90,16 @@ export async function obtenerPedidosPorDia(
     },
   )
 }
+
+//-----------------------------------------------
+
+
+export async function obtenerPedidosPorSucursal(): Promise<PedidoPorSucursal[]> {
+  return apiFetch(
+    construirUrlReporte('pedidos-por-sucursal'),
+    {
+      mensajePorDefecto: 'Error al obtener los pedidos por sucursal',
+    },
+  )
+}
+

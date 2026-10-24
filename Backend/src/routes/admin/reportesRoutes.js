@@ -12,8 +12,10 @@ router.get('/productos-mayor-facturacion', esAdminJwt, reporteController.obtener
 
 router.get('/productos-sin-stock', esAdminJwt, reporteController.obtenerProductosSinStock);
 
-router.get('/pedidos-por-estado', esAdminJwt, reporteController.obtenerPedidosPorEstado,);
+router.get('/pedidos-por-estado', esAdminJwt, reporteController.obtenerPedidosPorEstado);
 
-router.get('/pedidos-por-dia', esAdminJwt, reporteController.obtenerPedidosPorDia,);
+router.get('/pedidos-por-dia', esAdminJwt, reporteController.obtenerPedidosPorDia);
+
+router.get('/pedidos-por-sucursal', esAdminJwt, reporteController.obtenerPedidosPorSucursal);
 
 module.exports = router;
