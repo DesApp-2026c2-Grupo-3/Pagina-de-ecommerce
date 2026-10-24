@@ -14,4 +14,6 @@ router.get('/productos-sin-stock', esAdminJwt, reporteController.obtenerProducto
 
 router.get('/pedidos-por-estado', esAdminJwt, reporteController.obtenerPedidosPorEstado,);
 
+router.get('/pedidos-por-dia', esAdminJwt, reporteController.obtenerPedidosPorDia,);
+
 module.exports = router;

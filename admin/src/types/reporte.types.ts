@@ -35,3 +35,8 @@ export interface PedidoPorEstado {
   estado: string
   cantidad: number
 }
+
+export interface PedidoPorDia {
+  fecha: string
+  cantidad: number
+}

@@ -628,6 +628,69 @@ const obtenerPedidosPorEstado = async (req, res) => {
 };
 
 
+const obtenerPedidosPorDia = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        const wherePedido = {};
+
+        // El administrador de sucursal solo consulta la propia.
+        if (admin.sucursalId !== null) {
+            wherePedido.sucursalId = admin.sucursalId;
+        } else if (req.query.sucursalId !== undefined) {
+            const sucursalId = Number(req.query.sucursalId);
+
+            if (!Number.isInteger(sucursalId) || sucursalId <= 0) {
+                return res.status(400).json({
+                    mensaje: 'La sucursal no es válida',
+                });
+            }
+
+            wherePedido.sucursalId = sucursalId;
+        }
+
+        const fechaAgrupada = sequelize.fn(
+            'DATE_TRUNC',
+            'day',
+            sequelize.col('fecha'),
+        );
+
+        const pedidos = await Pedido.findAll({
+            attributes: [
+                [fechaAgrupada, 'fecha'],
+                [
+                    sequelize.fn('COUNT', sequelize.col('id')),
+                    'cantidad',
+                ],
+            ],
+            where: wherePedido,
+            group: [fechaAgrupada],
+            order: [[fechaAgrupada, 'ASC']],
+        });
+
+        return res.json(
+            pedidos.map((pedido) => ({
+                fecha: pedido.get('fecha'),
+                cantidad: Number(pedido.get('cantidad')),
+            })),
+        );
+    } catch (error) {
+        console.error('Error al obtener pedidos por día:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el reporte de pedidos por día',
+        });
+    }
+};
+
+
+
 module.exports = {
-    obtenerProductosMasVendidos, obtenerProductosMenosVendidos, obtenerProductosMayorFacturacion, obtenerProductosSinStock, obtenerPedidosPorEstado
+    obtenerProductosMasVendidos, obtenerProductosMenosVendidos, obtenerProductosMayorFacturacion, obtenerProductosSinStock, obtenerPedidosPorEstado, obtenerPedidosPorDia
 };

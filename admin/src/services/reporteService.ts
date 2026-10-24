@@ -3,7 +3,8 @@ import type {
   ProductoMayorFacturacion,
   ProductoMenosVendido,
   ProductoSinStock,
-  PedidoPorEstado
+  PedidoPorEstado,
+  PedidoPorDia
 } from '../types/reporte.types'
 import { apiFetch, API_URL } from './httpClient'
 
@@ -71,6 +72,20 @@ export async function obtenerPedidosPorEstado(
     construirUrlReporte('pedidos-por-estado', sucursalId),
     {
       mensajePorDefecto: 'Error al obtener los pedidos por estado',
+    },
+  )
+}
+
+//----------------------------------------------------------
+
+
+export async function obtenerPedidosPorDia(
+  sucursalId?: number,
+): Promise<PedidoPorDia[]> {
+  return apiFetch(
+    construirUrlReporte('pedidos-por-dia', sucursalId),
+    {
+      mensajePorDefecto: 'Error al obtener los pedidos por día',
     },
   )
 }

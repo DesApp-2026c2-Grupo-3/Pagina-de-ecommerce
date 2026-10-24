@@ -17,9 +17,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { obtenerPedidosPorEstado } from "../../services/reporteService";
+import { obtenerPedidosPorEstado, obtenerPedidosPorDia } from "../../services/reporteService";
 import { obtenerSucursales } from "../../services/sucursalService";
-import type { PedidoPorEstado } from "../../types/reporte.types";
+import type { PedidoPorEstado, PedidoPorDia } from "../../types/reporte.types";
 import type { Sucursal } from "../../types/sucursal.types";
 
 function formatearEstado(estado: string): string {
@@ -30,18 +30,11 @@ function formatearEstado(estado: string): string {
     .replace(/^./, (letra) => letra.toLocaleUpperCase("es-AR"));
 }
 
-function colorEstado(estado: string): string {
-  const normalizado = estado.toLowerCase();
+function formatearFecha(fecha: string): string {
+  const fechaCorta = fecha.slice(0, 10);
+  const [anio, mes, dia] = fechaCorta.split("-");
 
-  if (normalizado.includes("entregado")) return "bg-green-500";
-  if (normalizado.includes("cancelado")) return "bg-red-500";
-  if (normalizado.includes("proceso")) return "bg-orange-500";
-  if (normalizado.includes("pendiente")) return "bg-amber-500";
-  if (normalizado.includes("camino") || normalizado.includes("env")) {
-    return "bg-blue-500";
-  }
-
-  return "bg-gray-500";
+  return `${dia}/${mes}`;
 }
 
 export default function ReportesPedidos() {
@@ -54,6 +47,10 @@ export default function ReportesPedidos() {
   const [cargandoSucursales, setCargandoSucursales] = useState(true);
   const [error, setError] = useState("");
   const [errorSucursales, setErrorSucursales] = useState("");
+
+  const [pedidosPorDia, setPedidosPorDia] = useState<PedidoPorDia[]>([]);
+  const [cargandoPorDia, setCargandoPorDia] = useState(true);
+  const [errorPorDia, setErrorPorDia] = useState("");
 
   const cargarPedidos = useCallback(async () => {
     setCargando(true);
@@ -73,9 +70,33 @@ export default function ReportesPedidos() {
     }
   }, [sucursalSeleccionada]);
 
+  
+  const cargarPedidosPorDia = useCallback(async () => {
+    setCargandoPorDia(true);
+    setErrorPorDia("");
+
+    try {
+    const resultado = await obtenerPedidosPorDia(sucursalSeleccionada);
+    setPedidosPorDia(resultado);
+    } catch (err) {
+      setErrorPorDia(
+        err instanceof Error
+        ? err.message
+        : "No se pudieron cargar los pedidos por día.",
+    );
+    } finally {
+      setCargandoPorDia(false);
+    }
+  }, [sucursalSeleccionada]);
+
+
   useEffect(() => {
     void cargarPedidos();
   }, [cargarPedidos]);
+
+  useEffect(() => {
+    void cargarPedidosPorDia();
+  }, [cargarPedidosPorDia]);
 
   useEffect(() => {
     const cargarSucursales = async () => {
@@ -102,11 +123,6 @@ export default function ReportesPedidos() {
     0,
   );
 
-  const cantidadMaxima = Math.max(
-    1,
-    ...pedidos.map((pedido) => pedido.cantidad),
-  );
-
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -121,15 +137,15 @@ export default function ReportesPedidos() {
 
         <button
           type="button"
-          onClick={() => void cargarPedidos()}
-          disabled={cargando}
+          onClick={() => {void cargarPedidos(); void cargarPedidosPorDia()}}
+          disabled={cargando || cargandoPorDia}
           className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
         >
           <RefreshCw
             size={16}
             className={cargando ? "animate-spin" : ""}
           />
-          {cargando ? "Actualizando..." : "Actualizar"}
+          {cargando || cargandoPorDia ? "Actualizando..." : "Actualizar"}
         </button>
       </div>
 
@@ -288,6 +304,116 @@ export default function ReportesPedidos() {
           
         )}
       </section>
+
+      
+<section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+  <header className="flex items-center gap-3 border-b border-gray-100 p-5">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+      <ClipboardList size={22} />
+    </div>
+
+    <div className="min-w-0 flex-1">
+      <h3 className="font-bold text-gray-900">
+        Pedidos por día
+      </h3>
+      <p className="mt-1 text-sm text-gray-500">
+        Evolución de la cantidad de pedidos registrados por fecha.
+      </p>
+    </div>
+
+    {!cargandoPorDia && !errorPorDia && (
+      <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
+        {pedidosPorDia.reduce(
+          (total, pedido) => total + pedido.cantidad,
+          0,
+        ).toLocaleString("es-AR")} pedidos
+      </span>
+    )}
+  </header>
+
+  {cargandoPorDia ? (
+    <div className="p-10 text-center text-sm text-gray-500">
+      Cargando pedidos por día...
+    </div>
+  ) : errorPorDia ? (
+    <div className="p-5">
+      <div
+        role="alert"
+        className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+      >
+        <AlertCircle size={18} className="shrink-0" />
+        <p>{errorPorDia}</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => void cargarPedidosPorDia()}
+        className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
+      >
+        Reintentar
+      </button>
+    </div>
+  ) : pedidosPorDia.length === 0 ? (
+    <div className="px-5 py-12 text-center">
+      <ClipboardList size={30} className="mx-auto text-gray-300" />
+      <p className="mt-3 text-sm font-semibold text-gray-700">
+        No hay pedidos para mostrar.
+      </p>
+      <p className="mt-1 text-sm text-gray-500">
+        Cuando se registren pedidos, su evolución aparecerá acá.
+      </p>
+    </div>
+  ) : (
+    <div className="h-[320px] w-full p-3 sm:h-[380px] sm:p-5">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={pedidosPorDia.map((pedido) => ({
+            ...pedido,
+            fechaFormateada: formatearFecha(pedido.fecha),
+          }))}
+          margin={{ top: 12, right: 12, left: 0, bottom: 8 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+
+          <XAxis
+            dataKey="fechaFormateada"
+            tick={{ fontSize: 12 }}
+            minTickGap={20}
+          />
+
+          <YAxis
+            allowDecimals={false}
+            width={40}
+          />
+
+          <Tooltip
+            labelFormatter={(_, datos) => {
+              const fecha = datos?.[0]?.payload?.fecha;
+
+              return fecha
+                ? new Date(`${String(fecha).slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR")
+                : "Fecha";
+            }}
+            formatter={(valor) => [
+              Number(valor).toLocaleString("es-AR"),
+              "Pedidos",
+            ]}
+          />
+
+          <Bar
+            dataKey="cantidad"
+            name="Pedidos"
+            fill="#2563eb"
+            radius={[6, 6, 0, 0]}
+            maxBarSize={48}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )}
+</section>
+
+
     </section>
   );
 }
