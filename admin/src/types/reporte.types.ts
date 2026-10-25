@@ -30,3 +30,29 @@ export interface ProductoSinStock {
   unidadesDisponibles: number
   insumoLimitante: string | null
 }
+
+export interface PedidoPorEstado {
+  estado: string
+  cantidad: number
+}
+
+export interface PedidoPorDia {
+  fecha: string
+  cantidad: number
+}
+
+export interface PedidoPorSucursal {
+  sucursalId: number;
+  nombre: string;
+  cantidad: number;
+}
+
+export interface CancelacionPorDia {
+  fecha: string
+  cantidad: number
+}
+
+export interface TiempoPromedioEntrega {
+  cantidadPedidos: number
+  promedioMinutos: number | null
+}
