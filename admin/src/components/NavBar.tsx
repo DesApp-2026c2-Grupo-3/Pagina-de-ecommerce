@@ -19,7 +19,8 @@ const iconosPorEnlace: Record<string, LucideIcon> = {
   Reportes: ChartNoAxesCombined,
   Insumos: Wheat,
   Categorías: Tags,
-  Administradores: Users
+  Administradores: Users,
+  Stock: Package
 }
 
 

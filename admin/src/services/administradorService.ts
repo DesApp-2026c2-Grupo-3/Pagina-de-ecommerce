@@ -36,8 +36,15 @@ export async function actualizarAdministrador(
 }
 
 export async function eliminarAdministrador(id: number) {
-  await apiFetch(`${API}/eliminar/${id}`, {
+  await apiFetch(`${API}/administradores/eliminar/${id}`, {
     method: 'DELETE',
     mensajePorDefecto: 'Error al eliminar el administrador',
   })
+}
+
+export async function reactivarAdmin(id: number) {
+    return apiFetch(`${API}/administradores/reactivar/${id}`, {
+        method: "PATCH",
+        mensajePorDefecto: 'Error al reactivar el administrador',
+    });
 }

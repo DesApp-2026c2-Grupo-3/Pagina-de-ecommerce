@@ -441,7 +441,8 @@
    "email": "admin@master.com",
    "nombre": "Admin-Master",
    "password": "$2b$10$XaMkCFAHo2Bbsi0zdIJ6oOAuCdiCnqXIoL8FOcg0Lu2b4qAXHNVKW",
-   "sucursal": null
+   "sucursal": null,
+   "activo": true
   }
  ],
  "insumos": [

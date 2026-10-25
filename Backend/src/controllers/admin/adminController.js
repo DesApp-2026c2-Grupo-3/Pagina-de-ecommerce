@@ -29,22 +29,31 @@ async function validarSucursal(sucursalId) {
     return '';
 }
 
+
 const verAdmins = async (req, res) => {
     try {
         const admins = await Admin.findAll({
             where: { rol: { [Op.ne]: 'MASTER' } },
-            attributes: ['id', 'nombre', 'email', 'rol', 'sucursalId', 'createdAt'],
+            attributes: [
+                'id','nombre','email', 'rol', 'sucursalId','activo','createdAt'
+            ],
             include: [SUCURSAL],
             order: [['nombre', 'ASC']],
         });
 
-        res.status(200).json(admins.map((admin) => ({ ...datosDe(admin), createdAt: admin.createdAt })))
+        res.status(200).json(
+            admins.map((admin) => ({
+                ...datosDe(admin),
+                activo: admin.activo,
+                createdAt: admin.createdAt
+            }))
+        );
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error del servidor' });
     }
-    catch (error) {
-        console.error('Algo salio mal', error.message)
-        res.status(500).json({ mensaje: 'Error del servidor' })
-    }
-}
+};
+
 
 const crearAdmin = async (req, res) => {
     try {
@@ -97,6 +106,12 @@ const login = async (req, res) => {
 
         if (!admin) {
             return res.status(401).json({ code: "email-password-incorrectos" })
+        }
+
+        if (!admin.activo) {
+            return res.status(401).json({
+                code: "email-password-incorrectos"
+            });
         }
 
         const passwordCorrecta = await bcrypt.compare(password, admin.password);
@@ -214,8 +229,9 @@ const eliminarAdmin = async (req, res) => {
             return res.status(403).json({ mensaje: 'Error al intentar eliminar el administrador' });
         }
 
-        await admin.destroy();
-
+        admin.activo = false;
+        await admin.save();
+        
         return res.status(200).json({ mensaje: "Administrador eliminado con éxito" });
 
     } catch (error) {
@@ -224,4 +240,44 @@ const eliminarAdmin = async (req, res) => {
     }
 };
 
-module.exports = { verAdmins, crearAdmin, login, logout, obtenerAdminPorId, actualizarAdmin, eliminarAdmin };
+
+const reactivarAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const admin = await Admin.findByPk(id);
+
+        if (!admin) {
+            return res.status(404).json({
+                mensaje: 'Administrador no encontrado'
+            });
+        }
+
+        if (admin.rol === "MASTER") {
+            return res.status(403).json({
+                mensaje: 'Error al intentar reactivar el administrador'
+            });
+        }
+
+        if (admin.activo) {
+            return res.status(400).json({
+                mensaje: 'El administrador ya está activo'
+            });
+        }
+
+        admin.activo = true;
+        await admin.save();
+
+        return res.status(200).json({
+            mensaje: 'Administrador reactivado con éxito'
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al reactivar el administrador'
+        });
+    }
+};
+
+module.exports = { verAdmins, crearAdmin, login, logout, obtenerAdminPorId, actualizarAdmin, eliminarAdmin, reactivarAdmin };
