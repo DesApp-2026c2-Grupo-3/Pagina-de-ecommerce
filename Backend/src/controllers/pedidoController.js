@@ -96,9 +96,12 @@ async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t })
     if (!tamanio) {
         throw new ErrorPedido(400, `${elegido.nombre} no está disponible en ese tamaño`);
     }
-
-    const referencia = await precioMasBarato(grupo.categoriaId, tamanio.tamanioId, t);
-    const recargo = referencia === null ? 0 : Math.max(0, Number(tamanio.precio) - referencia);
+    // Lugares que no cobran diferencia (ej: bebidas): cualquier opción vale lo mismo
+    let recargo = 0;
+    if (grupo.cobraDiferencia !== false) {
+        const referencia = await precioMasBarato(grupo.categoriaId, tamanio.tamanioId, t);
+        recargo = referencia === null ? 0 : Math.max(0, Number(tamanio.precio) - referencia);
+    }
 
     const receta = await RecetaInsumo.findAll({ where: { productoId: elegido.id }, transaction: t });
 

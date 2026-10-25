@@ -8,7 +8,6 @@ import EditarItemModal from "../components/EditarItemModal";
 import PageHeader from "../components/ui/PageHeader";
 import PasosCompra from "../components/cart/PasosCompra";
 import CartItemRow from "../components/cart/CartItemRow";
-import SalsasCarrito from "../components/cart/SalsasCarrito";
 import SugerenciasCarrito from "../components/cart/SugerenciaCarrito";
 import ResumenCarrito from "../components/cart/ResumenCarrito";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
@@ -103,8 +102,6 @@ function Cart() {
               onEditar={esEditable(item) ? () => setEditando(item) : undefined}
             />
           ))}
-
-          <SalsasCarrito />
 
           <div className="rounded-2xl border-2 border-brand-dark bg-white p-4">
             <label htmlFor="observaciones" className={CLASE_LABEL}>

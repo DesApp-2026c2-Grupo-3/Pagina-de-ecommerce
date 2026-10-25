@@ -57,6 +57,8 @@ export interface ComboGrupo {
   /** Opción ya incluida en el precio del combo: las demás cobran la diferencia */
   productoIncluidoId: number
   obligatorio: boolean
+  /** false: cualquier opción cuesta lo mismo (ej: bebidas) */
+  cobraDiferencia?: boolean
   orden: number
   icono?: string | null
 }
