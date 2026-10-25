@@ -65,7 +65,7 @@ export default function Categorias() {
 
   return (
   <main className="p-4 md:p-8">    
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+  <div className="mb-6 flex items-start justify-between gap-4">
       <div>
         <h1 className="text-3xl font-bold">
           Categorías
@@ -77,7 +77,10 @@ export default function Categorias() {
 
       </div>
 
-      <button onClick={() => navigate('/admin/categorias/nueva')}
+      <button 
+      type="button"
+      onClick={() => navigate('/admin/categorias/nueva')}
+      title="Nueva categoria"
       className="bg-action text-white px-4 py-4 rounded-full border 
       shadow-[0_0_10px_rgba(249,115,22,0.6)]
       hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
