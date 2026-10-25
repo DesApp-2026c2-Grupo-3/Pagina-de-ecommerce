@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import ReportesProductos from "../../components/reportes/ReportesProductos";
+import ReportesPedidos from "../../components/reportes/ReportesPedidos";
 
 type SeccionReporte = "productos" | "sucursales" | "pedidos" | "clientes" | "promociones";
 
@@ -103,15 +104,7 @@ export default function Reportes() {
       )}
 
       {seccionActiva === "pedidos" && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <ShoppingCart className="mx-auto text-gray-400" size={32} />
-          <h2 className="mt-3 font-semibold text-gray-900">
-            Reportes de ventas
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Esta sección estará disponible cuando implementemos sus reportes.
-          </p>
-        </div>
+        <ReportesPedidos />
       )}
 
       {seccionActiva === "clientes" && (

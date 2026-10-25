@@ -1,5 +1,5 @@
 const { Pedido, DetallePedido,Producto,Admin,Sucursal,StockSucursal,
-    RecetaInsumo,ProductoTamanio,ComboGrupo,Insumo,sequelize,
+    RecetaInsumo,ProductoTamanio,ComboGrupo,Insumo,sequelize,historialDeTiemposPedido
 } = require('../../models');
 
 const { Op } = require('sequelize');
@@ -551,6 +551,372 @@ function puedePrepararse(
     });
 }
 
+
+const obtenerPedidosPorEstado = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        const wherePedido = {};
+
+        // El administrador de sucursal solo consulta la propia.
+        if (admin.sucursalId !== null) {
+            wherePedido.sucursalId = admin.sucursalId;
+        } else if (req.query.sucursalId !== undefined) {
+            const sucursalId = Number(req.query.sucursalId);
+
+            if (!Number.isInteger(sucursalId) || sucursalId <= 0) {
+                return res.status(400).json({
+                    mensaje: 'La sucursal no es válida',
+                });
+            }
+
+            wherePedido.sucursalId = sucursalId;
+        }
+
+        const estadosPosibles = [
+            'pendiente',
+            'en proceso',
+            'en camino',
+            'entregado',
+            'cancelado',
+        ];
+
+        const estadoNormalizado = sequelize.fn(
+            'LOWER',
+            sequelize.fn('TRIM', sequelize.col('estado')),
+        );
+
+        const pedidos = await Pedido.findAll({
+            attributes: [
+                [estadoNormalizado,'estado'],
+                [
+                    sequelize.fn('COUNT', sequelize.col('id')),
+                    'cantidad',
+                ],
+            ],
+            where: wherePedido,
+            group: [estadoNormalizado],
+            order: [[estadoNormalizado, 'ASC']],
+        });
+
+        const cantidadesPorEstado = new Map(
+            pedidos.map((pedido) => [
+                pedido.get('estado'),
+                Number(pedido.get('cantidad')),
+            ]),
+        );
+
+        return res.json(
+            estadosPosibles.map((estado) => ({
+                estado,
+                cantidad: cantidadesPorEstado.get(estado) ?? 0,
+            })),
+        );
+    } catch (error) {
+        console.error('Error al obtener pedidos por estado:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el reporte de pedidos por estado',
+        });
+    }
+};
+
+
+const obtenerPedidosPorDia = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        const wherePedido = {};
+
+        // El administrador de sucursal solo consulta la propia.
+        if (admin.sucursalId !== null) {
+            wherePedido.sucursalId = admin.sucursalId;
+        } else if (req.query.sucursalId !== undefined) {
+            const sucursalId = Number(req.query.sucursalId);
+
+            if (!Number.isInteger(sucursalId) || sucursalId <= 0) {
+                return res.status(400).json({
+                    mensaje: 'La sucursal no es válida',
+                });
+            }
+
+            wherePedido.sucursalId = sucursalId;
+        }
+
+        const fechaAgrupada = sequelize.fn(
+            'DATE_TRUNC',
+            'day',
+            sequelize.col('fecha'),
+        );
+
+        const pedidos = await Pedido.findAll({
+            attributes: [
+                [fechaAgrupada, 'fecha'],
+                [
+                    sequelize.fn('COUNT', sequelize.col('id')),
+                    'cantidad',
+                ],
+            ],
+            where: wherePedido,
+            group: [fechaAgrupada],
+            order: [[fechaAgrupada, 'ASC']],
+        });
+
+        return res.json(
+            pedidos.map((pedido) => ({
+                fecha: pedido.get('fecha'),
+                cantidad: Number(pedido.get('cantidad')),
+            })),
+        );
+    } catch (error) {
+        console.error('Error al obtener pedidos por día:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el reporte de pedidos por día',
+        });
+    }
+};
+
+
+const obtenerPedidosPorSucursal = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        const wherePedido = {};
+
+        // El administrador de sucursal solo consulta la propia.
+        if (admin.sucursalId !== null) {
+            wherePedido.sucursalId = admin.sucursalId;
+        }
+
+        const pedidos = await Pedido.findAll({
+            attributes: [
+                'sucursalId',
+                [
+                    sequelize.fn('COUNT', sequelize.col('Pedido.id')),
+                    'cantidad',
+                ],
+            ],
+            where: wherePedido,
+            include: [
+                {
+                    model: Sucursal,
+                    attributes: ['nombre'],
+                    required: true,
+                    where: { activa: true },
+                },
+            ],
+            group: ['Pedido.sucursalId', 'Sucursal.id'],
+            order: [
+                [sequelize.literal('"cantidad"'), 'DESC'],
+            ],
+        });
+
+        return res.json(
+            pedidos.map((pedido) => ({
+                sucursalId: pedido.sucursalId,
+                nombre: pedido.Sucursal.nombre,
+                cantidad: Number(pedido.get('cantidad')),
+            })),
+        );
+    } catch (error) {
+        console.error('Error al obtener pedidos por sucursal:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el reporte de pedidos por sucursal',
+        });
+    }
+};
+
+const obtenerCancelacionesPorDia = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        const wherePedido = {};
+
+        // El administrador de sucursal solo consulta la propia.
+        if (admin.sucursalId !== null) {
+            wherePedido.sucursalId = admin.sucursalId;
+        } else if (req.query.sucursalId !== undefined) {
+            const sucursalId = Number(req.query.sucursalId);
+
+            if (!Number.isInteger(sucursalId) || sucursalId <= 0) {
+                return res.status(400).json({
+                    mensaje: 'La sucursal no es válida',
+                });
+            }
+
+            wherePedido.sucursalId = sucursalId;
+        }
+
+        // Últimos 30 días, incluyendo hoy.
+        const fechaInicio = new Date();
+        fechaInicio.setHours(0, 0, 0, 0);
+        fechaInicio.setDate(fechaInicio.getDate() - 29);
+
+        const fechaAgrupada = sequelize.fn(
+            'DATE_TRUNC',
+            'day',
+            sequelize.col('historialDeTiemposPedido.fecha'),
+        );
+
+        const cancelaciones = await historialDeTiemposPedido.findAll({
+            attributes: [
+                [fechaAgrupada, 'fecha'],
+                [
+                    sequelize.fn(
+                        'COUNT',
+                        sequelize.col('historialDeTiemposPedido.id'),
+                    ),
+                    'cantidad',
+                ],
+            ],
+            where: {
+                estado: {
+                    [Op.iLike]: 'cancelado',
+                },
+                fecha: {
+                    [Op.gte]: fechaInicio,
+                },
+            },
+            include: [
+                {
+                    model: Pedido,
+                    attributes: [],
+                    required: true,
+                    where: wherePedido,
+                },
+            ],
+            group: [fechaAgrupada],
+            order: [[fechaAgrupada, 'ASC']],
+        });
+
+        return res.json(
+            cancelaciones.map((cancelacion) => ({
+                fecha: cancelacion.get('fecha'),
+                cantidad: Number(cancelacion.get('cantidad')),
+            })),
+        );
+    } catch (error) {
+        console.error('Error al obtener cancelaciones por día:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el reporte de cancelaciones por día',
+        });
+    }
+};
+
+
+const obtenerTiempoPromedioEntrega = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        const wherePedido = {};
+
+        // El administrador de sucursal solo consulta la propia.
+        if (admin.sucursalId !== null) {
+            wherePedido.sucursalId = admin.sucursalId;
+        } else if (req.query.sucursalId !== undefined) {
+            const sucursalId = Number(req.query.sucursalId);
+
+            if (!Number.isInteger(sucursalId) || sucursalId <= 0) {
+                return res.status(400).json({
+                    mensaje: 'La sucursal no es válida',
+                });
+            }
+
+            wherePedido.sucursalId = sucursalId;
+        }
+
+        // Buscar las fechas de entrega de los pedidos entregados.
+        const entregas = await historialDeTiemposPedido.findAll({
+            attributes: [
+                'pedidoId',
+                [sequelize.col('Pedido.fecha'), 'fechaCreacion'],
+                'fecha',
+            ],
+            where: {
+                estado: {
+                    [Op.iLike]: 'entregado',
+                },
+            },
+            include: [
+                {
+                    model: Pedido,
+                    attributes: [],
+                    required: true,
+                    where: wherePedido,
+                },
+            ],
+            raw: true,
+        });
+
+        // Cada pedido aporta su duración total en minutos.
+        const tiempos = entregas
+            .map((entrega) => {
+                const inicio = new Date(entrega.fechaCreacion).getTime();
+                const fin = new Date(entrega.fecha).getTime();
+
+                return (fin - inicio) / 60000;
+            })
+            .filter((minutos) => Number.isFinite(minutos) && minutos >= 0);
+
+        const cantidad = tiempos.length;
+
+        const promedioMinutos = cantidad > 0
+            ? tiempos.reduce((total, minutos) => total + minutos, 0) / cantidad
+            : null;
+
+        return res.json({
+            cantidadPedidos: cantidad,
+            promedioMinutos:
+                promedioMinutos === null
+                    ? null
+                    : Math.round(promedioMinutos * 100) / 100,
+        });
+    } catch (error) {
+        console.error('Error al obtener el tiempo promedio de entrega:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el tiempo promedio de entrega',
+        });
+    }
+};
+
+
+
+
 module.exports = {
-    obtenerProductosMasVendidos, obtenerProductosMenosVendidos, obtenerProductosMayorFacturacion, obtenerProductosSinStock
+    obtenerProductosMasVendidos, obtenerProductosMenosVendidos, obtenerProductosMayorFacturacion, obtenerProductosSinStock,
+    obtenerPedidosPorEstado, obtenerPedidosPorDia, obtenerPedidosPorSucursal, obtenerCancelacionesPorDia, obtenerTiempoPromedioEntrega
 };

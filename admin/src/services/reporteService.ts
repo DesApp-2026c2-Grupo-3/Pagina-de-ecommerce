@@ -3,6 +3,11 @@ import type {
   ProductoMayorFacturacion,
   ProductoMenosVendido,
   ProductoSinStock,
+  PedidoPorEstado,
+  PedidoPorDia,
+  PedidoPorSucursal,
+  CancelacionPorDia,
+  TiempoPromedioEntrega
 } from '../types/reporte.types'
 import { apiFetch, API_URL } from './httpClient'
 
@@ -59,4 +64,69 @@ export async function obtenerProductosSinStock(
   return apiFetch(construirUrlReporte('productos-sin-stock', sucursalId), {
     mensajePorDefecto: 'Error al obtener los productos sin stock',
   })
+}
+
+//-------------------------------------------------------------
+
+export async function obtenerPedidosPorEstado(
+  sucursalId?: number,
+): Promise<PedidoPorEstado[]> {
+  return apiFetch(
+    construirUrlReporte('pedidos-por-estado', sucursalId),
+    {
+      mensajePorDefecto: 'Error al obtener los pedidos por estado',
+    },
+  )
+}
+
+//----------------------------------------------------------
+
+
+export async function obtenerPedidosPorDia(
+  sucursalId?: number,
+): Promise<PedidoPorDia[]> {
+  return apiFetch(
+    construirUrlReporte('pedidos-por-dia', sucursalId),
+    {
+      mensajePorDefecto: 'Error al obtener los pedidos por día',
+    },
+  )
+}
+
+//-----------------------------------------------
+
+
+export async function obtenerPedidosPorSucursal(): Promise<PedidoPorSucursal[]> {
+  return apiFetch(
+    construirUrlReporte('pedidos-por-sucursal'),
+    {
+      mensajePorDefecto: 'Error al obtener los pedidos por sucursal',
+    },
+  )
+}
+
+//----------------------------------------------
+
+export async function obtenerCancelacionesPorDia(
+  sucursalId?: number
+): Promise<CancelacionPorDia[]> {
+  return apiFetch(
+    construirUrlReporte('cancelaciones-por-dia', sucursalId),
+    {
+      mensajePorDefecto: 'Error al obtener las cancelaciones por día',
+    }
+  )
+}
+
+//-------------------------------------------------
+
+export async function obtenerTiempoPromedioEntrega(
+  sucursalId?: number
+): Promise<TiempoPromedioEntrega> {
+  return apiFetch(
+    construirUrlReporte('tiempo-promedio-entrega', sucursalId),
+    {
+      mensajePorDefecto: 'Error al obtener el tiempo promedio de entrega',
+    }
+  )
 }
