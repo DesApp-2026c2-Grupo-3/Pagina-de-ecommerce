@@ -25,8 +25,9 @@ const REGALO = {
   id: 'papas-cheddar-gratis',
   titulo: 'Papas con cheddar gratis',
   destacado: 'Gratis',
-  detalle: 'Toda la semana, sumá unas papas con cheddar sin cargo a tu pedido.',
+  detalle: 'Toda la semana, con compras desde $15.000 sumá unas papas con cheddar sin cargo.',
   maxPorPedido: 1,
+  compraMinima: 15000,
   items: [{ nombre: 'Papas con cheddar', cantidad: 1, descuento: 1 }],
 };
 

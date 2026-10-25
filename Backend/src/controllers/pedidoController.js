@@ -296,7 +296,8 @@ const crearPedido = async (req, res) => {
         }, { transaction: t });
 
         let total = 0;
-
+        // Subtotal de cada línea, para controlar la compra mínima de las promos
+        const lineasCobradas = [];
         // Recorrer los productos recibidos
         for (const [indice, producto] of productos.entries()) {
 
@@ -463,6 +464,7 @@ const crearPedido = async (req, res) => {
 
             // Acumular al total
             total += subtotal;
+            lineasCobradas.push({ promoId: producto.promoId, subtotal });
 
             await DetallePedido.create({
                 pedidoId: nuevoPedido.id,
@@ -484,6 +486,20 @@ const crearPedido = async (req, res) => {
             }, { transaction: t });
         }
 
+                // Promos con compra mínima (ej: papas gratis): el resto del pedido tiene que llegar al mínimo
+        const promosDelPedido = [...new Set(productos.map((p) => p.promoId).filter(Boolean))];
+        for (const promoId of promosDelPedido) {
+            const promo = buscarPromo(promoId);
+            if (!promo?.compraMinima) continue;
+            const resto = lineasCobradas
+                .filter((l) => l.promoId !== promoId)
+                .reduce((suma, l) => suma + l.subtotal, 0);
+            if (resto < promo.compraMinima) {
+                const falta = (promo.compraMinima - resto).toLocaleString('es-AR');
+                throw new ErrorPedido(400, `Te faltan $${falta} en otros productos para la promo "${promo.titulo}"`);
+            }
+        }
+        
         await nuevoPedido.update({ total: total }, { transaction: t });
 
         // Registro inicial de la línea de tiempo: nace en el estado actual del pedido

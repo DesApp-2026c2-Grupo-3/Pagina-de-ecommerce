@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ShoppingBag } from "lucide-react";
 import { useCart } from "../context/CartContext";
@@ -13,6 +13,8 @@ import ResumenCarrito from "../components/cart/ResumenCarrito";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal";
 import type { CartItem } from "../types/cart";
+import type { Promo } from "../types/promo";
+import { getPromociones } from "../services/promotionService";
 import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
 function Cart() {
@@ -39,8 +41,38 @@ function Cart() {
 
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
 
+  // Promos vigentes, para controlar las que piden una compra mínima (ej: papas gratis)
+  const [promos, setPromos] = useState<Promo[]>([]);
+  useEffect(() => {
+    getPromociones()
+      .then((p) =>
+        setPromos(
+          [p.productoSemana, p.regalo, ...p.dias.flatMap((d) => d.promos)].filter(
+            (promo): promo is Promo => Boolean(promo),
+          ),
+        ),
+      )
+      .catch(() => setPromos([]));
+  }, []);
+
+  // Promos del carrito que todavía no llegan a su compra mínima, y cuánto falta
+  const faltantes = promos
+    .filter((promo) => promo.compraMinima && items.some((i) => i.promoId === promo.id))
+    .map((promo) => {
+      const resto = items
+        .filter((i) => i.promoId !== promo.id)
+        .reduce((suma, i) => suma + i.unitPrice * i.quantity, 0);
+      return { promo, falta: (promo.compraMinima ?? 0) - resto };
+    })
+    .filter((f) => f.falta > 0);
+
+  const textoFaltante = faltantes
+    .map((f) => `Te faltan $${f.falta.toLocaleString('es-AR')} en otros productos para la promo "${f.promo.titulo}".`)
+    .join(' ');
+
   function handleCheckout() {
-    if (sucursalCerrada) return;
+    if (sucursalCerrada || faltantes.length > 0) return;
+
     if (!isAuthenticated) {
       navigate("/login", { state: { from: "/carrito" } });
       return;
@@ -85,7 +117,16 @@ function Cart() {
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">        
         <div className="flex flex-col gap-3">
           {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} />}
-
+          {faltantes.map((f) => (
+            <div
+              key={f.promo.id}
+              role="alert"
+              className="rounded-2xl border-2 border-brand-dark bg-brand-mustard p-4 font-bold"
+            >
+              🎁 Te faltan ${f.falta.toLocaleString('es-AR')} en otros productos para llevarte la promo "
+              {f.promo.titulo}" (compra mínima ${(f.promo.compraMinima ?? 0).toLocaleString('es-AR')}).
+            </div>
+          ))}
           <Link
             to="/catalogo"
             className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-white px-5 text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
@@ -127,7 +168,8 @@ function Cart() {
           cantidad={cantidadTotal}
           subtotal={totalPrice}
           logueado={isAuthenticated}
-          deshabilitado={sucursalCerrada}
+          deshabilitado={sucursalCerrada || faltantes.length > 0}
+          motivo={sucursalCerrada ? undefined : textoFaltante}
           onConfirmar={handleCheckout}
         />
       </div>

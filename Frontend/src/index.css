@@ -14,6 +14,21 @@
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
 
   --shadow-sticker: 6px 6px 0 var(--color-brand-dark);
+
+  /* Ancho de la página: todas las secciones iguales (antes unas eran de 1152 px y otras de 1280 px) */
+  --container-6xl: 80rem;
+  --container-7xl: 80rem;
+
+  /* Pantallas de 1440 px o más (ej: 3xl:grid-cols-5) */
+  --breakpoint-3xl: 90rem;
+}
+
+/* Desde 1440 px de ancho, el contenido crece para aprovechar la pantalla */
+@media (min-width: 90rem) {
+  :root {
+    --container-6xl: 86rem;
+    --container-7xl: 86rem;
+  }
 }
 
 @layer base {

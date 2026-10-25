@@ -101,7 +101,14 @@ function Promociones() {
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-brand-mustard px-6 py-4 shadow-sticker">
             <p className="flex items-center gap-3 font-extrabold">
               <Gift className="h-6 w-6 shrink-0" />
-              {promos.regalo.titulo} toda la semana
+              <span>
+                {promos.regalo.titulo} toda la semana
+                {promos.regalo.compraMinima ? (
+                  <span className="block text-sm font-bold opacity-80">
+                    Con compras desde ${promos.regalo.compraMinima.toLocaleString('es-AR')}
+                  </span>
+                ) : null}
+              </span>
             </p>
             <button
               type="button"
