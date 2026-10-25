@@ -59,3 +59,17 @@ export async function verStockProducto(id: number) {
     mensajePorDefecto: 'Error al obtener el stock del producto',
   })
 }
+
+
+export async function obtenerProductosEliminados() {
+  return apiFetch(`${API}/eliminados`, {
+    mensajePorDefecto: 'Error al obtener los productos eliminados',
+  })
+}
+
+export async function restaurarProducto(id: number) {
+  return apiFetch(`${API}/restaurar/${id}`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al restaurar el producto',
+  })
+}

@@ -13,6 +13,8 @@ const {
 } = require('../../models');
 const { factorMinimo } = require('../../utils/disponibilidad');
 
+const { Op } = require('sequelize');
+
 // Todo lo que compone un producto
 const INCLUIR_PARTES = [
     { model: RecetaInsumo, include: [{ model: Insumo, attributes: ['id', 'nombre', 'unidadMedida'] }] },
@@ -297,6 +299,62 @@ const verStockProducto = async (req, res) => {
         res.status(500).json({ mensaje: 'Error al obtener el stock del producto' });
     }
 };
+
+
+const restaurarProducto = async (req, res) => {
+    try {
+        // paranoid: false permite buscar también productos eliminados
+        const producto = await Producto.findByPk(req.params.id, {
+            paranoid: false,
+        });
+
+        if (!producto) {
+            return res.status(404).json({
+                mensaje: 'Producto no encontrado',
+            });
+        }
+
+        if (!producto.deletedAt) {
+            return res.status(400).json({
+                mensaje: 'El producto ya está activo',
+            });
+        }
+
+        await producto.restore();
+
+        return res.status(200).json({
+            mensaje: 'Producto restaurado con éxito',
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al restaurar el producto',
+        });
+    }
+};
+
+
+const obtenerProductosEliminados = async (req, res) => {
+    try {
+        const productos = await Producto.findAll({
+            paranoid: false,
+            where: {
+                deletedAt: { [Op.ne]: null },
+            },
+                include: INCLUIR_PARTES,
+                order: [['id', 'ASC']],
+        });
+
+        return res.json(productos.map(formatear));
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al obtener los productos eliminados',
+        });
+    }
+};
+
+
 module.exports = {
     obtenerProductos,
     obtenerProductoPorId,
@@ -304,4 +362,6 @@ module.exports = {
     eliminarProducto,
     editarProductoPorId,
     verStockProducto,
+    restaurarProducto,
+    obtenerProductosEliminados,
 };
