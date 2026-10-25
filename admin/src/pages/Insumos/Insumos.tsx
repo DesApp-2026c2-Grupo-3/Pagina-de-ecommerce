@@ -150,7 +150,10 @@ export default function Insumos() {
   )
 
   return (
-    <main className="p-4 md:p-8">
+    <main className="p-8">
+       <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+          Gestión de inventario
+        </p>
       <h1 className="text-3xl font-bold">Insumos</h1>
       <p className="mt-2 text-gray-600">
         Los ingredientes con los que se arman las recetas. Al crear uno, se agrega con stock 0 en todas las sucursales.

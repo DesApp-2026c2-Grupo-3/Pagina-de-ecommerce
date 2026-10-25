@@ -46,7 +46,7 @@ export default function Reportes() {
     useState<SeccionReporte>("productos");
 
   return (
-    <section className="space-y-6 p-4 sm:p-6">
+    <section className="space-y-6 p-8">
       <header>
         <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
           Análisis del negocio

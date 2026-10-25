@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, LogOut, ShoppingBag, Package,
-   Store, ChartNoAxesCombined, ChevronLeft, ChevronRight,Users, Wheat, Tags, type LucideIcon,} from 'lucide-react'
+   Store, ChartNoAxesCombined, ChevronLeft, ChevronRight,Users, Wheat, Tags, Hamburger, type LucideIcon,} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { cerrarSesionService } from '../services/authService'
 import { enlacesDe } from '../config/menu'
@@ -65,9 +65,9 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
 
   const contenidoMenu = (
     <div className=''>
-    <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-5">
+    <div className="flex shrink-0 items-center justify-center gap-2 px-3 py-5">
       <div className="flex min-w-0 items-center gap-3">
-        <Store size={26} className="shrink-0 text-orange-400" />
+        <Hamburger size={36} className="shrink-0 text-orange-400" />
 
         {mostrarTexto && (
           <div className="min-w-0">
@@ -82,7 +82,7 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
         aria-expanded={menuAbierto}
         title={menuAbierto ? 'Contraer menú' : 'Expandir menú'}
         className={`fixed top-1/2 z-30 hidden h-16 w-7 -translate-y-1/2 items-center justify-center rounded-r-xl border 
-        border-l-0 border-gray-700 bg-gray-900 text-white shadow-lg transition-[left,width] duration-200 hover:w-9 md:flex ${
+         border-orange-500 bg-gray-900 text-white shadow-lg transition-[left,width] duration-200 hover:w-9 md:flex ${
         menuAbierto ? 'left-64' : 'left-20'}`}
         >
     
@@ -165,7 +165,7 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
         aria-label={menuMovilAbierto ? 'Cerrar menú' : 'Abrir menú'}
         aria-expanded={menuMovilAbierto}
         className={`fixed top-1/2 z-[60] flex h-16 w-7 -translate-y-1/2 items-center justify-center
-          border border-gray-700 bg-gray-900 text-white shadow-lg
+          border border-orange-500 bg-gray-900 text-white shadow-lg
           transition-[left] duration-200 md:hidden
           ${ menuMovilAbierto ? 'left-72 rounded-r-xl' : 'left-0 rounded-r-xl border-l-0'}`}>
 
@@ -178,7 +178,8 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
           onClick={() => setMenuMovilAbierto(false)}
           className="fixed inset-0 z-40 bg-black/50 md:hidden"/>
 
-        <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-gray-900 text-white shadow-xl md:hidden">
+        <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r-2 border-orange-500
+         bg-gray-900 text-white shadow-xl md:hidden">
           {contenidoMenu}
         </aside>
         </>

@@ -64,9 +64,12 @@ export default function Categorias() {
   )
 
   return (
-  <main className="p-4 md:p-8">    
+  <main className="p-8">    
   <div className="mb-6 flex items-start justify-between gap-4">
       <div>
+        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+          Organización del catálogo
+        </p>
         <h1 className="text-3xl font-bold">
           Categorías
         </h1>
