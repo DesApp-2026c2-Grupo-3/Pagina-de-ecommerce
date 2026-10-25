@@ -4,7 +4,7 @@ import type { ProductoMasVendido } from "../../types/reporte.types";
 import { obtenerProductosMasVendidos } from "../../services/reporteService";
 import Paginacion from "../Paginacion";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = import.meta.env?.VITE_API_URL ?? "http://localhost:3000";
 
 export default function ProductosMasVendidos() {
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);

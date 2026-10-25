@@ -2,8 +2,8 @@
 // Deben coincidir con el login/logout (adminController) para que el navegador la borre.
 const opcionesCookie = () => ({
     httpOnly: true,
-    sameSite: "lax",
-    path: "/",
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',    
+            path: "/",
     secure: process.env.NODE_ENV === "production",
 });
 

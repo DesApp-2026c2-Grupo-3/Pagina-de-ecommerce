@@ -111,7 +111,7 @@ const login = async (req, res) => {
 
         return res.cookie("access_token", token, {
             httpOnly: true,
-            sameSite: "lax",
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',            
             path: '/',
             secure: process.env.NODE_ENV === 'production',
             // maxAge: 2 * 60 * 1000
@@ -128,7 +128,7 @@ const logout = async (req, res) => {
         // sameSite/path/secure deben coincidir con el login: si no, el navegador no borra la cookie
         return res.clearCookie("access_token", {
             httpOnly: true,
-            sameSite: "lax",
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
             secure: process.env.NODE_ENV === 'production'
         }).status(200).json({ mensaje: "Sesión cerrada" })

@@ -9,7 +9,9 @@ const PORT = process.env.PORT || 3000;
 
 const origenesPermitidos = [
     'http://localhost:5173',
-    'http://localhost:5174'
+    'http://localhost:5174',
+    // Producción: URLs de la tienda y del admin, separadas por coma (variable CORS_ORIGINS en Render)
+    ...(process.env.CORS_ORIGINS ?? '').split(',').map((origen) => origen.trim()).filter(Boolean),
 ];
 
 app.use(cors({
