@@ -64,8 +64,8 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
   }
 
   const contenidoMenu = (
-    <>
-    <div className="flex items-center justify-between gap-2 border-b border-gray-700 px-3 py-5">
+    <div className=''>
+    <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-5">
       <div className="flex min-w-0 items-center gap-3">
         <Store size={26} className="shrink-0 text-orange-400" />
 
@@ -91,7 +91,11 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
       </button>
     </div>
 
-    <nav className="flex-1 space-y-2 overflow-y-auto p-3">
+    <nav className="flex min-h-0 flex-1 flex-col space-y-2
+                overflow-y-auto p-3
+                [scrollbar-width:none]
+                [&::-webkit-scrollbar]:hidden
+                ">
       {enlaces.map((enlace) => {
         const Icono = iconosPorEnlace[enlace.label] ?? Store
 
@@ -107,6 +111,7 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
         </NavLink>
         )
       })}
+      </nav>
 
       <div className="border-t border-gray-700 p-3">
         <div className={`flex items-center gap-2 ${menuAbierto ? '' : 'flex-col'}`}>
@@ -140,16 +145,16 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
   
         </div>
       </div>
-    </nav>
-    </>
+    
+    </div>
   )
 
   return (
     <>
     {/* Menú lateral de escritorio */}
-    <aside className={`fixed inset-y-0 left-0 z-30 hidden
-    flex-col bg-gray-900 text-white
-    transition-[width] duration-200 md:flex ${
+    <aside className={`fixed inset-y-0 left-0 z-30 hidden border-r-4 border-orange-500
+      flex-col bg-gray-900 text-white
+      transition-[width] duration-200 md:flex ${
       menuAbierto ? 'w-64' : 'w-20' }`}>
         {contenidoMenu}
     </aside>

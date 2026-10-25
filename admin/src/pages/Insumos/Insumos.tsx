@@ -10,6 +10,7 @@ import {
   actualizarInsumo,
   eliminarInsumo,
 } from '../../services/insumoService'
+import Paginacion from '../../components/Paginacion'
 
 const formularioVacio = { nombre: '', precioComercial: '' }
 
@@ -28,6 +29,9 @@ export default function Insumos() {
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
 
+  const [paginaActual, setPaginaActual] = useState(1)
+  const insumosPorPagina = 10
+
   function cargar() {
     obtenerInsumos()
       .then(setInsumos)
@@ -37,6 +41,24 @@ export default function Insumos() {
   useEffect(cargar, [])
 
   const filtrados = insumos.filter((i) => i.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
+
+  const indiceUltimoInsumo = paginaActual * insumosPorPagina
+  const indicePrimerInsumo = indiceUltimoInsumo - insumosPorPagina
+
+  const insumosPagina = filtrados.slice(
+    indicePrimerInsumo,
+    indiceUltimoInsumo
+  )
+
+  useEffect(() => {
+    const ultimaPagina = Math.max(
+      1, Math.ceil(filtrados.length / insumosPorPagina)
+    )
+
+    if (paginaActual > ultimaPagina) {
+      setPaginaActual(ultimaPagina)
+    }
+  }, [filtrados.length, paginaActual])
 
   function editar(insumo: Insumo) {
     setEditandoId(insumo.id)
@@ -199,7 +221,7 @@ export default function Insumos() {
         <input
           type="search"
           value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          onChange={(e) => {setBusqueda(e.target.value); setPaginaActual(1)}}
           placeholder="Buscar insumo..."
           aria-label="Buscar insumo"
           className="w-full rounded border bg-white py-2 pl-10 pr-3"
@@ -215,7 +237,7 @@ export default function Insumos() {
         <>
           {/* Celular: tarjetas */}
           <ul className="flex flex-col gap-3 md:hidden">
-            {filtrados.map((insumo) => (
+            {insumosPagina.map((insumo) => (
               <li
                 key={insumo.id}
                 className={`flex items-center justify-between gap-3 rounded-lg border p-4 ${
@@ -242,7 +264,7 @@ export default function Insumos() {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((insumo) => (
+                {insumosPagina.map((insumo) => (
                   <tr key={insumo.id} className={`border-t ${editandoId === insumo.id ? 'bg-orange-50' : ''}`}>
                     <td className="px-6 py-4 font-medium">{insumo.nombre}</td>
                     <td className="px-6 py-4">{precioTexto(insumo)}</td>
@@ -263,6 +285,15 @@ export default function Insumos() {
         onConfirmar={confirmarEliminacion}
         onCancelar={() => setAEliminar(null)}
       />
+
+      {filtrados.length > 0 && (
+        <Paginacion
+        paginaActual={paginaActual}
+        totalElementos={filtrados.length}
+        elementosPorPagina={insumosPorPagina}
+        cambiarPagina={setPaginaActual}
+        />
+      )}
     </main>
   )
 }
