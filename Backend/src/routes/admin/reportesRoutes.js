@@ -18,4 +18,8 @@ router.get('/pedidos-por-dia', esAdminJwt, reporteController.obtenerPedidosPorDi
 
 router.get('/pedidos-por-sucursal', esAdminJwt, reporteController.obtenerPedidosPorSucursal);
 
+router.get('/cancelaciones-por-dia', esAdminJwt, reporteController.obtenerCancelacionesPorDia);
+
+router.get('/tiempo-promedio-entrega', esAdminJwt, reporteController.obtenerTiempoPromedioEntrega);
+
 module.exports = router;

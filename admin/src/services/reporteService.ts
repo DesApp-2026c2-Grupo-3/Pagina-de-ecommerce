@@ -5,7 +5,9 @@ import type {
   ProductoSinStock,
   PedidoPorEstado,
   PedidoPorDia,
-  PedidoPorSucursal
+  PedidoPorSucursal,
+  CancelacionPorDia,
+  TiempoPromedioEntrega
 } from '../types/reporte.types'
 import { apiFetch, API_URL } from './httpClient'
 
@@ -103,3 +105,28 @@ export async function obtenerPedidosPorSucursal(): Promise<PedidoPorSucursal[]> 
   )
 }
 
+//----------------------------------------------
+
+export async function obtenerCancelacionesPorDia(
+  sucursalId?: number
+): Promise<CancelacionPorDia[]> {
+  return apiFetch(
+    construirUrlReporte('cancelaciones-por-dia', sucursalId),
+    {
+      mensajePorDefecto: 'Error al obtener las cancelaciones por día',
+    }
+  )
+}
+
+//-------------------------------------------------
+
+export async function obtenerTiempoPromedioEntrega(
+  sucursalId?: number
+): Promise<TiempoPromedioEntrega> {
+  return apiFetch(
+    construirUrlReporte('tiempo-promedio-entrega', sucursalId),
+    {
+      mensajePorDefecto: 'Error al obtener el tiempo promedio de entrega',
+    }
+  )
+}

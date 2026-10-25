@@ -46,3 +46,13 @@ export interface PedidoPorSucursal {
   nombre: string;
   cantidad: number;
 }
+
+export interface CancelacionPorDia {
+  fecha: string
+  cantidad: number
+}
+
+export interface TiempoPromedioEntrega {
+  cantidadPedidos: number
+  promedioMinutos: number | null
+}

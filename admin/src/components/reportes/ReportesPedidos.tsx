@@ -5,6 +5,7 @@ import {
   ClipboardList,
   RefreshCw,
   Store,
+  Clock3
 } from "lucide-react";
 
 import {
@@ -17,9 +18,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { obtenerPedidosPorEstado, obtenerPedidosPorDia, obtenerPedidosPorSucursal } from "../../services/reporteService";
+import { obtenerPedidosPorEstado, obtenerPedidosPorDia, obtenerPedidosPorSucursal, obtenerCancelacionesPorDia, obtenerTiempoPromedioEntrega} from "../../services/reporteService";
 import { obtenerSucursales } from "../../services/sucursalService";
-import type { PedidoPorEstado, PedidoPorDia, PedidoPorSucursal } from "../../types/reporte.types";
+import type { PedidoPorEstado, PedidoPorDia, PedidoPorSucursal,CancelacionPorDia, TiempoPromedioEntrega } from "../../types/reporte.types";
 import type { Sucursal } from "../../types/sucursal.types";
 
 function formatearEstado(estado: string): string {
@@ -35,6 +36,34 @@ function formatearFecha(fecha: string): string {
   const [anio, mes, dia] = fechaCorta.split("-");
 
   return `${dia}/${mes}`;
+}
+
+function completarDiasSinCancelaciones( datos: CancelacionPorDia[]): CancelacionPorDia[] {
+  const cantidades = new Map(
+    datos.map((dato) => [dato.fecha.slice(0, 10), dato.cantidad]),
+  );
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  const resultado: CancelacionPorDia[] = [];
+
+  for (let i = 29; i >= 0; i--) {
+    const fecha = new Date(hoy);
+    fecha.setDate(hoy.getDate() - i);
+
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dia = String(fecha.getDate()).padStart(2, "0");
+    const fechaISO = `${anio}-${mes}-${dia}`;
+
+    resultado.push({
+      fecha: fechaISO,
+      cantidad: cantidades.get(fechaISO) ?? 0,
+    });
+  }
+
+  return resultado;
 }
 
 export default function ReportesPedidos() {
@@ -55,6 +84,16 @@ export default function ReportesPedidos() {
   const [pedidosPorSucursal, setPedidosPorSucursal] = useState<PedidoPorSucursal[]>([]);
   const [cargandoPorSucursal, setCargandoPorSucursal] = useState(true);
   const [errorPorSucursal, setErrorPorSucursal] = useState("");
+
+  const [cancelacionesPorDia, setCancelacionesPorDia] =
+  useState<CancelacionPorDia[]>([]);
+  const [cargandoCancelaciones, setCargandoCancelaciones] = useState(true);
+  const [errorCancelaciones, setErrorCancelaciones] = useState("");
+
+  const [tiempoEntrega, setTiempoEntrega] =
+  useState<TiempoPromedioEntrega | null>(null);
+  const [cargandoTiempoEntrega, setCargandoTiempoEntrega] = useState(true);
+  const [errorTiempoEntrega, setErrorTiempoEntrega] = useState("");
 
   const cargarPedidos = useCallback(async () => {
     setCargando(true);
@@ -112,11 +151,49 @@ export default function ReportesPedidos() {
     }
   }, []);
 
+
+  const cargarCancelacionesPorDia = useCallback(async () => {
+    setCargandoCancelaciones(true);
+    setErrorCancelaciones("");
+
+    try {
+      const resultado = await obtenerCancelacionesPorDia(sucursalSeleccionada);
+      setCancelacionesPorDia(resultado);
+    } catch (err) {
+      setErrorCancelaciones(
+        err instanceof Error
+          ? err.message
+          : "No se pudieron cargar las cancelaciones por día.",
+      );
+    } finally {
+      setCargandoCancelaciones(false);
+    }
+  }, [sucursalSeleccionada]);
+
+  const cargarTiempoEntrega = useCallback(async () => {
+    setCargandoTiempoEntrega(true);
+    setErrorTiempoEntrega("");
+
+    try {
+      const resultado = await obtenerTiempoPromedioEntrega(
+        sucursalSeleccionada
+      );
+      setTiempoEntrega(resultado);
+    } catch (err) {
+      setErrorTiempoEntrega(
+        err instanceof Error
+          ? err.message
+          : "No se pudo cargar el tiempo promedio de entrega."
+      );
+    } finally {
+      setCargandoTiempoEntrega(false);
+    }
+  }, [sucursalSeleccionada]);
+
+
   useEffect(() => {
     void cargarPedidosPorSucursal();
   }, [cargarPedidosPorSucursal]);
-
-
 
   useEffect(() => {
     void cargarPedidos();
@@ -125,6 +202,14 @@ export default function ReportesPedidos() {
   useEffect(() => {
     void cargarPedidosPorDia();
   }, [cargarPedidosPorDia]);
+
+  useEffect(() => {
+    void cargarCancelacionesPorDia();
+  }, [cargarCancelacionesPorDia]);
+
+  useEffect(() => {
+    void cargarTiempoEntrega();
+  }, [cargarTiempoEntrega]);
 
   useEffect(() => {
     const cargarSucursales = async () => {
@@ -165,15 +250,15 @@ export default function ReportesPedidos() {
 
         <button
           type="button"
-          onClick={() => {void cargarPedidos(); void cargarPedidosPorDia(); void cargarPedidosPorSucursal();}}
-          disabled={cargando || cargandoPorDia}
+          onClick={() => {void cargarPedidos(); void cargarPedidosPorDia(); void cargarPedidosPorSucursal(); void cargarCancelacionesPorDia(), void cargarTiempoEntrega()}}
+          disabled={cargando || cargandoPorDia || cargandoPorSucursal || cargandoCancelaciones || cargandoTiempoEntrega }
           className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
         >
           <RefreshCw
             size={16}
-            className={cargando ? "animate-spin" : ""}
+            className={ cargando || cargandoPorDia || cargandoPorSucursal || cargandoCancelaciones || cargandoTiempoEntrega ? "animate-spin" : ""}
           />
-          {cargando || cargandoPorDia ? "Actualizando..." : "Actualizar"}
+          {cargando || cargandoPorDia || cargandoPorSucursal || cargandoCancelaciones || cargandoTiempoEntrega ? "Actualizando..." : "Actualizar"}
         </button>
       </div>
 
@@ -219,6 +304,80 @@ export default function ReportesPedidos() {
           </p>
         )}
       </div>
+
+
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <header className="flex items-center gap-3 border-b border-gray-100 p-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+          <Clock3 size={22} />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="font-bold text-gray-900">
+            Tiempo promedio de entrega
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Tiempo desde la creación del pedido hasta su entrega.
+          </p>
+        </div>
+      </header>
+
+      {cargandoTiempoEntrega ? (
+        <div className="p-10 text-center text-sm text-gray-500">
+          Calculando tiempo promedio...
+        </div>
+        ) : errorTiempoEntrega ? (
+        <div className="p-5">
+          <div role="alert"
+          className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+          >
+            <AlertCircle size={18} className="shrink-0" />
+            <p>{errorTiempoEntrega}</p>
+          </div>
+
+          <button type="button" onClick={() => void cargarTiempoEntrega()}
+          className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
+          >
+            Reintentar
+          </button>
+        </div>
+        ) : tiempoEntrega?.promedioMinutos == null ? (
+        <div className="p-8 text-center">
+          <Clock3 size={30} className="mx-auto text-gray-300" />
+          <p className="mt-3 text-sm font-semibold text-gray-700">
+            Todavía no hay entregas para calcular el promedio.
+          </p>
+        </div>
+        ) : (
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-500">
+              Promedio total de entrega
+            </p>
+
+            <p className="mt-1 text-4xl font-bold tracking-tight text-gray-900">
+              {tiempoEntrega.promedioMinutos >= 60 
+              ? `${Math.floor(tiempoEntrega.promedioMinutos / 60)} h ${Math.round(tiempoEntrega.promedioMinutos % 60)} min`
+              : `${tiempoEntrega.promedioMinutos.toLocaleString("es-AR", {
+                  maximumFractionDigits: 1,
+                })} min`}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-emerald-50 px-4 py-3">
+            <p className="text-sm text-emerald-700">
+              Pedidos entregados analizados
+            </p>
+            <p className="mt-1 text-2xl font-bold text-emerald-800">
+              {tiempoEntrega.cantidadPedidos.toLocaleString("es-AR")}
+            </p>
+          </div>
+        </div>
+        )
+      }
+    </section>
+
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <header className="flex items-center gap-3 border-b border-gray-100 p-5">
@@ -334,7 +493,7 @@ export default function ReportesPedidos() {
       </section>
 
       
-<section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
   <header className="flex items-center gap-3 border-b border-gray-100 p-5">
     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
       <ClipboardList size={22} />
@@ -439,10 +598,10 @@ export default function ReportesPedidos() {
       </ResponsiveContainer>
     </div>
   )}
-</section>
+      </section>
 
 
-<section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
   <header className="flex items-center gap-3 border-b border-gray-100 p-5">
     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
       <Store size={22} />
@@ -539,10 +698,116 @@ export default function ReportesPedidos() {
       </ResponsiveContainer>
     </div>
   )}
-</section>
+      </section>
 
 
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+  <header className="flex items-center gap-3 border-b border-gray-100 p-5">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+      <AlertCircle size={22} />
+    </div>
 
-    </section>
+    <div className="min-w-0 flex-1">
+      <h3 className="font-bold text-gray-900">
+        Cancelaciones por día
+      </h3>
+      <p className="mt-1 text-sm text-gray-500">
+        Evolución diaria de los pedidos cancelados durante los últimos 30 días.
+      </p>
+    </div>
+
+    {!cargandoCancelaciones && !errorCancelaciones && (
+      <span className="shrink-0 rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-700">
+        {cancelacionesPorDia
+          .reduce((total, item) => total + item.cantidad, 0)
+          .toLocaleString("es-AR")} cancelaciones
+      </span>
+    )}
+  </header>
+
+  {cargandoCancelaciones ? (
+    <div className="p-10 text-center text-sm text-gray-500">
+      Cargando cancelaciones...
+    </div>
+  ) : errorCancelaciones ? (
+    <div className="p-5">
+      <div
+        role="alert"
+        className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+      >
+        <AlertCircle size={18} className="shrink-0" />
+        <p>{errorCancelaciones}</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => void cargarCancelacionesPorDia()}
+        className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
+      >
+        Reintentar
+      </button>
+    </div>
+  ) : (
+    <>
+      {cancelacionesPorDia.every((item) => item.cantidad === 0) && (
+        <p className="px-5 pt-4 text-sm text-gray-500">
+          No hubo cancelaciones registradas en los últimos 30 días.
+        </p>
+      )}
+
+      <div className="h-[320px] w-full p-3 sm:h-[380px] sm:p-5">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={completarDiasSinCancelaciones(cancelacionesPorDia).map(
+              (item) => ({
+                ...item,
+                fechaFormateada: formatearFecha(item.fecha),
+              }),
+            )}
+            margin={{ top: 12, right: 12, left: 0, bottom: 8 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+
+            <XAxis
+              dataKey="fechaFormateada"
+              tick={{ fontSize: 12 }}
+              minTickGap={20}
+            />
+
+            <YAxis allowDecimals={false} width={40} />
+
+            <Tooltip
+              labelFormatter={(_, datos) => {
+                const fecha = datos?.[0]?.payload?.fecha;
+
+                return fecha
+                  ? new Date(
+                      `${String(fecha).slice(0, 10)}T12:00:00`,
+                    ).toLocaleDateString("es-AR")
+                  : "Fecha";
+              }}
+              formatter={(valor) => [
+                Number(valor).toLocaleString("es-AR"),
+                "Cancelaciones",
+              ]}
+            />
+
+            <Bar
+              dataKey="cantidad"
+              name="Cancelaciones"
+              fill="#dc2626"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={32}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </>
+  )}
+      </section>
+    
+    </div>
+
+  </section>
   );
 }
