@@ -1,6 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
 import Home from '../pages/Home'
-import AdminHome from '../pages/AdminHome'
 import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../components/AdminLayout'
 import Productos from '../pages/Productos/Productos'
@@ -38,9 +37,9 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/admin" element={<AdminHome />} />
-        <Route path="/admin/pedidos" element={<Pedidos />} />
+        <Route path="/admin" element={<Reportes />} />
         <Route path="/admin/reportes" element={<Reportes />} />
+        <Route path="/admin/pedidos" element={<Pedidos />} />
         <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
         <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
         <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />

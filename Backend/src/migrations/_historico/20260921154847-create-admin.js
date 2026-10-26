@@ -27,6 +27,11 @@ module.exports = {
     defaultValue: 'ADMIN',
     type: Sequelize.STRING
   },
+  activo: {
+    allowNull: false,
+    defaultValue: true,
+    type: Sequelize.BOOLEAN
+  },
   createdAt: {
     allowNull: false,
     type: Sequelize.DATE

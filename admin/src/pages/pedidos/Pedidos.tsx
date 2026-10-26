@@ -338,8 +338,11 @@ export default function Pedidos() {
   };
 
   return (
-    <main className="w-full max-w-full overflow-hidden p-4 md:p-8">
+    <main className="w-full max-w-full overflow-hidden p-8">
       <div className="mb-6">
+        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+          Gestión de pedidos
+        </p>
         <h1 className="text-3xl font-bold">Pedidos</h1>
         <p className="mt-2 text-gray-600">
           {nombreSucursal
