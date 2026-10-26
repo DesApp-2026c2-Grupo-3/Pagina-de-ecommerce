@@ -33,7 +33,7 @@ function formatearEstado(estado: string): string {
 
 function formatearFecha(fecha: string): string {
   const fechaCorta = fecha.slice(0, 10);
-  const [ mes, dia] = fechaCorta.split("-");
+  const [, mes, dia] = fechaCorta.split("-");
 
   return `${dia}/${mes}`;
 }
