@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { limpiarCookieSesion } = require('../../utils/sesionAdmin');
+const { Admin } = require('../../models');
 
-const esAdminJwt = (req, res, next) => {
+const esAdminJwt = async (req, res, next) => {
     try {
         const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
         const token = req.cookies.access_token;
@@ -15,12 +16,29 @@ const esAdminJwt = (req, res, next) => {
         }
         req.usuario = data;
 
-        next();
+        const admin = await Admin.findByPk(data.id);
+
+        if (!admin || !admin.activo) {
+            limpiarCookieSesion(res);
+            return res.status(401).json({
+                msj: "La sesión no es válida o el administrador está inactivo"
+            });
+        }
+
+        req.usuario = {
+            id: admin.id,
+            nombre: admin.nombre,
+            rol: admin.rol
+        };
+
+        return next();
+
 
     } catch (error) {
         limpiarCookieSesion(res);
         return res.status(401).json({ msj: "Token inválido o expirado" });
     }
 };
+
 
 module.exports = { esAdminJwt };

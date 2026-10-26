@@ -12,8 +12,10 @@ export default function Home() {
   const [error, setError] = useState('')
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md bg-white p-8 m-2 rounded-lg shadow-md">
+    <main className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: "url('fondo1.jpg')" }}>
+
+      <div className="w-full max-w-md bg-orange-200 p-8 m-2 rounded-lg shadow-md border-orange-500 border-4">
         <h1 className="text-3xl font-bold text-center mb-2">
           Administración
         </h1>
@@ -63,7 +65,7 @@ export default function Home() {
               onChange={(e) => { setEmail(e.target.value); setError('') }}
               type="email"
               placeholder="admin@ejemplo.com"
-              className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -78,13 +80,13 @@ export default function Home() {
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError('') }}
               placeholder="••••••••"
-              className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
           <button
             type="submit"
-            className="bg-blue-600 text-white rounded-md py-2 font-medium hover:bg-blue-700"
+            className="bg-orange-600 text-white rounded-md py-2 font-medium hover:bg-orange-700"
           >
             Iniciar sesión
           </button>

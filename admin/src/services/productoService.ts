@@ -60,11 +60,29 @@ export async function verStockProducto(id: number) {
   })
 }
 
-// Sube la imagen a Cloudinary (el backend la comprime). Devuelve { url, publicId }.
+
+export async function obtenerProductosEliminados() {
+  return apiFetch(`${API}/eliminados`, {
+    mensajePorDefecto: 'Error al obtener los productos eliminados',
+  })
+}
+
+export async function restaurarProducto(id: number) {
+  return apiFetch(`${API}/restaurar/${id}`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al restaurar el producto',
+  })
+}
+
+// Sube la imagen a Cloudinary (el backend la comprime).
+// Devuelve { url, publicId }.
 // Sin header Content-Type: el navegador lo arma solo para enviar el archivo.
-export async function subirImagenProducto(archivo: File): Promise<{ url: string; publicId: string }> {
+export async function subirImagenProducto(
+  archivo: File,
+): Promise<{ url: string; publicId: string }> {
   const formulario = new FormData()
   formulario.append('imagen', archivo)
+
   return apiFetch(`${API}/imagen`, {
     method: 'POST',
     body: formulario,
@@ -72,10 +90,12 @@ export async function subirImagenProducto(archivo: File): Promise<{ url: string;
   })
 }
 
-// Borra una imagen recién subida que al final no se usó (si falló el guardado del producto)
+// Borra una imagen recién subida que al final no se usó
+// (si falló el guardado del producto).
 export async function descartarImagenProducto(publicId: string) {
   await apiFetch(`${API}/imagen?publicId=${encodeURIComponent(publicId)}`, {
     method: 'DELETE',
     mensajePorDefecto: 'Error al descartar la imagen',
   })
 }
+

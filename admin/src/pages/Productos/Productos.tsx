@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Boxes, Eye, Plus, Trash2 } from 'lucide-react'
+import { Boxes, Eye, Plus, Trash2, RotateCcw } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
@@ -9,7 +9,9 @@ import { useToast } from '../../context/ToastContext'
 import { obtenerCategorias } from '../../services/categoriaService'
 import {
   obtenerProductos,
+  obtenerProductosEliminados,
   eliminarProducto as eliminarProductoAPI,
+  restaurarProducto,
   verStockProducto,
 } from '../../services/productoService'
 
@@ -48,19 +50,32 @@ export default function Productos() {
   const [aEliminar, setAEliminar] = useState<ProductoFila | null>(null)
   const [stockVisto, setStockVisto] = useState<StockDeProducto | null>(null)
 
+  const [vista, setVista] = useState<'activos' | 'eliminados'>('activos')
+
   // Filtros
   const [busqueda, setBusqueda] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState('todas')
   const [filtroDisponibilidad, setFiltroDisponibilidad] = useState('todas')
 
   useEffect(() => {
-    obtenerProductos()
-      .then(setProductos)
-      .catch((error) => console.error('Error al cargar productos:', error))
-    obtenerCategorias()
-      .then(setCategorias)
-      .catch(() => setCategorias([]))
-  }, [])
+  const cargarProductos = vista === 'activos'
+    ? obtenerProductos()
+    : obtenerProductosEliminados()
+
+  cargarProductos
+    .then(setProductos)
+    .catch((error) => {
+      console.error('Error al cargar productos:', error)
+      mostrarToast('No se pudieron cargar los productos')
+    })
+}, [vista])
+
+
+useEffect(() => {
+  obtenerCategorias()
+    .then(setCategorias)
+    .catch(() => setCategorias([]))
+}, [])
 
   // Al cambiar un filtro, se vuelve a la primera página
   const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
@@ -91,6 +106,16 @@ export default function Productos() {
     }
   }
 
+  async function restaurar(id: number) {
+  try {
+    await restaurarProducto(id)
+    setProductos((prev) => prev.filter((p) => p.id !== id))
+    mostrarToast('Producto restaurado con éxito')
+  } catch (error) {
+    mostrarToast(error instanceof Error ? error.message : 'No se pudo restaurar el producto')
+  }
+}
+
   async function verStock(producto: ProductoFila) {
     try {
       setStockVisto(await verStockProducto(producto.id))
@@ -101,41 +126,59 @@ export default function Productos() {
 
   // Los tres botones, iguales en celular y escritorio
   const acciones = (p: ProductoFila) => (
-    <div className="flex shrink-0 gap-2">
+  <div className="flex shrink-0 gap-2">
+    {vista === 'activos' ? (
+      <>
+        <button
+          type="button"
+          onClick={() => navigate(`/admin/productos/editar/${p.id}`)}
+          aria-label={`Ver detalles de ${p.nombre}`}
+          title="Ver detalles"
+          className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
+        >
+          <Eye size={18} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => verStock(p)}
+          aria-label={`Ver stock de ${p.nombre}`}
+          title="Ver stock"
+          className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
+        >
+          <Boxes size={18} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAEliminar(p)}
+          aria-label={`Eliminar ${p.nombre}`}
+          title="Eliminar"
+          className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
+        >
+          <Trash2 size={18} />
+        </button>
+      </>
+    ) : (
       <button
         type="button"
-        onClick={() => navigate(`/admin/productos/editar/${p.id}`)}
-        aria-label={`Ver detalles de ${p.nombre}`}
-        title="Ver detalles"
+        onClick={() => restaurar(p.id)}
+        aria-label={`Restaurar ${p.nombre}`}
+        title="Restaurar producto"
         className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
       >
-        <Eye size={18} />
+        <RotateCcw size={18} />
       </button>
-      <button
-        type="button"
-        onClick={() => verStock(p)}
-        aria-label={`Ver stock de ${p.nombre}`}
-        title="Ver stock"
-        className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
-      >
-        <Boxes size={18} />
-      </button>
-      <button
-        type="button"
-        onClick={() => setAEliminar(p)}
-        aria-label={`Eliminar ${p.nombre}`}
-        title="Eliminar"
-        className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
-      >
-        <Trash2 size={18} />
-      </button>
-    </div>
-  )
-
+    )}
+  </div>
+)
   return (
-    <main className="p-4 md:p-8">
+    <main className="p-8">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+          Catálogo de productos
+        </p>
           <h1 className="text-3xl font-bold">Productos</h1>
           <p className="mt-2 text-gray-600">Gestioná los productos de la tienda.</p>
         </div>
@@ -149,6 +192,38 @@ export default function Productos() {
           <Plus size={22} />
         </button>
       </div>
+
+      <div className="mb-5 flex gap-2">
+  <button
+    type="button"
+    onClick={() => {
+      setVista('activos')
+      setPaginaActual(1)
+    }}
+    className={`rounded-lg px-4 py-2 font-medium transition-colors ${
+      vista === 'activos'
+        ? 'bg-orange-500 text-white'
+        : 'border bg-white text-gray-700 hover:bg-gray-50'
+    }`}
+  >
+    Productos activos
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      setVista('eliminados')
+      setPaginaActual(1)
+    }}
+    className={`rounded-lg px-4 py-2 font-medium transition-colors ${
+      vista === 'eliminados'
+        ? 'bg-orange-500 text-white'
+        : 'border bg-white text-gray-700 hover:bg-gray-50'
+    }`}
+  >
+    Productos eliminados
+  </button>
+</div>
 
       <BarraFiltros>
         <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar producto..." />

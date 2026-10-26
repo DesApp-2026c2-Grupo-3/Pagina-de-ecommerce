@@ -20,7 +20,9 @@ router.post('/administradores/nuevo', esMasterJwt, validarAdmin, adminController
 
 router.put('/administradores/editar/:id', esMasterJwt, validarUpdateAdmin, esIdValido, adminController.actualizarAdmin)
 
-router.delete('/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminarAdmin);
+router.delete('/administradores/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminarAdmin);
+
+router.patch('/administradores/reactivar/:id',esMasterJwt,esIdValido,adminController.reactivarAdmin);
 
 
 module.exports = router;
