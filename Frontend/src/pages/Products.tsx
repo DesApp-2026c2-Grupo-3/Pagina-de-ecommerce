@@ -158,7 +158,28 @@ function Products() {
   }
 
   // Los grupos, con la forma que espera el filtro de chips
-  const opcionesFiltro = GRUPOS_CATALOGO.map((g) => ({ id: g.id, nombre: g.nombre }));
+  const gruposVisibles = useMemo(
+  () =>
+    GRUPOS_CATALOGO.filter((g) =>
+      visibles.some((product) => {
+        const categoria = nombrePorId.get(product.categoriaId) ?? "";
+        return ubicarEnGrupo(g, product.nombre, categoria).pertenece;
+      })
+    ),
+    [visibles, nombrePorId],
+  );
+
+  const opcionesFiltro = gruposVisibles.map((g) => ({
+    id: g.id,
+    nombre: g.nombre,
+  }));
+
+  useEffect(() => {
+    if (grupoId !== null && !gruposVisibles.some((g) => g.id === grupoId)) {
+      elegirGrupo(gruposVisibles[0]?.id ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gruposVisibles, grupoId]);
 
   // Elegir un grupo con una búsqueda en curso la cierra y abre ese grupo
   function elegirGrupoDesdeChips(id: number | null) {

@@ -210,12 +210,12 @@ function DetalleProducto({ id }: { id: number }) {
   }
 
   // Agrega el producto y lleva al carrito para revisar todo y pagar
-  function pagarAhora() {
+{/*  function pagarAhora() {
     if (!product || !puedeComprar) return
     const { opciones, extras } = armarEleccion()
     addItem(product, cantidad, opciones, extras)
     navigate('/carrito')
-  }
+  }*/}
 
   if (loading) {
     return (

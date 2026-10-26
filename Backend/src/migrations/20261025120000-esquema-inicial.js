@@ -123,6 +123,7 @@ module.exports = {
       await crear('Categoria', {
         id,
         nombre: { type: Sequelize.STRING, unique: true },
+        activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true},
         ...timestamps,
       });
 
