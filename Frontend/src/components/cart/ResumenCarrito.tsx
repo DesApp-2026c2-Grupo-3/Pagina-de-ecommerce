@@ -8,11 +8,13 @@ interface Props {
   subtotal: number
   logueado: boolean
   deshabilitado?: boolean
+  /** Por qué no se puede continuar (si no viene, es porque la sucursal está cerrada) */
+  motivo?: string
   onConfirmar: () => void
 }
 
 // Resumen del carrito: subtotal, envío, cupón, total y botón para pasar al checkout
-function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, onConfirmar }: Props) {
+function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, motivo, onConfirmar }: Props) {  
   const total = subtotal + (COSTO_ENVIO ?? 0)
 
   return (
@@ -57,8 +59,7 @@ function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, o
 
       {deshabilitado && (
         <p className="text-center text-sm font-semibold text-brand-red">
-          La sucursal está cerrada. No se pueden generar pedidos ahora.
-        </p>
+          {motivo ?? 'La sucursal está cerrada. No se pueden generar pedidos ahora.'}        </p>
       )}
     </aside>
   )

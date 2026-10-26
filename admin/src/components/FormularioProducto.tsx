@@ -1,7 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
+import { ImagePlus, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { obtenerCategorias } from '../services/categoriaService'
-import { obtenerInsumos, obtenerTamanios } from '../services/productoService'
+import {
+  obtenerInsumos,
+  obtenerTamanios,
+  subirImagenProducto,
+  descartarImagenProducto,
+} from '../services/productoService'
+import { API_URL } from '../services/httpClient'
 import { crearInsumo } from '../services/insumoService'
 import { TAMANIOS_AUTO, precioTamanio } from '../config/tamanios'
 
@@ -24,13 +30,19 @@ export interface FilaGrupo {
   nombre: string
   categoriaId: string
   obligatorio: boolean
+  // false: cualquier opción cuesta lo mismo (ej: bebidas)
+  cobraDiferencia: boolean
 }
 
 export interface DatosProducto {
   nombre: string
   descripcion: string
   precio: string
+  // URL de Cloudinary (o ruta local /imagenes/... en productos viejos). El admin nunca la ve ni la escribe.
   imagen: string
+  imagenPublicId: string
+  // Foto elegida que todavía no se subió (se sube al guardar)
+  archivoImagen: File | null
   disponible: boolean
   categoriaId: string
   receta: FilaReceta[]
@@ -56,6 +68,8 @@ export const productoVacio: DatosProducto = {
   descripcion: '',
   precio: '',
   imagen: '',
+  imagenPublicId: '',
+  archivoImagen: null,
   disponible: true,
   categoriaId: '',
   receta: [],
@@ -72,6 +86,8 @@ export function desdeProducto(p: any): DatosProducto {
     descripcion: p.descripcion ?? '',
     precio: String(regular?.precio ?? p.precio ?? ''),
     imagen: p.imagen ?? '',
+    imagenPublicId: p.imagenPublicId ?? '',
+    archivoImagen: null,
     disponible: Boolean(p.disponible),
     categoriaId: p.categoriaId ? String(p.categoriaId) : '',
     receta: (p.receta ?? []).map((r: any) => ({
@@ -85,6 +101,7 @@ export function desdeProducto(p: any): DatosProducto {
       nombre: g.nombre ?? '',
       categoriaId: String(g.categoriaId),
       obligatorio: Boolean(g.obligatorio),
+      cobraDiferencia: g.cobraDiferencia ?? true,
     })),
   }
 }
@@ -98,6 +115,7 @@ export function aPedido(d: DatosProducto) {
     descripcion: d.descripcion.trim(),
     precio,
     imagen: d.imagen.trim(),
+    imagenPublicId: d.imagenPublicId || null,
     disponible: d.disponible,
     categoriaId: Number(d.categoriaId),
     receta: d.receta.map((r) => ({
@@ -116,6 +134,7 @@ export function aPedido(d: DatosProducto) {
       nombre: g.nombre.trim(),
       categoriaId: Number(g.categoriaId),
       obligatorio: g.obligatorio,
+      cobraDiferencia: g.cobraDiferencia,
       orden: i + 1,
     })),
   }
@@ -128,7 +147,7 @@ function validar(d: DatosProducto, tipo: TipoProducto): string {
   if (d.categoriaId === '') return 'Elegí una categoría.'
   if (d.precio === '' || Number(d.precio) <= 0) return 'El precio debe ser mayor a 0.'
   if (Number(d.precio) > 999999) return 'El precio no puede ser mayor a 999999.'
-  if (d.imagen.trim().length < 1) return 'La imagen no puede estar vacía.'
+  if (!d.archivoImagen && d.imagen.trim().length < 1) return 'Subí una foto del producto.'
 
   for (const [i, r] of d.receta.entries()) {
     if (r.insumoId === '') return `Elegí el insumo del ingrediente ${i + 1} de la receta.`
@@ -158,6 +177,16 @@ function validar(d: DatosProducto, tipo: TipoProducto): string {
 
 const formatearPrecio = (n: number) => `$${n.toLocaleString('es-AR')}`
 
+// Los mismos límites que valida el backend
+const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp']
+const MAXIMO_IMAGEN_MB = 20
+
+// URL para mostrar la foto guardada: Cloudinary va tal cual; las rutas viejas las sirve el backend
+function urlImagen(imagen: string) {
+  if (!imagen) return ''
+  return imagen.startsWith('http') ? imagen : `${API_URL}/${imagen.replace(/^\/+/, '')}`
+}
+
 // ---------- Estilos compartidos ----------
 const campo = 'w-full rounded border p-2'
 const tarjeta = 'rounded-lg border bg-white p-5'
@@ -180,6 +209,22 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
   )
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
+
+  // Vista previa: la foto recién elegida, o si no hay, la que ya tenía el producto
+  const [vistaPrevia, setVistaPrevia] = useState('')
+  useEffect(() => {
+    if (!datos.archivoImagen) {
+      setVistaPrevia(urlImagen(datos.imagen))
+      return
+    }
+    const url = URL.createObjectURL(datos.archivoImagen)
+    setVistaPrevia(url)
+    return () => URL.revokeObjectURL(url)
+  }, [datos.archivoImagen, datos.imagen])
+
+  // Selector de archivos oculto: lo abren el botón y el cuadro de la foto
+  const inputImagen = useRef<HTMLInputElement>(null)
+  const [arrastrando, setArrastrando] = useState(false)
 
   const [categorias, setCategorias] = useState<Opcion[]>([])
   const [insumos, setInsumos] = useState<Opcion[]>([])
@@ -237,6 +282,30 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     }
   }
 
+  function tomarImagen(archivo: File | undefined) {
+    if (!archivo) return
+    if (!TIPOS_IMAGEN.includes(archivo.type)) {
+      setError('La foto tiene que ser JPG, PNG o WEBP.')
+      return
+    }
+    if (archivo.size > MAXIMO_IMAGEN_MB * 1024 * 1024) {
+      setError(`La foto no puede pesar más de ${MAXIMO_IMAGEN_MB} MB.`)
+      return
+    }
+    cambiar('archivoImagen', archivo)
+  }
+
+  function elegirImagen(e: ChangeEvent<HTMLInputElement>) {
+    tomarImagen(e.target.files?.[0])
+    e.target.value = '' // permite volver a elegir el mismo archivo
+  }
+
+  function soltarImagen(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    setArrastrando(false)
+    tomarImagen(e.dataTransfer.files?.[0])
+  }
+
   const precioRegular = Number(datos.precio) || 0
   const nombreCategoria = (id: string) => categorias.find((c) => String(c.id) === id)?.nombre ?? ''
 
@@ -261,9 +330,19 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     }
 
     setGuardando(true)
+    let imagenSubida = ''
     try {
+      // La foto nueva se sube recién ahora, al guardar
+      if (datos.archivoImagen) {
+        const { url, publicId } = await subirImagenProducto(datos.archivoImagen)
+        imagenSubida = publicId
+        aGuardar.imagen = url
+        aGuardar.imagenPublicId = publicId
+      }
       await onGuardar(aGuardar)
     } catch (err) {
+      // Si la foto se subió pero el producto no se guardó, se descarta para no dejarla sobrando
+      if (imagenSubida) descartarImagenProducto(imagenSubida).catch(() => {})
       setError(err instanceof Error ? err.message : 'No se pudo guardar el producto.')
     } finally {
       setGuardando(false)
@@ -276,6 +355,75 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
       <section className={tarjeta}>
         <h2 className="mb-4 text-xl font-bold">Datos</h2>
         <div className="flex flex-col gap-4">
+          {/* ---------- Foto del producto ---------- */}
+          <div>
+            <label className="font-medium">Foto del producto</label>
+            <div
+              onDragOver={(e) => {
+                e.preventDefault()
+                setArrastrando(true)
+              }}
+              onDragLeave={() => setArrastrando(false)}
+              onDrop={soltarImagen}
+              className={`mt-1 flex flex-col items-center gap-4 rounded-lg border-2 border-dashed p-4 transition-colors sm:flex-row ${
+                arrastrando ? 'border-orange-400 bg-orange-50' : 'border-gray-300'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => inputImagen.current?.click()}
+                title={vistaPrevia ? 'Cambiar foto' : 'Subir foto'}
+                className="flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-50 text-gray-400 transition-colors hover:border-orange-300 hover:text-action"
+              >
+                {vistaPrevia ? (
+                  <img src={vistaPrevia} alt="Foto del producto" className="h-full w-full object-contain" />
+                ) : (
+                  <span className="flex flex-col items-center gap-1 text-xs">
+                    <ImagePlus size={32} />
+                    Sin foto
+                  </span>
+                )}
+              </button>
+
+              <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => inputImagen.current?.click()}
+                    className="inline-flex items-center gap-2 rounded bg-action px-4 py-2 font-semibold text-white transition-colors hover:bg-action-hover"
+                  >
+                    {vistaPrevia ? <RefreshCw size={16} /> : <ImagePlus size={16} />}
+                    {vistaPrevia ? 'Cambiar foto' : 'Subir foto'}
+                  </button>
+                  {datos.archivoImagen && (
+                    <button
+                      type="button"
+                      onClick={() => cambiar('archivoImagen', null)}
+                      className="inline-flex items-center gap-1 rounded border px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
+                    >
+                      <X size={16} />
+                      Descartar
+                    </button>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600">
+                  {datos.archivoImagen
+                    ? `Foto nueva: ${datos.archivoImagen.name}. Se guarda al tocar "${textoBoton}".`
+                    : 'También podés arrastrar la foto hasta este recuadro.'}
+                </p>
+                <p className="text-xs text-gray-400">JPG, PNG o WEBP · hasta {MAXIMO_IMAGEN_MB} MB</p>
+              </div>
+
+              <input
+                ref={inputImagen}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={elegirImagen}
+                className="hidden"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="font-medium">Nombre</label>
             <input
@@ -335,17 +483,6 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                 </p>
               )}
             </div>
-          </div>
-
-          <div>
-            <label className="font-medium">Imagen</label>
-            <input
-              type="text"
-              value={datos.imagen}
-              onChange={(e) => cambiar('imagen', e.target.value)}
-              className={campo}
-              placeholder="Ej: /imagenes/doble-cheddar.png"
-            />
           </div>
 
           <label className="flex items-center gap-2">
@@ -553,16 +690,23 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
         <section className={tarjeta}>
           <h2 className="text-xl font-bold">Lugares del combo</h2>
           <p className="mb-4 text-sm text-gray-600">
-            De qué categoría elige el cliente (ej: Papas, Bebidas). La opción más barata va incluida en el precio; si
-            elige otra, paga la diferencia.
+            De qué categoría elige el cliente (ej: Papas, Bebidas). La opción más barata va incluida en el precio. Con
+            "Cobrar diferencia" marcado, si elige una más cara paga la diferencia; desmarcado (como en las bebidas),
+            cualquier opción cuesta lo mismo.
           </p>
 
           <div className="flex flex-col gap-3">
             {datos.grupos.map((g, i) => (
-              <div key={i} className="grid items-center gap-2 rounded border p-3 sm:grid-cols-[1fr_auto_auto]">
+              <div key={i} className="grid items-center gap-2 rounded border p-3 sm:grid-cols-[1fr_auto_auto_auto]">
                 <select
                   value={g.categoriaId}
-                  onChange={(e) => cambiarFila('grupos', i, { categoriaId: e.target.value })}
+                  onChange={(e) =>
+                    cambiarFila('grupos', i, {
+                      categoriaId: e.target.value,
+                      // Las bebidas no cobran diferencia: se sugiere desmarcado (se puede cambiar)
+                      cobraDiferencia: nombreCategoria(e.target.value) !== 'Bebidas',
+                    })
+                  }
                   className={campo}
                   aria-label={`Categoría del lugar ${i + 1}`}
                 >
@@ -581,6 +725,14 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                   />
                   Obligatorio
                 </label>
+                <label className="flex items-center gap-1 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={g.cobraDiferencia}
+                    onChange={(e) => cambiarFila('grupos', i, { cobraDiferencia: e.target.checked })}
+                  />
+                  Cobrar diferencia
+                </label>
                 <button
                   type="button"
                   onClick={() => cambiar('grupos', datos.grupos.filter((_, j) => j !== i))}
@@ -595,7 +747,12 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
 
           <button
             type="button"
-            onClick={() => cambiar('grupos', [...datos.grupos, { nombre: '', categoriaId: '', obligatorio: true }])}
+            onClick={() =>
+              cambiar('grupos', [
+                ...datos.grupos,
+                { nombre: '', categoriaId: '', obligatorio: true, cobraDiferencia: true },
+              ])
+            }            
             className={`${botonAgregar} mt-3`}
           >
             <Plus size={16} /> Agregar lugar

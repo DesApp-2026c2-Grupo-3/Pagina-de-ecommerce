@@ -17,6 +17,8 @@ export interface Promo {
   items: ItemPromo[]
   dias?: number[]
   maxPorPedido?: number
+  /** El resto del pedido (sin esta promo) tiene que sumar al menos esto, en pesos */
+  compraMinima?: number
 }
 
 export interface DiaPromos {

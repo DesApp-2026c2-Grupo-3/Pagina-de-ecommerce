@@ -28,8 +28,12 @@ export function opcionesDeGrupo(
       nombre: p.nombre,
       imagen: p.imagen,
       icono: grupo.icono ?? '🍽️',
-      recargo: referencia === null ? 0 : Math.max(0, (precioEn(p, tamanioId) ?? 0) - referencia),
-    }))
+      // Lugares que no cobran diferencia (ej: bebidas): cualquier opción vale lo mismo
+      recargo:
+        grupo.cobraDiferencia === false || referencia === null
+          ? 0
+          : Math.max(0, (precioEn(p, tamanioId) ?? 0) - referencia),    
+        }))
 }
 
 /** Lo que viene por defecto: la opción incluida del combo, o la primera sin recargo */

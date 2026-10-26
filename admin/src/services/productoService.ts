@@ -73,3 +73,29 @@ export async function restaurarProducto(id: number) {
     mensajePorDefecto: 'Error al restaurar el producto',
   })
 }
+
+// Sube la imagen a Cloudinary (el backend la comprime).
+// Devuelve { url, publicId }.
+// Sin header Content-Type: el navegador lo arma solo para enviar el archivo.
+export async function subirImagenProducto(
+  archivo: File,
+): Promise<{ url: string; publicId: string }> {
+  const formulario = new FormData()
+  formulario.append('imagen', archivo)
+
+  return apiFetch(`${API}/imagen`, {
+    method: 'POST',
+    body: formulario,
+    mensajePorDefecto: 'Error al subir la imagen',
+  })
+}
+
+// Borra una imagen recién subida que al final no se usó
+// (si falló el guardado del producto).
+export async function descartarImagenProducto(publicId: string) {
+  await apiFetch(`${API}/imagen?publicId=${encodeURIComponent(publicId)}`, {
+    method: 'DELETE',
+    mensajePorDefecto: 'Error al descartar la imagen',
+  })
+}
+

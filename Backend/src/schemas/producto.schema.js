@@ -56,6 +56,7 @@ const itemGrupo = Joi.object({
         'any.required': 'Cada grupo necesita una opción incluida'
     }),
     obligatorio: Joi.boolean().default(true),
+    cobraDiferencia: Joi.boolean().default(true),
     orden: Joi.number().integer().min(1).optional(),
     icono: Joi.string().trim().max(10).allow('', null)
 });
@@ -85,6 +86,11 @@ const productoSchema = Joi.object({
         'string.base': 'La imagen debe ser un texto (ruta o URL)'
     }),
 
+    // Lo devuelve POST /admin/productos/imagen junto con la URL
+    imagenPublicId: Joi.string().trim().max(255).allow('', null).messages({
+        'string.base': 'El identificador de la imagen debe ser un texto'
+    }),
+    
     disponible: Joi.boolean().default(true).messages({
         'boolean.base': 'El campo disponible debe ser verdadero o falso'
     }),

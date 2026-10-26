@@ -12,6 +12,15 @@ const {
     sequelize,
 } = require('../../models');
 const { factorMinimo } = require('../../utils/disponibilidad');
+const { borrarImagen } = require('../../utils/imagenesCloudinary');
+
+// Borra de Cloudinary una imagen que ya no usa ningún producto (tampoco los eliminados,
+// porque los pedidos viejos los siguen mostrando)
+async function borrarImagenSinUso(publicId) {
+    if (!publicId) return;
+    const enUso = await Producto.count({ where: { imagenPublicId: publicId }, paranoid: false });
+    if (enUso === 0) await borrarImagen(publicId);
+}
 
 const { Op } = require('sequelize');
 
@@ -67,6 +76,9 @@ async function validarPartes({ receta, tamanios, grupos }, idPropio = null) {
     }
 
     for (const grupo of grupos ?? []) {
+        // Sin opción incluida elegida: se usa la más barata de la categoría, no hay nada que validar
+        if (grupo.productoIncluidoId == null) continue;
+
         if (idPropio && grupo.productoIncluidoId === idPropio) {
             return 'Un combo no puede incluirse a sí mismo';
         }
@@ -165,6 +177,7 @@ const crearProducto = async (req, res) => {
 
         const completo = await buscarCompleto(nuevo.id);
         return res.status(201).json({ mensaje: 'Producto creado con éxito', producto: formatear(completo) });
+
     } catch (error) {
         if (t && !confirmado) await t.rollback();
         console.error(error);
@@ -203,11 +216,18 @@ const editarProductoPorId = async (req, res) => {
             return res.status(400).json({ code: errorPartes });
         }
 
+        const imagenAnterior = producto.imagenPublicId;
+
         t = await sequelize.transaction();
         await producto.update(datos, { transaction: t });
         await guardarPartes(producto.id, { receta, tamanios: tamaniosFinales, grupos }, t);
         await t.commit();
         confirmado = true;
+
+        // Si se cambió la foto, la anterior ya no hace falta en Cloudinary
+        if (datos.imagenPublicId !== undefined && imagenAnterior && imagenAnterior !== datos.imagenPublicId) {
+            await borrarImagenSinUso(imagenAnterior);
+        }
 
         const completo = await buscarCompleto(producto.id);
         return res.status(200).json({ mensaje: 'Producto editado con éxito', producto: formatear(completo) });
