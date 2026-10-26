@@ -75,6 +75,7 @@ module.exports = {
         email: { type: Sequelize.STRING, allowNull: false, unique: true },
         password: { type: Sequelize.STRING, allowNull: false },
         rol: { type: Sequelize.STRING, allowNull: false, defaultValue: 'ADMIN' },
+        activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
         // La sucursal que gestiona cada admin (vacía para el MASTER)
         sucursalId: {
           type: Sequelize.INTEGER,
