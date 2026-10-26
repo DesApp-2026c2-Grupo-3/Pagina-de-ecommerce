@@ -1,5 +1,6 @@
 import { useEffect, useId, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useBloquearScroll } from '../hooks/useBloquearScroll'
 
 // Ancho máximo según lo que contiene el modal
 const ANCHOS = {
@@ -20,6 +21,9 @@ interface ModalProps {
 
 function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = true, children }: ModalProps) {
   const tituloId = useId()
+    // Mientras está abierto, la página de atrás no se mueve
+  useBloquearScroll(isOpen)
+
   // Se cierra con la tecla Esc
   useEffect(() => {
     if (!isOpen || !cerrable) return    
@@ -41,7 +45,7 @@ function Modal({ isOpen, onClose, title, subtitle, tamanio = 'md', cerrable = tr
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
-        className={`max-h-[90vh] w-full ${ANCHOS[tamanio]} overflow-y-auto rounded-[1.75rem] border-2 border-brand-dark bg-brand-cream p-6 text-brand-dark shadow-[8px_8px_0_var(--color-brand-red)]`}
+        className={`max-h-[90vh] w-full ${ANCHOS[tamanio]} overflow-y-auto overscroll-contain rounded-[1.75rem] border-2 border-brand-dark bg-brand-cream p-6 text-brand-dark shadow-[8px_8px_0_var(--color-brand-red)]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">

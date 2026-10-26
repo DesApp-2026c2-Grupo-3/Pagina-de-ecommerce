@@ -19,6 +19,8 @@ module.exports = (sequelize, DataTypes) => {
     // Opción incluida en el precio del combo; las demás cobran la diferencia de precio
     productoIncluidoId: { type: DataTypes.INTEGER, allowNull: true },
     obligatorio: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+        // false: cualquier opción cuesta lo mismo (ej: bebidas). true: una opción más cara paga la diferencia
+    cobraDiferencia: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     orden: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     icono: { type: DataTypes.STRING, allowNull: true },
   }, {

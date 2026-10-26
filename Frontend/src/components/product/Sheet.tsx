@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useBloquearScroll } from '../../hooks/useBloquearScroll'
 
 interface SheetProps {
   title: string
@@ -17,17 +18,15 @@ function Sheet({ title, onClose, children, footer, alto = 'medio' }: SheetProps)
   const cerrar = useRef(onClose)
   cerrar.current = onClose
 
+  // Mientras está abierta, la página de atrás no se mueve
+  useBloquearScroll(true)
+
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key === 'Escape') cerrar.current()
     }
-    const overflowPrevio = document.body.style.overflow
     document.addEventListener('keydown', alTeclear)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', alTeclear)
-      document.body.style.overflow = overflowPrevio
-    }
+    return () => document.removeEventListener('keydown', alTeclear)
   }, [])
 
   return (

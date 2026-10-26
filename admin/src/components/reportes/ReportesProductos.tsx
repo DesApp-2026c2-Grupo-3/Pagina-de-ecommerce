@@ -22,6 +22,7 @@ import {type ProductoMasVendido,
   type ProductoSinStock,} from "../../types/reporte.types"
 
 import { obtenerSucursales } from "../../services/sucursalService";
+import { useAuth } from "../../context/AuthContext";
 import {type Sucursal} from "../../types/sucursal.types"
 import GraficoProductos from "./GraficoProductos";
 import GraficoFacturacion from "./GraficoFacturacion";
@@ -273,8 +274,8 @@ function TarjetaRanking({
 }
 
 export default function ReportesProductos() {
-
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+const { administrador } = useAuth();
+const [sucursales, setSucursales] = useState<Sucursal[]>([]);
 const [cargandoSucursales, setCargandoSucursales] = useState(true);
 const [errorSucursales, setErrorSucursales] = useState("");
 
@@ -416,7 +417,7 @@ useEffect(() => {
         </button>
       </div>
 
-      
+{administrador?.rol === "MASTER" && (    
 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
   <label
     htmlFor="filtro-sucursal"
@@ -462,7 +463,7 @@ useEffect(() => {
     </p>
   )}
 </div>
-
+)}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <TarjetaRanking

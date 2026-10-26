@@ -82,8 +82,7 @@ function incluirGrupos() {
     return {
         model: ComboGrupo,
         as: 'grupos',
-        attributes: ['id', 'nombre', 'categoriaId', 'productoIncluidoId', 'obligatorio', 'orden', 'icono']
-    };
+        attributes: ['id', 'nombre', 'categoriaId', 'productoIncluidoId', 'obligatorio', 'cobraDiferencia', 'orden', 'icono']    };
 }
 
 function aplanarProducto(producto) {

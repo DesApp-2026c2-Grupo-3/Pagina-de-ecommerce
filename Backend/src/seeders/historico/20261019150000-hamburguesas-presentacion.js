@@ -44,6 +44,15 @@ const RECETAS = [
   },
 ];
 
+// Insumos que usan las recetas de arriba. Si en la base no existen (semillas viejas), se crean con stock.
+const INSUMOS_NECESARIOS = [
+  { nombre: 'Aros de cebolla fritos', unidadMedida: 'aro', precioComercial: null, stock: 800, minimo: 160 },
+  { nombre: 'Cebolla morada', unidadMedida: 'aro', precioComercial: null, stock: 400, minimo: 80 },
+  { nombre: 'Lechuga', unidadMedida: 'hoja', precioComercial: null, stock: 400, minimo: 80 },
+  { nombre: 'Tomate', unidadMedida: 'rodaja', precioComercial: null, stock: 400, minimo: 80 },
+  { nombre: 'Queso (feta)', unidadMedida: 'feta', precioComercial: 500, stock: 300, minimo: 60 },
+];
+
 // Lugares del combo que pasan a ser opcionales
 const GRUPOS_OPCIONALES = ['Acompañamiento', 'Una bebida'];
 
@@ -53,6 +62,22 @@ module.exports = {
 
     await sequelize.transaction(async (transaction) => {
       const q = (sql, replacements) => sequelize.query(sql, { replacements, transaction });
+
+      // 0. Insumos que faltan, con stock en todas las sucursales
+      for (const i of INSUMOS_NECESARIOS) {
+        const [[existe]] = await q('SELECT id FROM "Insumos" WHERE nombre = :nombre', { nombre: i.nombre });
+        if (existe) continue;
+        const [[nuevo]] = await q(
+          `INSERT INTO "Insumos" (nombre, "unidadMedida", "precioComercial", "createdAt", "updatedAt")
+           VALUES (:nombre, :unidadMedida, :precioComercial, NOW(), NOW()) RETURNING id`,
+          { nombre: i.nombre, unidadMedida: i.unidadMedida, precioComercial: i.precioComercial }
+        );
+        await q(
+          `INSERT INTO "StockSucursals" ("insumoId", "sucursalId", cantidad, "stockMinimo", "createdAt", "updatedAt")
+           SELECT :insumoId, s.id, :stock, :minimo, NOW(), NOW() FROM "Sucursals" s`,
+          { insumoId: nuevo.id, stock: i.stock, minimo: i.minimo }
+        );
+      }
 
       // 1. Hamburguesas y sus combos: borrado lógico
       await q(

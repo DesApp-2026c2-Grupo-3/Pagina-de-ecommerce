@@ -4,6 +4,7 @@ import { obtenerInsumos, obtenerProductos } from "../services/productoService";
 import { obtenerPedidoPorId } from "../services/pedidoService";
 import { formatearFechaHora } from "../utils/pedidoEstado";
 import SeguimientoPedidoAdmin from "./SeguimientoPedidoAdmin";
+import { useBloquearScroll } from "../hooks/useBloquearScroll";
 import type {
   DetalleLinea,
   EleccionCombo,
@@ -42,6 +43,8 @@ export default function DetallePedidoModal({
   );
   const [insumos, setInsumos] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState("");
+  // Mientras está abierto, la página de atrás no se mueve (cerrado = sin pedido elegido)
+  useBloquearScroll(pedidoId !== null);
 
   useEffect(() => {
     if (pedidoId === null) return;
@@ -141,7 +144,7 @@ export default function DetallePedidoModal({
       aria-labelledby="titulo-detalle-pedido"
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-lg bg-white p-6 shadow-xl"        
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">

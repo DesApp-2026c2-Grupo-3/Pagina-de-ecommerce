@@ -26,7 +26,10 @@ module.exports = (sequelize, DataTypes) => {
     nombre: { type: DataTypes.STRING, allowNull: false },
     descripcion: { type: DataTypes.TEXT, allowNull: false },
     precio: { type: DataTypes.DECIMAL, allowNull: false },
+    // URL de la imagen en Cloudinary (o ruta local /imagenes/... en productos todavía no migrados)
     imagen: { type: DataTypes.STRING, allowNull: true },
+    // Identificador de la imagen en Cloudinary, para reemplazarla o borrarla
+    imagenPublicId: { type: DataTypes.STRING, allowNull: true },    
     disponible: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     categoriaId: { type: DataTypes.INTEGER, allowNull: true },
     sabor: { type: DataTypes.STRING, allowNull: true },
