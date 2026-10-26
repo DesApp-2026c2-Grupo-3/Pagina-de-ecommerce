@@ -84,7 +84,7 @@ function PantallaBienvenida() {
           Prendiendo la plancha…
         </p>
         <span
-          className="bf-pop absolute -right-10 -top-6 rounded-full border-[3px] border-brand-dark bg-brand-mustard px-4 py-1.5 font-display text-xl font-extrabold text-brand-dark sm:-right-20"
+          className="bf-pop absolute -right-1 -top-9 rounded-full border-[3px] border-brand-dark bg-brand-mustard px-3 py-1 font-display text-base font-extrabold text-brand-dark sm:-right-20 sm:-top-6 sm:px-4 sm:py-1.5 sm:text-xl"          
           style={{ animationDelay: '2.05s' }}
         >
           ¡Hola!

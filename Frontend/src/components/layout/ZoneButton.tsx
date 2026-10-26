@@ -72,8 +72,8 @@ function ZoneButton() {
       {aviso && (
         <div
           role="status"
-          className="absolute left-0 top-full z-40 mt-3 w-64 rounded-2xl border-2 border-brand-dark bg-brand-cream p-3 text-brand-dark shadow-sticker"
-        >
+          className="absolute right-0 top-full z-40 mt-3 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-brand-dark bg-brand-cream p-3 text-brand-dark shadow-sticker sm:left-0 sm:right-auto"        
+          >
           <div className="flex items-start gap-2">
             <p className="text-sm font-medium">Ingresá tu dirección para ver qué hay disponible cerca tuyo.</p>
             <button
