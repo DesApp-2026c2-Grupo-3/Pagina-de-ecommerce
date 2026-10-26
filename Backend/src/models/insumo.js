@@ -17,7 +17,8 @@ module.exports = (sequelize, DataTypes) => {
   Insumo.init({
     nombre: { type: DataTypes.STRING, allowNull: false, unique: true },
     unidadMedida: { type: DataTypes.STRING, allowNull: false },
-    precioComercial: { type: DataTypes.DECIMAL, allowNull: true }
+    precioComercial: { type: DataTypes.DECIMAL, allowNull: true },
+    activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true}
   }, {
     sequelize,
     modelName: 'Insumo',

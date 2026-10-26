@@ -293,32 +293,35 @@ function DetalleProducto({ id }: { id: number }) {
           <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
           {totalTexto(movil)}
         </div>
-        <div className="grid grid-cols-[1fr_1.4fr] gap-3">
-          <button
-            type="button"
-            onClick={pagarAhora}
-            disabled={!puedeComprar}
-            className={`min-h-13 rounded-full border-2 px-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${botonBorde(movil)}`}
-          >
-            Pagar ahora
-          </button>
+        
+    
           <button
             type="button"
             onClick={() => setConfirmandoAgregar(true)}
             disabled={!puedeComprar}
-            className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ShoppingBag className="h-5 w-5" />
-            Añadir al carrito
+            className="group flex min-h-14 w-full items-center justify-center gap-3
+            rounded-full border-2 border-brand-dark bg-brand-red
+            px-6 py-4 font-extrabold text-white
+            shadow-[4px_4px_0px_#252525] transition-all duration-200
+            hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#252525]
+            active:translate-y-1 active:shadow-none
+            disabled:cursor-not-allowed disabled:opacity-40">
+            <ShoppingBag className="h-5 w-5 transition-transform duration-200 group-hover:scale-110"/>
+            <span className="text-base sm:text-lg">Añadir al carrito</span>
+            <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
           </button>
-        </div>
+        
         {paso > 1 && (
           <button
             type="button"
             onClick={() => setPaso(paso - 1)}
-            className={`mt-3 w-full text-sm font-bold underline-offset-4 hover:underline ${movil ? 'text-brand-cream/70' : 'text-brand-muted'}`}
+            className={`group mt-3 flex w-full items-center justify-center gap-2
+              rounded-full py-2.5 text-sm font-bold
+              transition-all duration-200
+              hover:bg-brand-dark/5 ${movil ? 'text-brand-cream/80' : 'text-brand-muted'}`}
           >
-            ← Volver al paso anterior
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+            <span>Volver al paso anterior</span>
           </button>
         )}
       </>

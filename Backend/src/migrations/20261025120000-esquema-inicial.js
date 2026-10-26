@@ -203,6 +203,7 @@ module.exports = {
         nombre: { type: Sequelize.STRING, allowNull: false, unique: true },
         unidadMedida: { type: Sequelize.STRING, allowNull: false },
         precioComercial: { type: Sequelize.DECIMAL, allowNull: true },
+        activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true},
         ...timestamps,
       });
 

@@ -35,3 +35,19 @@ export function eliminarInsumo(id: number) {
     mensajePorDefecto: 'Error al eliminar el insumo',
   })
 }
+
+
+export function deshabilitarInsumo(id: number) {
+  return apiFetch(`${API}/${id}/deshabilitar`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al deshabilitar el insumo',
+  })
+}
+
+export function habilitarInsumo(id: number) {
+  return apiFetch(`${API}/${id}/habilitar`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al habilitar el insumo',
+  })
+}
+
