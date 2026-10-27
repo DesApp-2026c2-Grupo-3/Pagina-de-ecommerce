@@ -68,7 +68,7 @@ module.exports = {
 
       const [{ ya }] = await q(`SELECT COUNT(*)::int AS ya FROM "Usuarios" WHERE email LIKE :dominio`, { dominio: `%${DOMINIO}` });
       if (ya > 0) {
-        console.log('ℹ️  Las ventas demo ya estaban cargadas: no se hace nada.');
+        /*       console.log('ℹ️  Las ventas demo ya estaban cargadas: no se hace nada.'); */
         return;
       }
 
@@ -186,11 +186,11 @@ module.exports = {
               const gs = gruposDe(producto.id);
               const combo = gs.length > 0
                 ? {
-                    elecciones: gs
-                      .filter((g, i) => !(i === gs.length - 1 && azar() < 0.07))
-                      .map((g) => ({ grupoId: g.id, productoId: g.productoIncluidoId, recargo: 0 })),
-                    recargo: 0,
-                  }
+                  elecciones: gs
+                    .filter((g, i) => !(i === gs.length - 1 && azar() < 0.07))
+                    .map((g) => ({ grupoId: g.id, productoId: g.productoIncluidoId, recargo: 0 })),
+                  recargo: 0,
+                }
                 : null;
 
               lineas.push({
@@ -258,8 +258,8 @@ module.exports = {
           s
         );
       }
-
-      console.log(`✅ Ventas demo: ${CLIENTES} clientes y ${totalPedidos} pedidos en ${DIAS + 1} días.`);
+      /* 
+            console.log(`✅ Ventas demo: ${CLIENTES} clientes y ${totalPedidos} pedidos en ${DIAS + 1} días.`); */
     });
   },
 
