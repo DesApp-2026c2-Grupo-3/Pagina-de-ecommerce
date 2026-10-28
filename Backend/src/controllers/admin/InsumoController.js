@@ -11,7 +11,7 @@ async function nombreEnUso(nombre, idPropio = null) {
 const obtenerInsumos = async (req, res) => {
     try {
         const insumos = await Insumo.findAll({
-            attributes: ['id', 'nombre', 'unidadMedida', 'precioComercial'],
+            attributes: ['id', 'nombre', 'unidadMedida', 'precioComercial', 'activo'],
             order: [['nombre', 'ASC']],
         });
         res.json(insumos);
@@ -54,11 +54,21 @@ const editarInsumo = async (req, res) => {
             return res.status(404).json({ mensaje: 'Insumo no encontrado' });
         }
 
-        if (await nombreEnUso(req.body.nombre, insumo.id)) {
-            return res.status(400).json({ code: 'Ya existe un insumo con ese nombre' });
+        const { nombre, unidadMedida, precioComercial } = req.body;
+
+        if (nombre !== undefined && await nombreEnUso(nombre, insumo.id)) {
+            return res.status(400).json({
+                code: 'Ya existe un insumo con ese nombre'
+            });
         }
 
-        await insumo.update(req.body);
+        const cambios = {};
+
+        if (nombre !== undefined) cambios.nombre = nombre;
+        if (unidadMedida !== undefined) cambios.unidadMedida = unidadMedida;
+        if (precioComercial !== undefined) cambios.precioComercial = precioComercial;
+
+        await insumo.update(cambios);
         res.json({ mensaje: 'Insumo editado con éxito', insumo });
     } catch (error) {
         console.error(error);
@@ -93,4 +103,65 @@ const eliminarInsumo = async (req, res) => {
     }
 };
 
-module.exports = { obtenerInsumos, crearInsumo, editarInsumo, eliminarInsumo };
+// PATCH /admin/insumos/:id/deshabilitar
+const deshabilitarInsumo = async (req, res) => {
+    try {
+        const insumo = await Insumo.findByPk(req.params.id);
+
+        if (!insumo) {
+            return res.status(404).json({
+                mensaje: 'Insumo no encontrado',
+            });
+        }
+
+        if (!insumo.activo) {
+            return res.status(400).json({
+                mensaje: 'El insumo ya está deshabilitado',
+            });
+        }
+
+        await insumo.update({ activo: false });
+
+        return res.status(200).json({
+            mensaje: 'Insumo deshabilitado correctamente',
+            insumo,
+        });
+    } catch (error) {
+        console.error('Error al deshabilitar insumo:', error.message);
+        return res.status(500).json({
+            mensaje: 'Error del servidor',
+        });
+    }
+};
+
+// PATCH /admin/insumos/:id/habilitar
+const habilitarInsumo = async (req, res) => {
+    try {
+        const insumo = await Insumo.findByPk(req.params.id);
+
+        if (!insumo) {
+            return res.status(404).json({
+                mensaje: 'Insumo no encontrado',
+            });
+        }
+
+        if (insumo.activo) {
+            return res.status(400).json({
+                mensaje: 'El insumo ya está activo',
+            });
+        }
+
+        await insumo.update({ activo: true });
+
+        return res.status(200).json({
+            mensaje: 'Insumo habilitado correctamente',
+            insumo,
+        });
+    } catch (error) {
+        console.error('Error al habilitar insumo:', error.message);
+        return res.status(500).json({
+            mensaje: 'Error del servidor',
+        });
+    }
+};
+module.exports = { obtenerInsumos, crearInsumo, editarInsumo, eliminarInsumo, habilitarInsumo, deshabilitarInsumo };

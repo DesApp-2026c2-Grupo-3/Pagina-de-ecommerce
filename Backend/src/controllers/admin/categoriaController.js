@@ -1,8 +1,9 @@
-const { Categoria } = require("../../models");
+const { Categoria, Producto } = require("../../models");
 
 const obtenerCategorias = async (req, res) => {
     try {
-        const categoria = await Categoria.findAll();
+        // Siempre por id: sin orden explícito, Postgres puede devolverlas en otro orden después de un UPDATE
+        const categoria = await Categoria.findAll({ order: [['id', 'ASC']] });
         return res.json(categoria);
     } catch (error) {
         console.error(error);
@@ -76,9 +77,99 @@ const eliminarCategorias = async (req, res) => {
     }
 };
 
+
+const deshabilitarCategoria = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const categoria = await Categoria.findByPk(id);
+
+        if (!categoria) {
+            return res.status(404).json({
+                mensaje: 'Categoria no encontrada'
+            });
+        }
+
+        if (!categoria.activo) {
+            return res.status(400).json({
+                mensaje: 'La categoria ya está deshabilitada'
+            });
+        }
+
+        await categoria.update({ activo: false });
+
+        return res.status(200).json({
+            mensaje: 'Categoria deshabilitada con éxito',
+            categoria
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al deshabilitar la categoria'
+        });
+    }
+};
+
+const habilitarCategoria = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const categoria = await Categoria.findByPk(id);
+
+        if (!categoria) {
+            return res.status(404).json({
+                mensaje: 'Categoria no encontrada'
+            });
+        }
+
+        if (categoria.activo) {
+            return res.status(400).json({
+                mensaje: 'La categoria ya está habilitada'
+            });
+        }
+
+        await categoria.update({ activo: true });
+
+        return res.status(200).json({
+            mensaje: 'Categoria habilitada con éxito',
+            categoria
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al habilitar la categoria'
+        });
+    }
+};
+
+const obtenerCategoriasCliente = async (req, res) => {
+    try {
+        const categorias = await Categoria.findAll({
+            where: {
+                activo: true
+            },
+            include: [{
+                model: Producto,
+                as: 'productos',
+                required: true,
+                attributes: []
+            }],
+            order: [['id', 'ASC']]
+        });
+
+        return res.json(categorias);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al obtener las categorías del catálogo'
+        });
+    }
+};
+
 module.exports = {
     obtenerCategorias,
     crearCategoria,
     eliminarCategorias,
-    editarCategoriaPorId
+    editarCategoriaPorId,
+    deshabilitarCategoria,
+    habilitarCategoria,
+    obtenerCategoriasCliente
 };

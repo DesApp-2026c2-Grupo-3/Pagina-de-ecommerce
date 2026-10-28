@@ -2,7 +2,7 @@
 jest.mock('../../src/models', () => {
     const t = { commit: jest.fn(), rollback: jest.fn(), LOCK: { UPDATE: 'UPDATE' } };
     return {
-        Pedido: { create: jest.fn(), findAll: jest.fn(), findByPk: jest.fn() },
+        Pedido: { create: jest.fn(), findAll: jest.fn(), findByPk: jest.fn(), count: jest.fn().mockResolvedValue(0) },
         DetallePedido: { create: jest.fn() },
         Producto: { findByPk: jest.fn() },
         Usuario: { findByPk: jest.fn() },
@@ -14,6 +14,7 @@ jest.mock('../../src/models', () => {
         ProductoTamanio: {},
         StockSucursal: { findOne: jest.fn() },
         MovimientoStock: { create: jest.fn() },
+        historialDeTiemposPedido: { create: jest.fn(), findAll: jest.fn() },
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },
         __t: t,
     };
@@ -128,6 +129,15 @@ describe('crearPedido', () => {
                     tipo: 'venta', insumoId: 1, sucursalId: 2, cantidad: 2,
                     cantidadAnterior: 50, cantidadNueva: 48, pedidoId: 100,
                 }),
+                expect.anything()
+            );
+        });
+
+        test('registra el estado inicial en la línea de tiempo del pedido', async () => {
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), crearRes());
+
+            expect(models.historialDeTiemposPedido.create).toHaveBeenCalledWith(
+                expect.objectContaining({ pedidoId: 100, estadoAnterior: null }),
                 expect.anything()
             );
         });
@@ -269,7 +279,7 @@ describe('crearPedido', () => {
             expect(res.json).toHaveBeenCalledWith({ mensaje: 'El insumo Cebolla no se puede aumentar en Clásica' });
         });
 
-        test('no permite más de 3 extras de un ingrediente', async () => {
+        test('no permite más de 1 extra de un ingrediente', async () => {
             const res = crearRes();
 
             await crearPedido(pedidoCon([{
@@ -277,7 +287,7 @@ describe('crearPedido', () => {
             }]), res);
 
             expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({ mensaje: 'No se pueden agregar más de 3 Cheddar extra' });
+            expect(res.json).toHaveBeenCalledWith({ mensaje: 'Solo se puede agregar 1 porción extra de Cheddar' });
         });
     });
 
@@ -350,8 +360,10 @@ describe('obtenerPedidosPorUsuario', () => {
         await obtenerPedidosPorUsuario({ params: { usuarioId: '1' } }, res);
 
         expect(Pedido.findAll).toHaveBeenCalledWith(
-            expect.objectContaining({ where: { usuarioId: '1' }, order: [['fecha', 'DESC']] })
+            expect.objectContaining({ where: { usuarioId: '1' } })
         );
+        // Del más nuevo al más viejo (el segundo criterio ordena el historial de cada pedido)
+        expect(Pedido.findAll.mock.calls[0][0].order[0]).toEqual(['fecha', 'DESC']);
         expect(res.status).toHaveBeenCalledWith(200);
     });
 

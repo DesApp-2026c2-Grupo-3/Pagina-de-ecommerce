@@ -20,6 +20,11 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+app.use(
+    '/imagenes',
+    express.static(require('path').join(__dirname, '../../Frontend/public/imagenes'))
+);
+
 //RUTAS
 app.get('/', (req, res) => {
     res.json({
@@ -45,6 +50,7 @@ app.use('/admin/stock', adminStockRoutes);
 app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
 app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
+app.use('/admin/reportes', require('./routes/admin/reportesRoutes'));
 app.use('/admin', adminRoutes);
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
@@ -54,6 +60,7 @@ app.use('/sucursales', sucursalRoutes);
 app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
+app.use('/promociones', require('./routes/promocionRoutes'));
 
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones

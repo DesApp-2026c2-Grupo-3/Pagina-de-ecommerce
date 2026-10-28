@@ -1,59 +1,48 @@
-const API_URL = "http://localhost:3000/admin/categorias";
+import { apiFetch, API_URL } from './httpClient'
+
+const API = `${API_URL}/admin/categorias`
 
 export async function obtenerCategorias() {
-  const respuesta = await fetch(`${API_URL}`, {
-    credentials: "include",
-  });
-
-  if (!respuesta.ok) {
-    throw new Error("Error al obtener las categorías");
-  }
-
-  return respuesta.json();
+  return apiFetch(API, {
+    mensajePorDefecto: 'Error al obtener las categorías',
+  })
 }
 
 export async function crearCategoria(categoria: unknown) {
-  const respuesta = await fetch(`${API_URL}/nueva`, {
-    method: "POST",
-
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
+  return apiFetch(`${API}/nueva`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(categoria),
-  });
-
-  if (!respuesta.ok) {
-    throw new Error("Error al crear la categoría");
-  }
-
-  return respuesta.json();
+    mensajePorDefecto: 'Error al crear la categoría',
+  })
 }
 
 export async function actualizarCategoria(id: number, categoria: unknown) {
-  const respuesta = await fetch(`${API_URL}/editar/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
+  return apiFetch(`${API}/editar/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(categoria),
-  });
-
-  if (!respuesta.ok) {
-    throw new Error("Error al actualizar la categoría");
-  }
-
-  return respuesta.json();
+    mensajePorDefecto: 'Error al actualizar la categoría',
+  })
 }
 
 export async function eliminarCategoria(id: number) {
-  const respuesta = await fetch(`${API_URL}/eliminar/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
+  await apiFetch(`${API}/eliminar/${id}`, {
+    method: 'DELETE',
+    mensajePorDefecto: 'Error al eliminar la categoría',
+  })
+}
 
-  if (!respuesta.ok) {
-    throw new Error("Error al eliminar la categoría");
-  }
+export async function deshabilitarCategoria(id: number) {
+  return apiFetch(`${API}/${id}/deshabilitar`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al deshabilitar la categoría',
+  })
+}
+
+export async function habilitarCategoria(id: number) {
+  return apiFetch(`${API}/${id}/habilitar`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al habilitar la categoría',
+  })
 }

@@ -13,7 +13,7 @@ const {
 const { productoDisponible, stockComoMapa, pasoExtra } = require('../utils/disponibilidad');
 const { precioMasBarato } = require('../utils/combo');
 // Igual que en crearPedido y en el front
-const EXTRA_MAX_INCREMENTO = 3;
+const EXTRA_MAX_INCREMENTO = 1;
 
 const precio = (n) => `$${n.toLocaleString('es-AR')}`;
 
@@ -106,8 +106,12 @@ async function reconstruirLinea(detalle, obtener, stockPorInsumo) {
         }
 
         // El recargo se calcula con los precios de hoy, contra la opción más barata del lugar
-        const referencia = await precioMasBarato(grupo.categoriaId, detalle.tamanioId);
-        const recargo = referencia === null ? 0 : Math.max(0, Number(tamanioElegido.precio) - referencia);
+        // (salvo en los lugares que no cobran diferencia, como las bebidas)
+        let recargo = 0;
+        if (grupo.cobraDiferencia !== false) {
+            const referencia = await precioMasBarato(grupo.categoriaId, detalle.tamanioId);
+            recargo = referencia === null ? 0 : Math.max(0, Number(tamanioElegido.precio) - referencia);
+        }
 
         recargoCombo += recargo;
         combo.push({ grupoId: grupo.id, productoId: elegido.id });

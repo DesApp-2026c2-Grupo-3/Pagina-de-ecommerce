@@ -2,18 +2,73 @@ import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
-import { Search,SkipBack, SkipForward, ArrowBigLeftDash, ArrowBigRightDash } from "lucide-react";
+import { MapPin, Search, SearchX } from "lucide-react";
+import CategoryFilter from "../components/catalogo/CategoryFilter";
+import SubcategoriaFilter from "../components/catalogo/SubcategoriaFilter";
+import Pagination from "../components/catalogo/Pagination";
+import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
+import CategoryIcon from "../components/icons/CategoryIcon";
+import { estiloCategoria } from "../config/categorias";
+import {
+  GRUPO_INICIAL,
+  GRUPOS_CATALOGO,
+  grupoDeCategoria,
+  subgrupoDeCategoria,
+  ubicarEnGrupo,
+  visibleEnMenu,
+  type GrupoCatalogo,
+  type SubgrupoCatalogo,
+} from "../config/gruposCatalogo";
 import { useZona } from "../context/ZonaContext";
+import { useSearchParams } from "react-router-dom";
+
+// Productos por página: 8 entra justo en 2 filas de 4 (o 4 de 2) sin dejar huecos
+const POR_PAGINA = 8;
+
+// Los disponibles primero
+const disponiblesPrimero = (a: ProductoBackend, b: ProductoBackend) =>
+  Number(b.disponible) - Number(a.disponible);
 
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [search, setSearch] = useState("");
-  const { zona } = useZona();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 8;
+  // ?grupo=cafeteria&sub=pasteleria → ese grupo y esa subcategoría. Sin nada → Combos.
+  // (?categoria=3, que usa el Home, se traduce a su grupo cuando llegan las categorías)
+  const [grupoId, setGrupoId] = useState<number | null>(() => {
+    const slug = searchParams.get("grupo");
+    if (slug === "todos") return null;
+    return GRUPOS_CATALOGO.find((g) => g.slug === slug)?.id ?? GRUPO_INICIAL;
+  });
+  const [subSlug, setSubSlug] = useState<string | null>(() => searchParams.get("sub"));
+
+  function elegirGrupo(id: number | null, sub: string | null = null) {
+    setGrupoId(id);
+    setSubSlug(sub);
+    const slug = id === null ? "todos" : GRUPOS_CATALOGO.find((g) => g.id === id)?.slug;
+    const params: Record<string, string> = {};
+    if (slug) params.grupo = slug;
+    if (sub) params.sub = sub;
+    setSearchParams(params, { replace: true });
+  }
+
+  function elegirSub(sub: string | null) {
+    setSubSlug(sub);
+    const slug = GRUPOS_CATALOGO.find((g) => g.id === grupoId)?.slug;
+    const params: Record<string, string> = {};
+    if (slug) params.grupo = slug;
+    if (sub) params.sub = sub;
+    setSearchParams(params, { replace: true });
+  }
+
+  const [search, setSearch] = useState("");
+  // El buscador filtra cuando dejás de escribir: así las tarjetas no se reaniman con cada letra
+  const [busqueda, setBusqueda] = useState("");
+  const { zona } = useZona();
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
+
+  const [pagina, setPagina] = useState(1);
 
   // Los productos se vuelven a pedir si el cliente cambia de zona
   useEffect(() => {
@@ -21,220 +76,246 @@ function Products() {
   }, [zona?.sucursalId]);
 
   useEffect(() => {
-    getCategories().then(setCategories);
+    getCategories().then((cats) => {
+      setCategories(cats);
+      // Viene del Home con ?categoria=3: se abre el grupo que la contiene (y su botón, si tiene uno propio)
+      const categoriaId = Number(searchParams.get("categoria"));
+      const categoria = cats.find((c) => c.id === categoriaId);
+      const grupo = categoria && grupoDeCategoria(categoria.nombre);
+      if (categoria && grupo) {
+        elegirGrupo(grupo.id, subgrupoDeCategoria(grupo, categoria.nombre)?.slug ?? null);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Volver a la página 1 si cambia cualquier filtro o la zona
+  // Volver a la primera página si cambia cualquier filtro o la zona
   useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory, search, zona?.sucursalId]);
+    setPagina(1);
+  }, [grupoId, subSlug, busqueda, zona?.sucursalId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBusqueda(search), 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const grupo: GrupoCatalogo | null = GRUPOS_CATALOGO.find((g) => g.id === grupoId) ?? null;
+  const sub: SubgrupoCatalogo | null = grupo?.subgrupos?.find((s) => s.slug === subSlug) ?? null;
+  const query = busqueda.trim().toLowerCase();
+  // Buscando, se busca en TODO el menú: no importa el grupo ni el botón en el que estés parado
+  const buscando = query !== "";
+
+  // Id de categoría del backend → nombre
+  const nombrePorId = useMemo(() => new Map(categories.map((c) => [c.id, c.nombre])), [categories]);
+  const categoriasListas = categories.length > 0;
+
+  // Lo que se ve en el menú (las salsas no: se ofrecen en el carrito)
+  const visibles = useMemo(
+    () =>
+      categoriasListas
+        ? products.filter((p) => visibleEnMenu(p.nombre, nombrePorId.get(p.categoriaId) ?? ""))
+        : [],
+    [products, nombrePorId, categoriasListas],
+  );
+
+  // Cada producto con el subgrupo en el que cae dentro del grupo elegido
+  const delGrupo = useMemo(() => {
+    if (!grupo) return visibles.map((product) => ({ product, subgrupo: undefined as SubgrupoCatalogo | undefined }));
+    return visibles.flatMap((product) => {
+      const ubicacion = ubicarEnGrupo(grupo, product.nombre, nombrePorId.get(product.categoriaId) ?? "");
+      return ubicacion.pertenece ? [{ product, subgrupo: ubicacion.subgrupo }] : [];
+    });
+  }, [visibles, grupo, nombrePorId]);
 
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const lista = buscando
+      ? visibles.filter((p) => p.nombre.toLowerCase().includes(query))
+      : delGrupo.filter((e) => !sub || e.subgrupo?.slug === sub.slug).map((e) => e.product);
+    return [...lista].sort(disponiblesPrimero);
+  }, [buscando, visibles, delGrupo, sub, query]);
 
-    return products
-      .filter((product) => {
-        if (
-          selectedCategory !== null &&
-          product.categoriaId !== selectedCategory
-        ) {
-          return false;
-        }
+  // Los grupos con subcategorías muestran "Todo" en secciones (sin paginación), salvo que se esté buscando
+  const enSecciones = Boolean(grupo?.porSecciones && grupo.subgrupos && !sub && !buscando);
+  const secciones = enSecciones
+    ? grupo!.subgrupos!
+        .map((s) => ({
+          ...s,
+          productos: delGrupo
+            .filter((e) => e.subgrupo?.slug === s.slug)
+            .map((e) => e.product)
+            .sort(disponiblesPrimero),
+        }))
+        .filter((s) => s.productos.length > 0)
+    : [];
 
-        if (query && !product.nombre.toLowerCase().includes(query)) {
-          return false;
-        }
+  const totalPaginas = Math.ceil(filteredProducts.length / POR_PAGINA);
+  const desde = (pagina - 1) * POR_PAGINA;
+  const mostrados = filteredProducts.slice(desde, desde + POR_PAGINA);
 
-        return true;
+  function cambiarPagina(nueva: number) {
+    setPagina(nueva);
+    window.scrollTo(0, 0);
+  }
+
+  // Los grupos, con la forma que espera el filtro de chips
+  const gruposVisibles = useMemo(
+  () =>
+    GRUPOS_CATALOGO.filter((g) =>
+      visibles.some((product) => {
+        const categoria = nombrePorId.get(product.categoriaId) ?? "";
+        return ubicarEnGrupo(g, product.nombre, categoria).pertenece;
       })
-      .sort((a, b) => Number(b.disponible) - Number(a.disponible));
-  }, [products, selectedCategory, search]);
-
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const currentProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + productsPerPage
+    ),
+    [visibles, nombrePorId],
   );
 
-  // Ventana de hasta 3 números, centrada en la página actual
-  const maxButtons = 3;
-  const windowSize = Math.min(maxButtons, totalPages);
-  const windowStart = Math.max(
-    1,
-    Math.min(currentPage - 1, totalPages - maxButtons + 1)
-  );
-  const visiblePages = Array.from(
-    { length: windowSize },
-    (_, index) => windowStart + index
-  );
+  const opcionesFiltro = gruposVisibles.map((g) => ({
+    id: g.id,
+    nombre: g.nombre,
+  }));
 
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  useEffect(() => {
+    if (grupoId !== null && !gruposVisibles.some((g) => g.id === grupoId)) {
+      elegirGrupo(gruposVisibles[0]?.id ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gruposVisibles, grupoId]);
+
+  // Elegir un grupo con una búsqueda en curso la cierra y abre ese grupo
+  function elegirGrupoDesdeChips(id: number | null) {
+    setSearch("");
+    setBusqueda("");
+    elegirGrupo(id);
+  }
 
   return (
-    <div
-      className="mx-auto px-10 py-10 min-h-screen
-    bg-gradient-to-b from-orange-200 via-yellow-800 to-red-800"
-    >
-      <h1
-        className="text-3xl font-extrabold sm:text-4xl
-      bg-gradient-to-r from-stone-900 via-gray-800 to-red-700 bg-clip-text text-transparent w-fit"
-      >
-        Nuestro catálogo
-      </h1>
-      <p className="mt-2 text-gray-800">
-        Elegí una categoría o buscá tu producto favorito.
-      </p>
-      {zona && (
-        <p className="mt-1 text-sm font-semibold text-gray-800">
-          📍 Mostrando lo disponible en {zona.sucursalNombre}
-        </p>
-      )}
-
-      <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:px-0 md:pb-0">
-          <button
-            type="button"
-            onClick={() => setSelectedCategory(null)}
-            aria-pressed={selectedCategory === null}
-            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-              selectedCategory === null
-                ? "border-brand-red bg-brand-red text-white"
-                : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
-            }`}
-          >
-            Todos
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              type="button"
-              onClick={() => setSelectedCategory(category.id)}
-              aria-pressed={selectedCategory === category.id}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
-                selectedCategory === category.id
-                  ? "border-brand-red bg-brand-red text-white"
-                  : "border-brand-dark/20 bg-white text-brand-dark hover:border-brand-red hover:text-brand-red"
-              }`}
-            >
-              {category.nombre}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative w-full md:w-72">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-            <Search size={18} />
-          </span>
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar producto..."
-            aria-label="Buscar producto"
-            className="w-full rounded-full border border-brand-dark/20 bg-white py-2 pl-10 pr-4 text-brand-dark placeholder:text-gray-400 focus:border-brand-red focus:outline-none"
-          />
-        </div>
-      </div>
-
-      {filteredProducts.length === 0 ? (
-        <div
-          className="mt-16 flex flex-col items-center gap-2 text-center
-        text-[2rem]"
-        >
-          <img src="/Otros/notFound.png" alt="Buscado cosas" className="h-64" />
-          <p className="font-semibold text-white">
-            No encontramos productos con ese criterio.
-          </p>
-          <p className="text-[1rem] text-gray-100">
-            Probá con otra categoría o cambiá la búsqueda.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {currentProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+    <div className="min-h-screen bg-brand-cream text-brand-dark">
+      {/* Banda oscura con título y buscador */}
+      <section className="bg-brand-dark px-4 pb-20 pt-10 text-brand-cream">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-6">
+          <div>
+            <h1 className="font-display text-5xl font-extrabold tracking-tight sm:text-6xl">
+              El <span className="text-brand-red">menú</span>
+            </h1>
+            <p className="mt-2 text-brand-cream/70">
+              {zona ? (
+                <>
+                  <MapPin className="mr-1.5 inline h-4 w-4 align-[-2px] text-brand-mustard" />
+                  Mostrando lo disponible en{" "}
+                  <b className="text-brand-cream">{zona.sucursalNombre}</b>
+                </>
+              ) : (
+                "Elegí una categoría o buscá tu producto favorito."
+              )}
+            </p>
           </div>
 
-          {totalPages > 1 && (
-  <div className="mt-8 flex items-center justify-center gap-2">
-    <button
-      type="button"
-      onClick={() => goToPage(1)}
-      disabled={currentPage === 1}
-      aria-label="Primera página"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40 " 
-    >
-      <SkipBack size={20}/>
-    </button>
+          <label className="flex min-h-12 w-full items-center gap-2 rounded-full bg-brand-cream px-5 text-brand-dark sm:max-w-sm">
+            <Search className="h-5 w-5 shrink-0" />
+            <span className="sr-only">Buscar producto</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="¿Qué te pinta? Buscá…"
+              className="min-w-0 flex-1 bg-transparent text-base placeholder:text-brand-muted focus:outline-none"
+            />
+          </label>
+        </div>
+      </section>
 
-    <button
-      type="button"
-      onClick={() => goToPage(currentPage - 1)}
-      disabled={currentPage === 1}
-      aria-label="Página anterior"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <ArrowBigLeftDash size={20}/>
-    </button>
+      <div className="mx-auto max-w-7xl px-4 pb-16">
+        {/* Grupos: barra blanca montada sobre la banda. Con una búsqueda en curso ninguno queda marcado (-1) */}
+        <div className="-mt-9">
+          <CategoryFilter
+            categorias={opcionesFiltro}
+            seleccionada={buscando ? -1 : grupoId}
+            onSeleccionar={elegirGrupoDesdeChips}
+          />
+        </div>
 
-    {visiblePages.map((page) => (
-      <button
-        key={page}
-        type="button"
-        onClick={() => goToPage(page)}
-        aria-current={currentPage === page ? "page" : undefined}
-        className={`h-10 w-10 rounded-full font-bold transition-colors hidden sm:block border ${
-          currentPage === page
-            ? "bg-gradient-to-t from-red-800 to-red-400 text-white"
-            : "bg-white text-brand-dark hover:text-white hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 "
-        }`}
-      >
-        {page}
-      </button>
-    ))}
+        {/* Subcategorías del grupo elegido */}
+        {!buscando && grupo?.subgrupos && (
+          <SubcategoriaFilter subgrupos={grupo.subgrupos} seleccionado={sub?.slug ?? null} onSeleccionar={elegirSub} />
+        )}
 
-    <button
-      type="button"
-      onClick={() => goToPage(currentPage + 1)}
-      disabled={currentPage === totalPages}
-      aria-label="Página siguiente"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <ArrowBigRightDash size={20}/>
-    </button>
+        {buscando && (
+          <p role="status" className="mt-4 text-sm font-semibold text-brand-muted">
+            Buscando “{busqueda.trim()}” en todo el menú
+          </p>
+        )}
 
-    <button
-      type="button"
-      onClick={() => goToPage(totalPages)}
-      disabled={currentPage === totalPages}
-      aria-label="Última página"
-      className="rounded-full bg-white px-4 py-2 font-bold text-brand-dark
-      transition-colors  hover:text-white
-      hover:bg-gradient-to-t hover:from-red-800 hover:to-red-400 border
-      disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <SkipForward size={20} />
-    </button>
-  </div>
-)}
-        </>
-      )}
+        {sucursalCerrada && (
+          <AvisoCierreSucursal sucursal={zona?.sucursalNombre} className="mt-6" />
+        )}
+
+        {filteredProducts.length === 0 ? (
+          categoriasListas && (
+            <div className="mx-auto mt-10 flex max-w-xl flex-col items-center gap-4 rounded-3xl border-2 border-brand-dark bg-white px-6 py-12 text-center">
+              <span className="grid h-16 w-16 -rotate-6 place-items-center rounded-2xl bg-brand-mustard">
+                <SearchX className="h-8 w-8" />
+              </span>
+              <p className="font-display text-3xl font-extrabold tracking-tight">No encontramos productos</p>
+              <p className="text-brand-muted">Probá con otra categoría o cambiá la búsqueda.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setBusqueda("");
+                  elegirGrupo(null);
+                }}
+                className="inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:-translate-y-0.5"
+              >
+                Ver todo el menú
+              </button>
+            </div>
+          )
+        ) : enSecciones ? (
+          // ---------- Todo el grupo, en secciones: una por subcategoría ----------
+          <div key={`${grupoId}`} className="mt-10 flex flex-col gap-12">
+            {secciones.map((seccion) => {
+              const estilo = estiloCategoria(seccion.estilo);
+              return (
+                <section key={seccion.slug} aria-labelledby={`seccion-${seccion.slug}`}>
+                  <h2
+                    id={`seccion-${seccion.slug}`}
+                    className="scroll-mt-28 mb-5 flex items-center gap-3 font-display text-3xl font-extrabold tracking-tight"
+                  >
+                    <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl border-2 border-brand-dark ${estilo.fondo}`}>
+                      <CategoryIcon icono={estilo.icono} className="h-6 w-6" />
+                    </span>
+                    {seccion.nombre}
+                    <span className="text-base font-bold text-brand-muted">({seccion.productos.length})</span>
+                  </h2>
+                  <div className="bf-escalonado grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {seccion.productos.map((product, i) => (
+                      <ProductCard key={product.id} product={product} indice={i} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          // ---------- Grilla con paginación: Hamburguesas, Combos, Todos, una subcategoría o una búsqueda ----------
+          <>
+            {/* La key cambia con cada filtro o página: la grilla se vuelve a armar */}
+            <div
+              key={`${grupoId}-${subSlug}-${busqueda}-${pagina}`}
+              className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              {mostrados.map((product, i) => (
+                <ProductCard key={product.id} product={product} indice={i} />
+              ))}
+            </div>
+
+            <Pagination paginaActual={pagina} totalPaginas={totalPaginas} onCambiar={cambiarPagina} />
+            <p role="status" className="mt-4 text-center text-sm text-brand-muted">
+              Mostrando {desde + 1}–{desde + mostrados.length} de {filteredProducts.length} productos
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

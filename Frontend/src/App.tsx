@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import Footer from './components/layout/Footer'
 import Navbar from './components/layout/Navbar'
 import Home from './pages/Home'
@@ -15,38 +15,64 @@ import HistorialPedidos from './pages/HistorialPedidos'
 import Address from './pages/Address'
 import Seguridad from './pages/Seguridad'
 import Toast from './components/Toast'
-import SobreNosotros from './components/home/SobreNosotros'
 import ScrollToTop from './utils/scrollToTop'
 import { ZonaProvider } from './context/ZonaContext'
 import ElegirZonaModal from './components/ElegirZonaModal'
+import ZonaDesdeUsuario from './components/ZonaDesdeUsuario'
+import BottomNav from './components/layout/BottomNav'
+import Cuenta from './pages/Cuenta'
+import Conocenos from './pages/Conocenos'
+import PantallaBienvenida from './components/ui/PantallaBienvenida'
+import { useAuth } from './context/AuthContext'
+import PantallaDespedida from './components/ui/PantallaDespedida'
+import BotonSubir from './components/layout/BotonSubir'
+import RecuperarPassword from './pages/RecuperarPassword'
+import RestablecerPassword from './pages/RestablecerPassword'
 
 function App() {
+  const { user } = useAuth()
+  const { pathname } = useLocation()
+  // En el detalle de producto no hay barra inferior (tiene su propia barra de compra)
+  const conBarraInferior = !pathname.startsWith('/producto/')
+
   return (
     <ZonaProvider>
-    <div className="flex flex-1 flex-col bg-black text-brand-dark">
+    <div className="flex flex-1 flex-col bg-brand-cream text-brand-dark">
       <ScrollToTop />
       <Navbar />
-      <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<Home />} />
+      {/* pb-24: espacio para la barra inferior del celular (ahí no hay footer) */}
+      <main className={`flex-1 lg:pb-0 ${conBarraInferior ? 'pb-24' : ''}`}>
+        {/* La key reinicia las páginas al cambiar de usuario: no quedan datos del anterior */}
+        {/* La key con la ruta hace que cada página nueva entre con la animación */}
+        <div key={pathname} className={pathname === '/carrito' || pathname === '/checkout' ? '' : 'bf-pagina'}>        
+        <Routes key={user?.id ?? 'invitado'}>          <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Products />} />
           <Route path="/promociones" element={<Promociones />} />
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
+          <Route path="/recuperar-password" element={<RecuperarPassword />} />
+          <Route path="/restablecer-password" element={<RestablecerPassword />} />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/historial" element={<HistorialPedidos />} />
           <Route path="/direcciones" element={<Address />} />
           <Route path="/seguridad" element={<Seguridad />} />
-          <Route path="/conocenos" element={<SobreNosotros />}/>
+          <Route path="/conocenos" element={<Conocenos />} />
+          <Route path="/cuenta" element={<Cuenta />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </div>
       </main>
       <Footer />
+      <BottomNav />
+      <BotonSubir />
       <Toast />
+      <ZonaDesdeUsuario />
       <ElegirZonaModal />
+      <PantallaBienvenida />
+      <PantallaDespedida />
     </div>
     </ZonaProvider>
   )

@@ -1,89 +1,55 @@
-const API_URL = "http://localhost:3000/admin/sucursales";
+import type {
+  PayloadSucursal,
+  RespuestaSucursal,
+  Sucursal,
+} from '../types/sucursal.types'
+import { apiFetch, API_URL } from './httpClient'
 
-export async function obtenerSucursales() {
-  const respuesta = await fetch(`${API_URL}`, {
-    credentials: "include",
-  });
+const API = `${API_URL}/admin/sucursales`
 
-  if (!respuesta.ok) {
-    throw new Error("Error al obtener las sucursales");
-  }
-
-  return respuesta.json();
+export async function obtenerSucursales(): Promise<Sucursal[]> {
+  return apiFetch(API, {
+    mensajePorDefecto: 'Error al obtener las sucursales',
+  })
 }
 
-export async function obtenerSucursalPorId(id: number) {
-  const respuesta = await fetch(`${API_URL}/${id}`, {
-    credentials: "include",
-  });
-
-  if (!respuesta.ok) {
-    throw new Error("Error al obtener la sucursal");
-  }
-
-  return respuesta.json();
+export async function obtenerSucursalPorId(id: number): Promise<Sucursal> {
+  return apiFetch(`${API}/${id}`, {
+    mensajePorDefecto: 'Error al obtener la sucursal',
+  })
 }
 
-export async function crearSucursal(sucursal: unknown) {
-  const respuesta = await fetch(`${API_URL}/nueva`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-
-    credentials: "include",
-
+export async function crearSucursal(
+  sucursal: PayloadSucursal,
+): Promise<RespuestaSucursal> {
+  return apiFetch(`${API}/nueva`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(sucursal),
-  });
-  const datos = await respuesta.json();
-  if (!respuesta.ok) {
-    throw new Error(
-      datos.code || datos.mensaje || "Error al crear la sucursal",
-    );
-  }
-
-  return datos;
+    mensajePorDefecto: 'Error al crear la sucursal',
+  })
 }
 
-export async function actualizarSucursal(id: number, sucursal: unknown) {
-  const respuesta = await fetch(`${API_URL}/editar/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-
-    credentials: "include",
-
+export async function actualizarSucursal(
+  id: number,
+  sucursal: PayloadSucursal,
+): Promise<RespuestaSucursal> {
+  return apiFetch(`${API}/editar/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(sucursal),
-  });
-
-  const datos = await respuesta.json().catch(() => ({}));
-  if (!respuesta.ok) {
-    throw new Error(
-      datos.code || datos.mensaje || "Error al actualizar la sucursal",
-    );
-  }
-
-  return datos;
-
-  return respuesta.json();
+    mensajePorDefecto: 'Error al actualizar la sucursal',
+  })
 }
 
-export async function cambiarEstadoSucursal(id: number, activa: boolean) {
-  const respuesta = await fetch(`${API_URL}/estado/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-
-    credentials: "include",
-
+export async function cambiarEstadoSucursal(
+  id: number,
+  activa: boolean,
+): Promise<RespuestaSucursal> {
+  return apiFetch(`${API}/estado/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ activa }),
-  });
-
-  if (!respuesta.ok) {
-    throw new Error("Error al cambiar el estado de la sucursal");
-  }
-
-  return respuesta.json();
+    mensajePorDefecto: 'Error al cambiar el estado de la sucursal',
+  })
 }

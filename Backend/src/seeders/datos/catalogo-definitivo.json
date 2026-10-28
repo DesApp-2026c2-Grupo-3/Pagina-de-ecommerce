@@ -1,0 +1,5775 @@
+{
+ "categorias": [
+  "Combos",
+  "Hamburguesas",
+  "Papas Fritas",
+  "Nuggets",
+  "Bebidas",
+  "Café",
+  "Menú Café"
+ ],
+ "tamanios": [
+  {
+   "orden": 1,
+   "nombre": "regular",
+   "imagen": "/imagenes/Formatos/Formato-Regular.png"
+  },
+  {
+   "orden": 2,
+   "nombre": "mediano",
+   "imagen": "/imagenes/Formatos/Formato-Mediano.png"
+  },
+  {
+   "orden": 3,
+   "nombre": "grande",
+   "imagen": "/imagenes/Formatos/Formato-Grande.png"
+  }
+ ],
+ "sucursales": [
+  {
+   "calle": "Av. Vergara",
+   "activa": true,
+   "nombre": "BurgerFast Hurlingham",
+   "numero": "1542",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.6136,
+   "longitud": -58.6394,
+   "telefono": "011-4665-2310",
+   "localidad": "Hurlingham",
+   "provincia": "Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  },
+  {
+   "calle": "Av. Rivadavia",
+   "activa": true,
+   "nombre": "BurgerFast Morón",
+   "numero": "17845",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.6534,
+   "longitud": -58.6198,
+   "telefono": "011-4483-7620",
+   "localidad": "Morón",
+   "provincia": "Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  },
+  {
+   "calle": "Martín Rodríguez",
+   "activa": true,
+   "nombre": "BurgerFast El Palomar",
+   "numero": "890",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.6027,
+   "longitud": -58.6098,
+   "telefono": "011-4462-1187",
+   "localidad": "El Palomar",
+   "provincia": "Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  },
+  {
+   "calle": "Av. de Mayo",
+   "activa": true,
+   "nombre": "BurgerFast Ramos Mejía",
+   "numero": "432",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.6489,
+   "longitud": -58.5638,
+   "telefono": "011-4656-9034",
+   "localidad": "Ramos Mejía",
+   "provincia": "Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  },
+  {
+   "calle": "Av. Presidente Perón",
+   "activa": true,
+   "nombre": "BurgerFast San Miguel",
+   "numero": "2130",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.5427,
+   "longitud": -58.7124,
+   "telefono": "011-4667-4521",
+   "localidad": "San Miguel",
+   "provincia": "Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  },
+  {
+   "calle": "Av. Ricardo Balbín",
+   "activa": true,
+   "nombre": "BurgerFast Muñiz",
+   "numero": "3305",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.5333,
+   "longitud": -58.6833,
+   "telefono": "011-4455-2298",
+   "localidad": "Muñiz",
+   "provincia": "Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  },
+  {
+   "calle": "Av. Cabildo",
+   "activa": true,
+   "nombre": "BurgerFast Belgrano",
+   "numero": "2245",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.5627,
+   "longitud": -58.4547,
+   "telefono": "011-4780-6612",
+   "localidad": "Belgrano, CABA",
+   "provincia": "Ciudad Autónoma de Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  },
+  {
+   "calle": "Av. Corrientes",
+   "activa": true,
+   "nombre": "BurgerFast Microcentro",
+   "numero": "850",
+   "horario": {
+    "lunes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "martes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "miercoles": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "jueves": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "viernes": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "sabado": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    },
+    "domingo": {
+     "apertura": "09:00",
+     "cierre": "23:00",
+     "abierto": true
+    }
+   },
+   "latitud": -34.6037,
+   "longitud": -58.3816,
+   "telefono": "011-4322-4478",
+   "localidad": "Microcentro, CABA",
+   "provincia": "Ciudad Autónoma de Buenos Aires",
+   "codigoPostal": null,
+   "zona_horaria": "America/Argentina/Buenos_Aires",
+   "radioEntregaKm": 5
+  }
+ ],
+ "admins": [
+  {
+   "rol": "MASTER",
+   "email": "admin@master.com",
+   "nombre": "Admin-Master",
+   "password": "$2b$10$XaMkCFAHo2Bbsi0zdIJ6oOAuCdiCnqXIoL8FOcg0Lu2b4qAXHNVKW",
+   "sucursal": null,
+   "activo": true
+  }
+ ],
+ "insumos": [
+  {
+   "nombre": "Pan de hamburguesa",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Medallón de carne (vacuno)",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Queso (feta)",
+   "unidadMedida": "feta",
+   "precioComercial": 500
+  },
+  {
+   "nombre": "Lechuga",
+   "unidadMedida": "hoja",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Tomate",
+   "unidadMedida": "rodaja",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Cebolla",
+   "unidadMedida": "aro",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Panceta (bacon)",
+   "unidadMedida": "tira",
+   "precioComercial": 400
+  },
+  {
+   "nombre": "Pepino",
+   "unidadMedida": "rodaja",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Salsa especial de la casa",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Papas fritas",
+   "unidadMedida": "porción",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Pechuga de pollo",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Palito de muzzarella",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Nugget de pollo",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Coca-Cola 500ml",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Limonada preparada",
+   "unidadMedida": "porción",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Salsa cheddar",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Gaseosa naranja",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Agua mineral",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Queso azul",
+   "unidadMedida": "feta",
+   "precioComercial": 600
+  },
+  {
+   "nombre": "Huevo",
+   "unidadMedida": "unidad",
+   "precioComercial": 400
+  },
+  {
+   "nombre": "Champiñones salteados",
+   "unidadMedida": "porción",
+   "precioComercial": 500
+  },
+  {
+   "nombre": "Jalapeños",
+   "unidadMedida": "rodaja",
+   "precioComercial": 300
+  },
+  {
+   "nombre": "Palta",
+   "unidadMedida": "rodaja",
+   "precioComercial": 700
+  },
+  {
+   "nombre": "Cebolla crispy",
+   "unidadMedida": "porción",
+   "precioComercial": 400
+  },
+  {
+   "nombre": "Cebolla caramelizada",
+   "unidadMedida": "porción",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Rúcula",
+   "unidadMedida": "hoja",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Salsa ranch",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Salsa picante",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Salsa BBQ",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Mayonesa",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Mayonesa de ajo",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Dosis de café espresso",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Leche",
+   "unidadMedida": "porción",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Medialuna",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Muffin de arándanos",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Pan de miga",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Jamón cocido",
+   "unidadMedida": "feta",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Masa de hot cakes",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Manteca",
+   "unidadMedida": "porción",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Dulce de leche",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Miel",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Cebolla morada",
+   "unidadMedida": "aro",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Nugget picante",
+   "unidadMedida": "unidad",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Orégano",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Condimento cajún",
+   "unidadMedida": "cucharada",
+   "precioComercial": null
+  },
+  {
+   "nombre": "Aros de cebolla fritos",
+   "unidadMedida": "aro",
+   "precioComercial": null
+  }
+ ],
+ "stock": [
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso (feta)",
+   "cantidad": 100,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 20
+  },
+  {
+   "insumo": "Lechuga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Tomate",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "cantidad": 250,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 50
+  },
+  {
+   "insumo": "Pepino",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Papas fritas",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Limonada preparada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Agua mineral",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Queso azul",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Huevo",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Jalapeños",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Palta",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Rúcula",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Salsa ranch",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa picante",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Leche",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Medialuna",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "cantidad": 200,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 40
+  },
+  {
+   "insumo": "Pan de miga",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Jamón cocido",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Manteca",
+   "cantidad": 150,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 30
+  },
+  {
+   "insumo": "Dulce de leche",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Miel",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Cebolla morada",
+   "cantidad": 400,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 80
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Nugget picante",
+   "cantidad": 600,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 120
+  },
+  {
+   "insumo": "Orégano",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Condimento cajún",
+   "cantidad": 300,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 60
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast Hurlingham",
+   "stockMinimo": 160
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast Morón",
+   "stockMinimo": 160
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast El Palomar",
+   "stockMinimo": 160
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast Ramos Mejía",
+   "stockMinimo": 160
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast San Miguel",
+   "stockMinimo": 160
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast Muñiz",
+   "stockMinimo": 160
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast Belgrano",
+   "stockMinimo": 160
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "cantidad": 800,
+   "sucursal": "BurgerFast Microcentro",
+   "stockMinimo": 160
+  }
+ ],
+ "productos": [
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Fast-Classic.png",
+   "nombre": "Fast Classic",
+   "precio": 5200,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Una hamburguesa gourmet con un generoso medallón de carne, pan con semillas de sésamo y una cremosa salsa especial de sabor irresistible. Una combinación abundante y llena de sabor para disfrutar en cada mordida."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Fast & Onion.png",
+   "nombre": "Fast & Onion",
+   "precio": 5900,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Jugosa hamburguesa acompañada de frescas rodajas de tomate, crujiente lechuga y cebolla. Una combinación clásica, fresca y llena de sabor."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Fast-Cheese.png",
+   "nombre": "Fast Cheese",
+   "precio": 5600,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "La cheeseburger de siempre: jugoso medallón de carne con una feta de cheddar derretido en pan blando. Simple, directa y sin vueltas."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Habemus-Bacon.png",
+   "nombre": "Habemus Bacon",
+   "precio": 7400,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Jugosa hamburguesa con abundante tocino crocante, bañada en una irresistible salsa de sabor intenso que se desborda en cada mordida. Una combinación potente, sabrosa y difícil de comer sin ensuciarse."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Doble-Fast-Cheese.png",
+   "nombre": "Doble Fast Cheese",
+   "precio": 8200,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Doble porción de carne jugosa cubierta con abundante queso derretido. Una hamburguesa contundente, sabrosa y hecha para quienes quieren el doble de sabor."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Abominacion.png",
+   "nombre": "Abominación",
+   "precio": 6300,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Una hamburguesa monstruosamente deliciosa, con jugosa carne, y crujientes aros de cebolla. Una combinación crocante y llena de sabor para los que se atreven con la Abominación."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Nuggets/Pollo-Frito.png",
+   "nombre": "Pollo Frito",
+   "precio": 6100,
+   "categoria": "Nuggets",
+   "disponible": true,
+   "descripcion": "Pollo frito crujiente y dorado, jugoso por dentro y lleno de sabor."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Papas/papas-medianas.png",
+   "nombre": "Papas fritas",
+   "precio": 1700,
+   "categoria": "Papas Fritas",
+   "disponible": true,
+   "descripcion": "Papas fritas crujientes con sal."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Nuggets/Bastoncitos-Queso.png",
+   "nombre": "Palitos de Muzzarela",
+   "precio": 3600,
+   "categoria": "Nuggets",
+   "disponible": true,
+   "descripcion": "Palitos de muzzarella dorados y crocantes por fuera, con un irresistible queso derretido por dentro."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Nuggets/Nuggetsx6.png",
+   "nombre": "Nuggets de Pollo",
+   "precio": 2500,
+   "categoria": "Nuggets",
+   "disponible": true,
+   "descripcion": "Deliciosos nuggets de pollo, crocantes por fuera y tiernos por dentro. Ideales para disfrutar solos o acompañados con tu salsa favorita."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Cheese.png",
+   "nombre": "Combo Fast Cheese",
+   "precio": 8100,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Jugosa hamburguesa cubierta con queso derretido, acompañada de una porción de papas doradas y crocantes. Un clásico simple, abundante y lleno de sabor."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Habemus.png",
+   "nombre": "Combo Habemus Bacon",
+   "precio": 9900,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Una hamburguesa cargada de abundante panceta crocante, acompañada de papas doradas y una gaseosa bien fría. Un combo contundente, sabroso y hecho para los amantes del bacon."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Pickle-Me.png",
+   "nombre": "Combo Pickle Me Fast",
+   "precio": 9500,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Hamburguesa con abundante tocino crocante y frescos pepinos, combinando el sabor intenso y salado del bacon con un toque fresco y ligeramente ácido."
+  },
+  {
+   "sabor": "cola",
+   "imagen": "/imagenes/Bebidas/coca-cola.png",
+   "nombre": "Coca Cola",
+   "precio": 1400,
+   "categoria": "Bebidas",
+   "disponible": true,
+   "descripcion": "Bebida gaseosa helada."
+  },
+  {
+   "sabor": "lima",
+   "imagen": "/imagenes/Bebidas/sprite.png",
+   "nombre": "Sprite",
+   "precio": 1400,
+   "categoria": "Bebidas",
+   "disponible": true,
+   "descripcion": "Gaseosa lima-limón helada."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Papas/papas-con-cheddar.png",
+   "nombre": "Papas con cheddar",
+   "precio": 2400,
+   "categoria": "Papas Fritas",
+   "disponible": true,
+   "descripcion": "Papas fritas bañadas en cheddar fundido."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Papas/papas-con-cheddar-bacon.png",
+   "nombre": "Papas con cheddar y bacon",
+   "precio": 3000,
+   "categoria": "Papas Fritas",
+   "disponible": true,
+   "descripcion": "Papas fritas con cheddar fundido y bacon crocante."
+  },
+  {
+   "sabor": "naranja",
+   "imagen": "/imagenes/Bebidas/fanta.png",
+   "nombre": "Fanta",
+   "precio": 1400,
+   "categoria": "Bebidas",
+   "disponible": true,
+   "descripcion": "Gaseosa sabor naranja helada."
+  },
+  {
+   "sabor": "agua",
+   "imagen": "/imagenes/Bebidas/agua.png",
+   "nombre": "Agua mineral",
+   "precio": 1100,
+   "categoria": "Bebidas",
+   "disponible": true,
+   "descripcion": "Agua mineral sin gas."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Pickle-Me.png",
+   "nombre": "Pickle Me Fast",
+   "precio": 7000,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Carne jugosa con panceta crocante y frescos pepinos. El salado intenso del bacon con un toque ácido que despierta el paladar."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Modo-Bestia.png",
+   "nombre": "Bestia Fast",
+   "precio": 9800,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Doble carne, panceta crocante, cheddar derretido, huevo a la plancha y un toque de salsa picante. Para cuando el hambre es en serio."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Crack-Crispy.png",
+   "nombre": "Crispy Crack",
+   "precio": 6400,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Pechuga de pollo rebozada y crocante, lechuga fresca y mayonesa suave. Crujiente por fuera, tierna por dentro."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Fast-Egg.png",
+   "nombre": "Fast Egg",
+   "precio": 7300,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Carne, huevo a la plancha, cheddar y panceta crocante. Estilo \"a caballo\", con la yema como salsa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Habemus-Fast-Doble.png",
+   "nombre": "Doble Habemus",
+   "precio": 10200,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "La versión doble de la Habemus Bacon: dos carnes, panceta de sobra y salsa BBQ ahumada."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Fast-Mushroom.png",
+   "nombre": "Fast Mushroom",
+   "precio": 7000,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Carne con champiñones salteados, cheddar derretido y mayonesa de ajo. Un sabor terroso y bien casero."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Picante-Express.png",
+   "nombre": "Spicy Fast",
+   "precio": 6800,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Carne con jalapeños, cheddar derretido y nuestra salsa picante. Para los que piden un poco más de fuego."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Fast-Ranch.png",
+   "nombre": "Crispy Ranch",
+   "precio": 6600,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Pollo crispy con lechuga, tomate y salsa ranch cremosa. Fresca, crocante y liviana."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Palta-Power.png",
+   "nombre": "Fast Green",
+   "precio": 7100,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Carne con palta cremosa, tomate y rúcula. La opción más fresca y liviana del menú."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Magnum-Fast.png",
+   "nombre": "Magnum Fast",
+   "precio": 11900,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Triple carne, triple cheddar, panceta crocante y cebolla crispy. La más contundente de la casa, solo para valientes."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Hamburguesas/Blue-Fast.png",
+   "nombre": "Blue Fast",
+   "precio": 7600,
+   "categoria": "Hamburguesas",
+   "disponible": true,
+   "descripcion": "Carne con queso azul fundido, cebolla caramelizada y rúcula. Sabor intenso para quienes buscan algo distinto."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Classic.png",
+   "nombre": "Combo Fast Classic",
+   "precio": 7700,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Fast Classic en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Onion.png",
+   "nombre": "Combo Fast & Onion",
+   "precio": 8400,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Fast & Onion en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Doble-Cheese.png",
+   "nombre": "Combo Doble Fast Cheese",
+   "precio": 10700,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Doble Fast Cheese en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Abominacion.png",
+   "nombre": "Combo Abominación",
+   "precio": 8800,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Abominación en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Modo-Bestia.png",
+   "nombre": "Combo Bestia Fast",
+   "precio": 12300,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Modo Bestia en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Crack-Crispy.png",
+   "nombre": "Combo Crispy Crack",
+   "precio": 8900,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Crack Crispy en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Egg.png",
+   "nombre": "Combo Fast Egg",
+   "precio": 9800,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Fast Egg en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Habemus-Doble.png",
+   "nombre": "Combo Doble Habemus",
+   "precio": 12700,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Doble Habemus en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Mushroom.png",
+   "nombre": "Combo Fast Mushroom",
+   "precio": 9500,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Fast Mushroom en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Picante.png",
+   "nombre": "Combo Spicy Fast",
+   "precio": 9300,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Picante Express en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Ranch.png",
+   "nombre": "Combo Crispy Ranch",
+   "precio": 9100,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Fast Ranch en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Palta-Power.png",
+   "nombre": "Combo Fast Green",
+   "precio": 9600,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Palta Power en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Magnum.png",
+   "nombre": "Combo Magnum Fast",
+   "precio": 14400,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Magnum Fast en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Combos/Combo-Blue.png",
+   "nombre": "Combo Blue Fast",
+   "precio": 10100,
+   "categoria": "Combos",
+   "disponible": true,
+   "descripcion": "Blue Fast en versión combo: viene con papas y bebida a elección. Elegí el tamaño del combo y personalizá tu hamburguesa."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Café/Esspreso.png",
+   "nombre": "Espresso",
+   "precio": 1300,
+   "categoria": "Café",
+   "disponible": true,
+   "descripcion": "Café corto e intenso, preparado al momento. Elegí simple, doble o triple."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Café/Latte.png",
+   "nombre": "Latte",
+   "precio": 1600,
+   "categoria": "Café",
+   "disponible": true,
+   "descripcion": "Espresso con leche vaporizada y una capa suave de espuma. Cremoso y equilibrado."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Menu Cafe/Medialunasx2.png",
+   "nombre": "Medialunas x2",
+   "precio": 1700,
+   "categoria": "Menú Café",
+   "disponible": true,
+   "descripcion": "Dos medialunas de manteca, recién horneadas."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Menu Cafe/Muffin.png",
+   "nombre": "Muffin de Arándanos",
+   "precio": 2200,
+   "categoria": "Menú Café",
+   "disponible": true,
+   "descripcion": "Muffin esponjoso con arándanos. Dulce justo para acompañar el café."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Menu Cafe/Tostado.png",
+   "nombre": "Tostado de Jamón y Queso",
+   "precio": 2900,
+   "categoria": "Menú Café",
+   "disponible": true,
+   "descripcion": "Clásico tostado en pan de miga, con jamón cocido y queso derretido."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Menu Cafe/Tostada-Palta.png",
+   "nombre": "Tostadas con Palta",
+   "precio": 3400,
+   "categoria": "Menú Café",
+   "disponible": true,
+   "descripcion": "Pan tostado con palta cremosa y una pizca de sal. Liviano y fresco."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Menu Cafe/Hot-Cakes.png",
+   "nombre": "Hot Cakes",
+   "precio": 3900,
+   "categoria": "Menú Café",
+   "disponible": true,
+   "descripcion": "Tres panqueques esponjosos con manteca y miel o dulce de leche. Un desayuno de domingo todos los días."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Menu Cafe/Desayuno-Americano.png",
+   "nombre": "Desayuno Americano",
+   "precio": 4800,
+   "categoria": "Menú Café",
+   "disponible": true,
+   "descripcion": "Tocino crocante, huevos, queso y pan tostado. Para arrancar el día con todo."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Nuggets/Nuggetsx10.png",
+   "nombre": "Nuggets de Pollo x10",
+   "precio": 4100,
+   "categoria": "Nuggets",
+   "disponible": true,
+   "descripcion": "Diez nuggets de pollo rebozados y crocantes. La porción para compartir."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Nuggets/Nuggets-picantes.png",
+   "nombre": "Nuggets Picantes x6",
+   "precio": 2800,
+   "categoria": "Nuggets",
+   "disponible": true,
+   "descripcion": "Seis nuggets de pollo con rebozado picante."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Papas/Papas-Rusticas.png",
+   "nombre": "Papas Rústicas",
+   "precio": 2100,
+   "categoria": "Papas Fritas",
+   "disponible": true,
+   "descripcion": "Papas cortadas gruesas, con cáscara y orégano."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Papas/Papas-Cajun.png",
+   "nombre": "Papas Cajún",
+   "precio": 2200,
+   "categoria": "Papas Fritas",
+   "disponible": true,
+   "descripcion": "Papas fritas condimentadas con especias cajún, con un toque picante."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Nuggets/Aros-Cebolla.png",
+   "nombre": "Aros de Cebolla x8",
+   "precio": 3000,
+   "categoria": "Nuggets",
+   "disponible": true,
+   "descripcion": "Ocho aros de cebolla rebozados y fritos, dorados y crocantes. Para compartir o para picar mientras esperás."
+  }
+ ],
+ "productoTamanios": [
+  {
+   "precio": 1700,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Papas fritas",
+   "factorStock": 1
+  },
+  {
+   "precio": 2100,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Papas fritas",
+   "factorStock": 1.5
+  },
+  {
+   "precio": 2600,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Papas fritas",
+   "factorStock": 2
+  },
+  {
+   "precio": 2400,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Papas con cheddar",
+   "factorStock": 1
+  },
+  {
+   "precio": 2900,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Papas con cheddar",
+   "factorStock": 1.5
+  },
+  {
+   "precio": 3500,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Papas con cheddar",
+   "factorStock": 2
+  },
+  {
+   "precio": 3000,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Papas con cheddar y bacon",
+   "factorStock": 1
+  },
+  {
+   "precio": 3600,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Papas con cheddar y bacon",
+   "factorStock": 1.5
+  },
+  {
+   "precio": 4300,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Papas con cheddar y bacon",
+   "factorStock": 2
+  },
+  {
+   "precio": 1400,
+   "tamanio": "regular",
+   "etiqueta": "354 ml",
+   "producto": "Coca Cola",
+   "factorStock": 1
+  },
+  {
+   "precio": 1800,
+   "tamanio": "mediano",
+   "etiqueta": "500 ml",
+   "producto": "Coca Cola",
+   "factorStock": 1.4
+  },
+  {
+   "precio": 2600,
+   "tamanio": "grande",
+   "etiqueta": "1 L",
+   "producto": "Coca Cola",
+   "factorStock": 2.8
+  },
+  {
+   "precio": 1400,
+   "tamanio": "regular",
+   "etiqueta": "354 ml",
+   "producto": "Fanta",
+   "factorStock": 1
+  },
+  {
+   "precio": 1800,
+   "tamanio": "mediano",
+   "etiqueta": "500 ml",
+   "producto": "Fanta",
+   "factorStock": 1.4
+  },
+  {
+   "precio": 2600,
+   "tamanio": "grande",
+   "etiqueta": "1 L",
+   "producto": "Fanta",
+   "factorStock": 2.8
+  },
+  {
+   "precio": 1400,
+   "tamanio": "regular",
+   "etiqueta": "354 ml",
+   "producto": "Sprite",
+   "factorStock": 1
+  },
+  {
+   "precio": 1800,
+   "tamanio": "mediano",
+   "etiqueta": "500 ml",
+   "producto": "Sprite",
+   "factorStock": 1.4
+  },
+  {
+   "precio": 2600,
+   "tamanio": "grande",
+   "etiqueta": "1 L",
+   "producto": "Sprite",
+   "factorStock": 2.8
+  },
+  {
+   "precio": 1100,
+   "tamanio": "regular",
+   "etiqueta": "354 ml",
+   "producto": "Agua mineral",
+   "factorStock": 1
+  },
+  {
+   "precio": 1400,
+   "tamanio": "mediano",
+   "etiqueta": "500 ml",
+   "producto": "Agua mineral",
+   "factorStock": 1.4
+  },
+  {
+   "precio": 2000,
+   "tamanio": "grande",
+   "etiqueta": "1 L",
+   "producto": "Agua mineral",
+   "factorStock": 2.8
+  },
+  {
+   "precio": 8100,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Fast Cheese",
+   "factorStock": 1
+  },
+  {
+   "precio": 9100,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Fast Cheese",
+   "factorStock": 1
+  },
+  {
+   "precio": 10400,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Fast Cheese",
+   "factorStock": 1
+  },
+  {
+   "precio": 9900,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Habemus Bacon",
+   "factorStock": 1
+  },
+  {
+   "precio": 10900,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Habemus Bacon",
+   "factorStock": 1
+  },
+  {
+   "precio": 12200,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Habemus Bacon",
+   "factorStock": 1
+  },
+  {
+   "precio": 9500,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Pickle Me Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 10500,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Pickle Me Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 11800,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Pickle Me Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 7700,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Fast Classic",
+   "factorStock": 1
+  },
+  {
+   "precio": 8700,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Fast Classic",
+   "factorStock": 1
+  },
+  {
+   "precio": 10000,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Fast Classic",
+   "factorStock": 1
+  },
+  {
+   "precio": 8400,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Fast & Onion",
+   "factorStock": 1
+  },
+  {
+   "precio": 9400,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Fast & Onion",
+   "factorStock": 1
+  },
+  {
+   "precio": 10700,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Fast & Onion",
+   "factorStock": 1
+  },
+  {
+   "precio": 10700,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Doble Fast Cheese",
+   "factorStock": 1
+  },
+  {
+   "precio": 11700,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Doble Fast Cheese",
+   "factorStock": 1
+  },
+  {
+   "precio": 13000,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Doble Fast Cheese",
+   "factorStock": 1
+  },
+  {
+   "precio": 8800,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Abominación",
+   "factorStock": 1
+  },
+  {
+   "precio": 9800,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Abominación",
+   "factorStock": 1
+  },
+  {
+   "precio": 11100,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Abominación",
+   "factorStock": 1
+  },
+  {
+   "precio": 12300,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Bestia Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 13300,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Bestia Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 14600,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Bestia Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 8900,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Crispy Crack",
+   "factorStock": 1
+  },
+  {
+   "precio": 9900,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Crispy Crack",
+   "factorStock": 1
+  },
+  {
+   "precio": 11200,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Crispy Crack",
+   "factorStock": 1
+  },
+  {
+   "precio": 9800,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Fast Egg",
+   "factorStock": 1
+  },
+  {
+   "precio": 10800,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Fast Egg",
+   "factorStock": 1
+  },
+  {
+   "precio": 12100,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Fast Egg",
+   "factorStock": 1
+  },
+  {
+   "precio": 12700,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Doble Habemus",
+   "factorStock": 1
+  },
+  {
+   "precio": 13700,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Doble Habemus",
+   "factorStock": 1
+  },
+  {
+   "precio": 15000,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Doble Habemus",
+   "factorStock": 1
+  },
+  {
+   "precio": 9500,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Fast Mushroom",
+   "factorStock": 1
+  },
+  {
+   "precio": 10500,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Fast Mushroom",
+   "factorStock": 1
+  },
+  {
+   "precio": 11800,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Fast Mushroom",
+   "factorStock": 1
+  },
+  {
+   "precio": 9300,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Spicy Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 10300,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Spicy Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 11600,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Spicy Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 9100,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Crispy Ranch",
+   "factorStock": 1
+  },
+  {
+   "precio": 10100,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Crispy Ranch",
+   "factorStock": 1
+  },
+  {
+   "precio": 11400,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Crispy Ranch",
+   "factorStock": 1
+  },
+  {
+   "precio": 9600,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Fast Green",
+   "factorStock": 1
+  },
+  {
+   "precio": 10600,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Fast Green",
+   "factorStock": 1
+  },
+  {
+   "precio": 11900,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Fast Green",
+   "factorStock": 1
+  },
+  {
+   "precio": 14400,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Magnum Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 15400,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Magnum Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 16700,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Magnum Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 10100,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Combo Blue Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 11100,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Combo Blue Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 12400,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Combo Blue Fast",
+   "factorStock": 1
+  },
+  {
+   "precio": 1300,
+   "tamanio": "regular",
+   "etiqueta": "Simple",
+   "producto": "Espresso",
+   "factorStock": 1
+  },
+  {
+   "precio": 1600,
+   "tamanio": "mediano",
+   "etiqueta": "Doble",
+   "producto": "Espresso",
+   "factorStock": 2
+  },
+  {
+   "precio": 1900,
+   "tamanio": "grande",
+   "etiqueta": "Triple",
+   "producto": "Espresso",
+   "factorStock": 3
+  },
+  {
+   "precio": 1600,
+   "tamanio": "regular",
+   "etiqueta": "120 ml",
+   "producto": "Latte",
+   "factorStock": 1
+  },
+  {
+   "precio": 1900,
+   "tamanio": "mediano",
+   "etiqueta": "180 ml",
+   "producto": "Latte",
+   "factorStock": 1.5
+  },
+  {
+   "precio": 2300,
+   "tamanio": "grande",
+   "etiqueta": "240 ml",
+   "producto": "Latte",
+   "factorStock": 2
+  },
+  {
+   "precio": 1700,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Medialunas x2",
+   "factorStock": 1
+  },
+  {
+   "precio": 2200,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Muffin de Arándanos",
+   "factorStock": 1
+  },
+  {
+   "precio": 2900,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Tostado de Jamón y Queso",
+   "factorStock": 1
+  },
+  {
+   "precio": 3400,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Tostadas con Palta",
+   "factorStock": 1
+  },
+  {
+   "precio": 3900,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Hot Cakes",
+   "factorStock": 1
+  },
+  {
+   "precio": 4800,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Desayuno Americano",
+   "factorStock": 1
+  },
+  {
+   "precio": 2100,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Papas Rústicas",
+   "factorStock": 1
+  },
+  {
+   "precio": 2600,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Papas Rústicas",
+   "factorStock": 1.5
+  },
+  {
+   "precio": 3200,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Papas Rústicas",
+   "factorStock": 2
+  },
+  {
+   "precio": 2200,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Papas Cajún",
+   "factorStock": 1
+  },
+  {
+   "precio": 2700,
+   "tamanio": "mediano",
+   "etiqueta": null,
+   "producto": "Papas Cajún",
+   "factorStock": 1.5
+  },
+  {
+   "precio": 3300,
+   "tamanio": "grande",
+   "etiqueta": null,
+   "producto": "Papas Cajún",
+   "factorStock": 2
+  }
+ ],
+ "recetas": [
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Fast Classic",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Fast Classic",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "producto": "Fast Classic",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Cebolla",
+   "producto": "Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Fast Cheese",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Habemus Bacon",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Habemus Bacon",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Habemus Bacon",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "producto": "Habemus Bacon",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Doble Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Doble Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Doble Fast Cheese",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Abominación",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Abominación",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "producto": "Pollo Frito",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Papas fritas",
+   "producto": "Papas fritas",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Palito de muzzarella",
+   "producto": "Palitos de Muzzarela",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 6
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "producto": "Nuggets de Pollo",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 6
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Fast Cheese",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Habemus Bacon",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Habemus Bacon",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Combo Habemus Bacon",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Combo Pickle Me Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Pepino",
+   "producto": "Combo Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Coca-Cola 500ml",
+   "producto": "Coca Cola",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Limonada preparada",
+   "producto": "Sprite",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Fast Cheese",
+   "esAgregable": true,
+   "esRemovible": false,
+   "cantidadBase": 0
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Fast & Onion",
+   "esAgregable": true,
+   "esRemovible": false,
+   "cantidadBase": 0
+  },
+  {
+   "insumo": "Papas fritas",
+   "producto": "Papas con cheddar",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "producto": "Papas con cheddar",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Papas fritas",
+   "producto": "Papas con cheddar y bacon",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa cheddar",
+   "producto": "Papas con cheddar y bacon",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Papas con cheddar y bacon",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Gaseosa naranja",
+   "producto": "Fanta",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Agua mineral",
+   "producto": "Agua mineral",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Pickle Me Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Pepino",
+   "producto": "Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Bestia Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Bestia Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Bestia Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Bestia Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Huevo",
+   "producto": "Bestia Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa picante",
+   "producto": "Bestia Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "producto": "Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Mayonesa",
+   "producto": "Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Fast Egg",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Fast Egg",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Huevo",
+   "producto": "Fast Egg",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Fast Egg",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Fast Egg",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Doble Habemus",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Doble Habemus",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Doble Habemus",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 6
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "producto": "Doble Habemus",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Fast Mushroom",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Fast Mushroom",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "producto": "Fast Mushroom",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Fast Mushroom",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "producto": "Fast Mushroom",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Spicy Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Spicy Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Jalapeños",
+   "producto": "Spicy Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 4
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Spicy Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa picante",
+   "producto": "Spicy Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "producto": "Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Salsa ranch",
+   "producto": "Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Fast Green",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Fast Green",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Palta",
+   "producto": "Fast Green",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Fast Green",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Rúcula",
+   "producto": "Fast Green",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Magnum Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Magnum Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Magnum Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Magnum Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "producto": "Magnum Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Blue Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Blue Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso azul",
+   "producto": "Blue Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "producto": "Blue Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Rúcula",
+   "producto": "Blue Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Fast Classic",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Fast Classic",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa especial de la casa",
+   "producto": "Combo Fast Classic",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Combo Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Combo Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Cebolla",
+   "producto": "Combo Fast & Onion",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Fast & Onion",
+   "esAgregable": true,
+   "esRemovible": false,
+   "cantidadBase": 0
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Doble Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Doble Fast Cheese",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Doble Fast Cheese",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Abominación",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Abominación",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Bestia Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Bestia Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Bestia Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Combo Bestia Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Huevo",
+   "producto": "Combo Bestia Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa picante",
+   "producto": "Combo Bestia Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "producto": "Combo Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Combo Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Mayonesa",
+   "producto": "Combo Crispy Crack",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Fast Egg",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Fast Egg",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Huevo",
+   "producto": "Combo Fast Egg",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Fast Egg",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Combo Fast Egg",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Doble Habemus",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Doble Habemus",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Combo Doble Habemus",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 6
+  },
+  {
+   "insumo": "Salsa BBQ",
+   "producto": "Combo Doble Habemus",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Fast Mushroom",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Fast Mushroom",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Champiñones salteados",
+   "producto": "Combo Fast Mushroom",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Fast Mushroom",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Mayonesa de ajo",
+   "producto": "Combo Fast Mushroom",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Spicy Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Spicy Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Jalapeños",
+   "producto": "Combo Spicy Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 4
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Spicy Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Salsa picante",
+   "producto": "Combo Spicy Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pechuga de pollo",
+   "producto": "Combo Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Combo Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Combo Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Salsa ranch",
+   "producto": "Combo Crispy Ranch",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Fast Green",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Fast Green",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Palta",
+   "producto": "Combo Fast Green",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Combo Fast Green",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Rúcula",
+   "producto": "Combo Fast Green",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Magnum Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Magnum Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Magnum Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Combo Magnum Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Cebolla crispy",
+   "producto": "Combo Magnum Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de hamburguesa",
+   "producto": "Combo Blue Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medallón de carne (vacuno)",
+   "producto": "Combo Blue Fast",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso azul",
+   "producto": "Combo Blue Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Cebolla caramelizada",
+   "producto": "Combo Blue Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Rúcula",
+   "producto": "Combo Blue Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "producto": "Espresso",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Dosis de café espresso",
+   "producto": "Latte",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Leche",
+   "producto": "Latte",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Medialuna",
+   "producto": "Medialunas x2",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Muffin de arándanos",
+   "producto": "Muffin de Arándanos",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de miga",
+   "producto": "Tostado de Jamón y Queso",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Jamón cocido",
+   "producto": "Tostado de Jamón y Queso",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Tostado de Jamón y Queso",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Pan de miga",
+   "producto": "Tostadas con Palta",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Palta",
+   "producto": "Tostadas con Palta",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "producto": "Hot Cakes",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Manteca",
+   "producto": "Hot Cakes",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Miel",
+   "producto": "Hot Cakes",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Dulce de leche",
+   "producto": "Hot Cakes",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Pan de miga",
+   "producto": "Desayuno Americano",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Panceta (bacon)",
+   "producto": "Desayuno Americano",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Huevo",
+   "producto": "Desayuno Americano",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Desayuno Americano",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Nugget de pollo",
+   "producto": "Nuggets de Pollo x10",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 10
+  },
+  {
+   "insumo": "Nugget picante",
+   "producto": "Nuggets Picantes x6",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 6
+  },
+  {
+   "insumo": "Papas fritas",
+   "producto": "Papas Rústicas",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Orégano",
+   "producto": "Papas Rústicas",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Papas fritas",
+   "producto": "Papas Cajún",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Condimento cajún",
+   "producto": "Papas Cajún",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Habemus Bacon",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Habemus Bacon",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Doble Habemus",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Doble Habemus",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "producto": "Abominación",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Abominación",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Cebolla morada",
+   "producto": "Abominación",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Abominación",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "producto": "Combo Abominación",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Abominación",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Cebolla morada",
+   "producto": "Combo Abominación",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Combo Abominación",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Pickle Me Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Queso (feta)",
+   "producto": "Combo Pickle Me Fast",
+   "esAgregable": true,
+   "esRemovible": true,
+   "cantidadBase": 1
+  },
+  {
+   "insumo": "Lechuga",
+   "producto": "Combo Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Tomate",
+   "producto": "Combo Pickle Me Fast",
+   "esAgregable": false,
+   "esRemovible": true,
+   "cantidadBase": 2
+  },
+  {
+   "insumo": "Aros de cebolla fritos",
+   "producto": "Aros de Cebolla x8",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 8
+  }
+ ],
+ "comboGrupos": [
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Fast Cheese",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Fast Cheese",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Habemus Bacon",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Habemus Bacon",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Pickle Me Fast",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Pickle Me Fast",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Fast Classic",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Fast Classic",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Fast & Onion",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Fast & Onion",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Doble Fast Cheese",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Doble Fast Cheese",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Abominación",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Abominación",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Bestia Fast",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Bestia Fast",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Crispy Crack",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Crispy Crack",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Fast Egg",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Fast Egg",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Doble Habemus",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Doble Habemus",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Fast Mushroom",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Fast Mushroom",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Spicy Fast",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Spicy Fast",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Crispy Ranch",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Crispy Ranch",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Fast Green",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Fast Green",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Magnum Fast",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Magnum Fast",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🍟",
+   "orden": 1,
+   "nombre": "Acompañamiento",
+   "incluido": "Papas fritas",
+   "producto": "Combo Blue Fast",
+   "categoria": "Papas Fritas",
+   "obligatorio": false
+  },
+  {
+   "icono": "🥤",
+   "orden": 2,
+   "nombre": "Una bebida",
+   "incluido": "Coca Cola",
+   "producto": "Combo Blue Fast",
+   "categoria": "Bebidas",
+   "obligatorio": false
+  }
+ ]
+}

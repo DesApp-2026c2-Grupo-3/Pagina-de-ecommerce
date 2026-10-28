@@ -19,7 +19,8 @@ module.exports = (sequelize, DataTypes) => {
     email: {type:DataTypes.STRING, allowNull:false, unique:true},
     password: {type:DataTypes.STRING, allowNull:false},
     rol: { type: DataTypes.STRING, allowNull:false ,defaultValue: 'ADMIN'},
-    sucursalId: { type: DataTypes.INTEGER, allowNull: true }
+    sucursalId: { type: DataTypes.INTEGER, allowNull: true },
+    activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
   }, {
     sequelize,
     modelName: 'Admin',

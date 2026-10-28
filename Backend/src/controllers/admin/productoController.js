@@ -12,6 +12,17 @@ const {
     sequelize,
 } = require('../../models');
 const { factorMinimo } = require('../../utils/disponibilidad');
+const { borrarImagen } = require('../../utils/imagenesCloudinary');
+
+// Borra de Cloudinary una imagen que ya no usa ningún producto (tampoco los eliminados,
+// porque los pedidos viejos los siguen mostrando)
+async function borrarImagenSinUso(publicId) {
+    if (!publicId) return;
+    const enUso = await Producto.count({ where: { imagenPublicId: publicId }, paranoid: false });
+    if (enUso === 0) await borrarImagen(publicId);
+}
+
+const { Op } = require('sequelize');
 
 // Todo lo que compone un producto
 const INCLUIR_PARTES = [
@@ -65,6 +76,9 @@ async function validarPartes({ receta, tamanios, grupos }, idPropio = null) {
     }
 
     for (const grupo of grupos ?? []) {
+        // Sin opción incluida elegida: se usa la más barata de la categoría, no hay nada que validar
+        if (grupo.productoIncluidoId == null) continue;
+
         if (idPropio && grupo.productoIncluidoId === idPropio) {
             return 'Un combo no puede incluirse a sí mismo';
         }
@@ -163,6 +177,7 @@ const crearProducto = async (req, res) => {
 
         const completo = await buscarCompleto(nuevo.id);
         return res.status(201).json({ mensaje: 'Producto creado con éxito', producto: formatear(completo) });
+
     } catch (error) {
         if (t && !confirmado) await t.rollback();
         console.error(error);
@@ -201,11 +216,18 @@ const editarProductoPorId = async (req, res) => {
             return res.status(400).json({ code: errorPartes });
         }
 
+        const imagenAnterior = producto.imagenPublicId;
+
         t = await sequelize.transaction();
         await producto.update(datos, { transaction: t });
         await guardarPartes(producto.id, { receta, tamanios: tamaniosFinales, grupos }, t);
         await t.commit();
         confirmado = true;
+
+        // Si se cambió la foto, la anterior ya no hace falta en Cloudinary
+        if (datos.imagenPublicId !== undefined && imagenAnterior && imagenAnterior !== datos.imagenPublicId) {
+            await borrarImagenSinUso(imagenAnterior);
+        }
 
         const completo = await buscarCompleto(producto.id);
         return res.status(200).json({ mensaje: 'Producto editado con éxito', producto: formatear(completo) });
@@ -217,7 +239,6 @@ const editarProductoPorId = async (req, res) => {
 };
 
 // Borrado lógico: el producto deja de verse en el panel y en la tienda,
-// pero se conserva para los pedidos que ya lo tienen
 const eliminarProducto = async (req, res) => {
     try {
         const producto = await Producto.findByPk(req.params.id);
@@ -225,9 +246,11 @@ const eliminarProducto = async (req, res) => {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
 
-        if (enCombos > 0) {
+        // No se puede borrar si es la opción incluida de un combo
+        const usosEnCombos = await ComboGrupo.count({ where: { productoIncluidoId: producto.id } });
+        if (usosEnCombos > 0) {
             return res.status(409).json({
-                mensaje: 'Este producto es la opción incluida de un combo. Cambiá ese combo antes de eliminarlo.'
+                mensaje: 'Este producto es la opción incluida de un combo. Cambiala en el combo antes de eliminarlo.',
             });
         }
 
@@ -296,6 +319,62 @@ const verStockProducto = async (req, res) => {
         res.status(500).json({ mensaje: 'Error al obtener el stock del producto' });
     }
 };
+
+
+const restaurarProducto = async (req, res) => {
+    try {
+        // paranoid: false permite buscar también productos eliminados
+        const producto = await Producto.findByPk(req.params.id, {
+            paranoid: false,
+        });
+
+        if (!producto) {
+            return res.status(404).json({
+                mensaje: 'Producto no encontrado',
+            });
+        }
+
+        if (!producto.deletedAt) {
+            return res.status(400).json({
+                mensaje: 'El producto ya está activo',
+            });
+        }
+
+        await producto.restore();
+
+        return res.status(200).json({
+            mensaje: 'Producto restaurado con éxito',
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al restaurar el producto',
+        });
+    }
+};
+
+
+const obtenerProductosEliminados = async (req, res) => {
+    try {
+        const productos = await Producto.findAll({
+            paranoid: false,
+            where: {
+                deletedAt: { [Op.ne]: null },
+            },
+                include: INCLUIR_PARTES,
+                order: [['id', 'ASC']],
+        });
+
+        return res.json(productos.map(formatear));
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            mensaje: 'Error al obtener los productos eliminados',
+        });
+    }
+};
+
+
 module.exports = {
     obtenerProductos,
     obtenerProductoPorId,
@@ -303,4 +382,6 @@ module.exports = {
     eliminarProducto,
     editarProductoPorId,
     verStockProducto,
+    restaurarProducto,
+    obtenerProductosEliminados,
 };

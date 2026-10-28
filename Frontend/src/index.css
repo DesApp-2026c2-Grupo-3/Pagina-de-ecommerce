@@ -1,10 +1,34 @@
 @import "tailwindcss";
+@import "./styles/animaciones.css";
 
 @theme {
   --color-brand-red: #e4002b;
   --color-brand-dark: #1a1414;
   --color-brand-cream: #fff7e6;
   --color-brand-green: #28a745;
+  --color-brand-mustard: #ffb81c;
+  --color-brand-sand: #f3e3c7;
+  --color-brand-muted: #6b5a57;
+
+  --font-sans: 'Figtree', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+
+  --shadow-sticker: 6px 6px 0 var(--color-brand-dark);
+
+  /* Ancho de la página: todas las secciones iguales (antes unas eran de 1152 px y otras de 1280 px) */
+  --container-6xl: 80rem;
+  --container-7xl: 80rem;
+
+  /* Pantallas de 1440 px o más (ej: 3xl:grid-cols-5) */
+  --breakpoint-3xl: 90rem;
+}
+
+/* Desde 1440 px de ancho, el contenido crece para aprovechar la pantalla */
+@media (min-width: 90rem) {
+  :root {
+    --container-6xl: 86rem;
+    --container-7xl: 86rem;
+  }
 }
 
 @layer base {
@@ -14,10 +38,21 @@
     flex-direction: column;
   }
 
- html {
-  overflow-y: scroll; 
-}
-  
+  /* La página no muestra barra de scroll: para subir está el BotonSubir */
+  html {
+    overflow-y: scroll;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Paneles con scroll interno (modales, carrito…): barra finita con los colores de la marca */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-muted) transparent;
+  }
+
   body,
   html {
     cursor: default;
@@ -69,4 +104,66 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Edge nuevo */
+}
+
+/* Pista de "deslizá": una manito que oscila de derecha a izquierda un trayecto corto, como arrastrando la fila.
+   El ciclo dura 30 s y la manito solo se ve en los primeros ~5 s (tres vaivenes), así que se repite
+   cada 30 segundos sin ningún temporizador en JS. */
+@keyframes pista-deslizar {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(1);
+  }
+  1% {
+    opacity: 1;
+    transform: translateX(0) scale(1); /* aparece */
+  }
+  2% {
+    opacity: 1;
+    transform: translateX(0) scale(0.9); /* "apoya" el dedo */
+  }
+  /* vaivén 1 */
+  4% {
+    transform: translateX(-70px) scale(0.9);
+  }
+  6% {
+    transform: translateX(0) scale(0.9);
+  }
+  /* vaivén 2 */
+  8% {
+    transform: translateX(-70px) scale(0.9);
+  }
+  10% {
+    transform: translateX(0) scale(0.9);
+  }
+  /* vaivén 3 */
+  12% {
+    transform: translateX(-70px) scale(0.9);
+  }
+  14% {
+    opacity: 1;
+    transform: translateX(0) scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(0) scale(1); /* levanta el dedo */
+  }
+  17%,
+  100% {
+    opacity: 0;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.pista-deslizar {
+  display: block;
+  /* "backwards": durante la espera inicial toma el primer cuadro (invisible) en vez de verse quieta */
+  animation: pista-deslizar 30s ease-in-out 1.2s infinite backwards;
+}
+
+/* Si la persona pidió menos movimiento en su sistema, no se anima */
+@media (prefers-reduced-motion: reduce) {
+  .pista-deslizar {
+    display: none;
+  }
 }

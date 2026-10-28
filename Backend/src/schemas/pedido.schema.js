@@ -15,6 +15,11 @@ const pedidoSchema = Joi.object({
         'any.required': 'Tenés que seleccionar una sucursal'
     }),
 
+    observaciones: Joi.string().max(500).allow('', null).optional().messages({
+        'string.base': 'Las observaciones deben ser un texto',
+        'string.max': 'Las observaciones no pueden superar los 500 caracteres'
+    }),
+
         productos: Joi.array().items(
         Joi.object({
             productoId: Joi.number().integer().positive().required().messages({
@@ -26,6 +31,10 @@ const pedidoSchema = Joi.object({
                 'number.min': 'La cantidad debe ser al menos 1',
                 'number.max': 'No se pueden pedir más de 20 unidades de un mismo producto',
                 'any.required': 'La cantidad es obligatoria'
+            }),
+            // Promo con la que se agregó la línea (ver config/promociones.js)
+            promoId: Joi.string().max(60).optional().messages({
+                'string.base': 'La promo no es válida'
             }),
             // Tamaño elegido (id de la tabla Tamanios), si el producto tiene tamaños
             tamanioId: Joi.number().integer().positive().optional().messages({

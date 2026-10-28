@@ -1,12 +1,5 @@
-import { promoCategories, promotions } from '../mocks/promotions'
-import type { Category, Product } from '../types/product'
+import { httpClient } from './httpClient'
+import type { Promociones } from '../types/promo'
 
-// Por ahora devuelve los mocks. El día que conectemos al backend,
-// esta función pasa a hacer un fetch/axios y nada más cambia afuera.
-export const getPromotions = async (): Promise<Product[]> => {
-  return promotions
-}
-
-export const getPromoCategories = async (): Promise<Category[]> => {
-  return promoCategories
-}
+// Las promos las define el backend (config/promociones.js) y las valida al crear el pedido
+export const getPromociones = () => httpClient<Promociones>('/promociones')

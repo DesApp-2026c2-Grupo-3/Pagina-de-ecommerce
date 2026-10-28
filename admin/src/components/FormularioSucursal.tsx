@@ -1,81 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import AddressPicker, { type UbicacionValue } from './AddressPicker'
+import AddressPicker from './AddressPicker'
+import EditorHorario from './EditorHorario'
+import type { DatosSucursal, DiaSemana, HorarioDia } from '../types/sucursal.types'
+import { aplicarDiaATodos, formatearHorario, opcionesZonaHoraria } from '../utils/horario'
+import { validarPaso } from '../utils/sucursalForm'
 
-export interface DatosSucursal {
-  nombre: string
-  telefono: string
-  horario: string
-  ubicacion: UbicacionValue
-  radioEntregaKm: string
-}
-
-export const sucursalVacia: DatosSucursal = {
-  nombre: '',
-  telefono: '',
-  horario: '',
-  ubicacion: { calle: '', numero: '', localidad: '', provincia: '', codigoPostal: '', latitud: null, longitud: null },
-  radioEntregaKm: '5',
-}
-
-// De la sucursal que devuelve el backend al formulario
-export function desdeSucursal(s: any): DatosSucursal {
-  return {
-    nombre: s.nombre ?? '',
-    telefono: s.telefono ?? '',
-    horario: s.horario ?? '',
-    ubicacion: {
-      calle: s.calle ?? '',
-      numero: s.numero ?? '',
-      localidad: s.localidad ?? '',
-      provincia: s.provincia ?? '',
-      codigoPostal: s.codigoPostal ?? '',
-      latitud: s.latitud != null ? Number(s.latitud) : null,
-      longitud: s.longitud != null ? Number(s.longitud) : null,
-    },
-    radioEntregaKm: s.radioEntregaKm != null ? String(s.radioEntregaKm) : '5',
-  }
-}
-
-// Del formulario a lo que espera el backend
-export function aPedido(d: DatosSucursal) {
-  return {
-    nombre: d.nombre.trim(),
-    telefono: d.telefono.trim(),
-    horario: d.horario.trim(),
-    calle: d.ubicacion.calle,
-    numero: d.ubicacion.numero,
-    localidad: d.ubicacion.localidad,
-    provincia: d.ubicacion.provincia,
-    codigoPostal: d.ubicacion.codigoPostal,
-    latitud: d.ubicacion.latitud,
-    longitud: d.ubicacion.longitud,
-    radioEntregaKm: Number(d.radioEntregaKm),
-  }
-}
-
-const PASOS = ['Datos', 'Ubicación', 'Entrega']
-
-// Devuelve el error del paso, o '' si está completo
-function validarPaso(n: number, d: DatosSucursal): string {
-  if (n === 1) {
-    if (d.nombre.trim().length < 3) return 'El nombre debe tener al menos 3 caracteres.'
-    if (d.telefono && !/^[0-9+\s-]*$/.test(d.telefono)) {
-      return 'El teléfono solo puede contener números, espacios, guiones y el signo +.'
-    }
-  }
-  if (n === 2) {
-    const u = d.ubicacion
-    if (!u.calle || !u.numero) return 'Buscá y elegí la dirección de la sucursal, con altura.'
-    if (u.latitud === null || u.longitud === null) return 'Marcá la ubicación en el mapa.'
-    if (!u.localidad || !u.provincia) return 'La dirección elegida no tiene localidad o provincia. Probá con otra búsqueda.'
-  }
-  if (n === 3) {
-    const radio = Number(d.radioEntregaKm)
-    if (!radio || radio <= 0) return 'El radio de entrega debe ser mayor a 0.'
-    if (radio > 30) return 'El radio de entrega no puede superar los 30 km.'
-  }
-  return ''
-}
+const PASOS = ['Datos', 'Horario', 'Ubicación', 'Entrega']
 
 const campo = 'w-full rounded border p-2'
 
@@ -94,6 +24,12 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
 
   function cambiar<K extends keyof DatosSucursal>(clave: K, valor: DatosSucursal[K]) {
     setDatos((prev) => ({ ...prev, [clave]: valor }))
+    setError('')
+  }
+
+  // Cambia un solo día del horario, sin tocar los demás (y sin compartir referencias)
+  function cambiarDia(dia: DiaSemana, valor: HorarioDia) {
+    setDatos((prev) => ({ ...prev, horario: { ...prev.horario, [dia]: valor } }))
     setError('')
   }
 
@@ -149,7 +85,7 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
                 type="button"
                 onClick={() => irAPaso(n)}
                 aria-current={paso === n ? 'step' : undefined}
-                className={`w-full rounded border-b-4 px-2 py-2 text-left text-sm font-semibold transition-colors ${
+                className={`w-full rounded border-b-4 px-1 py-2 text-left text-xs font-semibold transition-colors sm:px-2 sm:text-sm ${
                   paso === n
                     ? 'border-orange-500 text-orange-600'
                     : n < paso
@@ -179,40 +115,62 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
                 placeholder="Ej: BurgerFast Morón"
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="font-medium">
-                  Teléfono <span className="font-normal text-gray-500">(opcional)</span>
+            <div>
+              <label className="font-medium">
+                Teléfono <span className="font-normal text-gray-500">(opcional)</span>
+              </label>
+              <input
+                type="tel"
+                maxLength={20}
+                value={datos.telefono}
+                onChange={(e) => cambiar('telefono', e.target.value)}
+                className={`${campo} sm:max-w-xs`}
+                placeholder="Ej: 11 4567-8900"
+              />
+            </div>
+          </div>
+        )}
+
+        {paso === 2 && (
+          <div className="flex flex-col gap-4">
+            <EditorHorario horario={datos.horario} onCambiarDia={cambiarDia} />
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <button
+                type="button"
+                onClick={() => cambiar('horario', aplicarDiaATodos(datos.horario, 'lunes'))}
+                className="self-start text-sm font-semibold text-orange-600 hover:underline"
+              >
+                Aplicar lunes a todos los días
+              </button>
+
+              <div className="w-full sm:max-w-xs">
+                <label htmlFor="zona-horaria" className="font-medium">
+                  Zona horaria
                 </label>
-                <input
-                  type="tel"
-                  maxLength={20}
-                  value={datos.telefono}
-                  onChange={(e) => cambiar('telefono', e.target.value)}
+                <select
+                  id="zona-horaria"
+                  value={datos.zonaHoraria}
+                  onChange={(e) => cambiar('zonaHoraria', e.target.value)}
                   className={campo}
-                  placeholder="Ej: 11 4567-8900"
-                />
-              </div>
-              <div>
-                <label className="font-medium">
-                  Horario <span className="font-normal text-gray-500">(opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  maxLength={100}
-                  value={datos.horario}
-                  onChange={(e) => cambiar('horario', e.target.value)}
-                  className={campo}
-                  placeholder="Ej: Lun a Dom 11 a 23 h"
-                />
+                >
+                  {opcionesZonaHoraria(datos.zonaHoraria).map((zona) => (
+                    <option key={zona} value={zona}>
+                      {zona}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">
+                  Los horarios se interpretan en esta zona (los pedidos fuera del horario se rechazan).
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {paso === 2 && <AddressPicker value={u} onChange={(nueva) => cambiar('ubicacion', nueva)} />}
+        {paso === 3 && <AddressPicker value={u} onChange={(nueva) => cambiar('ubicacion', nueva)} />}
 
-        {paso === 3 && (
+        {paso === 4 && (
           <div className="flex flex-col gap-4">
             <div className="flex items-start justify-between gap-3 rounded bg-gray-50 px-3 py-2">
               <div className="min-w-0">
@@ -220,14 +178,24 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
                 <p className="text-sm text-gray-600">
                   📍 {u.calle} {u.numero}, {u.localidad}
                 </p>
+                <p className="text-sm text-gray-600">Horario: {formatearHorario(datos.horario)}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => irAPaso(2)}
-                className="shrink-0 text-sm font-semibold text-orange-600 hover:underline"
-              >
-                Cambiar
-              </button>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <button
+                  type="button"
+                  onClick={() => irAPaso(3)}
+                  className="text-sm font-semibold text-orange-600 hover:underline"
+                >
+                  Cambiar dirección
+                </button>
+                <button
+                  type="button"
+                  onClick={() => irAPaso(2)}
+                  className="text-sm font-semibold text-orange-600 hover:underline"
+                >
+                  Cambiar horario
+                </button>
+              </div>
             </div>
 
             <div>

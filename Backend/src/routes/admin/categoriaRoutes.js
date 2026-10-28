@@ -5,11 +5,14 @@ const categoriaController = require('../../controllers/admin/categoriaController
 const { validarCategoria } = require('../../middleware/admin/validarCategoria');
 const { esIdValido } = require('../../middleware/esIdValido');
 const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
+const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
 
 
-router.get('/', categoriaController.obtenerCategorias);
+router.get('/', esAdminJwt, categoriaController.obtenerCategorias);
 router.post('/nueva', esMasterJwt, validarCategoria, categoriaController.crearCategoria);
 router.patch('/editar/:id', esMasterJwt, validarCategoria, esIdValido, categoriaController.editarCategoriaPorId);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, categoriaController.eliminarCategorias);
+router.patch('/:id/deshabilitar', esMasterJwt, esIdValido, categoriaController.deshabilitarCategoria);
+router.patch( '/:id/habilitar', esMasterJwt, esIdValido, categoriaController.habilitarCategoria);
 
 module.exports = router;

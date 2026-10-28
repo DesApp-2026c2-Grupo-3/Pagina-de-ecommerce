@@ -13,6 +13,8 @@ module.exports = (sequelize, DataTypes) => {
     nombre: { type: DataTypes.STRING, allowNull: false, unique: true },
     // Orden para mostrarlos: 1 = regular, 2 = mediano, 3 = grande
     orden: { type: DataTypes.INTEGER, allowNull: false },
+    // Imagen representativa del tamaño (ej: /imagenes/Formatos/Formato-Regular.png). Se usa en el selector de combos.
+    imagen: { type: DataTypes.STRING, allowNull: true },
   }, {
     sequelize,
     modelName: 'Tamanio',

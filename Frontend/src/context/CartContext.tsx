@@ -2,12 +2,17 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { ProductoBackend } from '../types/product'
 import type { CartItem } from '../types/cart'
 import { ordenarTamanios } from '../config/combo'
+import { getProducts } from '../services/productService'
 
 interface AddItemOptions {
   unitPrice?: number
   personalizaciones?: CartItem['personalizaciones']
   tamanioId?: number | null
   combo?: CartItem['combo']
+  promoId?: string
+  descuento?: number
+  precioLista?: number
+  promoFija?: boolean
 }
 
 interface CartContextType {
@@ -25,6 +30,8 @@ interface CartContextType {
     options?: AddItemOptions,
   ) => void
   removeItem: (id: string) => void
+  /** Quita todas las líneas de una promo */
+  removePromo: (promoId: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
   totalItems: number
@@ -42,8 +49,11 @@ function buildItemId(
   tamanioId: number | null,
   personalizaciones: CartItem['personalizaciones'] = [],
   combo?: CartItem['combo'],
+  promoId?: string,
 ) {
   let id = tamanioId ? `${productId}-t${tamanioId}` : String(productId)
+  // La misma cosa con y sin promo (o en dos promos distintas) va en líneas separadas
+  if (promoId) id += `-p${promoId}`
   if (combo && combo.length > 0) {
     id += `-c${[...combo]
       .sort((a, b) => a.grupoId - b.grupoId)
@@ -71,7 +81,7 @@ function crearLinea(
   const elegido = tamanios.find((t) => t.tamanioId === tamanioId)
 
   return {
-    id: buildItemId(product.id, tamanioId, options?.personalizaciones, options?.combo),
+    id: buildItemId(product.id, tamanioId, options?.personalizaciones, options?.combo, options?.promoId),
     product,
     quantity,
     selectedOptions,
@@ -80,6 +90,14 @@ function crearLinea(
     unitPrice: options?.unitPrice ?? Number(elegido?.precio ?? product.precio),
     personalizaciones: options?.personalizaciones,
     combo: options?.combo,
+    ...(options?.promoId
+      ? {
+          promoId: options.promoId,
+          descuento: options.descuento,
+          precioLista: options.precioLista,
+          promoFija: options.promoFija,
+        }
+      : {}),
   }
 }
 
@@ -118,6 +136,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
   }, [items])
+
+  // El carrito guarda una copia del producto: si su imagen cambió de ruta desde que se agregó
+  // (ej: catálogo nuevo), se actualiza con la del catálogo actual para que no se vea rota.
+  useEffect(() => {
+    if (items.length === 0) return
+    let vigente = true
+    getProducts()
+      .then((catalogo) => {
+        if (!vigente) return
+        const imagenes = new Map(catalogo.map((p) => [p.id, p.imagen]))
+        setItems((prev) => {
+          const hayCambios = prev.some((i) => imagenes.has(i.product.id) && imagenes.get(i.product.id) !== i.product.imagen)
+          if (!hayCambios) return prev
+          return prev.map((i) =>
+            imagenes.has(i.product.id) && imagenes.get(i.product.id) !== i.product.imagen
+              ? { ...i, product: { ...i.product, imagen: imagenes.get(i.product.id) as string } }
+              : i,
+          )
+        })
+      })
+      .catch(() => {})
+    return () => {
+      vigente = false
+    }
+    // Solo al abrir la app: los ítems que se agregan después ya traen la imagen actual
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function addItem(
     product: ProductoBackend,
@@ -171,6 +216,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((item) => item.id !== id))
   }
 
+  function removePromo(promoId: string) {
+    setItems((prev) => prev.filter((item) => item.promoId !== promoId))
+  }
+
   function updateQuantity(id: string, quantity: number) {
     if (quantity <= 0) {
       removeItem(id)
@@ -188,7 +237,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, reemplazarItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}
+      value={{ items, addItem, reemplazarItem, removeItem, removePromo, updateQuantity, clearCart, totalItems, totalPrice }}
     >
       {children}
     </CartContext.Provider>

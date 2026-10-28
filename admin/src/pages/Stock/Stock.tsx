@@ -13,6 +13,7 @@ import {
   MOTIVOS_BAJA,
 } from '../../services/stockService'
 import { useToast } from '../../context/ToastContext'
+import Paginacion from '../../components/Paginacion'
 
 interface ItemStock {
   id: number
@@ -20,6 +21,7 @@ interface ItemStock {
   cantidad: number
   stockMinimo: number | null
   bajoMinimo: boolean
+  activo: boolean
 }
 
 interface Movimiento {
@@ -56,9 +58,18 @@ function descripcion(m: Movimiento) {
 const resta = (m: Movimiento) => m.tipo === 'baja' || m.tipo === 'venta'
 
 // Un insumo está "en alerta" si se quedó sin stock o llegó a su mínimo
-const enAlerta = (item: ItemStock) => item.cantidad <= 0 || item.bajoMinimo
+const enAlerta = (item: ItemStock) => item.activo && (item.cantidad <= 0 || item.bajoMinimo)
 
 function Estado({ item }: { item: ItemStock }) {
+
+  if (!item.activo) {
+    return (
+      <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">
+        Deshabilitado
+      </span>
+    )
+  }
+
   if (item.cantidad <= 0) {
     return <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">Sin stock</span>
   }
@@ -83,6 +94,9 @@ export default function StockSucursal() {
   const [sucursal, setSucursal] = useState<{ nombre: string } | null>(null)
   const [stock, setStock] = useState<ItemStock[]>([])
   const [movimientos, setMovimientos] = useState<Movimiento[]>([])
+
+  const [paginaActual, setPaginaActual] = useState(1)
+  const POR_PAGINA = 10
 
   // Filtros
   const [busqueda, setBusqueda] = useState('')
@@ -115,23 +129,21 @@ export default function StockSucursal() {
     return datosStock
   }
 
-  useEffect(() => {
-    obtenerSucursalPorId(sucursalId)
-      .then(setSucursal)
-      .catch(() => setSucursal(null))
+useEffect(() => {
+  obtenerSucursalPorId(sucursalId)
+    .then(setSucursal)
+    .catch(() => setSucursal(null))
 
-    recargar()
-      .then((datos) => {
-        // La alerta se muestra una sola vez por sesión y por sucursal
-        const clave = `alertaStockVista-${sucursalId}`
-        const enRiesgo = datos.filter(enAlerta)
-        if (enRiesgo.length > 0 && !sessionStorage.getItem(clave)) {
-          setAlerta(enRiesgo)
-          sessionStorage.setItem(clave, 'si')
-        }
-      })
-      .catch((error) => console.error('Error al cargar stock:', error))
-  }, [id])
+recargar()
+  .then((datos) => {
+    const enRiesgo = datos.filter(enAlerta)
+
+    if (enRiesgo.length > 0) {
+      setAlerta(enRiesgo)
+    }
+  })
+  .catch((error) => console.error('Error al cargar stock:', error))
+}, [id])
 
   async function confirmarAumento() {
     if (!aAumentar) return
@@ -202,13 +214,25 @@ export default function StockSucursal() {
   }
 
   const stockFiltrado = stock.filter(
-    (item) =>
-      item.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) &&
-      (filtroEstado === 'todos' ||
-        (filtroEstado === 'sin' && item.cantidad <= 0) ||
-        (filtroEstado === 'bajo' && item.cantidad > 0 && item.bajoMinimo)),
+  (item) =>
+    item.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) &&
+    (filtroEstado === 'todos' ||
+      (filtroEstado === 'bajo' &&
+        item.activo &&
+        item.cantidad > 0 &&
+        item.bajoMinimo) ||
+      (filtroEstado === 'sin' &&
+        item.activo &&
+        item.cantidad <= 0) ||
+      (filtroEstado === 'deshabilitado' && !item.activo)),
   )
+
   const movimientosFiltrados = movimientos.filter((m) => filtroTipo === 'todos' || m.tipo === filtroTipo)
+
+  const stockPaginado = stockFiltrado.slice(
+    (paginaActual - 1) * POR_PAGINA,
+    paginaActual * POR_PAGINA,
+  )
 
   // Botones de cada insumo
   const acciones = (item: ItemStock) => (
@@ -244,6 +268,9 @@ export default function StockSucursal() {
     <main className="p-4 md:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+            Control de inventario por sucursal
+          </p>
           <h1 className="text-3xl font-bold">Stock</h1>
           <p className="mt-2 text-gray-600">{sucursal ? sucursal.nombre : 'Cargando sucursal...'}</p>
         </div>
@@ -266,6 +293,7 @@ export default function StockSucursal() {
             { valor: 'todos', etiqueta: 'Todos los estados' },
             { valor: 'bajo', etiqueta: 'Stock bajo' },
             { valor: 'sin', etiqueta: 'Sin stock' },
+            { valor: 'deshabilitado', etiqueta: 'Deshabilitado' },
           ]}
         />
       </BarraFiltros>
@@ -281,7 +309,7 @@ export default function StockSucursal() {
         <>
           {/* Celular: tarjetas */}
           <ul className="flex flex-col gap-3 md:hidden">
-            {stockFiltrado.map((item) => (
+            {stockPaginado.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{item.nombre}</p>
@@ -308,7 +336,7 @@ export default function StockSucursal() {
                 </tr>
               </thead>
               <tbody>
-                {stockFiltrado.map((item) => (
+                {stockPaginado.map((item) => (
                   <tr key={item.id} className="border-t">
                     <td className="px-6 py-4 font-medium">{item.nombre}</td>
                     <td className="px-6 py-4">
@@ -626,6 +654,13 @@ export default function StockSucursal() {
           </div>
         </div>
       )}
+
+      <Paginacion
+      paginaActual={paginaActual}
+      totalElementos={stockFiltrado.length}
+      elementosPorPagina={POR_PAGINA}
+      cambiarPagina={setPaginaActual}
+      />
     </main>
   )
 }

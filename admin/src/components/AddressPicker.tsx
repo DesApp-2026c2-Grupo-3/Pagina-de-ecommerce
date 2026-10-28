@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { AdvancedMarker, APIProvider, Map, useMap } from '@vis.gl/react-google-maps'
 import { LocateFixed } from 'lucide-react'
+import type { GeoResultado, GeoSugerencia } from '../types/geo.types'
 import {
   autocompletarDireccion,
   detalleDireccion,
   direccionDesdeCoordenadas,
-  type GeoResultado,
-  type GeoSugerencia,
 } from '../services/geoService'
 
 export interface UbicacionValue {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2, Power, RotateCcw } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
@@ -9,6 +9,7 @@ import { useToast } from '../../context/ToastContext'
 import {
   obtenerAdministradores,
   eliminarAdministrador as eliminarAdministradorAPI,
+  reactivarAdmin,
 } from '../../services/administradorService'
 
 interface AdminFila {
@@ -16,6 +17,7 @@ interface AdminFila {
   nombre: string
   email: string
   rol: string
+  activo: boolean
   sucursal: { id: number; nombre: string } | null
 }
 
@@ -68,45 +70,94 @@ export default function Administradores() {
 
   async function eliminar() {
     if (!aEliminar) return
+
     try {
       await eliminarAdministradorAPI(aEliminar.id)
-      setAdministradores((prev) => prev.filter((a) => a.id !== aEliminar.id))
-      mostrarToast('Administrador eliminado!')
+
+      setAdministradores((prev) =>
+        prev.map((a) =>
+          a.id === aEliminar.id ? { ...a, activo: false } : a,
+        ),
+      )
+
+      mostrarToast('Administrador desactivado correctamente')
     } catch (error) {
-      mostrarToast(error instanceof Error ? error.message : 'No se pudo eliminar el administrador')
+      mostrarToast(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo desactivar el administrador',
+      )
     } finally {
       setAEliminar(null)
     }
   }
 
-  const acciones = (a: AdminFila) => (
-    <div className="flex shrink-0 gap-2">
-      <button
-        type="button"
-        onClick={() => navigate(`/admin/administradores/editar/${a.id}`)}
-        aria-label={`Editar ${a.nombre}`}
-        title="Editar"
-        className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
-      >
-        <Pencil size={18} />
-      </button>
+  async function reactivar(a: AdminFila) {
+    try {
+      await reactivarAdmin(a.id)
+
+      setAdministradores((prev) =>
+        prev.map((admin) =>
+          admin.id === a.id ? { ...admin, activo: true } : admin,
+        ),
+      )
+
+      mostrarToast('Administrador reactivado correctamente')
+    } catch (error) {
+      mostrarToast(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo reactivar el administrador',
+      )
+    }
+  }
+
+  
+const acciones = (a: AdminFila) => (
+  <div className="flex shrink-0 gap-2">
+    <button
+      type="button"
+      onClick={() => navigate(`/admin/administradores/editar/${a.id}`)}
+      aria-label={`Editar ${a.nombre}`}
+      title="Editar"
+      className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
+    >
+      <Pencil size={18} />
+    </button>
+
+    {a.activo ? (
       <button
         type="button"
         onClick={() => setAEliminar(a)}
-        aria-label={`Eliminar ${a.nombre}`}
-        title="Eliminar"
+        aria-label={`Desactivar ${a.nombre}`}
+        title="Desactivar"
         className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
       >
-        <Trash2 size={18} />
+        <Power size={18} />
       </button>
-    </div>
-  )
+    ) : (
+      <button
+        type="button"
+        onClick={() => reactivar(a)}
+        aria-label={`Reactivar ${a.nombre}`}
+        title="Reactivar"
+        className={`${botonIcono} bg-blue-200 text-blue-700 hover:bg-blue-300`}
+      >
+        <RotateCcw size={18} />
+      </button>
+    )}
+  </div>
+)
+
 
   return (
-    <main className="p-4 md:p-8">
+    <main className="p-8">
       <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Administradores</h1>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+            Usuarios y permisos
+          </p>
+          <h1 className="text-2xl font-bold break-words sm:text-3xl">Administradores</h1>
           <p className="mt-2 text-gray-600">Gestión de administradores del sistema.</p>
         </div>
         <button
@@ -159,6 +210,9 @@ export default function Administradores() {
                   <p className="mt-1 text-sm text-gray-500">
                     {rolTexto(a.rol)} · {a.sucursal?.nombre ?? 'Sin sucursal'}
                   </p>
+                  <p className={`mt-1 text-sm font-medium ${a.activo ? 'text-green-700' : 'text-red-600'}`}>
+                    {a.activo ? 'Activo' : 'Inactivo'}
+                  </p>
                 </div>
                 {acciones(a)}
               </li>
@@ -174,6 +228,7 @@ export default function Administradores() {
                   <th className="px-6 py-3 text-left">Email</th>
                   <th className="px-6 py-3 text-left">Rol</th>
                   <th className="px-6 py-3 text-left">Sucursal</th>
+                  <th className="px-6 py-3 text-right">Estado</th>
                   <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -184,6 +239,16 @@ export default function Administradores() {
                     <td className="px-6 py-4">{a.email}</td>
                     <td className="px-6 py-4">{rolTexto(a.rol)}</td>
                     <td className="px-6 py-4">{a.sucursal?.nombre ?? 'Sin sucursal'}</td>
+                    <td className="px-6 py-4">
+                      <span
+                      className={`rounded-full px-3 py-1 text-sm font-medium ${
+                        a.activo
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                      }`}>
+                      {a.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end">{acciones(a)}</div>
                     </td>
@@ -204,7 +269,7 @@ export default function Administradores() {
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}
-        mensaje={`¿Seguro que querés eliminar a ${aEliminar?.nombre ?? 'este administrador'}?`}
+        mensaje={`¿Seguro que querés desactivar a ${aEliminar?.nombre ?? 'este administrador'}?`}
         onConfirmar={eliminar}
         onCancelar={() => setAEliminar(null)}
       />

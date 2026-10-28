@@ -6,14 +6,20 @@ import MensajeVacio from '../../components/MensajeVacio'
 import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
 import { obtenerSucursales, cambiarEstadoSucursal } from '../../services/sucursalService'
-
-interface SucursalFila {
-  id: number
-  nombre: string
-  activa: boolean
-}
+import type { Sucursal } from '../../types/sucursal.types'
+import { formatearHorario } from '../../utils/horario'
 
 const POR_PAGINA = 8
+
+// Resumen compacto del horario semanal (el texto completo queda en el title)
+function ResumenHorario({ horario }: { horario: unknown }) {
+  const texto = formatearHorario(horario)
+  return (
+    <span className="block max-w-64 truncate text-sm text-gray-600" title={texto}>
+      {texto}
+    </span>
+  )
+}
 
 function Estado({ activa }: { activa: boolean }) {
   return activa ? (
@@ -29,7 +35,7 @@ export default function Sucursales() {
   const navigate = useNavigate()
   const { mostrarToast } = useToast()
 
-  const [sucursales, setSucursales] = useState<SucursalFila[]>([])
+  const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [paginaActual, setPaginaActual] = useState(1)
 
   // Filtros
@@ -56,7 +62,7 @@ export default function Sucursales() {
   const pagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
   const hayFiltros = busqueda !== '' || filtroEstado !== 'todas'
 
-  async function cambiarEstado(sucursal: SucursalFila) {
+  async function cambiarEstado(sucursal: Sucursal) {
     try {
       const respuesta = await cambiarEstadoSucursal(sucursal.id, !sucursal.activa)
       setSucursales((prev) => prev.map((s) => (s.id === sucursal.id ? respuesta.sucursal : s)))
@@ -67,7 +73,7 @@ export default function Sucursales() {
   }
 
   // Los tres botones, iguales en celular y escritorio
-  const acciones = (s: SucursalFila) => (
+  const acciones = (s: Sucursal) => (
     <div className="flex shrink-0 gap-2">
       <button
         type="button"
@@ -102,9 +108,12 @@ export default function Sucursales() {
   )
 
   return (
-    <main className="p-4 md:p-8">
+    <main className="p-8">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+            Administración de sucursales
+          </p>
           <h1 className="text-3xl font-bold">Sucursales</h1>
           <p className="mt-2 text-gray-600">Gestioná las sucursales y su estado.</p>
         </div>
@@ -145,6 +154,9 @@ export default function Sucursales() {
               <li key={s.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{s.nombre}</p>
+                  <div className="mt-1">
+                    <ResumenHorario horario={s.horario} />
+                  </div>
                   <div className="mt-2">
                     <Estado activa={s.activa} />
                   </div>
@@ -160,6 +172,7 @@ export default function Sucursales() {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left">Nombre</th>
+                  <th className="px-6 py-3 text-left">Horario</th>
                   <th className="px-6 py-3 text-left">Estado</th>
                   <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
@@ -168,6 +181,9 @@ export default function Sucursales() {
                 {pagina.map((s) => (
                   <tr key={s.id} className="border-t">
                     <td className="px-6 py-4 font-medium">{s.nombre}</td>
+                    <td className="px-6 py-4">
+                      <ResumenHorario horario={s.horario} />
+                    </td>
                     <td className="px-6 py-4">
                       <Estado activa={s.activa} />
                     </td>

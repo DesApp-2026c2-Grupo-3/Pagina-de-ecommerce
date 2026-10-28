@@ -7,8 +7,9 @@ import { getProductoDetalle } from '../../services/productService'
 import type { CartItem } from '../../types/cart'
 import type { ProductIngredient, ProductoBackend } from '../../types/product'
 
-// El backend es falso: el test decide qué producto devuelve
-vi.mock('../../services/productService', () => ({ getProductoDetalle: vi.fn() }))
+// El backend es falso: el test decide qué producto devuelve. Sin zona elegida.
+vi.mock('../../services/productService', () => ({ getProductoDetalle: vi.fn(), getProducts: vi.fn().mockResolvedValue([]) }))
+vi.mock('../../context/ZonaContext', () => ({ useZona: () => ({ zona: null }) }))
 
 function ingrediente(datos: Partial<ProductIngredient>): ProductIngredient {
   return {
@@ -122,26 +123,23 @@ beforeEach(() => {
 })
 
 describe('EditarItemModal', () => {
-  test('resume la personalización que ya estaba elegida', async () => {
+  test('muestra lo que ya estaba elegido con los checkboxes de Sacale y Sumale', async () => {
     vi.mocked(getProductoDetalle).mockResolvedValue(hamburguesa)
     renderizar(hamburguesaEnCarrito)
 
-    expect(await screen.findByText('Sin Cebolla · 1 Cheddar extra')).toBeInTheDocument()
-  })
-
-  test('ofrece personalizar los ingredientes', async () => {
-    vi.mocked(getProductoDetalle).mockResolvedValue(hamburguesa)
-    renderizar(hamburguesaEnCarrito)
-
-    expect(await screen.findByRole('button', { name: 'Personalizar' })).toBeInTheDocument()
+    expect(await screen.findByRole('checkbox', { name: /Cebolla/ })).not.toBeChecked()
+    // Cheddar aparece en Sacale (viene en la receta) y en Sumale (extra elegido)
+    for (const casilla of screen.getAllByRole('checkbox', { name: /Cheddar/ })) {
+      expect(casilla).toBeChecked()
+    }
   })
 
   test('muestra el precio por unidad y el total de la línea', async () => {
     vi.mocked(getProductoDetalle).mockResolvedValue(hamburguesa)
     renderizar(hamburguesaEnCarrito)
 
-    // 2 x ($5000 + $500 de cheddar)
-    expect(await screen.findByText('2 x $5.500')).toBeInTheDocument()
+    // 2 × ($5000 + $500 de cheddar)
+    expect(await screen.findByText('2 × $5.500')).toBeInTheDocument()
     expect(screen.getByText('$11.000')).toBeInTheDocument()
   })
 
@@ -149,7 +147,7 @@ describe('EditarItemModal', () => {
     vi.mocked(getProductoDetalle).mockResolvedValue(hamburguesa)
     const onClose = renderizar(hamburguesaEnCarrito)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Guardar' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Guardar cambios' }))
 
     expect(screen.getByTestId('carrito')).toHaveTextContent('1 líneas · total 11000')
     expect(onClose).toHaveBeenCalled()
@@ -159,17 +157,45 @@ describe('EditarItemModal', () => {
     vi.mocked(getProductoDetalle).mockResolvedValue(papas)
     renderizar(papasEnCarrito)
 
-    await userEvent.click(await screen.findByText(/Grande/))    
-    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await userEvent.click(await screen.findByText(/Grande/))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
     expect(screen.getByTestId('carrito')).toHaveTextContent('total 3500')
   })
 
-  test('un producto sin opciones lo avisa', async () => {
+  test('una línea de promo conserva su descuento al cambiar el tamaño', async () => {
+    vi.mocked(getProductoDetalle).mockResolvedValue(papas)
+    renderizar({ ...papasEnCarrito, id: '40-t1-ppromo', promoId: 'promo', descuento: 0.2, precioLista: 2400, unitPrice: 1920 })
+
+    await userEvent.click(await screen.findByText(/Grande/))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    // $3500 con 20 % menos
+    expect(screen.getByTestId('carrito')).toHaveTextContent('total 2800')
+  })
+
+  test('un producto sin opciones muestra solo el precio y se puede guardar', async () => {
     vi.mocked(getProductoDetalle).mockResolvedValue(agua)
     renderizar(aguaEnCarrito)
 
-    expect(await screen.findByText('Este producto no tiene opciones para cambiar.')).toBeInTheDocument()
+    expect(await screen.findByText('$1.000')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+  })
+
+  test('con tamaño e ingredientes se edita en pasos: primero el tamaño, después los ingredientes', async () => {
+    vi.mocked(getProductoDetalle).mockResolvedValue({ ...papas, ingredientes: hamburguesa.ingredientes })
+    renderizar(papasEnCarrito)
+
+    await userEvent.click(await screen.findByText(/Grande/))
+    // En el primer paso no están los ingredientes ni el botón de guardar
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Continuar/ }))
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(screen.getByTestId('carrito')).toHaveTextContent('total 3500')
   })
 
   test('si no se puede cargar el producto, lo avisa', async () => {

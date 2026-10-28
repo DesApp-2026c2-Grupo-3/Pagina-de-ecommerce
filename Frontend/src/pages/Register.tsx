@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext'
 import ErrorAlert from '../components/ErrorAlert'
 import { esEmailValido } from '../utils/validaciones'
 import CampoPassword from '../components/CampoPassword'
+import AuthLayout from '../components/auth/AuthLayout'
+import BotonEnviar from '../components/ui/BotonEnviar'
+import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
 function Register() {
   const { register, loading } = useAuth()
@@ -40,41 +43,53 @@ function Register() {
   }
 
   return (
-    <div className='bg-brand-cream'>
-    <div className="mx-auto flex max-w-md flex-col px-4 py-16">
-      <h1 className="text-3xl font-extrabold text-brand-dark">Crear cuenta</h1>
-      <p className="mt-2 text-gray-600">Registrate para poder confirmar tus pedidos.</p>
-
-        <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-4">        <div>
-          <label htmlFor="name" className="text-sm font-semibold text-brand-dark">
+    <AuthLayout
+      titulo="Crear cuenta"
+      subtitulo="Registrate para poder confirmar tus pedidos."
+      pie={
+        <>
+          ¿Ya tenés cuenta?{' '}
+          <Link to="/login" state={{ from }} className="font-bold text-brand-red hover:underline">
+            Iniciar sesión
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <div>
+          <label htmlFor="name" className={CLASE_LABEL}>
             Nombre
           </label>
           <input
             id="name"
             type="text"
             required
+            autoComplete="given-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
+            placeholder="Ej: Juan"
+            className={CLASE_INPUT}
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="text-sm font-semibold text-brand-dark">
+          <label htmlFor="email" className={CLASE_LABEL}>
             Email
           </label>
           <input
             id="email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
+            placeholder="tu@email.com"
+            className={CLASE_INPUT}
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="text-sm font-semibold text-brand-dark">
+          <label htmlFor="password" className={CLASE_LABEL}>
             Contraseña
           </label>
           <CampoPassword
@@ -85,27 +100,14 @@ function Register() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Mínimo 6 caracteres"
             autoComplete="new-password"
-            className="w-full rounded-lg border border-brand-dark/20 px-4 py-2 focus:border-brand-red focus:outline-none"
+            className={CLASE_INPUT}
           />
         </div>
 
-          <ErrorAlert message={error} />
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 rounded-full bg-brand-red px-6 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-        </button>
+        <ErrorAlert message={error} />
+        <BotonEnviar cargando={loading} texto="Crear cuenta" textoCargando="Creando cuenta..." />
       </form>
-
-      <p className="mt-6 text-center text-sm text-gray-600">
-        ¿Ya tenés cuenta?{' '}
-        <Link to="/login" state={{ from }} className="font-semibold text-brand-red hover:underline">          Iniciar sesión
-        </Link>
-      </p>
-    </div>
-    </div>
+    </AuthLayout>
   )
 }
 

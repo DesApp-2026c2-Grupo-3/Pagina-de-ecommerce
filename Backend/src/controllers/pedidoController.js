@@ -1,4 +1,9 @@
+const { Op } = require('sequelize');
 const { precioMasBarato } = require('../utils/combo');
+const { buscarPromo, vigenteHoy, aplicarDescuento } = require('../config/promociones');
+
+// Regla de negocio: pedidos en curso simultáneos por cliente
+const MAX_PEDIDOS_EN_CURSO = 2;
 const {
     Pedido,
     DetallePedido,
@@ -12,13 +17,15 @@ const {
     ProductoTamanio,
     StockSucursal,
     MovimientoStock,
+    historialDeTiemposPedido,
     sequelize,
 } = require('../models');
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
+const { estadoSucursal } = require('../utils/horarioSucursal');
 
-// Cuántas unidades de más se pueden pedir de un ingrediente (igual que el front)
-const EXTRA_MAX_INCREMENTO = 3;
+// Regla de negocio: 1 porción extra por ingrediente (checkbox)
+const EXTRA_MAX_INCREMENTO = 1;
 
 // Error "esperable" (datos inválidos, sin stock...): corta el pedido y responde con este estado
 class ErrorPedido extends Error {
@@ -89,45 +96,59 @@ async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t })
     if (!tamanio) {
         throw new ErrorPedido(400, `${elegido.nombre} no está disponible en ese tamaño`);
     }
-
-    const referencia = await precioMasBarato(grupo.categoriaId, tamanio.tamanioId, t);
-    const recargo = referencia === null ? 0 : Math.max(0, Number(tamanio.precio) - referencia);
+    // Lugares que no cobran diferencia (ej: bebidas): cualquier opción vale lo mismo
+    let recargo = 0;
+    if (grupo.cobraDiferencia !== false) {
+        const referencia = await precioMasBarato(grupo.categoriaId, tamanio.tamanioId, t);
+        recargo = referencia === null ? 0 : Math.max(0, Number(tamanio.precio) - referencia);
+    }
 
     const receta = await RecetaInsumo.findAll({ where: { productoId: elegido.id }, transaction: t });
 
     return { elegido, tamanio, recargo, receta };
 }
 //Solo para pruebas
-const obtenerPedidos = async (req,res) => {
-    try{
+const obtenerPedidos = async (req, res) => {
+    try {
 
-        const pedidos = await Pedido.findAll({include: [{model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]})
+        const pedidos = await Pedido.findAll({ include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }] })
 
         res.status(200).json(pedidos)
 
-    } catch(error){
+    } catch (error) {
         console.error('Algo salio mal', error.message)
-        res.status(500).json({mensaje: 'Error del servidor'})
+        res.status(500).json({ mensaje: 'Error del servidor' })
     }
 
 }
 
 const obtenerPedidosPorUsuario = async (req, res) => {
-  try {
-    const pedidos = await Pedido.findAll({
-      where: { usuarioId: req.params.usuarioId },
-include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }],      order: [['fecha', 'DESC']],
-    });
+    try {
+        const pedidos = await Pedido.findAll({
+            where: { usuarioId: req.params.usuarioId },
+            include: [{
+                model: DetallePedido,
+                include: [{ model: Producto, paranoid: false }],
+            }, {
+                model: Sucursal,
+            }, {
+                model: historialDeTiemposPedido,
+                as: 'historialDeTiemposPedidos',
+                attributes: ['estado', 'fecha'],
+            }],
+            order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+        });
 
-    res.status(200).json(pedidos);
-  } catch (error) {
-    console.error('Algo salió mal', error.message);
-    res.status(500).json({ mensaje: 'Error del servidor' });
-  }
+
+        res.status(200).json(pedidos);
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error del servidor' });
+    }
 };
 
-const obtenerPedidoId = async (req,res) => {
-    try{
+const obtenerPedidoId = async (req, res) => {
+    try {
         const pedido = await Pedido.findByPk(req.params.id, {
             include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]
         });
@@ -139,7 +160,7 @@ const obtenerPedidoId = async (req,res) => {
         }
 
         res.json(pedido);
-    } catch(error){
+    } catch (error) {
         console.error(error);
 
         res.status(500).json({
@@ -148,33 +169,101 @@ const obtenerPedidoId = async (req,res) => {
     };
 };
 
-const crearPedido = async (req,res) => {
+// Valida las líneas con promoId y devuelve Map(índice de línea -> descuento).
+// Reglas: la promo existe y vale hoy; cada producto pertenece a la promo; todos sus productos vienen,
+// en la misma proporción (la promo se pide k veces completa) y sin pasar el máximo por pedido.
+async function validarPromociones(productos) {
+    const descuentos = new Map();
+    const porPromo = new Map();
+    productos.forEach((linea, indice) => {
+        if (!linea.promoId) return;
+        if (!porPromo.has(linea.promoId)) porPromo.set(linea.promoId, []);
+        porPromo.get(linea.promoId).push({ linea, indice });
+    });
+    if (porPromo.size === 0) return descuentos;
+
+    for (const [promoId, lineas] of porPromo) {
+        const promo = buscarPromo(promoId);
+        if (!promo || !vigenteHoy(promo)) {
+            throw new ErrorPedido(400, 'Una de las promos de tu carrito ya no está vigente. Quitala y volvé a agregarla.');
+        }
+
+        const ids = await Producto.findAll({
+            where: { nombre: { [Op.in]: promo.items.map((i) => i.nombre) } },
+            attributes: ['id', 'nombre'],
+        });
+        const itemPorId = new Map(
+            ids.map((p) => [p.id, promo.items.find((i) => i.nombre === p.nombre)])
+        );
+
+        // Unidades pedidas de cada producto de la promo
+        const unidades = new Map();
+        for (const { linea, indice } of lineas) {
+            const item = itemPorId.get(Number(linea.productoId));
+            if (!item) {
+                throw new ErrorPedido(400, `Un producto no corresponde a la promo "${promo.titulo}"`);
+            }
+            unidades.set(item.nombre, (unidades.get(item.nombre) ?? 0) + Number(linea.cantidad));
+            descuentos.set(indice, item.descuento);
+        }
+
+        const veces = promo.items.map((i) => (unidades.get(i.nombre) ?? 0) / i.cantidad);
+        const k = veces[0];
+        if (!Number.isInteger(k) || k < 1 || veces.some((v) => v !== k)) {
+            throw new ErrorPedido(400, `La promo "${promo.titulo}" tiene que pedirse completa`);
+        }
+        if (promo.maxPorPedido && k > promo.maxPorPedido) {
+            throw new ErrorPedido(400, `La promo "${promo.titulo}" se puede pedir ${promo.maxPorPedido} vez por pedido`);
+        }
+    }
+    return descuentos;
+}
+
+const crearPedido = async (req, res) => {
 
     const t = await sequelize.transaction();
 
-    try{
-        const { usuarioId, productos, direccionId, sucursalId } = req.body;
+
+    try {
+        const { usuarioId, productos, direccionId, sucursalId, observaciones } = req.body;
         const usuario = await Usuario.findByPk(usuarioId);
 
-        if(!usuario){
+        if (!usuario) {
             await t.rollback();
-            return res.status(404).json({ mensaje: 'Usuario no encontrado'})
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' })
+        }
+
+        const enCurso = await Pedido.count({
+            where: {
+                usuarioId,
+                estado: { [Op.notIn]: ['Entregado', 'Cancelado', 'entregado', 'cancelado'] },
+            },
+        });
+        if (enCurso >= MAX_PEDIDOS_EN_CURSO) {
+            await t.rollback();
+            return res.status(409).json({
+                mensaje: `Ya tenés ${enCurso} pedidos en curso. Esperá a que se entregue alguno para hacer otro.`
+            });
         }
 
         const sucursal = await Sucursal.findByPk(sucursalId);
-        if(!sucursal){
+        if (!sucursal) {
             await t.rollback();
-            return res.status(404).json({ mensaje: 'Sucursal no encontrada'})
+            return res.status(404).json({ mensaje: 'Sucursal no encontrada' })
         }
 
         const direccion = await Direccion.findOne({ where: { id: direccionId, usuarioId } });
         if (!direccion) {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Dirección no encontrada' });
-        }        
-                // La sucursal tiene que estar activa y llegar a la dirección
+        }
+        // La sucursal tiene que estar activa, abierta en este horario y llegar a la dirección
         if (!sucursal.activa) {
             throw new ErrorPedido(400, `${sucursal.nombre} no está tomando pedidos en este momento`);
+        }
+        const estadoHorario = estadoSucursal(sucursal.horario, sucursal.zona_horaria);
+        if (!estadoHorario.abierta) {
+            throw new ErrorPedido(400, estadoHorario.motivo ?? 'La sucursal seleccionada se encuentra cerrada en este horario');
         }
         if (direccion.latitud == null || direccion.longitud == null) {
             throw new ErrorPedido(400, 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.');
@@ -187,7 +276,7 @@ const crearPedido = async (req,res) => {
             throw new ErrorPedido(400, `Tu dirección está fuera de la zona de entrega de ${sucursal.nombre}`);
         }
 
-         // Verificar que haya productos
+        // Verificar que haya productos
         if (!Array.isArray(productos) || productos.length === 0) {
             await t.rollback();
             return res.status(400).json({
@@ -195,15 +284,23 @@ const crearPedido = async (req,res) => {
             });
         }
 
+        // Promociones: descuento de cada línea (por índice). Se valida antes de crear el pedido.
+        const descuentos = await validarPromociones(productos);
+
         const nuevoPedido = await Pedido.create({
-            usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0
-        }, { transaction: t});
+
+            usuarioId, direccionId, sucursalId, fecha: new Date(), total: 0,
+            observaciones: typeof observaciones === 'string'
+                ? observaciones.trim() || null
+                : null,
+        }, { transaction: t });
 
         let total = 0;
-
+        // Subtotal de cada línea, para controlar la compra mínima de las promos
+        const lineasCobradas = [];
         // Recorrer los productos recibidos
-        for ( const producto of productos){
-            
+        for (const [indice, producto] of productos.entries()) {
+
             if (!producto.productoId || !producto.cantidad) {
                 throw new ErrorPedido(400, 'Cada producto debe tener productoId y cantidad');
             }
@@ -269,7 +366,7 @@ const crearPedido = async (req,res) => {
                     throw new ErrorPedido(400, `El insumo ${item.Insumo?.nombre ?? insumoId} no se puede aumentar en ${productoBD.nombre}`);
                 }
                 if (cantidad - base > EXTRA_MAX_INCREMENTO * pasoExtra(base)) {
-                    throw new ErrorPedido(400, `No se pueden agregar más de ${EXTRA_MAX_INCREMENTO} ${item.Insumo?.nombre ?? 'unidades'} extra`);
+                    throw new ErrorPedido(400, `Solo se puede agregar 1 porción extra de ${item.Insumo?.nombre ?? 'cada ingrediente'}`);
                 }
             }
 
@@ -360,11 +457,14 @@ const crearPedido = async (req,res) => {
 
             // Calcular subtotal (precio base + extras agregados + recargos del combo;
             // la personalización de sacar no descuenta)
-            const precioUnitario = precioBase + extraUnitario + recargoCombo;
+            // Con promo, el descuento se aplica sobre todo (igual que el front)
+            const precioLista = precioBase + extraUnitario + recargoCombo;
+            const precioUnitario = aplicarDescuento(precioLista, descuentos.get(indice) ?? 0);
             const subtotal = precioUnitario * producto.cantidad;
 
             // Acumular al total
             total += subtotal;
+            lineasCobradas.push({ promoId: producto.promoId, subtotal });
 
             await DetallePedido.create({
                 pedidoId: nuevoPedido.id,
@@ -383,16 +483,38 @@ const crearPedido = async (req,res) => {
                         recargo: recargoCombo
                     }
                     : null
-            },{transaction: t});
+            }, { transaction: t });
         }
 
-        await nuevoPedido.update({ total: total }, {transaction: t});
+                // Promos con compra mínima (ej: papas gratis): el resto del pedido tiene que llegar al mínimo
+        const promosDelPedido = [...new Set(productos.map((p) => p.promoId).filter(Boolean))];
+        for (const promoId of promosDelPedido) {
+            const promo = buscarPromo(promoId);
+            if (!promo?.compraMinima) continue;
+            const resto = lineasCobradas
+                .filter((l) => l.promoId !== promoId)
+                .reduce((suma, l) => suma + l.subtotal, 0);
+            if (resto < promo.compraMinima) {
+                const falta = (promo.compraMinima - resto).toLocaleString('es-AR');
+                throw new ErrorPedido(400, `Te faltan $${falta} en otros productos para la promo "${promo.titulo}"`);
+            }
+        }
+        
+        await nuevoPedido.update({ total: total }, { transaction: t });
+
+        // Registro inicial de la línea de tiempo: nace en el estado actual del pedido
+        await historialDeTiemposPedido.create({
+            pedidoId: nuevoPedido.id,
+            estado: nuevoPedido.estado,
+            estadoAnterior: null,
+            fecha: nuevoPedido.fecha,
+        }, { transaction: t });
 
         await t.commit();
 
         return res.status(201).json(nuevoPedido)
 
-    } catch (error){
+    } catch (error) {
 
         await t.rollback();
 
@@ -402,12 +524,9 @@ const crearPedido = async (req,res) => {
 
         console.error('Algo salio mal', error.message)
 
-        return res.status(500).json({mensaje: 'Error del servidor'})
+        return res.status(500).json({ mensaje: 'Error del servidor' })
     }
 };
-
-
-//const obtenerHistorialPedido = async (req,res) => {};
 
 
 module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };
