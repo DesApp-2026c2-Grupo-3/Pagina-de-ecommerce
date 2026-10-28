@@ -150,6 +150,8 @@ export default function Pedidos() {
   const { mostrarToast } = useToast();
   const { administrador } = useAuth();
   const esMaster = administrador?.rol === "MASTER";
+  // Solo el empleado de la sucursal cambia el estado; master y encargado ven en solo lectura
+  const puedeCambiarEstado = administrador?.rol === "EMPLEADO";
 
   // El admin de sucursal ve la suya; el master elige cuál ver
   const [sucursales, setSucursales] = useState<SucursalOpcion[]>([]);
@@ -252,6 +254,7 @@ export default function Pedidos() {
   const puedeAceptar = (pedido: PedidoFila) => {
     const elegida = seleccion[pedido.id];
     if (elegida === undefined) return false;
+    if (!puedeCambiarEstado) return false;
     if (guardando === pedido.id) return false;
     if (esEstadoFinal(pedido.estado)) return false;
     return puedePasarA(pedido.estado, elegida);
@@ -298,7 +301,7 @@ export default function Pedidos() {
           pedidoId={pedido.id}
           valor={etapaActual(pedido)}
           estadoActual={pedido.estado}
-          bloqueado={cerrado || guardando === pedido.id}
+          bloqueado={cerrado || guardando === pedido.id || !puedeCambiarEstado}
           onChange={(etapa) =>
             setSeleccion((prev) => ({ ...prev, [pedido.id]: etapa }))
           }
@@ -312,14 +315,16 @@ export default function Pedidos() {
           </p>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => aceptar(pedido)}
-            disabled={!puedeAceptar(pedido)}
-            className={botonAceptar}
-          >
-            {guardando === pedido.id ? "Guardando..." : "Aceptar"}
-          </button>
+          {puedeCambiarEstado && (
+            <button
+              type="button"
+              onClick={() => aceptar(pedido)}
+              disabled={!puedeAceptar(pedido)}
+              className={botonAceptar}
+            >
+              {guardando === pedido.id ? "Guardando..." : "Aceptar"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setDetalleId(pedido.id)}
@@ -327,7 +332,7 @@ export default function Pedidos() {
           >
             <Eye size={16} /> Ver detalle
           </button>
-          {cerrado && (
+          {(cerrado || !puedeCambiarEstado) && (
             <span className="inline-flex items-center gap-1 text-sm text-gray-500">
               <Lock size={14} /> {pedido.estado} · solo lectura
             </span>

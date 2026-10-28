@@ -1,0 +1,4 @@
+VITE_API_URL=http://localhost:3000
+GOOGLE_MAPS_API_KEY=AIzaSyDlBAvjpLV7CTDELv_wmstRGo_NcCr7cwQ
+DATABASE_URL=postgresql://postgres:burgerfast123@localhost:5432/burgerfast_dev 
+PORT=3000

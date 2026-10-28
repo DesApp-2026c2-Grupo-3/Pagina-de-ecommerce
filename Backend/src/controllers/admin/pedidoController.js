@@ -1,4 +1,5 @@
 const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, historialDeTiemposPedido, sequelize } = require('../../models');
+const { ROLES } = require('../../config/roles');
 const { devolverStockPedido } = require('../../utils/stockPedido');
 
 // Qué se trae de cada parte del pedido (nunca la contraseña del cliente).
@@ -31,7 +32,8 @@ const mismoEstado = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').
 
 // El master (sin sucursal) puede todo; el admin de sucursal, solo la suya
 function puedeVerSucursal(admin, sucursalId) {
-    return admin.sucursalId === null || Number(admin.sucursalId) === Number(sucursalId);
+    // El master ve todas las sucursales; el encargado y el empleado, solo la suya
+    return admin.rol === ROLES.MASTER || Number(admin.sucursalId) === Number(sucursalId);
 }
 
 // GET /admin/pedidos/sucursal/:id            → pedidos de la sucursal, del más nuevo al más viejo
@@ -110,6 +112,11 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
             return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
         }
 
+        // Solo el empleado de la sucursal cambia estados (la ruta ya lo exige; esto es defensa en profundidad)
+        if (admin.rol !== ROLES.EMPLEADO) {
+            return res.status(403).json({ mensaje: 'Solo el empleado de la sucursal puede cambiar el estado de un pedido' });
+        }
+
         const pedido = await Pedido.findByPk(req.params.id);
         // Sin permiso se responde 404 genérico (no 403): evita confirmar
         // a un admin de otra sucursal que el pedido existe (prevención de IDOR/enumeración)
@@ -146,6 +153,7 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
                 pedidoId: pedido.id,
                 estadoAnterior: estadoPrevio,
                 estado,
+                adminId: admin.id,
                 fecha: new Date(),
             }, { transaction: t });
             // Solo se devuelve el stock si se cancela desde Pendiente (sin preparación iniciada).

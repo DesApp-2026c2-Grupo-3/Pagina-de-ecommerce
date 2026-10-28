@@ -26,7 +26,7 @@ function Conocenos() {
       </section>
 
       {/* Quiénes somos */}
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 md:grid-cols-2">
+      <section id="quienes-somos" className="mx-auto grid max-w-6xl scroll-mt-24 items-center gap-12 px-4 py-20 md:grid-cols-2">
         <div>
           <p className="text-sm font-extrabold uppercase tracking-widest text-brand-red">Quiénes somos</p>
           <h2 className="mt-2 font-display text-4xl font-extrabold leading-tight tracking-tight">

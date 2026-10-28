@@ -6,7 +6,7 @@ const TABLA = 'Sucursals';
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    const { HORARIO_POR_DEFECTO } = require('../utils/horarioSucursal');
+    const { HORARIO_POR_DEFECTO } = require('../../utils/horarioSucursal');
 
     await queryInterface.sequelize.transaction(async (transaction) => {
       await queryInterface.addColumn(TABLA, 'zona_horaria', {

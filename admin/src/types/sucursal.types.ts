@@ -43,6 +43,7 @@ export interface Sucursal {
   latitud?: number | string | null
   longitud?: number | string | null
   radioEntregaKm?: number | string | null
+  maxEmpleados?: number | null // cupo de empleados activos (lo define el master)
 }
 
 // Datos del formulario (todo string, como se maneja en los inputs)
@@ -53,6 +54,7 @@ export interface DatosSucursal {
   zonaHoraria: string
   ubicacion: UbicacionSucursal
   radioEntregaKm: string
+  maxEmpleados: string
 }
 
 // Respuesta de crear/editar/cambiar estado
@@ -75,4 +77,5 @@ export interface PayloadSucursal {
   latitud: number | null
   longitud: number | null
   radioEntregaKm: number
+  maxEmpleados: number
 }

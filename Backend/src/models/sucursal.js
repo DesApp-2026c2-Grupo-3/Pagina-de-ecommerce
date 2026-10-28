@@ -38,6 +38,8 @@ module.exports = (sequelize, DataTypes) => {
     telefono: { type: DataTypes.STRING, allowNull: true },
     horario: { type: DataTypes.JSONB, allowNull: false, defaultValue: HORARIO_POR_DEFECTO },
     zona_horaria: { type: DataTypes.STRING, allowNull: false, defaultValue: ZONA_HORARIA_POR_DEFECTO },
+    // Cupo de empleados activos que puede tener la sucursal (lo define el master)
+    maxEmpleados: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 3 },
     latitud: { type: DataTypes.FLOAT, allowNull: false },
     longitud: { type: DataTypes.FLOAT, allowNull: false },
     codigoPostal: { type: DataTypes.STRING, allowNull: true },

@@ -5,7 +5,7 @@ function mensajeDe(schema, datos) {
 
 const adminValido = {
     nombre: 'Admin Central',
-    email: 'admin@burger.com',
+    email: 'admin@burgerfast.com',
     password: 'Segura123',
     sucursalId: 1,
 };

@@ -11,6 +11,8 @@ export type IconoCategoria =
   | 'desayuno'
   | 'cafe'
   | 'comboCafe'
+  | 'sandwich'
+  | 'torta'
   | 'salsa'
   | 'generico'
 
@@ -34,6 +36,8 @@ const ESTILOS: Record<string, EstiloCategoria> = {
   // "Café" son las bebidas calientes (taza) y "Menú Café" las comidas (medialuna)
   'cafe': { icono: 'desayuno', fondo: 'bg-brand-sand' },
   'menu cafe': { icono: 'cafe', fondo: 'bg-brand-mustard' },
+  'sandwich': {icono: 'sandwich', fondo: 'bg-brand-sand'},
+  'torta': {icono: 'torta', fondo: 'bg-brand-sand'},
   salsas: { icono: 'salsa', fondo: 'bg-brand-red' },
 }
 

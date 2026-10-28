@@ -6,6 +6,7 @@ import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
 import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
+import { useAuth } from '../../context/AuthContext'
 import {
   obtenerAdministradores,
   eliminarAdministrador as eliminarAdministradorAPI,
@@ -23,12 +24,16 @@ interface AdminFila {
 
 const POR_PAGINA = 8
 
-const rolTexto = (rol: string) => (rol === 'MASTER' ? 'General' : 'Sucursal')
+const rolTexto = (rol: string) =>
+  rol === 'MASTER' ? 'General' : rol === 'EMPLEADO' ? 'Empleado' : 'Encargado'
 const botonIcono = 'rounded border p-2 transition-colors'
 
 export default function Administradores() {
   const navigate = useNavigate()
   const { mostrarToast } = useToast()
+  const { administrador } = useAuth()
+  // El master ve encargados y empleados; el encargado, solo los empleados de su sucursal
+  const esMaster = administrador?.rol === 'MASTER'
 
   const [administradores, setAdministradores] = useState<AdminFila[]>([])
   const [paginaActual, setPaginaActual] = useState(1)
@@ -157,14 +162,14 @@ const acciones = (a: AdminFila) => (
           <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
             Usuarios y permisos
           </p>
-          <h1 className="text-2xl font-bold break-words sm:text-3xl">Administradores</h1>
-          <p className="mt-2 text-gray-600">Gestión de administradores del sistema.</p>
+          <h1 className="text-2xl font-bold break-words sm:text-3xl">{esMaster ? 'Administradores' : 'Empleados'}</h1>
+          <p className="mt-2 text-gray-600">{esMaster ? 'Gestión de administradores del sistema.' : 'Gestión de los empleados de tu sucursal.'}</p>
         </div>
         <button
           type="button"
           onClick={() => navigate('/admin/administradores/nuevo')}
-          aria-label="Nuevo administrador"
-          title="Nuevo administrador"
+          aria-label={esMaster ? 'Nuevo encargado' : 'Nuevo empleado'}
+          title={esMaster ? 'Nuevo encargado' : 'Nuevo empleado'}
           className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
         >
           <Plus size={22} />
@@ -173,14 +178,16 @@ const acciones = (a: AdminFila) => (
 
       <BarraFiltros>
         <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar por nombre o email..." />
+        {esMaster && (
+        <>
         <SelectFiltro
           valor={filtroRol}
           onChange={conReinicio(setFiltroRol)}
           etiqueta="Filtrar por rol"
           opciones={[
             { valor: 'todos', etiqueta: 'Todos los roles' },
-            { valor: 'MASTER', etiqueta: 'General' },
-            { valor: 'ADMIN', etiqueta: 'Sucursal' },
+            { valor: 'ADMIN', etiqueta: 'Encargado' },
+            { valor: 'EMPLEADO', etiqueta: 'Empleado' },
           ]}
         />
         <SelectFiltro
@@ -192,6 +199,8 @@ const acciones = (a: AdminFila) => (
             ...sucursalesDeLaLista.map((s) => ({ valor: String(s.id), etiqueta: s.nombre })),
           ]}
         />
+        </>
+        )}
       </BarraFiltros>
 
       {pagina.length === 0 ? (

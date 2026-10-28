@@ -13,6 +13,7 @@ import {
   MOTIVOS_BAJA,
 } from '../../services/stockService'
 import { useToast } from '../../context/ToastContext'
+import { useAuth } from '../../context/AuthContext'
 import Paginacion from '../../components/Paginacion'
 
 interface ItemStock {
@@ -80,6 +81,9 @@ export default function StockSucursal() {
   const { id } = useParams()
   const sucursalId = Number(id)
   const { mostrarToast } = useToast()
+  const { administrador } = useAuth()
+  // El stock mínimo (alerta) lo define solo el master
+  const esMaster = administrador?.rol === 'MASTER'
 
   const [sucursal, setSucursal] = useState<{ nombre: string } | null>(null)
   const [stock, setStock] = useState<ItemStock[]>([])
@@ -226,18 +230,20 @@ export default function StockSucursal() {
   // Botones de cada insumo
   const acciones = (item: ItemStock) => (
     <div className="flex shrink-0 gap-2">
-      <button
-        type="button"
-        onClick={() => {
-          setADefinirMinimo(item)
-          setValorMinimo(item.stockMinimo != null ? String(item.stockMinimo) : '')
-        }}
-        aria-label={`Definir mínimo de ${item.nombre}`}
-        title="Definir mínimo (alerta)"
-        className="rounded border bg-slate-100 p-2 text-gray-700 hover:text-amber-700"
-      >
-        <Bell size={18} />
-      </button>
+      {esMaster && (
+        <button
+          type="button"
+          onClick={() => {
+            setADefinirMinimo(item)
+            setValorMinimo(item.stockMinimo != null ? String(item.stockMinimo) : '')
+          }}
+          aria-label={`Definir mínimo de ${item.nombre}`}
+          title="Definir mínimo (alerta)"
+          className="rounded border bg-slate-100 p-2 text-gray-700 hover:text-amber-700"
+        >
+          <Bell size={18} />
+        </button>
+      )}
       <button
         type="button"
         onClick={() => {

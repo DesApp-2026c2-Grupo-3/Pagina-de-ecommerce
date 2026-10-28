@@ -20,6 +20,12 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
     ]
   }
 
+  // El empleado solo trabaja con los pedidos de su sucursal
+  if (administrador?.rol === 'EMPLEADO') {
+    return [{ to: '/admin/pedidos', label: 'Pedidos' }]
+  }
+
+  // Encargado de sucursal
   const id = administrador?.sucursalId
   return [
     { to: '/admin', label: 'Reportes', end: true },
@@ -28,6 +34,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
           { to: '/admin/pedidos', label: 'Pedidos' },
           { to: `/admin/sucursales/${id}/stock`, label: 'Stock' },
           { to: `/admin/sucursales/editar/${id}`, label: 'Mi sucursal' },
+          { to: '/admin/administradores', label: 'Empleados' },
         ]
       : []),
   ]

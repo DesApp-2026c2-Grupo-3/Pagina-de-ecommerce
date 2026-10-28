@@ -15,6 +15,7 @@ export function sucursalVacia(): DatosSucursal {
     zonaHoraria: ZONA_HORARIA_POR_DEFECTO,
     ubicacion: { calle: '', numero: '', localidad: '', provincia: '', codigoPostal: '', latitud: null, longitud: null },
     radioEntregaKm: '5',
+    maxEmpleados: '3',
   }
 }
 
@@ -37,6 +38,7 @@ export function desdeSucursal(s: Sucursal): DatosSucursal {
       longitud: s.longitud != null ? Number(s.longitud) : null,
     },
     radioEntregaKm: s.radioEntregaKm != null ? String(s.radioEntregaKm) : '5',
+    maxEmpleados: s.maxEmpleados != null ? String(s.maxEmpleados) : '3',
   }
 }
 
@@ -55,6 +57,8 @@ export function aPedido(d: DatosSucursal): PayloadSucursal {
     latitud: d.ubicacion.latitud,
     longitud: d.ubicacion.longitud,
     radioEntregaKm: Number(d.radioEntregaKm),
+    // Solo lo guarda el master: el backend ignora este campo si lo manda otro rol
+    maxEmpleados: Number(d.maxEmpleados),
   }
 }
 
@@ -81,6 +85,8 @@ export function validarPaso(n: number, d: DatosSucursal): string {
     const radio = Number(d.radioEntregaKm)
     if (!radio || radio <= 0) return 'El radio de entrega debe ser mayor a 0.'
     if (radio > 30) return 'El radio de entrega no puede superar los 30 km.'
+    const cupo = Number(d.maxEmpleados)
+    if (!Number.isInteger(cupo) || cupo < 0 || cupo > 20) return 'El cupo de empleados debe ser un número entero entre 0 y 20.'
   }
   return ''
 }

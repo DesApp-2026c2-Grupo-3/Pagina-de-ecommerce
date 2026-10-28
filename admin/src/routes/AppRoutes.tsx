@@ -18,7 +18,7 @@ import EditarSucursal from '../pages/Sucursales/EditarSucursal'
 import Stock from '../pages/Stock/Stock'
 import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
-import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
+import { SoloGestion, SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
 import Reportes from '../pages/Reportes/Reportes'
 import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos'
 import ProductosMenosVendidos from '../components/reportes/ProductosMenosVendidos'
@@ -37,13 +37,22 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/admin" element={<Reportes />} />
-        <Route path="/admin/reportes" element={<Reportes />} />
+        {/* Pedidos: los ven los tres roles; el estado solo lo cambia el empleado */}
         <Route path="/admin/pedidos" element={<Pedidos />} />
-        <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
-        <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
-        <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />
-        <Route path="/admin/reportes/productos-sin-stock" element={<ProductosSinStock />} />
+
+        {/* Master y encargado (el empleado va directo a Pedidos) */}
+        <Route element={<SoloGestion />}>
+          <Route path="/admin" element={<Reportes />} />
+          <Route path="/admin/reportes" element={<Reportes />} />
+          <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
+          <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
+          <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />
+          <Route path="/admin/reportes/productos-sin-stock" element={<ProductosSinStock />} />
+
+          <Route path="/admin/administradores" element={<Administradores />} />
+          <Route path="/admin/administradores/nuevo" element={<NuevoAdministrador />} />
+          <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />} />
+        </Route>
 
         {/* Solo el master */}
         <Route element={<SoloMaster />}>
@@ -56,10 +65,6 @@ export default function AppRoutes() {
           <Route path="/admin/categorias/editar/:id" element={<EditarCategoria />} />
 
           <Route path="/admin/insumos" element={<Insumos />} />
-
-          <Route path="/admin/administradores" element={<Administradores />} />
-          <Route path="/admin/administradores/nuevo" element={<NuevoAdministrador />} />
-          <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />} />
 
           <Route path="/admin/sucursales" element={<Sucursales />} />
           <Route path="/admin/sucursales/nueva" element={<NuevaSucursal />} />

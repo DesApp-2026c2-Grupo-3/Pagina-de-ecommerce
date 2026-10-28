@@ -1,9 +1,10 @@
 const Joi = require('joi')
+const { DOMINIO_PERSONAL, esEmailDePersonal } = require('../../utils/emailPersonal')
 
-const nombre = Joi.string().trim().min(3).max(20).pattern(/^(?=.*\p{L})[\p{L}\p{N}\s]+$/u).required().messages({
+const nombre = Joi.string().trim().min(3).max(40).pattern(/^(?=.*\p{L})[\p{L}\p{N}\s]+$/u).required().messages({
     'string.empty': 'El nombre es obligatorio',
     'string.min': 'El nombre debe tener al menos 3 caracteres',
-    'string.max': 'El nombre no puede superar los 20 caracteres',
+    'string.max': 'El nombre no puede superar los 40 caracteres',
     'string.pattern.base': 'El nombre solo puede contener letras, números y espacios',
     'any.required': 'El nombre es obligatorio'
 })
@@ -14,6 +15,11 @@ const email = Joi.string().trim().lowercase().email().required().messages({
     'string.email': 'El email no tiene un formato válido',
     'any.required': 'El email es obligatorio'
 })
+
+// El personal (encargados y empleados) usa mail laboral: es exclusivo, un cliente no puede tenerlo
+const emailPersonal = email
+    .custom((valor, helpers) => (esEmailDePersonal(valor) ? valor : helpers.error('email.personal')))
+    .messages({ 'email.personal': `El email del personal debe ser ${DOMINIO_PERSONAL}` })
 
 // Contraseña de admin: al menos 8 caracteres, una mayúscula y un número
 const passwordSegura = Joi.string().min(8).max(20).pattern(/^(?=.*[A-Z])(?=.*[0-9])/)
@@ -37,7 +43,7 @@ const sucursalId = Joi.number().integer().positive().messages({
 // Alta de un admin: siempre es de una sucursal
 const adminSchema = Joi.object({
     nombre,
-    email,
+    email: emailPersonal,
     password: passwordSegura.required().messages(mensajesPassword),
     sucursalId: sucursalId.required()
 })

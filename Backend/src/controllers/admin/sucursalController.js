@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Sucursal, Admin, Insumo, StockSucursal, sequelize } = require('../../models');
+const { ROLES } = require('../../config/roles');
 
 // Los admins de cada sucursal, solo con los datos que necesita el panel
 const ADMINS = { model: Admin, attributes: ['id', 'nombre', 'email'] };
@@ -85,6 +86,9 @@ const editarSucursal = async (req, res) => {
         if (await nombreEnUso(req.body.nombre, sucursal.id)) {
             return res.status(400).json({ code: 'Ya existe una sucursal con ese nombre' });
         }
+
+        // El cupo de empleados lo define solo el master: si lo manda otro rol, se ignora
+        if (req.usuario?.rol !== ROLES.MASTER) delete req.body.maxEmpleados;
 
         await sucursal.update(req.body);
 

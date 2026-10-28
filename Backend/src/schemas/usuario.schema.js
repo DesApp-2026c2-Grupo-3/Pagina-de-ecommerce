@@ -8,8 +8,13 @@ const nombre = Joi.string().trim().min(3).max(20).pattern(/^(?=.*\p{L})[\p{L}\p{
     'any.required': 'El nombre es obligatorio'
 })
 
+// El dominio del personal (@burgerfast.com) está reservado: un cliente no puede registrarse con él
+const { esEmailDePersonal } = require('../utils/emailPersonal')
+const noEsDelPersonal = (valor, helpers) => (esEmailDePersonal(valor) ? helpers.error('email.reservado') : valor)
+
 // Siempre en minúsculas y sin espacios: "Juan@Mail.com " y "juan@mail.com" son el mismo email
-const email = Joi.string().trim().lowercase().email().required().messages({
+const email = Joi.string().trim().lowercase().email().custom(noEsDelPersonal).required().messages({
+    'email.reservado': 'Ese email está reservado para el personal de BurgerFast',
     'string.empty': 'El email es obligatorio',
     'string.email': 'El email no tiene un formato válido',
     'any.required': 'El email es obligatorio'

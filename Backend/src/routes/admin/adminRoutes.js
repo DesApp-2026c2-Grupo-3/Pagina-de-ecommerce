@@ -6,23 +6,25 @@ const { validarLoginAdmin } = require('../../middleware/admin/validarLoginAdmin'
 const { validarAdmin } = require('../../middleware/admin/validarAdmin');
 const { validarUpdateAdmin } = require('../../middleware/admin/validarUpdateAdmin');
 const { esIdValido } = require('../../middleware/esIdValido');
-const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
+const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
 
 router.post('/login', validarLoginAdmin, adminController.login)
 
 router.post('/logout', adminController.logout)
 
-router.get('/administradores', esMasterJwt, adminController.verAdmins)
+// Master y encargado gestionan administradores. A quién puede gestionar cada uno
+// (el master, a todos; el encargado, solo a los empleados de su sucursal) lo decide el controller.
+router.get('/administradores', esAdminJwt, adminController.verAdmins)
 
-router.get('/:id', esMasterJwt, esIdValido, adminController.obtenerAdminPorId)
+router.get('/:id', esAdminJwt, esIdValido, adminController.obtenerAdminPorId)
 
-router.post('/administradores/nuevo', esMasterJwt, validarAdmin, adminController.crearAdmin)
+router.post('/administradores/nuevo', esAdminJwt, validarAdmin, adminController.crearAdmin)
 
-router.put('/administradores/editar/:id', esMasterJwt, validarUpdateAdmin, esIdValido, adminController.actualizarAdmin)
+router.put('/administradores/editar/:id', esAdminJwt, validarUpdateAdmin, esIdValido, adminController.actualizarAdmin)
 
-router.delete('/administradores/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminarAdmin);
+router.delete('/administradores/eliminar/:id', esAdminJwt, esIdValido, adminController.eliminarAdmin);
 
-router.patch('/administradores/reactivar/:id',esMasterJwt,esIdValido,adminController.reactivarAdmin);
+router.patch('/administradores/reactivar/:id', esAdminJwt, esIdValido, adminController.reactivarAdmin);
 
 
 module.exports = router;
