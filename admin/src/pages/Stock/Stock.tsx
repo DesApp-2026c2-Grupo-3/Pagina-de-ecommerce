@@ -21,6 +21,7 @@ interface ItemStock {
   cantidad: number
   stockMinimo: number | null
   bajoMinimo: boolean
+  activo: boolean
 }
 
 interface Movimiento {
@@ -57,9 +58,18 @@ function descripcion(m: Movimiento) {
 const resta = (m: Movimiento) => m.tipo === 'baja' || m.tipo === 'venta'
 
 // Un insumo está "en alerta" si se quedó sin stock o llegó a su mínimo
-const enAlerta = (item: ItemStock) => item.cantidad <= 0 || item.bajoMinimo
+const enAlerta = (item: ItemStock) => item.activo && (item.cantidad <= 0 || item.bajoMinimo)
 
 function Estado({ item }: { item: ItemStock }) {
+
+  if (!item.activo) {
+    return (
+      <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">
+        Deshabilitado
+      </span>
+    )
+  }
+
   if (item.cantidad <= 0) {
     return <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">Sin stock</span>
   }
@@ -119,27 +129,21 @@ export default function StockSucursal() {
     return datosStock
   }
 
-  useEffect(() => {
-    obtenerSucursalPorId(sucursalId)
-      .then(setSucursal)
-      .catch(() => setSucursal(null))
+useEffect(() => {
+  obtenerSucursalPorId(sucursalId)
+    .then(setSucursal)
+    .catch(() => setSucursal(null))
 
-    recargar()
-      .then((datos) => {
-        // La alerta se muestra una sola vez por sesión y por sucursal
-        const clave = `alertaStockVista-${sucursalId}`
-        const enRiesgo = datos.filter(enAlerta)
-        if (enRiesgo.length > 0 && !sessionStorage.getItem(clave)) {
-          setAlerta(enRiesgo)
-          sessionStorage.setItem(clave, 'si')
-        }
-      })
-      .catch((error) => console.error('Error al cargar stock:', error))
-  }, [id])
+recargar()
+  .then((datos) => {
+    const enRiesgo = datos.filter(enAlerta)
 
-  useEffect(() => {
-    setPaginaActual(1)
-  }, [busqueda, filtroEstado, id])
+    if (enRiesgo.length > 0) {
+      setAlerta(enRiesgo)
+    }
+  })
+  .catch((error) => console.error('Error al cargar stock:', error))
+}, [id])
 
   async function confirmarAumento() {
     if (!aAumentar) return
@@ -210,12 +214,19 @@ export default function StockSucursal() {
   }
 
   const stockFiltrado = stock.filter(
-    (item) =>
-      item.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) &&
-      (filtroEstado === 'todos' ||
-        (filtroEstado === 'sin' && item.cantidad <= 0) ||
-        (filtroEstado === 'bajo' && item.cantidad > 0 && item.bajoMinimo)),
+  (item) =>
+    item.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) &&
+    (filtroEstado === 'todos' ||
+      (filtroEstado === 'bajo' &&
+        item.activo &&
+        item.cantidad > 0 &&
+        item.bajoMinimo) ||
+      (filtroEstado === 'sin' &&
+        item.activo &&
+        item.cantidad <= 0) ||
+      (filtroEstado === 'deshabilitado' && !item.activo)),
   )
+
   const movimientosFiltrados = movimientos.filter((m) => filtroTipo === 'todos' || m.tipo === filtroTipo)
 
   const stockPaginado = stockFiltrado.slice(
@@ -282,6 +293,7 @@ export default function StockSucursal() {
             { valor: 'todos', etiqueta: 'Todos los estados' },
             { valor: 'bajo', etiqueta: 'Stock bajo' },
             { valor: 'sin', etiqueta: 'Sin stock' },
+            { valor: 'deshabilitado', etiqueta: 'Deshabilitado' },
           ]}
         />
       </BarraFiltros>

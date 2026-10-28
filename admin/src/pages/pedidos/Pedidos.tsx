@@ -223,8 +223,13 @@ export default function Pedidos() {
   };
 
   const filtrados = pedidos.filter((pedido) => {
-    const cliente =
-      `${pedido.Usuario?.nombre ?? ""} ${pedido.Usuario?.apellido ?? ""}`.toLowerCase();
+    const cliente = [
+      pedido.Usuario?.nombre,
+      pedido.Usuario?.apellido,
+    ]
+    .filter((parte) => parte?.trim())
+    .join(" ")
+    .toLowerCase();
     const termino = busqueda.trim().toLowerCase();
     const coincideBusqueda =
       termino === "" ||
@@ -414,9 +419,10 @@ export default function Pedidos() {
               {/* Tarjetas de pedidos: 1 columna en móvil, 2 en md/lg */}
               <ul className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                 {pagina.map((pedido) => {
-                  const cliente = pedido.Usuario
-                    ? `${pedido.Usuario.nombre} ${pedido.Usuario.apellido}`
-                    : "Cliente no disponible";
+                  const cliente = pedido.Usuario 
+                  ? [pedido.Usuario.nombre, pedido.Usuario.apellido]
+                  .filter((parte) => parte?.trim()).join(" ")
+                  : "Cliente no disponible";
                   return (
                     <li
                       key={pedido.id}

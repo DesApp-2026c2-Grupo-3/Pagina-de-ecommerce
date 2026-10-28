@@ -4,6 +4,7 @@ export interface Insumo {
   nombre: string
   unidadMedida: string
   precioComercial: string | number | null
+  activo: boolean
 }
 
 // Datos que espera el backend al crear o editar un insumo.

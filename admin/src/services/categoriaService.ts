@@ -32,3 +32,17 @@ export async function eliminarCategoria(id: number) {
     mensajePorDefecto: 'Error al eliminar la categoría',
   })
 }
+
+export async function deshabilitarCategoria(id: number) {
+  return apiFetch(`${API}/${id}/deshabilitar`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al deshabilitar la categoría',
+  })
+}
+
+export async function habilitarCategoria(id: number) {
+  return apiFetch(`${API}/${id}/habilitar`, {
+    method: 'PATCH',
+    mensajePorDefecto: 'Error al habilitar la categoría',
+  })
+}
