@@ -42,6 +42,7 @@ const usuarioRoutes = require('./routes/usuarioRoutes');
 const pedidoRoutes = require('./routes/pedidoRoutes');
 const direccionRoutes = require('./routes/direccionRoutes');
 const sucursalRoutes = require('./routes/sucursalRoutes');
+const repartidorRoutes = require('./routes/admin/repartidorRoutes');
 
 
 app.use('/admin/productos', adminProductoRoutes);
@@ -61,6 +62,8 @@ app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
 app.use('/promociones', require('./routes/promocionRoutes'));
+app.use('/admin/repartidores', repartidorRoutes);
+
 
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
