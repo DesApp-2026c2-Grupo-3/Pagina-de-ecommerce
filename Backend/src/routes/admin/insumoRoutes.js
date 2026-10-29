@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const router = Router();
 
-const insumoController = require('../../controllers/admin/insumoController');
+const insumoController = require('../../controllers/admin/InsumoController');
 const { validarInsumo } = require('../../middleware/admin/validarInsumo');
 const { esIdValido } = require('../../middleware/esIdValido');
 const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
