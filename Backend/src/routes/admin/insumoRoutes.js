@@ -11,5 +11,7 @@ router.get('/', esAdminJwt, insumoController.obtenerInsumos);
 router.post('/nuevo', esMasterJwt, validarInsumo, insumoController.crearInsumo);
 router.patch('/editar/:id', esIdValido, validarInsumo, insumoController.editarInsumo);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, insumoController.eliminarInsumo);
+router.patch('/:id/deshabilitar', esMasterJwt, esIdValido, insumoController.deshabilitarInsumo);
+router.patch('/:id/habilitar', esMasterJwt, esIdValido, insumoController.habilitarInsumo);
 
 module.exports = router;

@@ -7,6 +7,7 @@ const {
     ComboGrupo,
     StockSucursal,
     Sucursal,
+    Categoria
 } = require('../models');
 const {
     agruparPorProducto,
@@ -109,7 +110,15 @@ const obtenerProductos = async (req, res) => {
         if (error) return res.status(error.status).json({ mensaje: error.mensaje });
 
         const productos = (await Producto.findAll({
-            include: [incluirTamanios(), incluirGrupos()],
+            include: [
+                incluirTamanios(), incluirGrupos(),
+                {
+                    model: Categoria,
+                    as: 'categoria',
+                    where: { activo: true },
+                    required: true,
+                },
+            ],
             order: [['id', 'ASC']]
         })).map(aplanarProducto);
 
@@ -154,7 +163,13 @@ const obtenerProductoPorId = async (req, res) => {
             include: [
                 { model: RecetaInsumo, include: [Insumo] },
                 incluirTamanios(),
-                incluirGrupos()
+                incluirGrupos(),
+                {
+                    model: Categoria,
+                    as: 'categoria',
+                    where: { activo: true },
+                    required: true,
+                },
             ]
         });
 

@@ -75,6 +75,7 @@ module.exports = {
         email: { type: Sequelize.STRING, allowNull: false, unique: true },
         password: { type: Sequelize.STRING, allowNull: false },
         rol: { type: Sequelize.STRING, allowNull: false, defaultValue: 'ADMIN' },
+        activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
         // La sucursal que gestiona cada admin (vacía para el MASTER)
         sucursalId: {
           type: Sequelize.INTEGER,
@@ -122,6 +123,7 @@ module.exports = {
       await crear('Categoria', {
         id,
         nombre: { type: Sequelize.STRING, unique: true },
+        activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true},
         ...timestamps,
       });
 
@@ -202,6 +204,7 @@ module.exports = {
         nombre: { type: Sequelize.STRING, allowNull: false, unique: true },
         unidadMedida: { type: Sequelize.STRING, allowNull: false },
         precioComercial: { type: Sequelize.DECIMAL, allowNull: true },
+        activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true},
         ...timestamps,
       });
 

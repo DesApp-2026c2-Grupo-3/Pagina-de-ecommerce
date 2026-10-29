@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Paginacion from '../../components/Paginacion'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, Ban, CheckCircle } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion';
 import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
-import { obtenerCategorias } from '../../services/categoriaService';
+import { deshabilitarCategoria, habilitarCategoria, obtenerCategorias } from '../../services/categoriaService';
 import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categoriaService'
+
+interface Categoria {
+  id: number
+  nombre: string
+  activo: boolean
+}
 
 export default function Categorias() {
   const navigate = useNavigate();
@@ -15,7 +21,25 @@ export default function Categorias() {
   const [categoriaAEliminar, setCategoriaAEliminar] = useState<number | null>(null);
   const { mostrarToast } = useToast();
 
-  const [categorias, setCategorias] = useState<any[]>([])
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [filtroEstado, setFiltroEstado] = useState('todos')
+
+  const cambiarEstado = async (categoria: Categoria) => {
+    try {
+      if (categoria.activo) {
+        await deshabilitarCategoria(categoria.id)
+        mostrarToast('Categoría deshabilitada correctamente')
+      } else {
+        await habilitarCategoria(categoria.id)
+        mostrarToast('Categoría habilitada correctamente')
+      }
+
+      const datos = await obtenerCategorias()
+      setCategorias(datos)
+    } catch (error) {
+      console.error('Error al cambiar el estado de la categoría:', error)
+    }
+  }
 
   const eliminarCategoria = async (id: number) => {
     try {
@@ -40,17 +64,23 @@ export default function Categorias() {
   }
 
   useEffect(() => {
-  const cargarCategorias = async () => {
-    try {
-      const datos = await obtenerCategorias()
-      setCategorias(datos)
-    } catch (error) {
-      console.error('Error al cargar categorías:', error)
+    const cargarCategorias = async () => {
+      try {
+        const datos = await obtenerCategorias()
+        setCategorias(datos)
+      } catch (error) {
+        console.error('Error al cargar categorías:', error)
+      }
     }
-  }
 
-  cargarCategorias()
-}, [])
+    cargarCategorias()
+  }, [])
+
+  const filtradas = categorias.filter((categoria) => {
+    if (filtroEstado === 'activas') return categoria.activo
+    if (filtroEstado === 'deshabilitadas') return !categoria.activo
+    return true
+  })
 
   const indiceUltimaCategoria = 
   paginaActual * categoriaPorPagina
@@ -58,10 +88,21 @@ export default function Categorias() {
   const indicePrimeraCategoria =
   indiceUltimaCategoria - categoriaPorPagina
 
-  const categoriasPagina = categorias.slice(
-    indicePrimeraCategoria,
-    indiceUltimaCategoria
+  const categoriasPagina = filtradas.slice(
+    (paginaActual - 1) * categoriaPorPagina,
+    paginaActual * categoriaPorPagina
   )
+
+  useEffect(() => {
+    const ultimaPagina = Math.max(
+      1,
+      Math.ceil(filtradas.length / categoriaPorPagina)
+    )
+
+    if (paginaActual > ultimaPagina) {
+      setPaginaActual(ultimaPagina)
+    }
+  }, [filtradas.length, paginaActual])
 
   return (
   <main className="p-8">    
@@ -93,12 +134,32 @@ export default function Categorias() {
         <Plus size={22} />
       </button>
     </div>
+
+    <div className="mb-4">
+      <label htmlFor="filtro-categoria" className="sr-only">
+        Filtrar categorías
+      </label>
+
+      <select
+        id="filtro-categoria"
+        value={filtroEstado}
+        onChange={(e) => {
+        setFiltroEstado(e.target.value)
+        setPaginaActual(1)
+        }}
+        className="rounded-lg border bg-white px-3 py-2">
+        <option value="todos">Todas las categorías</option>
+        <option value="activas">Habilitadas</option>
+        <option value="deshabilitadas">Deshabilitadas</option>
+      </select>
+    </div>
     
     <div className="bg-white border rounded-lg overflow-x-auto">
     <table className="w-full">
       <thead className="bg-gray-100">
         <tr>
           <th className="text-left px-4 py-3 sm:px-6">Nombre</th>
+          <th className="px-4 py-3 text-left sm:px-6">Estado</th>
           <th className="text-right px-4 py-3 sm:px-6">Acciones</th>
         </tr>
       </thead>
@@ -106,15 +167,28 @@ export default function Categorias() {
       <tbody>
         {categoriasPagina.length === 0 ? (
           <tr>
-            <td colSpan={2} className="px-6 py-10">
-              <MensajeVacio mensaje="No hay categorias registradas." />
+            <td colSpan={3} className="px-6 py-10">
+              <MensajeVacio mensaje={categorias.length === 0 
+                ? 'No hay categorías registradas.'
+                : 'No hay categorías para este filtro.'}/>
             </td>
           </tr>
         ) : (
-        categoriasPagina.map((categoria: { id: number; nombre: string }) => (
+        categoriasPagina.map((categoria: Categoria) => (
           <tr key={categoria.id} className="border-t border-b">
             <td className="px-4 py-4 sm:px-6">
               {categoria.nombre}
+            </td>
+
+            <td className="px-4 py-4 sm:px-6">
+              <span
+              className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                categoria.activo
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-gray-200 text-gray-600'
+              }`}>
+                {categoria.activo ? 'Activa' : 'Deshabilitada'}
+              </span>
             </td>
 
             <td className="px-4 py-4 sm:px-6">
@@ -123,6 +197,18 @@ export default function Categorias() {
                 className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
                 hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                     <Pencil size={18} />
+                </button>
+
+                <button type="button" onClick={() => cambiarEstado(categoria)}
+                title={categoria.activo ? 'Deshabilitar categoría' : 'Habilitar categoría'}
+                aria-label={`${categoria.activo ? 'Deshabilitar' : 'Habilitar'} ${categoria.nombre}`}
+                className={`rounded border p-2 ${
+                  categoria.activo
+                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                  : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                  }`}>
+                
+                  {categoria.activo ? <Ban size={18} /> : <CheckCircle size={18} />}
                 </button>
 
                 <button onClick={() => setCategoriaAEliminar(categoria.id)}
@@ -152,7 +238,7 @@ export default function Categorias() {
           
     <Paginacion
       paginaActual={paginaActual}
-      totalElementos={categorias.length}
+      totalElementos={filtradas.length}
       elementosPorPagina={categoriaPorPagina}
       cambiarPagina={setPaginaActual} />
   </main>

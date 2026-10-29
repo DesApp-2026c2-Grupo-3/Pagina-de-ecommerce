@@ -16,7 +16,7 @@ const obtenerStockPorSucursal = async (req, res) => {
 
         const stock = await StockSucursal.findAll({
             where: { sucursalId },
-            include: [{ model: Insumo, attributes: ['id', 'nombre', 'unidadMedida'] }],
+            include: [{ model: Insumo, attributes: ['id', 'nombre', 'unidadMedida', 'activo'] }],
             order: [[Insumo, 'nombre', 'ASC']],
         });
 
@@ -30,6 +30,7 @@ const obtenerStockPorSucursal = async (req, res) => {
                 sucursalId: item.sucursalId,
                 nombre: item.Insumo?.nombre,
                 unidadMedida: item.Insumo?.unidadMedida,
+                activo: item.Insumo?.activo ?? true,
                 cantidad,
                 stockMinimo,
                 bajoMinimo: stockMinimo !== null && cantidad <= stockMinimo,            };
@@ -53,6 +54,25 @@ const cargarAumento = async (req, res) => {
         if (!stock) {
             await t.rollback();
             return res.status(404).json({ mensaje: 'Registro de stock no encontrado' });
+        }
+
+        const insumo = await Insumo.findByPk(stock.insumoId, {
+            attributes: ['id', 'nombre', 'activo'],
+            transaction: t,
+        });
+
+        if (!insumo) {
+            await t.rollback();
+            return res.status(404).json({
+                mensaje: 'Insumo no encontrado',
+            });
+        }
+
+        if (!insumo.activo) {
+            await t.rollback();
+            return res.status(400).json({
+                mensaje: `No se puede aumentar el stock porque el insumo "${insumo.nombre}" está deshabilitado`,
+            });
         }
 
         const anterior = Number(stock.cantidad);
