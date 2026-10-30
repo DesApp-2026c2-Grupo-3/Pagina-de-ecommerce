@@ -17,6 +17,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
       { to: '/admin/categorias', label: 'Categorías' },
       { to: '/admin/sucursales', label: 'Sucursales' },
       { to: '/admin/administradores', label: 'Administradores' },
+      { to: '/admin/repartidores', label: 'Repartidores'}
     ]
   }
 
@@ -28,6 +29,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
           { to: '/admin/pedidos', label: 'Pedidos' },
           { to: `/admin/sucursales/${id}/stock`, label: 'Stock' },
           { to: `/admin/sucursales/editar/${id}`, label: 'Mi sucursal' },
+          { to: '/admin/repartidores', label: 'Repartidores'}
         ]
       : []),
   ]

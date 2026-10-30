@@ -1,6 +1,4 @@
-
 const bcrypt = require('bcrypt');
-const { Op } = require('sequelize');
 const { Repartidor, Sucursal } = require('../../models');
 
 const SUCURSAL = {
@@ -42,7 +40,14 @@ async function validarSucursal(sucursalId) {
 
 const verRepartidores = async (req, res) => {
     try {
+        const where = {};
+        
+        if (req.usuario.rol !== 'MASTER') {
+            where.sucursalId = req.usuario.sucursalId;
+        }
+
         const repartidores = await Repartidor.findAll({
+            where,
             attributes: [
                 'id',
                 'nombre',
@@ -71,6 +76,15 @@ const crearRepartidor = async (req, res) => {
     try {
         const { nombre, apellido, email, password, sucursalId } = req.body;
 
+        const sucursalDestino = Number(sucursalId);
+        
+        if ( req.usuario.rol !== 'MASTER' && sucursalDestino !== req.usuario.sucursalId ) 
+            {
+                return res.status(403).json({
+                    mensaje: 'Solo podés crear repartidores para tu sucursal'
+                });
+            }
+
         const nombreNormalizado = nombre.trim();
         const apellidoNormalizado = apellido.trim();
         const emailNormalizado = email.trim().toLowerCase();
@@ -97,7 +111,7 @@ const crearRepartidor = async (req, res) => {
             apellido: apellidoNormalizado,
             email: emailNormalizado,
             password: passwordEncriptada,
-            sucursalId,
+            sucursalId: sucursalDestino
         });
 
         await nuevoRepartidor.reload({
