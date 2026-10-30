@@ -11,6 +11,7 @@ jest.mock('../../../src/models', () => {
 });
 
 const models = require('../../../src/models');
+const { DIAS_SEMANA } = require('../../../src/utils/horarioSucursal');
 const {
     obtenerSucursales,
     obtenerSucursalPorId,
@@ -42,12 +43,20 @@ function sucursalDeLaBase(datos = {}) {
     return sucursal;
 }
 
+const horarioValido = Object.fromEntries(
+    DIAS_SEMANA.map((dia) => [
+        dia,
+        { abierto: true, turnos: [{ apertura: '09:00', cierre: '23:00', cruzaMedianoche: false }] },
+    ])
+);
+
 const bodySucursal = {
     nombre: 'Morón',
     calle: 'Rivadavia',
     numero: '1234',
     localidad: 'Morón',
     provincia: 'Buenos Aires',
+    horario: horarioValido,
     latitud: -34.65,
     longitud: -58.62,
     radioEntregaKm: 5,
@@ -162,6 +171,21 @@ describe('crearSucursal', () => {
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Sucursal creada con éxito', sucursal: { id: 5 } });
     });
 
+    test('rechaza un horario inválido sin abrir la transacción', async () => {
+        const res = crearRes();
+        const body = {
+            ...bodySucursal,
+            horario: { ...horarioValido, lunes: { abierto: true, turnos: [] } },
+        };
+
+        await crearSucursal({ body }, res);
+
+        expect(models.sequelize.transaction).not.toHaveBeenCalled();
+        expect(Sucursal.create).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ code: 'El lunes está abierto y debe tener al menos un turno' });
+    });
+
     test('si falla al guardar, deshace todo y responde 500', async () => {
         Sucursal.findOne.mockResolvedValue(null);
         Sucursal.create.mockRejectedValue(new Error('Base caída'));
@@ -195,6 +219,32 @@ describe('editarSucursal', () => {
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({ code: 'Ya existe una sucursal con ese nombre' });
+    });
+
+    test('rechaza un horario inválido antes de buscar la sucursal', async () => {
+        const res = crearRes();
+        const body = {
+            horario: { ...horarioValido, lunes: { abierto: true, turnos: [] } },
+        };
+
+        await editarSucursal({ params: { id: '2' }, body }, res);
+
+        expect(Sucursal.findByPk).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ code: 'El lunes está abierto y debe tener al menos un turno' });
+    });
+
+    test('valida y guarda un horario válido', async () => {
+        const sucursal = sucursalDeLaBase();
+        Sucursal.findByPk.mockResolvedValue(sucursal);
+        Sucursal.findOne.mockResolvedValue(null);
+        const res = crearRes();
+        const body = { nombre: 'Morón Centro', horario: horarioValido };
+
+        await editarSucursal({ params: { id: '2' }, body }, res);
+
+        expect(sucursal.update).toHaveBeenCalledWith(body);
+        expect(res.status).toHaveBeenCalledWith(200);
     });
 
     test('permite conservar el propio nombre', async () => {

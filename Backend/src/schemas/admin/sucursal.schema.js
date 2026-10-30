@@ -1,31 +1,69 @@
 const Joi = require('joi');
-const { esZonaHorariaValida, DIAS_SEMANA } = require('../../utils/horarioSucursal');
+const {
+    esZonaHorariaValida,
+    DIAS_SEMANA,
+    validarHorarioSucursal,
+} = require('../../utils/horarioSucursal');
 
 const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-// Un día del horario: apertura y cierre en formato HH:MM, y si está abierto
-const diaSchema = Joi.object({
+// Un turno: apertura y cierre en HH:MM, y si el cierre cae al día siguiente.
+const turnoSchema = Joi.object({
     apertura: Joi.string().pattern(HORA_REGEX).required().messages({
-        'string.pattern.base': 'La apertura debe tener formato HH:MM (ej: "09:00")',
-        'any.required': 'Cada día debe indicar la apertura'
+        'string.base': 'La apertura de cada turno debe ser texto',
+        'string.pattern.base': 'La apertura de cada turno debe tener formato HH:MM (ej: "09:00")',
+        'any.required': 'Cada turno debe indicar la apertura'
     }),
 
     cierre: Joi.string().pattern(HORA_REGEX).required().messages({
-        'string.pattern.base': 'El cierre debe tener formato HH:MM (ej: "23:00")',
-        'any.required': 'Cada día debe indicar el cierre'
+        'string.base': 'El cierre de cada turno debe ser texto',
+        'string.pattern.base': 'El cierre de cada turno debe tener formato HH:MM (ej: "23:00")',
+        'any.required': 'Cada turno debe indicar el cierre'
     }),
 
+    cruzaMedianoche: Joi.boolean().required().messages({
+        'boolean.base': 'El campo "cruzaMedianoche" debe ser true o false',
+        'any.required': 'Cada turno debe indicar si cruza la medianoche'
+    })
+}).messages({
+    'object.base': 'Cada turno debe ser un objeto'
+});
+
+// Un día del horario: hasta dos turnos y si está abierto.
+const diaSchema = Joi.object({
     abierto: Joi.boolean().required().messages({
         'boolean.base': 'El estado "abierto" de cada día debe ser true o false',
         'any.required': 'Cada día debe indicar si está abierto'
-    })
-}).required();
+    }),
 
-// Los 7 días de la semana, todos obligatorios
+    turnos: Joi.array().items(turnoSchema).min(0).max(2).required().messages({
+        'array.base': 'Los turnos de cada día deben ser una lista',
+        'array.max': 'Cada día admite como máximo 2 turnos',
+        'any.required': 'Cada día debe indicar sus turnos'
+    })
+}).required().messages({
+    'object.base': 'Cada día del horario debe ser un objeto'
+});
+
+// Los 7 días de la semana, todos obligatorios. Las reglas de coherencia y
+// solapamiento (incluido el cruce entre días) viven en validarHorarioSucursal.
 const horarioSchema = Joi.object(
-    Object.fromEntries(DIAS_SEMANA.map((dia) => [dia, diaSchema]))
-).required().messages({
-    'object.base': 'El horario debe ser un objeto con los días de la semana'
+    Object.fromEntries(DIAS_SEMANA.map((dia) => [
+        dia,
+        diaSchema.required().messages({
+            'any.required': `Completá el horario del ${dia}`,
+            'object.base': `El horario del ${dia} debe ser un objeto`
+        })
+    ]))
+).required().custom((horario, helpers) => {
+    const error = validarHorarioSucursal(horario);
+    if (error) {
+        return helpers.error('any.custom', { message: error });
+    }
+    return horario;
+}).messages({
+    'object.base': 'El horario debe ser un objeto con los días de la semana',
+    'any.custom': '{{#message}}'
 });
 
 const sucursalSchema = Joi.object({

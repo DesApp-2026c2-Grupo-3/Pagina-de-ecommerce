@@ -56,7 +56,7 @@ describe('obtenerInsumos', () => {
         await obtenerInsumos({}, res);
 
         expect(Insumo.findAll).toHaveBeenCalledWith(expect.objectContaining({
-            attributes: ['id', 'nombre', 'unidadMedida', 'precioComercial'],
+            attributes: ['id', 'nombre', 'unidadMedida', 'precioComercial', 'activo'],
             order: [['nombre', 'ASC']],
         }));
         expect(res.json).toHaveBeenCalledWith(insumos);
