@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, Pencil, Plus, Trash2 } from "lucide-react";
 import { CLASE_INPUT, CLASE_LABEL } from "../ui/formulario";
-import { Check, Save } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 const MAX_CARACTERES = 100;
 
@@ -85,9 +85,9 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
           className={`${CLASE_INPUT} w-full resize-none`}
         />
 
-        {sinGuardar && (
+        {/*sinGuardar && (
           <p className="mt-1 text-xs text-brand-muted">Todavía no está guardada: sin guardar no se envía con el pedido.</p>
-        )}
+        )*/}
 
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           <button
@@ -133,7 +133,7 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
             aria-label={verCompleta ? "Ocultar la nota completa" : "Ver la nota completa"}
             aria-pressed={verCompleta}
             title={verCompleta ? "Ocultar la nota completa" : "Ver la nota completa"}
-            className={BOTON_ICONO}
+            className={`${BOTON_ICONO} text-green-600 border hover:bg-green-50 transition-colors`}
           >
             {verCompleta ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -143,7 +143,7 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
             onClick={abrir}
             aria-label="Editar la nota para la cocina"
             title="Editar nota"
-            className={BOTON_ICONO}
+            className={`${BOTON_ICONO} text-blue-600 border hover:bg-blue-50 transition-colors`}
           >
             <Pencil className="h-4 w-4" />
           </button>
@@ -152,7 +152,7 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
             onClick={quitar}
             aria-label="Quitar la nota para la cocina"
             title="Quitar nota"
-            className={`${BOTON_ICONO} text-red-600`}
+            className={`${BOTON_ICONO} text-red-600 `}
           >
             <Trash2 className="h-4 w-4" />
           </button>
