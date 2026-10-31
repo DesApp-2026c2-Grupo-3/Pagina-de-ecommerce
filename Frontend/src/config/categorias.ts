@@ -4,6 +4,7 @@ export type IconoCategoria =
   | 'combo'
   | 'papas'
   | 'nuggets'
+  | 'aro'
   | 'bebida'
   | 'postre'
   | 'ensalada'
@@ -11,6 +12,8 @@ export type IconoCategoria =
   | 'desayuno'
   | 'cafe'
   | 'comboCafe'
+  | 'sandwich'
+  | 'torta'
   | 'salsa'
   | 'generico'
 
@@ -26,6 +29,7 @@ const ESTILOS: Record<string, EstiloCategoria> = {
   'combos de cafeteria': { icono: 'comboCafe', fondo: 'bg-brand-mustard' },
   'papas fritas': { icono: 'papas', fondo: 'bg-brand-mustard' },
   nuggets: { icono: 'nuggets', fondo: 'bg-brand-sand' },
+  aro: { icono: 'aro', fondo: 'bg-brand-sand' },
   bebidas: { icono: 'bebida', fondo: 'bg-brand-red' },
   postres: { icono: 'postre', fondo: 'bg-brand-mustard' },
   ensaladas: { icono: 'ensalada', fondo: 'bg-brand-sand' },
@@ -34,6 +38,8 @@ const ESTILOS: Record<string, EstiloCategoria> = {
   // "Café" son las bebidas calientes (taza) y "Menú Café" las comidas (medialuna)
   'cafe': { icono: 'desayuno', fondo: 'bg-brand-sand' },
   'menu cafe': { icono: 'cafe', fondo: 'bg-brand-mustard' },
+  'sandwich': {icono: 'sandwich', fondo: 'bg-brand-sand'},
+  'torta': {icono: 'torta', fondo: 'bg-brand-sand'},
   salsas: { icono: 'salsa', fondo: 'bg-brand-red' },
 }
 
