@@ -10,12 +10,12 @@ import PasosCompra from "../components/cart/PasosCompra";
 import CartItemRow from "../components/cart/CartItemRow";
 import SugerenciasCarrito from "../components/cart/SugerenciaCarrito";
 import ResumenCarrito from "../components/cart/ResumenCarrito";
+import NotaCocina from "../components/cart/NotaCocina";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal";
 import type { CartItem } from "../types/cart";
 import type { Promo } from "../types/promo";
 import { getPromociones } from "../services/promotionService";
-import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
@@ -161,26 +161,8 @@ function Cart() {
             />
           ))}
 
-          <div className="mx-auto w-full max-w-lg rounded-2xl border-2 border-brand-dark bg-white p-3">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
-              <label htmlFor="observaciones" className={CLASE_LABEL}>
-                Notas para la cocina (opcional)
-              </label>
-
-              <span className="shrink-0 text-xs text-brand-muted">
-                {observaciones.length}/100
-              </span>
-            </div>
-
-              <textarea id="observaciones" value={observaciones}
-              onChange={(e) => cambiarObservaciones(e.target.value)}
-              maxLength={100}
-              placeholder="Ej.: sin cebolla, bien cocida..."
-              rows={2}
-              className={`${CLASE_INPUT} w-full resize-none`}/>
-            </div>
-
-          </div>
+          <NotaCocina guardada={observaciones} onGuardar={cambiarObservaciones} />
+        </div>
 
         <ResumenCarrito
           cantidad={cantidadTotal}
