@@ -66,4 +66,18 @@ const repartidorSchema = Joi.object({
     sucursalId
 });
 
-module.exports = { repartidorSchema };
+// Esquema para modificar un repartidor.
+const actualizarRepartidorSchema = Joi.object({
+    nombre: nombre.optional(),
+    apellido: apellido.optional(),
+    email: email.optional(),
+    password: password.optional().allow(''),
+    sucursalId: sucursalId.optional()
+}).min(1);
+
+module.exports = {
+    repartidorSchema,
+    actualizarRepartidorSchema
+};
+
+module.exports = { repartidorSchema, actualizarRepartidorSchema };

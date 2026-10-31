@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Pencil, Plus, UserCheck, UserX } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import MensajeVacio from '../../components/MensajeVacio'
 import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
-import { obtenerRepartidores } from '../../services/repartidorService'
+import { desactivarRepartidor, obtenerRepartidores, reactivarRepartidor } from '../../services/repartidorService'
 import type { Repartidor } from '../../types/repartidor.types'
+import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
+import { useToast } from '../../context/ToastContext'
 
 const POR_PAGINA = 8
 
@@ -18,6 +20,10 @@ export default function Repartidores() {
   const [filtroSucursal, setFiltroSucursal] = useState('todas')
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+  const { mostrarToast } = useToast()
+
+  const [aDesactivar, setADesactivar] = useState<Repartidor | null>(null)
+
 
   useEffect(() => {
     obtenerRepartidores()
@@ -28,6 +34,53 @@ export default function Repartidores() {
       })
       .finally(() => setCargando(false))
   }, [])
+
+
+    async function desactivar() {
+  if (!aDesactivar) return
+
+  try {
+    await desactivarRepartidor(aDesactivar.id)
+
+    setRepartidores((prev) =>
+      prev.map((r) =>
+        r.id === aDesactivar.id ? { ...r, activo: false } : r,
+      ),
+    )
+
+    mostrarToast('Repartidor desactivado correctamente')
+  } catch (error) {
+    mostrarToast(
+      error instanceof Error
+        ? error.message
+        : 'No se pudo desactivar el repartidor',
+    )
+  } finally {
+    setADesactivar(null)
+  }
+}
+
+async function reactivar(r: Repartidor) {
+  try {
+    await reactivarRepartidor(r.id)
+
+    setRepartidores((prev) =>
+      prev.map((repartidor) =>
+        repartidor.id === r.id
+          ? { ...repartidor, activo: true }
+          : repartidor,
+      ),
+    )
+
+    mostrarToast('Repartidor reactivado correctamente')
+  } catch (error) {
+    mostrarToast(
+      error instanceof Error
+        ? error.message
+        : 'No se pudo reactivar el repartidor',
+    )
+  }
+}
 
   const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
     cambiar(valor)
@@ -150,6 +203,26 @@ export default function Repartidores() {
                     {r.activo ? 'Activo' : 'Inactivo'}
                   </p>
                 </div>
+
+                <button type="button" onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
+                  title="Editar repartidor" aria-label={`Editar a ${r.nombre} ${r.apellido}`}
+                  className="shrink-0 rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50">
+                    <Pencil size={18} />
+                </button>
+
+                {r.activo ? (
+                  <button type="button" onClick={() => setADesactivar(r)}
+                    title="Desactivar repartidor" aria-label={`Desactivar a ${r.nombre}`}
+                    className="rounded-lg border border-red-300 p-2 text-red-600 transition-colors hover:bg-red-50">
+                      <UserX size={18} />
+                  </button>
+                  ) : (
+                  <button type="button" onClick={() => reactivar(r)} title="Reactivar repartidor"
+                   aria-label={`Reactivar a ${r.nombre}`}
+                   className="rounded-lg border border-green-300 p-2 text-green-600 transition-colors hover:bg-green-50">
+                     <UserCheck size={18} />
+                  </button>
+               )}
               </li>
             ))}
           </ul>
@@ -163,6 +236,7 @@ export default function Repartidores() {
                   <th className="px-6 py-3 text-left">Email</th>
                   <th className="px-6 py-3 text-left">Sucursal</th>
                   <th className="px-6 py-3 text-right">Estado</th>
+                  <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
 
@@ -172,7 +246,9 @@ export default function Repartidores() {
                     <td className="px-6 py-4 font-medium">
                       {r.nombre} {r.apellido}
                     </td>
-                    <td className="px-6 py-4">{r.email}</td>
+                    <td className="px-6 py-4">
+                      {r.email}
+                    </td>
                     <td className="px-6 py-4">
                       {r.sucursal?.nombre ?? 'Sin sucursal'}
                     </td>
@@ -186,6 +262,31 @@ export default function Repartidores() {
                       >
                         {r.activo ? 'Activo' : 'Inactivo'}
                       </span>
+                    </td>
+
+
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
+                          title="Editar repartidor" aria-label={`Editar a ${r.nombre} ${r.apellido}`}
+                          className="rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50">
+                            <Pencil size={18} />
+                        </button>
+                        
+                        {r.activo ? (
+                          <button type="button" onClick={() => setADesactivar(r)}
+                          title="Desactivar repartidor" aria-label={`Desactivar a ${r.nombre}`}
+                          className="rounded-lg border border-red-300 p-2 text-red-600 transition-colors hover:bg-red-50">
+                            <UserX size={18} />
+                          </button>
+                          ) : (
+                          <button type="button" onClick={() => reactivar(r)} title="Reactivar repartidor"
+                            aria-label={`Reactivar a ${r.nombre}`}
+                            className="rounded-lg border border-green-300 p-2 text-green-600 transition-colors hover:bg-green-50">
+                                <UserCheck size={18} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -201,6 +302,14 @@ export default function Repartidores() {
         elementosPorPagina={POR_PAGINA}
         cambiarPagina={setPaginaActual}
       />
+
+      <ConfirmarEliminacion
+        abierto={aDesactivar !== null}
+        mensaje={`¿Seguro que querés desactivar a ${aDesactivar?.nombre ?? 'este repartidor'}?`}
+        onConfirmar={desactivar}
+        onCancelar={() => setADesactivar(null)}
+      />
+
     </main>
   )
 }
