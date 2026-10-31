@@ -1,4 +1,4 @@
-// Promociones tal como las devuelve GET /promociones (fuente: Backend/src/config/promociones.js)
+// Promociones tal como las devuelve GET /promociones (las arma el Admin-Master desde el panel)
 
 export interface ItemPromo {
   nombre: string

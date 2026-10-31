@@ -13,6 +13,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
       { to: '/admin', label: 'Reportes', end: true },
       { to: '/admin/pedidos', label: 'Pedidos' },
       { to: '/admin/productos', label: 'Productos' },
+      { to: '/admin/promociones', label: 'Promociones' },
       { to: '/admin/insumos', label: 'Insumos' },
       { to: '/admin/categorias', label: 'Categorías' },
       { to: '/admin/sucursales', label: 'Sucursales' },
