@@ -12,6 +12,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
     return [
       { to: '/admin', label: 'Reportes', end: true },
       { to: '/admin/pedidos', label: 'Pedidos' },
+      { to: '/admin/calificaciones', label: 'Calificaciones' },
       { to: '/admin/productos', label: 'Productos' },
       { to: '/admin/promociones', label: 'Promociones' },
       { to: '/admin/insumos', label: 'Insumos' },
@@ -27,9 +28,10 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
     ...(id
       ? [
           { to: '/admin/pedidos', label: 'Pedidos' },
+          { to: '/admin/calificaciones', label: 'Calificaciones' },
           { to: `/admin/sucursales/${id}/stock`, label: 'Stock' },
           { to: `/admin/sucursales/editar/${id}`, label: 'Mi sucursal' },
         ]
       : []),
   ]
-}
+}

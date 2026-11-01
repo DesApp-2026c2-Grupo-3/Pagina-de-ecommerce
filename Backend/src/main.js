@@ -51,6 +51,7 @@ app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
 app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
 app.use('/admin/promociones', require('./routes/admin/promocionRoutes'));
+app.use('/admin/calificaciones', require('./routes/admin/calificacionRoutes'));
 app.use('/admin/reportes', require('./routes/admin/reportesRoutes'));
 app.use('/admin', adminRoutes);
 app.use('/productos', productoRoutes);
@@ -62,6 +63,7 @@ app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
 app.use('/promociones', require('./routes/promocionRoutes'));
+app.use('/calificaciones', require('./routes/calificacionRoutes'));
 
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
@@ -81,4 +83,4 @@ async function iniciarServidor() {
     }
 }
 
-iniciarServidor();
+iniciarServidor();

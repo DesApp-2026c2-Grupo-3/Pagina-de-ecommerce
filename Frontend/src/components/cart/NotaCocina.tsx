@@ -85,9 +85,9 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
           className={`${CLASE_INPUT} w-full resize-none`}
         />
 
-        {/*sinGuardar && (
+        {sinGuardar && (
           <p className="mt-1 text-xs text-brand-muted">Todavía no está guardada: sin guardar no se envía con el pedido.</p>
-        )*/}
+        )}
 
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           <button
@@ -101,13 +101,12 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
           <button
             type="button"
             onClick={guardar} 
+            disabled={borrador.trim() === ""}
             className={`${BOTON} bg-green-50 text-green-600 hover:bg-green-100 p-2 rounded-full transition-colors`}
             title="Aceptar"
           >
             <Check className="w-4 h-4" />Guardar
           </button>
-
-
         </div>
       </div>
     );

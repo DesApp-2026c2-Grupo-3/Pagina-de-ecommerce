@@ -38,17 +38,17 @@ describe('gruposCatalogo', () => {
   })
 
   it('Cafetería y Postres comparten Brownie y Cheesecake sin duplicar productos', () => {
-    expect(sub('cafeteria', 'Brownie con Helado', 'Postres')).toBe('pasteleria')
+    expect(sub('cafeteria', 'Brownie con Helado', 'Postres')).toBe('dulces')
     expect(sub('postres', 'Brownie con Helado', 'Postres')).toBe('tortas')
-    expect(sub('cafeteria', 'Donas Glaseadas x3', 'Menú Café')).toBe('pasteleria')
+    expect(sub('cafeteria', 'Donas Glaseadas x3', 'Menú Café')).toBe('dulces')
     expect(ubicarEnGrupo(grupo('postres'), 'Donas Glaseadas x3', 'Menú Café').pertenece).toBe(false)
     expect(sub('postres', 'Batido de Vainilla', 'Postres')).toBe('helados')
   })
 
   it('Cafetería: los productos sin botón propio caen en Clásicos', () => {
-    expect(sub('cafeteria', 'Espresso', 'Café')).toBe('bebidas-calientes')
+    expect(sub('cafeteria', 'Espresso', 'Café')).toBe('cafés')
     expect(sub('cafeteria', 'Tostado de Jamón y Queso', 'Menú Café')).toBe('sandwiches')
-    expect(sub('cafeteria', 'Hot Cakes', 'Menú Café')).toBe('clasicos')
+    expect(sub('cafeteria', 'Tostadas con Palta', 'Menú Café')).toBe('clasicos')
   })
 
   it('las salsas no se ven en el menú, salvo la pileta de cheddar', () => {
@@ -60,6 +60,6 @@ describe('gruposCatalogo', () => {
   it('una categoría con botón propio abre ese botón', () => {
     const g = grupoDeCategoria('Nuggets')!
     expect(subgrupoDeCategoria(g, 'Nuggets')?.slug).toBe('nuggets')
-    expect(subgrupoDeCategoria(grupoDeCategoria('Café')!, 'Café')?.slug).toBe('bebidas-calientes')
+    expect(subgrupoDeCategoria(grupoDeCategoria('Café')!, 'Café')?.slug).toBe('cafés')
   })
 })
