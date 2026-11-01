@@ -1,9 +1,6 @@
 
-import MisPedidos from './pages/MisPedidos'
-import './App.css'
+import AppRoutes from './routes/AppRoutes'
 
-function App() {
-  return <MisPedidos />
+export default function App() {
+  return <AppRoutes />
 }
-
-export default App
