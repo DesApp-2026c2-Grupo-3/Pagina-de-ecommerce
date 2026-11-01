@@ -37,7 +37,7 @@ function Cart() {
   const esEditable = (item: CartItem) =>
     Boolean(
       item.product.tamanios?.length ||
-        item.product.ingredientes?.some((i) => i.esRemovible || i.esAgregable),
+      item.product.ingredientes?.some((i) => i.esRemovible || i.esAgregable),
     );
 
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
@@ -78,7 +78,7 @@ function Cart() {
       navigate("/login", { state: { from: "/carrito" } });
       return;
     }
-    navigate("/checkout" , { state: { observaciones } });
+    navigate("/checkout", { state: { observaciones } });
   }
 
   if (items.length === 0) {
@@ -92,7 +92,7 @@ function Cart() {
               <span className="absolute -right-3 -top-3 grid h-9 w-9 rotate-12 place-items-center rounded-full border-2 border-brand-dark bg-brand-red font-display text-lg font-extrabold text-white">
                 0
               </span>
-            </span>            
+            </span>
             <h2 className="font-display text-3xl font-extrabold text-brand-dark">Todavía no agregaste nada</h2>
             <p className="text-brand-muted">Elegí tu antojo del menú y lo vas a ver acá.</p>
             <Link
@@ -115,9 +115,8 @@ function Cart() {
         <PasosCompra actual={0} />
       </PageHeader>
 
-      
 
-      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">        
+      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-3">
           {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} />}
           {faltantes.map((f) => (
@@ -130,7 +129,8 @@ function Cart() {
               {f.promo.titulo}" (compra mínima ${(f.promo.compraMinima ?? 0).toLocaleString('es-AR')}).
             </div>
           ))}
-                   <div className="flex flex-wrap items-center justify-between gap-3">
+          
+          <div className="flex flex-wrap items-center justify-between gap-3 ">
             <Link
               to="/catalogo"
               className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-white
@@ -180,21 +180,22 @@ function Cart() {
 
       {itemAEliminar && (
         <ConfirmarEliminarModal
-        nombreProducto={itemAEliminar.product.nombre}
-        onCancelar={() => setItemAEliminar(null)}
-        onConfirmar={() => {
-        removeItem(itemAEliminar.id)
-        setItemAEliminar(null)
-        }}/>
+          nombreProducto={itemAEliminar.product.nombre}
+          onCancelar={() => setItemAEliminar(null)}
+          onConfirmar={() => {
+            removeItem(itemAEliminar.id)
+            setItemAEliminar(null)
+          }} />
       )}
 
       {mostrarModalVaciar && (
         <ConfirmarEliminarModal
-        nombreProducto="todos los productos"
-        onCancelar={() => setMostrarModalVaciar(false)}
-        onConfirmar={() => { clearCart();
-          setMostrarModalVaciar(false);
-        }}/>
+          nombreProducto="todos los productos"
+          onCancelar={() => setMostrarModalVaciar(false)}
+          onConfirmar={() => {
+            clearCart();
+            setMostrarModalVaciar(false);
+          }} />
       )}
     </div>
   );
