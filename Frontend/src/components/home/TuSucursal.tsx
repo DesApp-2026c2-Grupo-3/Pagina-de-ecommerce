@@ -98,12 +98,10 @@ function TuSucursal() {
           </p>
 
           <div className="flex flex-col gap-2 border-t-2 border-dashed border-brand-sand pt-4 text-sm">
-            {sucursal.horario && (
-              <p className="flex items-center gap-2">
-                <Clock className="h-4 w-4 shrink-0" />{' '}
-                <span className="font-bold">{formatearHorario(sucursal.horario)}</span>
-              </p>
-            )}
+            <p className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0" />{' '}
+              <span className="font-bold">{formatearHorario(sucursal.horario)}</span>
+            </p>
             {sucursal.telefono && (
               <a href={`tel:${sucursal.telefono}`} className="flex items-center gap-2 hover:text-brand-red">
                 <Phone className="h-4 w-4 shrink-0" /> <span className="font-bold">{sucursal.telefono}</span>

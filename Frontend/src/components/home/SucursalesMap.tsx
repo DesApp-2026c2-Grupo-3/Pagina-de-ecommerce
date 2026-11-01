@@ -117,9 +117,7 @@ function SucursalesMap() {
                       <div className="max-w-56 text-brand-dark">
                         <p className="font-bold">{seleccionada.nombre}</p>
                         <p className="mt-1 text-sm">{direccionDe(seleccionada)}</p>
-                        {seleccionada.horario && (
-                          <p className="mt-1 flex items-center gap-1 text-xs text-gray-600"><Clock size={12} /> {formatearHorario(seleccionada.horario)}</p>                        
-                          )}
+                        <p className="mt-1 flex items-center gap-1 text-xs text-gray-600"><Clock size={12} /> {formatearHorario(seleccionada.horario)}</p>
                         {seleccionada.telefono && (
                           <p className="flex items-center gap-1 text-xs text-gray-600"><Phone size={12} /> {seleccionada.telefono}</p>                        
                           )}
@@ -154,12 +152,10 @@ function SucursalesMap() {
                       >
                         <p className="font-display text-lg font-extrabold">{s.nombre}</p>                        
                         <p className="mt-1 text-sm opacity-80">{direccionDe(s)}</p>                        
-                        {s.horario && (
-                          <div className="mt-1 flex items-center gap-2 text-xs opacity-80">                            
+                        <div className="mt-1 flex items-center gap-2 text-xs opacity-80">
                           <Clock size={16} className="shrink-0" />
-                            <p>{formatearHorario(s.horario)}</p>
-                          </div>
-                        )}
+                          <p>{formatearHorario(s.horario)}</p>
+                        </div>
                       </button>
                     </li>
                   )
