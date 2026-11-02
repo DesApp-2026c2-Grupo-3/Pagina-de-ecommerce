@@ -32,7 +32,7 @@ const pedidoSchema = Joi.object({
                 'number.max': 'No se pueden pedir más de 20 unidades de un mismo producto',
                 'any.required': 'La cantidad es obligatoria'
             }),
-            // Promo con la que se agregó la línea (ver config/promociones.js)
+            // Promo con la que se agregó la línea (id de la tabla Promociones, como texto; ver utils/promociones.js)
             promoId: Joi.string().max(60).optional().messages({
                 'string.base': 'La promo no es válida'
             }),

@@ -5,6 +5,9 @@ import AdminLayout from '../components/AdminLayout'
 import Productos from '../pages/Productos/Productos'
 import NuevoProducto from '../pages/Productos/NuevoProducto'
 import EditarProducto from '../pages/Productos/EditarProducto'
+import Promociones from '../pages/Promociones/Promociones'
+import NuevaPromocion from '../pages/Promociones/NuevaPromocion'
+import EditarPromocion from '../pages/Promociones/EditarPromocion'
 import Categorias from '../pages/Categorias/Categorias'
 import NuevaCategoria from '../pages/Categorias/NuevaCategoria'
 import EditarCategoria from '../pages/Categorias/EditarCategoria'
@@ -50,6 +53,10 @@ export default function AppRoutes() {
           <Route path="/admin/productos" element={<Productos />} />
           <Route path="/admin/productos/nuevo" element={<NuevoProducto />} />
           <Route path="/admin/productos/editar/:id" element={<EditarProducto />} />
+
+          <Route path="/admin/promociones" element={<Promociones />} />
+          <Route path="/admin/promociones/nueva" element={<NuevaPromocion />} />
+          <Route path="/admin/promociones/editar/:id" element={<EditarPromocion />} />
 
           <Route path="/admin/categorias" element={<Categorias />} />
           <Route path="/admin/categorias/nueva" element={<NuevaCategoria />} />

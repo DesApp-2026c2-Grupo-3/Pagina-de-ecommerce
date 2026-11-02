@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { precioMasBarato } = require('../utils/combo');
-const { buscarPromo, vigenteHoy, aplicarDescuento } = require('../config/promociones');
+const { vigenteHoy, aplicarDescuento } = require('../config/promociones');
+const { buscarPromo } = require('../utils/promociones');
 
 // Regla de negocio: pedidos en curso simultáneos por cliente
 const MAX_PEDIDOS_EN_CURSO = 2;
@@ -183,31 +184,24 @@ async function validarPromociones(productos) {
     if (porPromo.size === 0) return descuentos;
 
     for (const [promoId, lineas] of porPromo) {
-        const promo = buscarPromo(promoId);
+        // La promo tiene que existir, estar activa (la arma el Admin-Master), tener todos sus productos y valer hoy
+        const promo = await buscarPromo(promoId);
         if (!promo || !vigenteHoy(promo)) {
             throw new ErrorPedido(400, 'Una de las promos de tu carrito ya no está vigente. Quitala y volvé a agregarla.');
         }
 
-        const ids = await Producto.findAll({
-            where: { nombre: { [Op.in]: promo.items.map((i) => i.nombre) } },
-            attributes: ['id', 'nombre'],
-        });
-        const itemPorId = new Map(
-            ids.map((p) => [p.id, promo.items.find((i) => i.nombre === p.nombre)])
-        );
-
         // Unidades pedidas de cada producto de la promo
         const unidades = new Map();
         for (const { linea, indice } of lineas) {
-            const item = itemPorId.get(Number(linea.productoId));
+            const item = promo.items.find((i) => i.productoId === Number(linea.productoId));
             if (!item) {
                 throw new ErrorPedido(400, `Un producto no corresponde a la promo "${promo.titulo}"`);
             }
-            unidades.set(item.nombre, (unidades.get(item.nombre) ?? 0) + Number(linea.cantidad));
+            unidades.set(item.productoId, (unidades.get(item.productoId) ?? 0) + Number(linea.cantidad));
             descuentos.set(indice, item.descuento);
         }
 
-        const veces = promo.items.map((i) => (unidades.get(i.nombre) ?? 0) / i.cantidad);
+        const veces = promo.items.map((i) => (unidades.get(i.productoId) ?? 0) / i.cantidad);
         const k = veces[0];
         if (!Number.isInteger(k) || k < 1 || veces.some((v) => v !== k)) {
             throw new ErrorPedido(400, `La promo "${promo.titulo}" tiene que pedirse completa`);
@@ -489,7 +483,7 @@ const crearPedido = async (req, res) => {
                 // Promos con compra mínima (ej: papas gratis): el resto del pedido tiene que llegar al mínimo
         const promosDelPedido = [...new Set(productos.map((p) => p.promoId).filter(Boolean))];
         for (const promoId of promosDelPedido) {
-            const promo = buscarPromo(promoId);
+            const promo = await buscarPromo(promoId);
             if (!promo?.compraMinima) continue;
             const resto = lineasCobradas
                 .filter((l) => l.promoId !== promoId)
