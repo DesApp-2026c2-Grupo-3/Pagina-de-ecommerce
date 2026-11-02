@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { precioMasBarato } = require('../utils/combo');
 const { vigenteHoy, aplicarDescuento } = require('../config/promociones');
 const { buscarPromo } = require('../utils/promociones');
+const { MAX_COMPLEMENTO_POR_PEDIDO } = require('../config/complementos');
 
 // Regla de negocio: pedidos en curso simultáneos por cliente
 const MAX_PEDIDOS_EN_CURSO = 2;
@@ -9,6 +10,7 @@ const {
     Pedido,
     DetallePedido,
     Producto,
+    Categoria,
     Usuario,
     Direccion,
     Sucursal,
@@ -292,6 +294,9 @@ const crearPedido = async (req, res) => {
         let total = 0;
         // Subtotal de cada línea, para controlar la compra mínima de las promos
         const lineasCobradas = [];
+        // Complementos (salsas): unidades pedidas de cada uno, y si el pedido tiene algo más que complementos
+        const complementos = new Map();
+        let hayProductoPrincipal = false;
         // Recorrer los productos recibidos
         for (const [indice, producto] of productos.entries()) {
 
@@ -304,7 +309,10 @@ const crearPedido = async (req, res) => {
             }
 
             const productoBD = await Producto.findByPk(producto.productoId, {
-                include: [{ model: ProductoTamanio, as: 'tamanios' }]
+                include: [
+                    { model: ProductoTamanio, as: 'tamanios' },
+                    { model: Categoria, as: 'categoria', attributes: ['esComplemento'] },
+                ]
             });
             if (!productoBD) {
                 throw new ErrorPedido(404, `No existe el producto con id ${producto.productoId}`);
@@ -312,6 +320,13 @@ const crearPedido = async (req, res) => {
 
             if (!productoBD.disponible) {
                 throw new ErrorPedido(400, `El producto ${productoBD.nombre} no está disponible`);
+            }
+
+            if (productoBD.categoria?.esComplemento) {
+                const previas = complementos.get(productoBD.id)?.cantidad ?? 0;
+                complementos.set(productoBD.id, { nombre: productoBD.nombre, cantidad: previas + Number(producto.cantidad) });
+            } else {
+                hayProductoPrincipal = true;
             }
 
             // Si el producto tiene tamaños, el precio base es el del tamaño elegido
@@ -480,7 +495,17 @@ const crearPedido = async (req, res) => {
             }, { transaction: t });
         }
 
-                // Promos con compra mínima (ej: papas gratis): el resto del pedido tiene que llegar al mínimo
+        // Las salsas tienen tope por pedido y no pueden ser todo el pedido (algunas son gratis)
+        for (const { nombre, cantidad } of complementos.values()) {
+            if (cantidad > MAX_COMPLEMENTO_POR_PEDIDO) {
+                throw new ErrorPedido(400, `Podés pedir hasta ${MAX_COMPLEMENTO_POR_PEDIDO} unidades de ${nombre} por pedido`);
+            }
+        }
+        if (complementos.size > 0 && !hayProductoPrincipal) {
+            throw new ErrorPedido(400, 'Tu pedido no puede ser solo de salsas: sumá algo de comer');
+        }
+
+        // Promos con compra mínima (ej: papas gratis): el resto del pedido tiene que llegar al mínimo
         const promosDelPedido = [...new Set(productos.map((p) => p.promoId).filter(Boolean))];
         for (const promoId of promosDelPedido) {
             const promo = await buscarPromo(promoId);
@@ -523,4 +548,4 @@ const crearPedido = async (req, res) => {
 };
 
 
-module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };
+module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };

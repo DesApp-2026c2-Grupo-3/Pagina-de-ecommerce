@@ -4,7 +4,6 @@ export type IconoCategoria =
   | 'combo'
   | 'papas'
   | 'nuggets'
-  | 'aro'
   | 'bebida'
   | 'postre'
   | 'ensalada'
@@ -12,8 +11,6 @@ export type IconoCategoria =
   | 'desayuno'
   | 'cafe'
   | 'comboCafe'
-  | 'sandwich'
-  | 'torta'
   | 'salsa'
   | 'generico'
 
@@ -29,17 +26,16 @@ const ESTILOS: Record<string, EstiloCategoria> = {
   'combos de cafeteria': { icono: 'comboCafe', fondo: 'bg-brand-mustard' },
   'papas fritas': { icono: 'papas', fondo: 'bg-brand-mustard' },
   nuggets: { icono: 'nuggets', fondo: 'bg-brand-sand' },
-  aro: { icono: 'aro', fondo: 'bg-brand-sand' },
   bebidas: { icono: 'bebida', fondo: 'bg-brand-red' },
   postres: { icono: 'postre', fondo: 'bg-brand-mustard' },
   ensaladas: { icono: 'ensalada', fondo: 'bg-brand-sand' },
   'sin tacc': { icono: 'sinTacc', fondo: 'bg-brand-red' },
   'desayunos y meriendas': { icono: 'desayuno', fondo: 'bg-brand-mustard' },
   // "Café" son las bebidas calientes (taza) y "Menú Café" las comidas (medialuna)
+  // "Cafetería" junta a las dos en el Home
+  cafeteria: { icono: 'desayuno', fondo: 'bg-brand-mustard' },
   'cafe': { icono: 'desayuno', fondo: 'bg-brand-sand' },
   'menu cafe': { icono: 'cafe', fondo: 'bg-brand-mustard' },
-  'sandwich': {icono: 'sandwich', fondo: 'bg-brand-sand'},
-  'torta': {icono: 'torta', fondo: 'bg-brand-sand'},
   salsas: { icono: 'salsa', fondo: 'bg-brand-red' },
 }
 
@@ -65,3 +61,30 @@ export function ordenarCategorias<T extends { nombre: string }>(categorias: T[])
 export function estiloCategoria(nombre: string): EstiloCategoria {
   return ESTILOS[normalizar(nombre)] ?? POR_DEFECTO
 }
+
+// Colores de fondo que puede elegir el master para una tarjeta (los de la marca)
+export const FONDOS: Record<string, string> = {
+  mostaza: 'bg-brand-mustard',
+  rojo: 'bg-brand-red',
+  arena: 'bg-brand-sand',
+}
+
+interface CategoriaConEstilo {
+  nombre: string
+  icono?: string | null
+  fondo?: string | null
+}
+
+/** Ícono y color de una categoría: lo que eligió el master y, si no eligió, lo que corresponde a su nombre */
+export function estiloDeCategoria(categoria: CategoriaConEstilo): EstiloCategoria {
+  const porNombre = estiloCategoria(categoria.nombre)
+  return {
+    icono: categoria.icono && categoria.icono in ICONOS_VALIDOS ? (categoria.icono as IconoCategoria) : porNombre.icono,
+    fondo: (categoria.fondo && FONDOS[categoria.fondo]) || porNombre.fondo,
+  }
+}
+
+const ICONOS_VALIDOS: Record<IconoCategoria, true> = {
+  hamburguesa: true, combo: true, papas: true, nuggets: true, bebida: true, postre: true, ensalada: true,
+  sinTacc: true, desayuno: true, cafe: true, comboCafe: true, salsa: true, generico: true,
+}

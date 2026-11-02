@@ -129,26 +129,38 @@ function Cart() {
               {f.promo.titulo}" (compra mínima ${(f.promo.compraMinima ?? 0).toLocaleString('es-AR')}).
             </div>
           ))}
-          
-          <div className="flex flex-wrap items-center justify-between gap-3 ">
-            <Link
-              to="/catalogo"
-              className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-white
-               px-5 text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
-            >
-              <ArrowLeft className="h-4 w-4" /> Seguir agregando
-            </Link>
 
-            <button
-              type="button"
-              onClick={() => setMostrarModalVaciar(true)}
-              className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-red-600 bg-stone-100
-               px-5 text-sm font-bold shadow-[4px_4px_0px_#c556a0] transition-transform hover:translate-y-0.5
-               hover:bg-stone-500 hover:text-red-300"
-            >
-              <Trash2 className="h-4 w-4" />
-              Vaciar carrito
-            </button>
+          <div className=" min-h-6 my-4 -mb-0 ">
+            <div className="flex flex-wrap items-center justify-between gap-3 ">
+              <Link
+                to="/catalogo"
+                className="group inline-flex min-h-11 w-fit items-center gap-3 rounded-full border-2 border-brand-dark bg-amber-500 text-black
+                pl-2 pr-5 text-sm font-bold shadow-sticker transition-all duration-200 hover:translate-y-0.5 hover:bg-green-600 hover:text-white"
+              >
+                {/* Contenedor circular de la flecha */}
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white text-green-600 transition-colors duration-200 group-hover:border-white group-hover:bg-black group-hover:text-white">
+                  <ArrowLeft className="h-4 w-4 stroke-[3px]" />
+                </div>
+
+                <span>Menú</span>
+              </Link>
+
+
+              <button
+                type="button"
+                onClick={() => setMostrarModalVaciar(true)}
+                className="group inline-flex min-h-11 w-fit items-center gap-3 rounded-full border-2 border-black !bg-amber-500 text-black
+                pl-2 pr-5 text-sm font-bold shadow-[5px_5px_0px_theme(colors.black)] transition-all duration-200 hover:translate-y-0.5
+                hover:!bg-red-600 hover:!text-white"
+              >
+                {/* Contenedor circular del tachito */}
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white text-red-600 transition-colors duration-200 group-hover:border-amber-500 group-hover:bg-black   group-hover:text-amber-500">
+                  <Trash2 className="h-4 w-4 stroke-[3px]" />
+                </div>
+
+                Elimina todo
+              </button>
+            </div>
           </div>
 
           {items.map((item) => (

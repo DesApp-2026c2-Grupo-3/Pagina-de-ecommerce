@@ -53,7 +53,11 @@ export interface DatosProducto {
 interface Opcion {
   id: number
   nombre: string
+  categoriaPadreId?: number | null
 }
+
+// Los productos van en categorías "hoja": una categoría principal con subcategorías (Cafetería) no tiene productos propios
+const sinCategoriasPadre = (lista: Opcion[]) => lista.filter((c) => !lista.some((o) => o.categoriaPadreId === c.id))
 
 type TipoProducto = 'simple' | 'tamanios' | 'combo'
 
@@ -145,7 +149,9 @@ function validar(d: DatosProducto, tipo: TipoProducto): string {
   if (d.nombre.trim().length < 3) return 'El nombre debe tener al menos 3 caracteres.'
   if (d.descripcion.trim().length < 15) return 'La descripción debe tener al menos 15 caracteres.'
   if (d.categoriaId === '') return 'Elegí una categoría.'
-  if (d.precio === '' || Number(d.precio) <= 0) return 'El precio debe ser mayor a 0.'
+  if (d.precio === '' || Number(d.precio) < 0) return 'El precio no puede ser negativo.'
+  // Con precio 0 (gratis, como las salsas) el producto es simple: los tamaños y los combos se arman con el precio
+  if (tipo !== 'simple' && Number(d.precio) === 0) return 'Un producto con tamaños o un combo necesita un precio mayor a 0.'
   if (Number(d.precio) > 999999) return 'El precio no puede ser mayor a 999999.'
   if (!d.archivoImagen && d.imagen.trim().length < 1) return 'Subí una foto del producto.'
 
@@ -456,7 +462,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                 className={campo}
               >
                 <option value="">Seleccionar categoría</option>
-                {categorias.map((c) => (
+                {sinCategoriasPadre(categorias).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre}
                   </option>
@@ -711,7 +717,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                   aria-label={`Categoría del lugar ${i + 1}`}
                 >
                   <option value="">Elegir categoría</option>
-                  {categorias.map((c) => (
+                  {sinCategoriasPadre(categorias).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}
                     </option>
@@ -780,4 +786,4 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
       </div>
     </form>
   )
-}
+}

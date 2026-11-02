@@ -15,7 +15,6 @@ import {
   grupoDeCategoria,
   subgrupoDeCategoria,
   ubicarEnGrupo,
-  visibleEnMenu,
   type GrupoCatalogo,
   type SubgrupoCatalogo,
 } from "../config/gruposCatalogo";
@@ -109,14 +108,8 @@ function Products() {
   const nombrePorId = useMemo(() => new Map(categories.map((c) => [c.id, c.nombre])), [categories]);
   const categoriasListas = categories.length > 0;
 
-  // Lo que se ve en el menú (las salsas no: se ofrecen en el carrito)
-  const visibles = useMemo(
-    () =>
-      categoriasListas
-        ? products.filter((p) => visibleEnMenu(p.nombre, nombrePorId.get(p.categoriaId) ?? ""))
-        : [],
-    [products, nombrePorId, categoriasListas],
-  );
+  // Todo el catálogo se ve en el menú (salsas incluidas, al final); hasta tener las categorías no se muestra nada
+  const visibles = useMemo(() => (categoriasListas ? products : []), [products, categoriasListas]);
 
   // Cada producto con el subgrupo en el que cae dentro del grupo elegido
   const delGrupo = useMemo(() => {

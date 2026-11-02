@@ -100,7 +100,7 @@ function Promociones() {
         <div className="mx-auto -mt-7 max-w-6xl px-4">
          
           <div className="relative flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-brand-mustard px-6 py-4 shadow-sticker">
-            <span className="absolute -top-3 left-20 -translate-y-px rounded-md bg-white border border-2 border-black px-2 py-0.5 text-[10px] !font-black uppercase tracking-wider text-red-500 shadow-sm z-10">
+            <span className="absolute -top-3 left-20 -translate-y-px rounded-md bg-red-500 border border-2 border-black px-2 py-0.5 text-[10px] !font-black uppercase tracking-wider text-white shadow-sm z-10">
               Esta semana
             </span>
 

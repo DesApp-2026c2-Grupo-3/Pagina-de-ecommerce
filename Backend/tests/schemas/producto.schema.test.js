@@ -101,9 +101,13 @@ describe('productoSchema', () => {
             );
         });
 
-        test.each([0, -100])('rechaza el precio %s', (precio) => {
-            expect(mensajeDe({ ...productoValido, precio })).toBe(
-                'El precio debe ser un valor positivo'
+        test('acepta el precio 0: es un producto gratis (las salsas)', () => {
+            expect(mensajeDe({ ...productoValido, precio: 0 })).toBeUndefined();
+        });
+
+        test('rechaza un precio negativo', () => {
+            expect(mensajeDe({ ...productoValido, precio: -100 })).toBe(
+                'El precio no puede ser negativo'
             );
         });
     });
@@ -133,4 +137,4 @@ describe('productoSchema', () => {
             );
         });
     });
-});
+});

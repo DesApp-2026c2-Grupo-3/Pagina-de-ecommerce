@@ -1,11 +1,11 @@
 const { Op, fn, col, literal } = require('sequelize');
-const { DetallePedido, Pedido } = require('../models');
+const { DetallePedido, Pedido, Producto, Categoria } = require('../models');
 
 const LIMITE_POR_DEFECTO = 4;
 const LIMITE_MAXIMO = 12;
 
 // GET /productos/mas-pedidos?sucursalId=2&limite=4
-// Ranking de productos por unidades pedidas (sin contar pedidos cancelados).
+// Ranking de productos por unidades pedidas (sin contar pedidos cancelados ni los complementos, como las salsas).
 // Con sucursalId, solo los pedidos de esa sucursal.
 // Responde: [{ productoId: 12, vendidos: 37 }, ...] de mayor a menor
 const obtenerMasPedidos = async (req, res) => {
@@ -27,6 +27,13 @@ const obtenerMasPedidos = async (req, res) => {
                     estado: { [Op.notILike]: 'cancelado' },
                     ...(sucursalId ? { sucursalId } : {}),
                 },
+            }, {
+                // Las salsas (categorías complemento) no cuentan en el ranking
+                model: Producto,
+                attributes: [],
+                paranoid: false,
+                required: true,
+                include: [{ model: Categoria, as: 'categoria', attributes: [], where: { esComplemento: false }, required: true }],
             }],
             group: ['DetallePedido.productoId'],
             order: [[literal('"vendidos"'), 'DESC']],
@@ -42,4 +49,4 @@ const obtenerMasPedidos = async (req, res) => {
     }
 };
 
-module.exports = { obtenerMasPedidos };
+module.exports = { obtenerMasPedidos };

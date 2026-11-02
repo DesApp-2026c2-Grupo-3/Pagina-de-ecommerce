@@ -132,6 +132,7 @@ const obtenerResumen = async (req, res) => {
                        FROM "Calificaciones" c JOIN "DetallePedidos" d ON d."pedidoId" = c."pedidoId"
                        ${where}) x
                  JOIN "Productos" p ON p.id = x."productoId"
+                 JOIN "Categoria" cat ON cat.id = p."categoriaId" AND cat."esComplemento" = false
                  GROUP BY x."productoId", p.nombre
                  ORDER BY total DESC, promedio DESC
                  LIMIT 10`,
@@ -234,6 +235,7 @@ const obtenerFiltros = async (req, res) => {
              FROM "Calificaciones" c
              JOIN "DetallePedidos" d ON d."pedidoId" = c."pedidoId"
              JOIN "Productos" p ON p.id = d."productoId"
+             JOIN "Categoria" cat ON cat.id = p."categoriaId" AND cat."esComplemento" = false
              ${deSucursal ? 'WHERE c."sucursalId" = :sucursalId' : ''}
              ORDER BY p.nombre`,
             deSucursal ? { sucursalId: Number(admin.sucursalId) } : {}
