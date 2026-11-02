@@ -545,7 +545,7 @@ function Checkout() {
             lineas={lineas}
             total={total}
             onConfirmar={paso === 1 ? () => irAPaso(2) : handleConfirm}
-            deshabilitado={paso === 1 ? !direccion : loading || !puedeConfirmar}
+            deshabilitado={paso === 1 ? !direccion || sucursalCerrada : loading || !puedeConfirmar}
             cargando={loading}
             textoBoton={paso === 1 ? "Continuar" : "Confirmar pedido"}
           />
