@@ -1,61 +1,105 @@
-const { verificarToken } = require('../utils/jwt');
-const { Admin } = require('../models');
+const { resolverIdentidad } = require('../services/authService');
 
-// Lee el token del header "Authorization: Bearer <token>"
+// Lee el token del header "Authorization: Bearer <token>" o de la cookie del panel
 function leerToken(req) {
-    const header = req.headers.authorization ?? '';
-    return header.startsWith('Bearer ') ? header.slice(7) : null;
+    const header = req.headers?.authorization ?? '';
+    if (header.startsWith('Bearer ')) {
+        return header.slice(7) || null;
+    }
+    return req.cookies?.access_token ?? null;
+}
+
+async function identificar(req) {
+    const token = leerToken(req);
+    if (!token) {
+        return { error: 'AUTH_REQUIRED' };
+    }
+
+    try {
+        return { identidad: await resolverIdentidad(token) };
+    } catch (error) {
+        if (error?.codigo) {
+            return { error: error.codigo };
+        }
+        console.error(error);
+        return { error: 'SERVER_ERROR' };
+    }
 }
 
 // ---------- Clientes ----------
 
 // Exige un cliente con sesión iniciada; deja su id en req.usuario
-const autenticarUsuario = (req, res, next) => {
-    const token = leerToken(req);
-    if (!token) {
+const autenticarUsuario = async (req, res, next) => {
+    const { identidad, error } = await identificar(req);
+
+    if (error === 'AUTH_REQUIRED') {
         return res.status(401).json({ mensaje: 'Iniciá sesión para continuar' });
     }
-    try {
-        const datos = verificarToken(token);
-        if (datos.tipo !== 'usuario') throw new Error('Token de otro tipo');
-        req.usuario = { id: datos.id };
-        next();
-    } catch {
+    if (error === 'SERVER_ERROR') {
+        return res.status(500).json({ mensaje: 'Error del servidor' });
+    }
+    if (error || identidad.tipo !== 'cliente') {
         return res.status(401).json({ mensaje: 'Tu sesión venció. Iniciá sesión de nuevo' });
     }
+
+    req.identidad = identidad;
+    req.usuario = {
+        id: identidad.id,
+        nombre: identidad.nombre,
+        sucursalId: identidad.sucursalId,
+    };
+    return next();
 };
 
 // ---------- Administradores ----------
 
 // Exige un admin con sesión iniciada; deja su id, rol y sucursal en req.admin
 const autenticarAdmin = async (req, res, next) => {
-    const token = leerToken(req);
-    if (!token) {
+    const { identidad, error } = await identificar(req);
+
+    if (error === 'AUTH_REQUIRED') {
         return res.status(401).json({ mensaje: 'Iniciá sesión para continuar' });
     }
-
-    let datos;
-    try {
-        datos = verificarToken(token);
-    } catch {
+    if (error === 'SERVER_ERROR') {
+        return res.status(500).json({ mensaje: 'Error del servidor' });
+    }
+    if (error) {
         return res.status(401).json({ mensaje: 'Tu sesión venció. Iniciá sesión de nuevo' });
     }
-    if (datos.tipo !== 'admin') {
+    if (identidad.tipo !== 'admin') {
         return res.status(401).json({ mensaje: 'Iniciá sesión como administrador' });
     }
 
-    try {
-        // Se lee de la base: si le cambiaron el rol o la sucursal, o lo eliminaron, aplica enseguida
-        const admin = await Admin.findByPk(datos.id, { attributes: ['id', 'rol', 'sucursalId'] });
-        if (!admin) {
-            return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
-        }
-        req.admin = { id: admin.id, rol: admin.rol, sucursalId: admin.sucursalId };
-        next();
-    } catch (error) {
-        console.error(error);
+    req.identidad = identidad;
+    req.admin = {
+        id: identidad.id,
+        nombre: identidad.nombre,
+        rol: identidad.rol,
+        sucursalId: identidad.sucursalId,
+    };
+    req.usuario = {
+        id: identidad.id,
+        nombre: identidad.nombre,
+        rol: identidad.rol,
+    };
+    return next();
+};
+
+const autenticarCualquiera = async (req, res, next) => {
+    const { identidad, error } = await identificar(req);
+
+    if (error === 'AUTH_REQUIRED') {
+        return res.status(401).json({ mensaje: 'Iniciá sesión para continuar' });
+    }
+    if (error === 'SERVER_ERROR') {
         return res.status(500).json({ mensaje: 'Error del servidor' });
     }
+    if (error) {
+        return res.status(401).json({ mensaje: 'Tu sesión venció. Iniciá sesión de nuevo' });
+    }
+
+    req.identidad = identidad;
+    return next();
 };
 
 // Solo el administrador general
@@ -83,4 +127,10 @@ const deSuSucursal = (obtenerSucursalId) => async (req, res, next) => {
     }
 };
 
-module.exports = { autenticarUsuario, autenticarAdmin, soloMaster, deSuSucursal };
+module.exports = {
+    autenticarUsuario,
+    autenticarAdmin,
+    autenticarCualquiera,
+    soloMaster,
+    deSuSucursal,
+};

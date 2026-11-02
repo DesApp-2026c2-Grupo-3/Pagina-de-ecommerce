@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { Usuario, Sucursal, TokenRecuperacion } = require('../models')
 
 const { enviarCorreoRecuperacion } = require('../services/emailServices');
+const { firmarTokenCliente } = require('../services/authService');
 
 // Hash de relleno: se usa en el login cuando el email no existe,
 // para que la respuesta tarde lo mismo y no revele qué emails están registrados.
@@ -69,7 +70,14 @@ const login = async(req,res) =>{
             return res.status(401).json({ code: "email-password-incorrectos" });
         }
 
-        return res.status(200).json({id: user.id,nombre: user.nombre, email: user.email})
+        const token = firmarTokenCliente(user);
+
+        return res.status(200).json({
+            id: user.id,
+            nombre: user.nombre,
+            email: user.email,
+            token,
+        })
     }catch(error){
         console.error('Error al loguear:', error.message);
         return res.status(500).json({ mensaje:'Error al loguear' })

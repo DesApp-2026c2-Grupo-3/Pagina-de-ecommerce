@@ -12,10 +12,14 @@ jest.mock('../../src/models', () => ({
 jest.mock('../../src/services/emailServices', () => ({
     enviarCorreoRecuperacion: jest.fn(),
 }));
+jest.mock('../../src/services/authService', () => ({
+    firmarTokenCliente: jest.fn(() => 'token-cliente'),
+}));
 
 const bcrypt = require('bcrypt');
 const { Usuario, Sucursal, TokenRecuperacion, sequelize } = require('../../src/models');
 const { enviarCorreoRecuperacion } = require('../../src/services/emailServices');
+const { firmarTokenCliente } = require('../../src/services/authService');
 const {
     verUsuarios,
     crearUsuario,
@@ -157,7 +161,13 @@ describe('login', () => {
         await login({ body }, res);
 
         expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ id: 1, nombre: 'Juan', email: 'juan@mail.com' });
+        expect(res.json).toHaveBeenCalledWith({
+            id: 1,
+            nombre: 'Juan',
+            email: 'juan@mail.com',
+            token: 'token-cliente',
+        });
+        expect(firmarTokenCliente).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
     });
 
     test('responde 500 si falla la base de datos', async () => {

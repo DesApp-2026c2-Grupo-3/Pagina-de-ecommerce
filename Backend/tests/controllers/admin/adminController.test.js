@@ -3,8 +3,8 @@ jest.mock('bcrypt', () => ({
     compare: jest.fn(),
 }));
 
-jest.mock('jsonwebtoken', () => ({
-    sign: jest.fn(() => 'token-falso'),
+jest.mock('../../../src/services/authService', () => ({
+    firmarTokenAdmin: jest.fn(() => 'token-falso'),
 }));
 
 jest.mock('../../../src/models', () => ({
@@ -13,7 +13,7 @@ jest.mock('../../../src/models', () => ({
 }));
 
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const { firmarTokenAdmin } = require('../../../src/services/authService');
 const { Op } = require('sequelize');
 const { Admin, Sucursal } = require('../../../src/models');
 const {
@@ -216,10 +216,8 @@ describe('login', () => {
         await login({ body }, res);
 
         expect(bcrypt.compare).toHaveBeenCalledWith('Segura123', 'hash-viejo');
-        expect(jwt.sign).toHaveBeenCalledWith(
-            { id: 3, nombre: 'Ana', rol: 'ADMIN' },
-            'secreto-test',
-            { expiresIn: '4h' }
+        expect(firmarTokenAdmin).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 3, nombre: 'Ana', rol: 'ADMIN' })
         );
         expect(res.cookie).toHaveBeenCalledWith('access_token', 'token-falso', expect.objectContaining({
             httpOnly: true,
@@ -229,6 +227,7 @@ describe('login', () => {
             maxAge: 4 * 60 * 60 * 1000,
         }));
         expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json.mock.calls[0][0]).toMatchObject({ token: 'token-falso' });
         expect(res.json.mock.calls[0][0]).not.toHaveProperty('password');
     });
 
