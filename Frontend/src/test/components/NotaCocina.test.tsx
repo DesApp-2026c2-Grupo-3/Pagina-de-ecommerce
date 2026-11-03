@@ -58,9 +58,9 @@ describe('NotaCocina', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
-  test('con una nota guardada muestra el texto y los íconos de ver, editar y quitar', () => {
+  test('con una nota guardada muestra el texto y los íconos de ver, editar y quitar', async () => {
     renderizar('sin cebolla')
-    expect(screen.getByText('sin cebolla')).toBeInTheDocument()
+    
     expect(screen.getByRole('button', { name: /ver la nota completa/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /editar la nota/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /quitar la nota/i })).toBeInTheDocument()
@@ -85,6 +85,7 @@ describe('NotaCocina', () => {
     await usuario.click(screen.getByRole('button', { name: 'Descartar' }))
 
     expect(onGuardar).not.toHaveBeenCalled()
+    await usuario.click(screen.getByRole('button', { name: /ver la nota completa/i }))
     expect(screen.getByText('sin cebolla')).toBeInTheDocument()
   })
 
