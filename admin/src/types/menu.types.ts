@@ -1,6 +1,7 @@
 // Menú del catálogo como lo devuelve y recibe /admin/menu (solo Admin-Master)
 
 export interface SeccionMenu {
+  uiKey?: string
   id?: number
   /** Identificador estable que usan las URLs (?sub=): no cambia al renombrar */
   slug: string
@@ -18,6 +19,7 @@ export interface SeccionMenu {
 }
 
 export interface GrupoMenu {
+  uiKey?: string
   id?: number
   /** Identificador estable: lo usan ?grupo= y los banners del Home */
   slug: string

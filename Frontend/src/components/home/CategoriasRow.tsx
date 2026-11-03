@@ -80,4 +80,4 @@ function CategoriasRow() {
   )
 }
 
-export default CategoriasRow
+export default CategoriasRow

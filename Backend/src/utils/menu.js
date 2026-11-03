@@ -1,4 +1,4 @@
-const { MenuGrupo, MenuGrupoCategoria, MenuSeccion, MenuSeccionProducto } = require('../models');
+const { MenuGrupo, MenuGrupoCategoria, MenuSeccion, MenuSeccionProducto, Producto } = require('../models');
 
 // Trae los grupos del menú con sus categorías, secciones y productos puestos a mano, en orden.
 // soloActivos: el catálogo del cliente no ve lo que el master deshabilitó; el panel sí.
@@ -12,7 +12,14 @@ async function cargarMenu({ soloActivos = true, transaction } = {}) {
                 as: 'secciones',
                 required: false,
                 ...(soloActivos ? { where: { activo: true } } : {}),
-                include: [{ model: MenuSeccionProducto, as: 'productos', attributes: ['productoId', 'orden'], required: false }],
+                include: [{
+                    model: MenuSeccionProducto,
+                    as: 'productos',
+                    attributes: ['productoId', 'orden'],
+                    required: false,
+                    // Un producto eliminado (borrado lógico) desaparece de las secciones: no se muestra ni bloquea el guardado
+                    include: [{ model: Producto, as: 'producto', attributes: [], required: true }],
+                }],
             },
         ],
         order: [

@@ -3,6 +3,13 @@ import { FONDOS, ICONOS } from '../../config/estiloCategoria'
 import { slugUnico } from '../../utils/menuResolver'
 import type { CategoriaMenu, GrupoMenu, ProductoMenu, SeccionMenu } from '../../types/menu.types'
 
+let contadorClaves = 0
+
+function claveTemporal() {
+  contadorClaves += 1
+  return `temporal-${Date.now()}-${contadorClaves}`
+}
+
 interface EditorMenuProps {
   grupos: GrupoMenu[]
   onChange: (grupos: GrupoMenu[]) => void
@@ -66,7 +73,8 @@ export default function EditorMenu({ grupos, onChange, categorias, productos }: 
     onChange([
       ...grupos,
       {
-        slug: slugUnico('Nuevo grupo', grupos.map((g) => g.slug)),
+        uiKey: claveTemporal(),
+          slug: slugUnico('Nuevo grupo', grupos.map((g) => g.slug)),
         nombre: 'Nuevo grupo',
         activo: true,
         porSecciones: false,
@@ -90,6 +98,7 @@ export default function EditorMenu({ grupos, onChange, categorias, productos }: 
               secciones: [
                 ...g.secciones,
                 {
+                  uiKey: claveTemporal(),
                   slug: slugUnico('Nueva sección', g.secciones.map((s) => s.slug)),
                   nombre: 'Nueva sección',
                   activo: true,
@@ -132,7 +141,7 @@ export default function EditorMenu({ grupos, onChange, categorias, productos }: 
   return (
     <div className="flex flex-col gap-4">
       {grupos.map((grupo, gi) => (
-        <details key={grupo.id ?? grupo.slug} className="rounded-lg border" open={gi === 0}>
+        <details key={grupo.uiKey ?? grupo.id ?? grupo.slug} className="rounded-lg border" open={gi === 0}>
           <summary className="flex cursor-pointer flex-wrap items-center gap-3 p-3">
             <span className="font-bold">{grupo.nombre || 'Sin nombre'}</span>
             <span className="text-xs text-gray-500">
@@ -206,7 +215,7 @@ export default function EditorMenu({ grupos, onChange, categorias, productos }: 
 
               <ul className="flex flex-col gap-3">
                 {grupo.secciones.map((seccion, si) => (
-                  <li key={seccion.id ?? seccion.slug} className="rounded-lg border bg-gray-50 p-3">
+                  <li key={seccion.uiKey ?? seccion.id ?? seccion.slug} className="rounded-lg border bg-gray-50 p-3">
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="flex">
                         <button type="button" onClick={() => cambiarGrupo(gi, { secciones: mover(grupo.secciones, si, -1) })} disabled={si === 0} aria-label={`Subir ${seccion.nombre}`} className={botonIcono}>

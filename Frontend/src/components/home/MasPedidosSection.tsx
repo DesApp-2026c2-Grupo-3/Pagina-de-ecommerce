@@ -49,4 +49,4 @@ function MasPedidosSection() {
   )
 }
 
-export default MasPedidosSection
+export default MasPedidosSection

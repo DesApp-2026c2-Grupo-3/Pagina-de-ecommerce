@@ -43,6 +43,10 @@ export default function VistaPreviaMenu({ grupos, productos, categorias }: Vista
     }
   }, [visibles, grupoSlug])
 
+  // Productos que no caen en ningún grupo habilitado: el cliente no los ve en el catálogo
+  // (por ejemplo, los de una categoría nueva que todavía no se agregó a un grupo)
+  const sinGrupo = productos.filter((p) => !visibles.some((g) => ubicar(g, p).pertenece))
+
   const grupo = visibles.find((g) => g.slug === grupoSlug)
   if (!grupo) {
     return <p className="rounded-lg bg-[#fff7e6] p-3 text-sm text-gray-500">No hay grupos habilitados para mostrar.</p>
@@ -125,6 +129,14 @@ export default function VistaPreviaMenu({ grupos, productos, categorias }: Vista
           ))
         )}
       </div>
+
+      {sinGrupo.length > 0 && (
+        <p className="mt-4 rounded bg-amber-100 p-2 text-xs text-amber-900">
+          {sinGrupo.length} producto(s) no aparecen en ningún grupo del catálogo:{' '}
+          {sinGrupo.slice(0, 6).map((p) => p.nombre).join(', ')}
+          {sinGrupo.length > 6 ? '…' : ''}. Sumá su categoría a un grupo, o ponelos a mano en una sección.
+        </p>
+      )}
 
       {sinSeccion.length > 0 && (
         <p className="mt-4 rounded bg-amber-100 p-2 text-xs text-amber-900">

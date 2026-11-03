@@ -21,6 +21,7 @@ const id = Joi.number().integer().positive();
 const seccionSchema = Joi.object({
     // El panel devuelve los ids que trajo del servidor; el menú se guarda entero, así que no se usan
     id: id.optional(),
+    uiKey: Joi.string().strip(),
     slug,
     nombre: nombre('de la sección'),
     activo: Joi.boolean().default(true),
@@ -38,6 +39,7 @@ const seccionSchema = Joi.object({
 
 const grupoSchema = Joi.object({
     id: id.optional(),
+    uiKey: Joi.string().strip(),
     slug,
     nombre: nombre('del grupo'),
     activo: Joi.boolean().default(true),

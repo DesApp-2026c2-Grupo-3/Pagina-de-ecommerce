@@ -385,7 +385,7 @@
     "tipo": "DIA",
     "titulo": "Merienda de domingo",
     "destacado": "25%",
-    "detalle": "Dos latte y unos hot cakes con 25 % menos.",
+    "detalle": "Dos latte y unos hot cakes de dulce de leche con 25 % menos.",
     "dias": [
       0
     ],
@@ -396,7 +396,7 @@
         "descuento": 0.25
       },
       {
-        "nombre": "Hot Cakes",
+        "nombre": "Hot Cakes de Dulce de Leche",
         "cantidad": 1,
         "descuento": 0.25
       }

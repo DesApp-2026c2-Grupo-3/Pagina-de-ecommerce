@@ -244,7 +244,8 @@
         "fondo": "arena",
         "categorias": [],
         "productos": [
-          "Hot Cakes",
+          "Hot Cakes de Miel y Manteca",
+          "Hot Cakes de Dulce de Leche",
           "Muffin de Arándanos",
           "Brownie con Helado",
           "Cheesecake de Frutos Rojos",
@@ -272,7 +273,8 @@
         "categorias": [],
         "productos": [
           "Helado Crunch",
-          "Helado Sundae",
+          "Sundae de Chocolate",
+          "Sundae de Frutilla",
           "Batido de Vainilla"
         ]
       },

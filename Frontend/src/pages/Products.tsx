@@ -13,10 +13,9 @@ import { getMenu } from "../services/menuService";
 import { armarGrupos } from "../config/menuDinamico";
 import type { MenuApi } from "../types/menu";
 import {
-  GRUPO_INICIAL_SLUG,
   GRUPOS_CATALOGO,
   grupoDeCategoria,
-  subgrupoDeCategoria,
+  seccionAlAbrirCategoria,
   ubicarEnGrupo,
   type GrupoCatalogo,
   type SubgrupoCatalogo,
@@ -39,10 +38,11 @@ function Products() {
   // ?grupo=cafeteria&sub=pasteleria → ese grupo y esa subcategoría. Sin nada → Combos.
   // (?categoria=3, que usa el Home, se traduce a su grupo cuando llegan las categorías)
   // El grupo se guarda por su slug (lo mismo en el menú fijo de respaldo y en el que arma el master)
-  const [grupoSlug, setGrupoSlug] = useState<string | null>(() => {
+  // null = "Todo"; undefined = sin elegir: se abre el primer grupo del menú, en el orden que definió el master
+  const [grupoSlug, setGrupoSlug] = useState<string | null | undefined>(() => {
     const slug = searchParams.get("grupo");
     if (slug === "todos") return null;
-    return slug ?? GRUPO_INICIAL_SLUG;
+    return slug ?? undefined;
   });
   const [subSlug, setSubSlug] = useState<string | null>(() => searchParams.get("sub"));
 
@@ -51,7 +51,8 @@ function Products() {
 
   // Los grupos del catálogo: los del master (cuando ya llegaron el menú, las categorías y los productos) o el menú fijo de respaldo
   const grupos = useMemo(
-    () => (menu && categories.length > 0 ? armarGrupos(menu, categories, products) : GRUPOS_CATALOGO),
+    // Si el master no dejó ningún grupo visible se usa el menú de respaldo, para que el catálogo no quede vacío
+    () => (menu && menu.grupos.length > 0 && categories.length > 0 ? armarGrupos(menu, categories, products) : GRUPOS_CATALOGO),
     [menu, categories, products],
   );
 
@@ -67,7 +68,7 @@ function Products() {
 
   function elegirSub(sub: string | null) {
     setSubSlug(sub);
-    const slug = grupoSlug;
+    const slug = grupo?.slug;
     const params: Record<string, string> = {};
     if (slug) params.grupo = slug;
     if (sub) params.sub = sub;
@@ -93,16 +94,19 @@ function Products() {
   }, []);
 
   // Viene del Home con ?categoria=3: se abre el grupo que la contiene (y su botón, si tiene uno propio).
-  // Se resuelve una sola vez, cuando ya llegaron las categorías.
+  // El parámetro se guarda al abrir la página (después otros efectos reescriben la dirección y lo pierden)
+  // y se resuelve una sola vez, cuando ya llegaron las categorías.
+  const categoriaDelHome = useRef(searchParams.get("categoria"));
   const categoriaDelHomeResuelta = useRef(false);
   useEffect(() => {
     if (categoriaDelHomeResuelta.current || categories.length === 0) return;
     categoriaDelHomeResuelta.current = true;
-    const categoriaId = Number(searchParams.get("categoria"));
+    const categoriaId = Number(categoriaDelHome.current);
     const categoria = categories.find((c) => c.id === categoriaId);
     const grupoDeLaCategoria = categoria && grupoDeCategoria(categoria.nombre, grupos);
     if (categoria && grupoDeLaCategoria) {
-      elegirGrupo(grupoDeLaCategoria.id, subgrupoDeCategoria(grupoDeLaCategoria, categoria.nombre)?.slug ?? null);
+      const seccion = seccionAlAbrirCategoria(grupoDeLaCategoria, categoria.nombre, categories.map((c) => c.nombre));
+      elegirGrupo(grupoDeLaCategoria.id, seccion?.slug ?? null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories, grupos]);
@@ -117,7 +121,8 @@ function Products() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const grupo: GrupoCatalogo | null = grupos.find((g) => g.slug === grupoSlug) ?? null;
+  const grupo: GrupoCatalogo | null =
+    (grupoSlug === undefined ? grupos[0] : grupos.find((g) => g.slug === grupoSlug)) ?? null;
   const grupoId = grupo?.id ?? null;
   const sub: SubgrupoCatalogo | null = grupo?.subgrupos?.find((s) => s.slug === subSlug) ?? null;
   const query = busqueda.trim().toLowerCase();
@@ -188,6 +193,8 @@ function Products() {
   }));
 
   useEffect(() => {
+    // Hasta que no llegan los productos no hay grupos con contenido: no se corrige nada (ni se toca la dirección)
+    if (visibles.length === 0) return;
     if (grupoId !== null && !gruposVisibles.some((g) => g.id === grupoId)) {
       elegirGrupo(gruposVisibles[0]?.id ?? null);
     }

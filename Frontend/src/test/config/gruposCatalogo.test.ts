@@ -4,6 +4,7 @@ import {
   grupoDeCategoria,
   normalizarNombre,
   subgrupoDeCategoria,
+  seccionAlAbrirCategoria,
   ubicarEnGrupo,
 } from '../../config/gruposCatalogo'
 import { estiloDeCategoria } from '../../config/categorias'
@@ -102,7 +103,8 @@ describe('Cafetería', () => {
     expect(sub('cafeteria', 'Latte', 'Café')).toBe('cafes')
     expect(sub('cafeteria', 'Medialunas x2', 'Menú Café')).toBe('clasicos')
     expect(sub('cafeteria', 'Tostado de Jamón y Queso', 'Menú Café')).toBe('sandwiches')
-    expect(sub('cafeteria', 'Hot Cakes', 'Menú Café')).toBe('dulces')
+    expect(sub('cafeteria', 'Hot Cakes de Miel y Manteca', 'Menú Café')).toBe('dulces')
+    expect(sub('cafeteria', 'Hot Cakes de Dulce de Leche', 'Menú Café')).toBe('dulces')
   })
 
   it('Brownie y Cheesecake se ven en Dulces y también en Postres → Tortas', () => {
@@ -118,6 +120,11 @@ describe('Cafetería', () => {
 })
 
 describe('Postres', () => {
+  it('los Sundaes van a Helados, no a Tortas (que es la sección por defecto de Postres)', () => {
+    expect(sub('postres', 'Sundae de Chocolate', 'Postres')).toBe('helados')
+    expect(sub('postres', 'Sundae de Frutilla', 'Postres')).toBe('helados')
+  })
+
   it('separa helados y tortas', () => {
     expect(sub('postres', 'Helado Crunch', 'Postres')).toBe('helados')
     expect(sub('postres', 'Batido de Vainilla', 'Postres')).toBe('helados')
@@ -162,6 +169,38 @@ describe('grupoDeCategoria y subgrupoDeCategoria', () => {
     const grupos = [{ id: 9, slug: 'x', nombre: 'X', categorias: ['Rara'], porSecciones: false }]
     expect(grupoDeCategoria('Rara', grupos)?.slug).toBe('x')
     expect(grupoDeCategoria('Hamburguesas', grupos)).toBeUndefined()
+  })
+})
+
+describe('seccionAlAbrirCategoria (tarjetas del Home)', () => {
+  // Las categorías que existen en el catálogo (no los alias del respaldo, como "Hamburguesa" o "Combo")
+  const existentes = ['Combos', 'Hamburguesas', 'Papas Fritas', 'Nuggets', 'Ensaladas', 'Bebidas', 'Café', 'Menú Café', 'Cafetería', 'Postres', 'Salsas']
+  const seccion = (slug: string, categoria: string) => seccionAlAbrirCategoria(grupo(slug), categoria, existentes)?.slug
+
+  it('Combos y Hamburguesas abren el grupo entero, no su primera sección', () => {
+    expect(seccion('combos', 'Combos')).toBeUndefined()
+    expect(seccion('hamburguesas', 'Hamburguesas')).toBeUndefined()
+  })
+
+  it('en Para acompañar, cada categoría abre su sección', () => {
+    expect(seccion('para-acompanar', 'Papas Fritas')).toBe('papas-fritas')
+    expect(seccion('para-acompanar', 'Nuggets')).toBe('nuggets')
+    expect(seccion('para-acompanar', 'Ensaladas')).toBe('ensaladas')
+  })
+
+  it('Cafetería, Bebidas, Postres y Salsas abren el grupo en Todo', () => {
+    expect(seccion('cafeteria', 'Cafetería')).toBeUndefined()
+    expect(seccion('bebidas', 'Bebidas')).toBeUndefined()
+    expect(seccion('postres', 'Postres')).toBeUndefined()
+    expect(seccion('salsas', 'Salsas')).toBeUndefined()
+  })
+
+  it('si el master suma una categoría a un grupo de una sola, el grupo pasa a abrir la sección de cada una', () => {
+    const grupos = [{
+      ...grupo('hamburguesas'),
+      categorias: ['Hamburguesas', 'Wraps'],
+    }]
+    expect(seccionAlAbrirCategoria(grupos[0], 'Hamburguesas', [...existentes, 'Wraps'])?.slug).toBe('carne-vacuna')
   })
 })
 

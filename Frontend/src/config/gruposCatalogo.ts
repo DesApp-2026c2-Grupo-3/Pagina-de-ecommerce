@@ -130,7 +130,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
         nombre: 'Dulces',
         estilo: 'Torta',
         // Brownie y Cheesecake son de la categoría Postres: se muestran acá y también en Postres → Tortas
-        productos: ['Hot Cakes', 'Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
+        productos: ['Hot Cakes de Miel y Manteca', 'Hot Cakes de Dulce de Leche', 'Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
       },
     ],
     subgrupoPorDefecto: 'clasicos',
@@ -146,7 +146,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
         slug: 'helados',
         nombre: 'Helados',
         estilo: 'Postres',
-        productos: ['Helado Crunch', 'Helado Sundae', 'Batido de Vainilla'],
+        productos: ['Helado Crunch', 'Sundae de Chocolate', 'Sundae de Frutilla', 'Batido de Vainilla'],
       },
       {
         slug: 'tortas',
@@ -186,6 +186,23 @@ export function grupoDeCategoria(nombreCategoria: string, grupos: GrupoCatalogo[
 /** Subgrupo que reúne a toda una categoría (ej: "Nuggets" → el botón Nuggets), si hay uno */
 export function subgrupoDeCategoria(grupo: GrupoCatalogo, nombreCategoria: string): SubgrupoCatalogo | undefined {
   return grupo.subgrupos?.find((s) => s.categorias?.some((c) => igual(c, nombreCategoria)))
+}
+
+/**
+ * Subcategoría que se abre al llegar desde la tarjeta de una categoría del Home.
+ * Solo si el grupo reúne varias categorías (Para acompañar: Papas, Nuggets, Ensaladas) se abre la sección
+ * de esa categoría. Si el grupo ES esa categoría (Combos, Hamburguesas) se abre entero, en "Todo": sus secciones
+ * son una división interna (carne, pollo, veggie) y abrir solo una mostraría una parte.
+ * `categoriasExistentes`: nombres de las categorías que hay en el catálogo (ignora alias que no existen).
+ */
+export function seccionAlAbrirCategoria(
+  grupo: GrupoCatalogo,
+  nombreCategoria: string,
+  categoriasExistentes: string[],
+): SubgrupoCatalogo | undefined {
+  const delGrupo = grupo.categorias.filter((c) => categoriasExistentes.some((e) => igual(e, c)))
+  if (delGrupo.length <= 1) return undefined
+  return subgrupoDeCategoria(grupo, nombreCategoria)
 }
 
 /**

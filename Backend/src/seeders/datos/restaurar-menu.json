@@ -213,11 +213,20 @@
       "disponible": true
     },
     {
-      "nombre": "Helado Sundae",
+      "nombre": "Sundae de Chocolate",
       "categoria": "Postres",
       "precio": 2800,
-      "descripcion": "Helado de vainilla cremoso con salsa de chocolate o de frutilla. Clásico, simple y siempre rico.",
-      "imagen": "/imagenes/Postres/Helado-Sundae.png",
+      "descripcion": "Helado de vainilla cremoso con salsa de chocolate. Clásico, simple y siempre rico.",
+      "imagen": "/imagenes/Postres/Helado-Sundae-Chocolate.png",
+      "sabor": null,
+      "disponible": true
+    },
+    {
+      "nombre": "Sundae de Frutilla",
+      "categoria": "Postres",
+      "precio": 2800,
+      "descripcion": "Helado de vainilla cremoso con salsa de frutilla. Clásico, simple y siempre rico.",
+      "imagen": "/imagenes/Postres/Helado-Sundae-Frutilla.png",
       "sabor": null,
       "disponible": true
     },
@@ -676,21 +685,28 @@
       "esAgregable": false
     },
     {
-      "producto": "Helado Sundae",
+      "producto": "Sundae de Chocolate",
       "insumo": "Helado de vainilla",
       "cantidadBase": 2,
       "esRemovible": false,
       "esAgregable": false
     },
     {
-      "producto": "Helado Sundae",
+      "producto": "Sundae de Frutilla",
+      "insumo": "Helado de vainilla",
+      "cantidadBase": 2,
+      "esRemovible": false,
+      "esAgregable": false
+    },
+    {
+      "producto": "Sundae de Chocolate",
       "insumo": "Salsa de chocolate",
       "cantidadBase": 1,
       "esRemovible": true,
       "esAgregable": false
     },
     {
-      "producto": "Helado Sundae",
+      "producto": "Sundae de Frutilla",
       "insumo": "Salsa de frutilla",
       "cantidadBase": 1,
       "esRemovible": true,

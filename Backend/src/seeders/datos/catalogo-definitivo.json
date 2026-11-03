@@ -3340,12 +3340,21 @@
   },
   {
    "sabor": null,
-   "imagen": "/imagenes/Menu Cafe/Hot-Cakes.png",
-   "nombre": "Hot Cakes",
+   "imagen": "/imagenes/Menu Cafe/Hot-Cakes-Miel.png",
+   "nombre": "Hot Cakes de Miel y Manteca",
    "precio": 3900,
    "categoria": "Menú Café",
    "disponible": true,
-   "descripcion": "Tres panqueques esponjosos con manteca y miel o dulce de leche. Un desayuno de domingo todos los días."
+   "descripcion": "Tres panqueques esponjosos con manteca y miel. Un desayuno de domingo todos los días."
+  },
+  {
+   "sabor": null,
+   "imagen": "/imagenes/Menu Cafe/Hot-Cakes-Dulce-de-Leche.png",
+   "nombre": "Hot Cakes de Dulce de Leche",
+   "precio": 3900,
+   "categoria": "Menú Café",
+   "disponible": true,
+   "descripcion": "Tres panqueques esponjosos con dulce de leche. Un desayuno de domingo todos los días."
   },
   {
    "sabor": null,
@@ -3981,7 +3990,14 @@
    "precio": 3900,
    "tamanio": "regular",
    "etiqueta": null,
-   "producto": "Hot Cakes",
+   "producto": "Hot Cakes de Miel y Manteca",
+   "factorStock": 1
+  },
+  {
+   "precio": 3900,
+   "tamanio": "regular",
+   "etiqueta": null,
+   "producto": "Hot Cakes de Dulce de Leche",
    "factorStock": 1
   },
   {
@@ -5234,28 +5250,35 @@
   },
   {
    "insumo": "Masa de hot cakes",
-   "producto": "Hot Cakes",
+   "producto": "Hot Cakes de Miel y Manteca",
+   "esAgregable": false,
+   "esRemovible": false,
+   "cantidadBase": 3
+  },
+  {
+   "insumo": "Masa de hot cakes",
+   "producto": "Hot Cakes de Dulce de Leche",
    "esAgregable": false,
    "esRemovible": false,
    "cantidadBase": 3
   },
   {
    "insumo": "Manteca",
-   "producto": "Hot Cakes",
+   "producto": "Hot Cakes de Miel y Manteca",
    "esAgregable": false,
    "esRemovible": true,
    "cantidadBase": 1
   },
   {
    "insumo": "Miel",
-   "producto": "Hot Cakes",
+   "producto": "Hot Cakes de Miel y Manteca",
    "esAgregable": false,
    "esRemovible": true,
    "cantidadBase": 1
   },
   {
    "insumo": "Dulce de leche",
-   "producto": "Hot Cakes",
+   "producto": "Hot Cakes de Dulce de Leche",
    "esAgregable": false,
    "esRemovible": true,
    "cantidadBase": 1
