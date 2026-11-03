@@ -135,7 +135,7 @@ function Cart() {
               <Link
                 to="/catalogo"
                 className="group inline-flex min-h-11 w-fit items-center gap-3 rounded-full border-2 border-brand-dark bg-amber-500 text-black
-                pl-2 pr-5 text-sm font-bold shadow-sticker transition-all duration-200 hover:translate-y-0.5 hover:bg-green-600 hover:text-white"
+                pl-2 pr-5 text-sm font-bold shadow-sticker transition-all duration-200 hover:translate-y-0.5 hover:bg-orange-600 hover:text-white"
               >
                 {/* Contenedor circular de la flecha */}
                 <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white text-green-600 transition-colors duration-200 group-hover:border-white group-hover:bg-black group-hover:text-white">
@@ -158,7 +158,7 @@ function Cart() {
                   <Trash2 className="h-4 w-4 stroke-[3px]" />
                 </div>
 
-                Elimina todo
+                Eliminar todo
               </button>
             </div>
           </div>

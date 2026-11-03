@@ -95,7 +95,7 @@ describe('crearCategoria', () => {
 
     test.each([
         ['no existe', null, 0, /no existe/],
-        ['ya depende de otra', { id: 6, nombre: 'Café', categoriaPadreId: 2 }, 0, /un solo nivel/],
+        ['ya depende de otra', { id: 6, nombre: 'Café', categoriaPadreId: 2 }, 0, /solo se permite un nivel/],
         ['tiene productos propios', { id: 6, nombre: 'Postres', categoriaPadreId: null }, 4, /tiene productos/],
     ])('responde 400 si la categoría padre %s', async (_motivo, padre, productos, mensaje) => {
         Categoria.findByPk.mockResolvedValue(padre);

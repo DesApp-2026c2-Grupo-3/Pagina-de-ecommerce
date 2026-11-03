@@ -1,0 +1,305 @@
+[
+  {
+    "slug": "combos",
+    "nombre": "Combos",
+    "orden": 10,
+    "porSecciones": false,
+    "categorias": [
+      "Combos"
+    ],
+    "secciones": [
+      {
+        "slug": "combo-carne-vacuna",
+        "nombre": "Carne de Res",
+        "orden": 10,
+        "icono": "combo",
+        "fondo": "rojo",
+        "categorias": [
+          "Combos",
+          "Combo"
+        ],
+        "productos": []
+      },
+      {
+        "slug": "combo-pollo",
+        "nombre": "Carne de Pollo",
+        "orden": 20,
+        "icono": "combo",
+        "fondo": "rojo",
+        "categorias": [],
+        "productos": [
+          "Combo Crispy Crack",
+          "Combo Crispy Ranch"
+        ]
+      },
+      {
+        "slug": "combo-veggie",
+        "nombre": "Veggie",
+        "orden": 30,
+        "icono": "combo",
+        "fondo": "rojo",
+        "categorias": [],
+        "productos": [
+          "Combo Seed Vicious"
+        ]
+      }
+    ],
+    "porDefecto": "combo-carne-vacuna"
+  },
+  {
+    "slug": "hamburguesas",
+    "nombre": "Hamburguesas",
+    "orden": 20,
+    "porSecciones": false,
+    "categorias": [
+      "Hamburguesas",
+      "Hamburguesa"
+    ],
+    "secciones": [
+      {
+        "slug": "carne-vacuna",
+        "nombre": "Carne de Res",
+        "orden": 10,
+        "icono": "hamburguesa",
+        "fondo": "mostaza",
+        "categorias": [
+          "Hamburguesas",
+          "Hamburguesa"
+        ],
+        "productos": []
+      },
+      {
+        "slug": "pollo",
+        "nombre": "Carne de Pollo",
+        "orden": 20,
+        "icono": "hamburguesa",
+        "fondo": "mostaza",
+        "categorias": [],
+        "productos": [
+          "Crispy Crack",
+          "Crispy Ranch"
+        ]
+      },
+      {
+        "slug": "veggie",
+        "nombre": "Veggie",
+        "orden": 30,
+        "icono": "hamburguesa",
+        "fondo": "mostaza",
+        "categorias": [],
+        "productos": [
+          "Seed Vicious"
+        ]
+      }
+    ],
+    "porDefecto": "carne-vacuna"
+  },
+  {
+    "slug": "para-acompanar",
+    "nombre": "Para acompañar",
+    "orden": 30,
+    "porSecciones": true,
+    "categorias": [
+      "Papas Fritas",
+      "Nuggets",
+      "Ensaladas"
+    ],
+    "secciones": [
+      {
+        "slug": "papas-fritas",
+        "nombre": "Papas",
+        "orden": 10,
+        "icono": "papas",
+        "fondo": "mostaza",
+        "categorias": [
+          "Papas Fritas"
+        ],
+        "productos": []
+      },
+      {
+        "slug": "nuggets",
+        "nombre": "Nuggets",
+        "orden": 20,
+        "icono": "nuggets",
+        "fondo": "arena",
+        "categorias": [
+          "Nuggets"
+        ],
+        "productos": []
+      },
+      {
+        "slug": "ensaladas",
+        "nombre": "Ensaladas",
+        "orden": 30,
+        "icono": "ensalada",
+        "fondo": "arena",
+        "categorias": [
+          "Ensaladas"
+        ],
+        "productos": []
+      },
+      {
+        "slug": "otros",
+        "nombre": "Otros",
+        "orden": 40,
+        "icono": "aro",
+        "fondo": "arena",
+        "categorias": [],
+        "productos": [
+          "Palitos de Muzzarela",
+          "Aros de Cebolla x8",
+          "Cheddar Fundido"
+        ]
+      }
+    ],
+    "porDefecto": "papas-fritas"
+  },
+  {
+    "slug": "bebidas",
+    "nombre": "Bebidas",
+    "orden": 40,
+    "porSecciones": false,
+    "categorias": [
+      "Bebidas"
+    ],
+    "secciones": [
+      {
+        "slug": "gaseosas",
+        "nombre": "Gaseosas",
+        "orden": 10,
+        "icono": "bebida",
+        "fondo": "rojo",
+        "categorias": [],
+        "productos": [
+          "Coca Cola",
+          "Sprite",
+          "Fanta"
+        ]
+      },
+      {
+        "slug": "agua",
+        "nombre": "Agua",
+        "orden": 20,
+        "icono": "bebida",
+        "fondo": "rojo",
+        "categorias": [],
+        "productos": [
+          "Agua Mineral"
+        ]
+      }
+    ],
+    "porDefecto": "gaseosas"
+  },
+  {
+    "slug": "cafeteria",
+    "nombre": "Cafetería",
+    "orden": 50,
+    "porSecciones": true,
+    "categorias": [
+      "Café",
+      "Menú Café",
+      "Cafetería"
+    ],
+    "secciones": [
+      {
+        "slug": "cafes",
+        "nombre": "Cafés",
+        "orden": 10,
+        "icono": "desayuno",
+        "fondo": "arena",
+        "categorias": [
+          "Café"
+        ],
+        "productos": []
+      },
+      {
+        "slug": "clasicos",
+        "nombre": "Clásicos",
+        "orden": 20,
+        "icono": "cafe",
+        "fondo": "mostaza",
+        "categorias": [],
+        "productos": [
+          "Medialunas x2",
+          "Tostadas con Palta"
+        ]
+      },
+      {
+        "slug": "sandwiches",
+        "nombre": "Sandwiches",
+        "orden": 30,
+        "icono": "sandwich",
+        "fondo": "arena",
+        "categorias": [],
+        "productos": [
+          "Tostado de Jamón y Queso",
+          "Desayuno Americano"
+        ]
+      },
+      {
+        "slug": "dulces",
+        "nombre": "Dulces",
+        "orden": 40,
+        "icono": "torta",
+        "fondo": "arena",
+        "categorias": [],
+        "productos": [
+          "Hot Cakes",
+          "Muffin de Arándanos",
+          "Brownie con Helado",
+          "Cheesecake de Frutos Rojos",
+          "Donas Glaseadas x3"
+        ]
+      }
+    ],
+    "porDefecto": "clasicos"
+  },
+  {
+    "slug": "postres",
+    "nombre": "Postres",
+    "orden": 60,
+    "porSecciones": true,
+    "categorias": [
+      "Postres"
+    ],
+    "secciones": [
+      {
+        "slug": "helados",
+        "nombre": "Helados",
+        "orden": 10,
+        "icono": "postre",
+        "fondo": "mostaza",
+        "categorias": [],
+        "productos": [
+          "Helado Crunch",
+          "Helado Sundae",
+          "Batido de Vainilla"
+        ]
+      },
+      {
+        "slug": "tortas",
+        "nombre": "Tortas",
+        "orden": 20,
+        "icono": "torta",
+        "fondo": "arena",
+        "categorias": [],
+        "productos": [
+          "Brownie con Helado",
+          "Cheesecake de Frutos Rojos"
+        ]
+      }
+    ],
+    "porDefecto": "tortas"
+  },
+  {
+    "slug": "salsas",
+    "nombre": "Salsas",
+    "orden": 70,
+    "porSecciones": false,
+    "categorias": [
+      "Salsas"
+    ],
+    "secciones": [],
+    "porDefecto": null
+  }
+]

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
@@ -8,9 +8,12 @@ import SubcategoriaFilter from "../components/catalogo/SubcategoriaFilter";
 import Pagination from "../components/catalogo/Pagination";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import CategoryIcon from "../components/icons/CategoryIcon";
-import { estiloCategoria } from "../config/categorias";
+import { estiloDeCategoria } from "../config/categorias";
+import { getMenu } from "../services/menuService";
+import { armarGrupos } from "../config/menuDinamico";
+import type { MenuApi } from "../types/menu";
 import {
-  GRUPO_INICIAL,
+  GRUPO_INICIAL_SLUG,
   GRUPOS_CATALOGO,
   grupoDeCategoria,
   subgrupoDeCategoria,
@@ -35,26 +38,36 @@ function Products() {
 
   // ?grupo=cafeteria&sub=pasteleria → ese grupo y esa subcategoría. Sin nada → Combos.
   // (?categoria=3, que usa el Home, se traduce a su grupo cuando llegan las categorías)
-  const [grupoId, setGrupoId] = useState<number | null>(() => {
+  // El grupo se guarda por su slug (lo mismo en el menú fijo de respaldo y en el que arma el master)
+  const [grupoSlug, setGrupoSlug] = useState<string | null>(() => {
     const slug = searchParams.get("grupo");
     if (slug === "todos") return null;
-    return GRUPOS_CATALOGO.find((g) => g.slug === slug)?.id ?? GRUPO_INICIAL;
+    return slug ?? GRUPO_INICIAL_SLUG;
   });
   const [subSlug, setSubSlug] = useState<string | null>(() => searchParams.get("sub"));
 
+  // El menú lo arma el master desde el panel; si no se puede cargar, se usa el menú fijo de respaldo
+  const [menu, setMenu] = useState<MenuApi | null>(null);
+
+  // Los grupos del catálogo: los del master (cuando ya llegaron el menú, las categorías y los productos) o el menú fijo de respaldo
+  const grupos = useMemo(
+    () => (menu && categories.length > 0 ? armarGrupos(menu, categories, products) : GRUPOS_CATALOGO),
+    [menu, categories, products],
+  );
+
   function elegirGrupo(id: number | null, sub: string | null = null) {
-    setGrupoId(id);
+    const slug = id === null ? null : grupos.find((g) => g.id === id)?.slug ?? null;
+    setGrupoSlug(slug);
     setSubSlug(sub);
-    const slug = id === null ? "todos" : GRUPOS_CATALOGO.find((g) => g.id === id)?.slug;
     const params: Record<string, string> = {};
-    if (slug) params.grupo = slug;
+    params.grupo = slug ?? "todos";
     if (sub) params.sub = sub;
     setSearchParams(params, { replace: true });
   }
 
   function elegirSub(sub: string | null) {
     setSubSlug(sub);
-    const slug = GRUPOS_CATALOGO.find((g) => g.id === grupoId)?.slug;
+    const slug = grupoSlug;
     const params: Record<string, string> = {};
     if (slug) params.grupo = slug;
     if (sub) params.sub = sub;
@@ -75,30 +88,37 @@ function Products() {
   }, [zona?.sucursalId]);
 
   useEffect(() => {
-    getCategories().then((cats) => {
-      setCategories(cats);
-      // Viene del Home con ?categoria=3: se abre el grupo que la contiene (y su botón, si tiene uno propio)
-      const categoriaId = Number(searchParams.get("categoria"));
-      const categoria = cats.find((c) => c.id === categoriaId);
-      const grupo = categoria && grupoDeCategoria(categoria.nombre);
-      if (categoria && grupo) {
-        elegirGrupo(grupo.id, subgrupoDeCategoria(grupo, categoria.nombre)?.slug ?? null);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    getCategories().then(setCategories);
+    getMenu().then(setMenu).catch(() => setMenu(null));
   }, []);
+
+  // Viene del Home con ?categoria=3: se abre el grupo que la contiene (y su botón, si tiene uno propio).
+  // Se resuelve una sola vez, cuando ya llegaron las categorías.
+  const categoriaDelHomeResuelta = useRef(false);
+  useEffect(() => {
+    if (categoriaDelHomeResuelta.current || categories.length === 0) return;
+    categoriaDelHomeResuelta.current = true;
+    const categoriaId = Number(searchParams.get("categoria"));
+    const categoria = categories.find((c) => c.id === categoriaId);
+    const grupoDeLaCategoria = categoria && grupoDeCategoria(categoria.nombre, grupos);
+    if (categoria && grupoDeLaCategoria) {
+      elegirGrupo(grupoDeLaCategoria.id, subgrupoDeCategoria(grupoDeLaCategoria, categoria.nombre)?.slug ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, grupos]);
 
   // Volver a la primera página si cambia cualquier filtro o la zona
   useEffect(() => {
     setPagina(1);
-  }, [grupoId, subSlug, busqueda, zona?.sucursalId]);
+  }, [grupoSlug, subSlug, busqueda, zona?.sucursalId]);
 
   useEffect(() => {
     const timer = setTimeout(() => setBusqueda(search), 250);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const grupo: GrupoCatalogo | null = GRUPOS_CATALOGO.find((g) => g.id === grupoId) ?? null;
+  const grupo: GrupoCatalogo | null = grupos.find((g) => g.slug === grupoSlug) ?? null;
+  const grupoId = grupo?.id ?? null;
   const sub: SubgrupoCatalogo | null = grupo?.subgrupos?.find((s) => s.slug === subSlug) ?? null;
   const query = busqueda.trim().toLowerCase();
   // Buscando, se busca en TODO el menú: no importa el grupo ni el botón en el que estés parado
@@ -153,13 +173,13 @@ function Products() {
   // Los grupos, con la forma que espera el filtro de chips
   const gruposVisibles = useMemo(
   () =>
-    GRUPOS_CATALOGO.filter((g) =>
+    grupos.filter((g) =>
       visibles.some((product) => {
         const categoria = nombrePorId.get(product.categoriaId) ?? "";
         return ubicarEnGrupo(g, product.nombre, categoria).pertenece;
       })
     ),
-    [visibles, nombrePorId],
+    [grupos, visibles, nombrePorId],
   );
 
   const opcionesFiltro = gruposVisibles.map((g) => ({
@@ -267,7 +287,7 @@ function Products() {
           // ---------- Todo el grupo, en secciones: una por subcategoría ----------
           <div key={`${grupoId}`} className="mt-10 flex flex-col gap-12">
             {secciones.map((seccion) => {
-              const estilo = estiloCategoria(seccion.estilo);
+              const estilo = estiloDeCategoria({ nombre: seccion.estilo, icono: seccion.icono, fondo: seccion.fondo });
               return (
                 <section key={seccion.slug} aria-labelledby={`seccion-${seccion.slug}`}>
                   <h2

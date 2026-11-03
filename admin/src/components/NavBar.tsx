@@ -3,7 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, LogOut, ShoppingBag, Package,
    Store, ChartNoAxesCombined, ChevronLeft, ChevronRight,Users, Wheat, Tags, Hamburger, type LucideIcon,
    Percent,
-   Star,} from 'lucide-react'
+   Star,
+   UtensilsCrossed,} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { cerrarSesionService } from '../services/authService'
 import { enlacesDe } from '../config/menu'
@@ -24,6 +25,7 @@ const iconosPorEnlace: Record<string, LucideIcon> = {
   Reportes: ChartNoAxesCombined,
   Insumos: Wheat,
   Categorías: Tags,
+  Menú: UtensilsCrossed,
   Promociones: Percent,
   Administradores: Users,
   Stock: Package,

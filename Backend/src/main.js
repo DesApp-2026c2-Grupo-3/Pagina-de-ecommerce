@@ -52,6 +52,7 @@ app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
 app.use('/admin/promociones', require('./routes/admin/promocionRoutes'));
 app.use('/admin/calificaciones', require('./routes/admin/calificacionRoutes'));
+app.use('/admin/menu', require('./routes/admin/menuRoutes'));
 app.use('/admin/reportes', require('./routes/admin/reportesRoutes'));
 app.use('/admin', adminRoutes);
 app.use('/productos', productoRoutes);
@@ -64,6 +65,7 @@ app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
 app.use('/promociones', require('./routes/promocionRoutes'));
 app.use('/calificaciones', require('./routes/calificacionRoutes'));
+app.use('/menu', require('./routes/menuRoutes'));
 
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones

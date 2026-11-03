@@ -15,6 +15,7 @@ function Hero() {
       title: isAuthenticated
         ? `Hola, ${primerNombre}. ¿Qué se te antoja hoy?`
         : 'La hamburguesa que amás, en la puerta de tu casa',
+      nombraUsuario: true,
       highlight: isAuthenticated ? 'antoja' : 'amás',
       description: isAuthenticated
         ? 'Volvé a pedir tus favoritos o descubrí algo nuevo en el menú.'

@@ -4,6 +4,7 @@ import type { CartItem } from '../types/cart'
 import { ordenarTamanios } from '../config/combo'
 import { getProducts } from '../services/productService'
 
+
 interface AddItemOptions {
   unitPrice?: number
   personalizaciones?: CartItem['personalizaciones']

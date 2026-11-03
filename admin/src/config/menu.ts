@@ -17,6 +17,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
       { to: '/admin/promociones', label: 'Promociones' },
       { to: '/admin/insumos', label: 'Insumos' },
       { to: '/admin/categorias', label: 'Categorías' },
+      { to: '/admin/menu', label: 'Menú' },
       { to: '/admin/sucursales', label: 'Sucursales' },
       { to: '/admin/administradores', label: 'Administradores' },
     ]

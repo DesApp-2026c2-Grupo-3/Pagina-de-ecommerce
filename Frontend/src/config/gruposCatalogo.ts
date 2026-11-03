@@ -1,16 +1,20 @@
 // Cómo se organiza el menú del cliente.
-// Es solo presentación: en la base (y en el admin) las categorías siguen siendo las mismas, y las
-// subcategorías ("Carne vacuna", "Pastelería"...) no existen en la base: se arman acá, por nombre.
-// Ojo: no fusionar categorías en la base. Los combos eligen sus opciones por categoría
-// ("Acompañamiento" sale de Papas Fritas, "Una bebida" de Bebidas).
-// Cuando el backend tenga subcategorías propias, alcanza con reemplazar este archivo.
+// Es solo presentación: en la base las categorías siguen siendo las mismas (los combos eligen sus opciones
+// por categoría: "Acompañamiento" sale de Papas Fritas, "Una bebida" de Bebidas).
+//
+// El menú lo arma el master desde el panel (GET /menu) y config/menuDinamico.ts lo convierte a esta forma.
+// Lo que está acá abajo (GRUPOS_CATALOGO) es el menú de RESPALDO: es el mismo que carga la semilla
+// 20261102120000-menu-inicial y se usa solo si el backend no responde.
 
 export interface SubgrupoCatalogo {
   slug: string
   /** Texto del botón y título de la sección */
   nombre: string
-  /** Categoría del backend de la que toma el ícono y el color del título */
+  /** Categoría (o clave de estilo) de la que toma el ícono y el color del título */
   estilo: string
+  /** Ícono y color elegidos por el master (si están, mandan sobre `estilo`) */
+  icono?: string
+  fondo?: string
   /** Categorías del backend cuyos productos entran (se comparan sin tildes ni mayúsculas) */
   categorias?: string[]
   /** Productos que entran por nombre, vengan de la categoría que vengan (gana sobre `categorias`) */
@@ -38,6 +42,12 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     slug: 'combos',
     nombre: 'Combos',
     categorias: ['Combos'],
+    subgrupos: [
+      { slug: 'combo-carne-vacuna', nombre: 'Carne de Res', estilo: 'Combos', categorias: ['Combos', 'Combo'] },
+      { slug: 'combo-pollo', nombre: 'Carne de Pollo', estilo: 'Combos', productos: ['Combo Crispy Crack', 'Combo Crispy Ranch'] },
+      { slug: 'combo-veggie', nombre: 'Veggie', estilo: 'Combos', productos: ['Combo Seed Vicious'] },
+    ],
+    subgrupoPorDefecto: 'combo-carne-vacuna',
     porSecciones: false,
   },
   {
@@ -46,8 +56,8 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     nombre: 'Hamburguesas',
     categorias: ['Hamburguesas', 'Hamburguesa'],
     subgrupos: [
-      { slug: 'carne-vacuna', nombre: 'Carne vacuna', estilo: 'Hamburguesas', categorias: ['Hamburguesas', 'Hamburguesa'] },
-      { slug: 'pollo', nombre: 'Pollo', estilo: 'Hamburguesas', productos: ['Crispy Crack', 'Crispy Ranch'] },
+      { slug: 'carne-vacuna', nombre: 'Carne de Res', estilo: 'Hamburguesas', categorias: ['Hamburguesas', 'Hamburguesa'] },
+      { slug: 'pollo', nombre: 'Carne de Pollo', estilo: 'Hamburguesas', productos: ['Crispy Crack', 'Crispy Ranch'] },
       { slug: 'veggie', nombre: 'Veggie', estilo: 'Hamburguesas', productos: ['Seed Vicious'] },
     ],
     subgrupoPorDefecto: 'carne-vacuna',
@@ -61,15 +71,16 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     subgrupos: [
       { slug: 'papas-fritas', nombre: 'Papas', estilo: 'Papas Fritas', categorias: ['Papas Fritas'] },
       { slug: 'nuggets', nombre: 'Nuggets', estilo: 'Nuggets', categorias: ['Nuggets'] },
-      {
+      { slug: 'ensaladas', nombre: 'Ensaladas', estilo: 'Ensaladas', categorias: ['Ensaladas'] },
+       {
         slug: 'otros',
         nombre: 'Otros',
-        estilo: 'Nuggets',
-        productos: ['Palitos de Muzzarela', 'Aros de Cebolla x8'],
+        estilo: 'aro',
+        // El Cheddar Fundido es una salsa en la base, pero acá se vende como pileta para mojar
+        productos: ['Palitos de Muzzarela', 'Aros de Cebolla x8', 'Cheddar Fundido'],
       },
-      { slug: 'ensaladas', nombre: 'Ensaladas', estilo: 'Ensaladas', categorias: ['Ensaladas'] },
     ],
-    subgrupoPorDefecto: 'otros',
+    subgrupoPorDefecto: 'papas-fritas',
     porSecciones: true,
   },
   {
@@ -77,22 +88,31 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     slug: 'bebidas',
     nombre: 'Bebidas',
     categorias: ['Bebidas'],
+     subgrupos: [
+      {
+        slug: 'gaseosas',
+        nombre: 'Gaseosas',
+        estilo: 'Bebidas',
+        productos: ['Coca Cola', 'Sprite', 'Fanta'],
+      },
+      {
+        slug: 'agua',
+        nombre: 'Agua',
+        estilo: 'Bebidas',
+        productos: ['Agua Mineral'],
+      },
+    ],
+    subgrupoPorDefecto: 'gaseosas',
     porSecciones: false,
   },
   {
     id: 4,
     slug: 'cafeteria',
     nombre: 'Cafetería',
-    // "Cafetería" es la categoría principal del backend; Café y Menú Café, sus hijas
+    // "Cafetería" es la categoría principal; Café y Menú Café, sus hijas
     categorias: ['Cafetería', 'Café', 'Menú Café'],
     subgrupos: [
-      { slug: 'bebidas-calientes', nombre: 'Bebidas calientes', estilo: 'Café', categorias: ['Café'] },
-      {
-        slug: 'sandwiches',
-        nombre: 'Sandwiches',
-        estilo: 'Menú Café',
-        productos: ['Tostado de Jamón y Queso', 'Desayuno Americano'],
-      },
+      { slug: 'cafes', nombre: 'Cafés', estilo: 'Café', categorias: ['Café'] },
       {
         slug: 'clasicos',
         nombre: 'Clásicos',
@@ -100,11 +120,17 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
         productos: ['Medialunas x2', 'Tostadas con Palta'],
       },
       {
-        slug: 'pasteleria',
-        nombre: 'Pastelería',
-        estilo: 'Postres',
+        slug: 'sandwiches',
+        nombre: 'Sandwiches',
+        estilo: 'sandwich',
+        productos: ['Tostado de Jamón y Queso', 'Desayuno Americano'],
+      },
+      {
+        slug: 'dulces',
+        nombre: 'Dulces',
+        estilo: 'Torta',
         // Brownie y Cheesecake son de la categoría Postres: se muestran acá y también en Postres → Tortas
-        productos: ['Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
+        productos: ['Hot Cakes', 'Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
       },
     ],
     subgrupoPorDefecto: 'clasicos',
@@ -125,7 +151,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
       {
         slug: 'tortas',
         nombre: 'Tortas',
-        estilo: 'Postres',
+        estilo: 'torta',
         productos: ['Brownie con Helado', 'Cheesecake de Frutos Rojos'],
       },
     ],
@@ -143,7 +169,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
 ]
 
 /** El catálogo arranca en Combos */
-export const GRUPO_INICIAL = 2
+export const GRUPO_INICIAL_SLUG = 'combos'
 
 // "Menú Café" → "menu cafe"
 export function normalizarNombre(nombre: string) {
@@ -153,8 +179,8 @@ export function normalizarNombre(nombre: string) {
 const igual = (a: string, b: string) => normalizarNombre(a) === normalizarNombre(b)
 
 /** Grupo al que pertenece una categoría del backend (por nombre), si pertenece a alguno */
-export function grupoDeCategoria(nombreCategoria: string): GrupoCatalogo | undefined {
-  return GRUPOS_CATALOGO.find((g) => g.categorias.some((c) => igual(c, nombreCategoria)))
+export function grupoDeCategoria(nombreCategoria: string, grupos: GrupoCatalogo[] = GRUPOS_CATALOGO): GrupoCatalogo | undefined {
+  return grupos.find((g) => g.categorias.some((c) => igual(c, nombreCategoria)))
 }
 
 /** Subgrupo que reúne a toda una categoría (ej: "Nuggets" → el botón Nuggets), si hay uno */

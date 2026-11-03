@@ -8,6 +8,7 @@ export const ICONOS: { valor: IconoCategoria; etiqueta: string }[] = [
   { valor: 'combo', etiqueta: 'Combo' },
   { valor: 'papas', etiqueta: 'Papas' },
   { valor: 'nuggets', etiqueta: 'Nuggets' },
+  { valor: 'aro', etiqueta: 'Aros' },
   { valor: 'bebida', etiqueta: 'Bebida' },
   { valor: 'postre', etiqueta: 'Postre' },
   { valor: 'ensalada', etiqueta: 'Ensalada' },
@@ -15,6 +16,8 @@ export const ICONOS: { valor: IconoCategoria; etiqueta: string }[] = [
   { valor: 'desayuno', etiqueta: 'Taza' },
   { valor: 'cafe', etiqueta: 'Medialuna' },
   { valor: 'comboCafe', etiqueta: 'Combo de cafetería' },
+  { valor: 'sandwich', etiqueta: 'Sandwich' },
+  { valor: 'torta', etiqueta: 'Torta' },
   { valor: 'salsa', etiqueta: 'Salsa' },
   { valor: 'generico', etiqueta: 'Genérico' },
 ]
@@ -45,6 +48,9 @@ const POR_NOMBRE: Record<string, Estilo> = {
   'desayunos y meriendas': { icono: 'desayuno', fondo: 'mostaza' },
   cafeteria: { icono: 'desayuno', fondo: 'mostaza' },
   cafe: { icono: 'desayuno', fondo: 'arena' },
+  aro: { icono: 'aro', fondo: 'arena' },
+  sandwich: { icono: 'sandwich', fondo: 'arena' },
+  torta: { icono: 'torta', fondo: 'arena' },
   'menu cafe': { icono: 'cafe', fondo: 'mostaza' },
   salsas: { icono: 'salsa', fondo: 'rojo' },
 }

@@ -122,7 +122,7 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
               className={`mt-1 text-sm ${verCompleta ? "break-words" : "truncate"}`}
               title={verCompleta ? undefined : guardada}
             >
-              {guardada}
+              {verCompleta ? guardada : <p className="min-h-3"> <i className="text-gray-600 font-bold">Nota oculta</i> </p>}
             </p>
           </div>
 

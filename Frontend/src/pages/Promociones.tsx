@@ -105,7 +105,7 @@ function Promociones() {
             </span>
 
             <div className="flex items-center gap-3 font-extrabold">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-3 border-white bg-black shadow-sm">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-3 border-black bg-red-600 shadow-sm">
                 <Gift
                   className="h-6 w-6 text-white fill-blue"
                   strokeWidth={2}

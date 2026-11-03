@@ -6,13 +6,36 @@ function TituloConResaltado({ title, highlight }: { title: string; highlight?: s
   if (!highlight || !title.includes(highlight)) return <>{title}</>
 
   const [antes, despues] = title.split(highlight)
-  return (
-    <>
-      {antes}
-      <span className="inline-block -rotate-2 rounded-xl bg-brand-mustard px-3 text-brand-dark">{highlight}</span>
-      {despues}
-    </>
-  )
+
+  if (title.includes("Hola,")) {
+    // 1. Separamos el "Hola, " del resto de la frase
+    const [antesDelNombre, resto] = title.split(", ")
+    // 2. Del resto, separamos el nombre usando el punto como límite ("Juan. ¿Qué se te...")
+    const [userName, fraseFinal] = resto.split(". ")
+
+    // 3. De la frase final, hacemos el split del highlight ("antoja")
+    const [antesHighlight, despuesHighlight] = fraseFinal.split(highlight)
+    
+    return (
+      <>
+        {antesDelNombre}{", "} <span className="text-red-600">{userName}</span>.{" "}
+        {antesHighlight}
+        <span className="inline-block -rotate-2 rounded-xl bg-brand-mustard px-3 text-brand-dark">
+          {highlight}
+        </span>
+        {despuesHighlight}
+      </>
+    )
+  } else {
+    return (
+      <>
+        {antes}
+        <span className="inline-block -rotate-2 rounded-xl bg-brand-mustard px-3 text-brand-dark">{highlight}</span>
+        {despues}
+      </>
+    )
+  }
+
 }
 // Texto y botón de un slide, sobre la foto de fondo
 function SlideContent({ slide }: { slide: CarouselSlide }) {
@@ -25,7 +48,7 @@ function SlideContent({ slide }: { slide: CarouselSlide }) {
       )}
 
       <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight drop-shadow-lg sm:text-6xl">
-        <TituloConResaltado title={slide.title} highlight={slide.highlight} />
+        <TituloConResaltado title={slide.title} highlight={slide.highlight} /> 
       </h1>
 
       <p className="mt-5 max-w-xl text-lg text-white/85">{slide.description}</p>
@@ -37,7 +60,7 @@ function SlideContent({ slide }: { slide: CarouselSlide }) {
             slide.ctaVariant === 'outline'
               ? 'rounded-full border-2 border-brand-cream px-6 py-3 text-center font-bold text-brand-cream transition-colors hover:bg-brand-cream hover:text-brand-dark'
               : 'rounded-full bg-brand-red px-6 py-3 text-center font-bold text-white transition-transform hover:translate-y-0.5'
-          }          
+          }
         >
           {slide.ctaLabel}
         </Link>
