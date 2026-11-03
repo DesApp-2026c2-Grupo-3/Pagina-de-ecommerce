@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext'
 //import CampoCupon from './CampoCupon'
 import { ChevronDown } from 'lucide-react'
 
+
 // Asumiendo que COSTO_ENVIO y formatearPrecio vienen de tus constantes/helpers externos
 
 interface Props {
@@ -16,9 +17,19 @@ interface Props {
   onConfirmar: () => void
 }
 
+
 function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, motivo, onConfirmar }: Props) {
   const { items } = useCart()
   const total = subtotal + (COSTO_ENVIO ?? 0)
+  let aderezos = 0;
+
+  items?.forEach((item) => {
+    const esAderezo = item.unitPrice === 0;
+
+    if (esAderezo) {
+      aderezos += item.quantity;
+    }
+  });
 
   // Función para recortar el nombre
   const abreviarNombre = (nombre: string, limite = 16) => {
@@ -45,6 +56,8 @@ function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, m
     return acc
   }, {}) || {}
 
+
+
   return (
     <aside className="flex flex-col gap-4 rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker">
       <h2 className="font-display text-2xl font-extrabold">Resumen</h2>
@@ -52,7 +65,7 @@ function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, m
       {/* 1. Lista detallada colapsable */}
       <div className="flex flex-col gap-2 text-brand-muted">
         <details className="group [&_summary::-webkit-details-marker]:hidden w-full">
-          
+
           {/* Botón que controla el abrir/cerrar */}
           <summary className="flex items-center justify-between font-medium cursor-pointer list-none py-1 hover:text-brand-dark transition-colors">
             <span className="text-sm">Ver Detalles</span>
@@ -72,6 +85,7 @@ function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, m
               //const esBebida = item.product.categoria === 'bebida' || item.product.esBebida
               const nombreMinuscula = item.product.nombre?.toLowerCase() || ""
               const esPapaFrita = nombreMinuscula.includes("papa") || nombreMinuscula.includes("frita")
+
 
               const requiereDiseñoDetallado = esCombo || tamanio || esPapaFrita
 
@@ -125,17 +139,36 @@ function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, m
           </ul>
         </details>
       </div>
-          
+
+      {/* 2. Bloque de Cantidad Total y Subtotal */}
       {/* 2. Bloque de Cantidad Total y Subtotal */}
       <div className="flex flex-col gap-2 border-t-2 border-dashed border-brand-sand pt-4 text-brand-muted">
-        <div className="flex justify-between text-sm">
-          <span className="font-bold">
-            {cantidad} {cantidad === 1 ? 'producto' : 'productos'}
+        <div className="flex justify-between items-start text-sm">
+
+          {/* Contenedor de textos a la izquierda en vertical */}
+          <div className="flex flex-col">
+            {/* Renglón superior: Productos */}
+            <span className="font-bold">
+              {cantidad - aderezos} {cantidad - aderezos === 1 ? 'producto' : 'productos'}
+            </span>
+
+            {/* Renglón inferior: Aderezos sutiles en gris e inclinados */}
+            {aderezos > 0 && (
+              <span className="text-xs text-gray-500 italic mt-0.5 font-normal">
+                (+{aderezos} {aderezos === 1 ? 'aderezo' : 'aderezos'})
+              </span>
+            )}
+          </div>
+
+          {/* Subtotal a la derecha alineado arriba con el primer renglón */}
+          <span className="font-extrabold text-brand-dark self-start">
+            {formatearPrecio(subtotal)}
           </span>
-          {/* El total de items / subtotal de abajo en negrita utilizando tus clases de diseño */}
-          <span className="font-extrabold text-brand-dark">{formatearPrecio(subtotal)}</span>
+
         </div>
       </div>
+
+
 
       {/* Total Principal Grande */}
       <div className="flex items-baseline justify-between border-t-2 border-dashed border-brand-sand pt-2">
