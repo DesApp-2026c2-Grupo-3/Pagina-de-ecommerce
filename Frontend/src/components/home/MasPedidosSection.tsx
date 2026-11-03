@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useZona } from '../../context/ZonaContext'
-import { getCategories, getMasPedidos, getProducts } from '../../services/productService'
-import { esCategoriaOculta } from '../../config/gruposCatalogo'
+import { getMasPedidos, getProducts } from '../../services/productService'
 import ProductCard from './ProductCard'
 import type { ProductoBackend } from '../../types/product'
 
@@ -12,15 +11,14 @@ function MasPedidosSection() {
   const [productos, setProductos] = useState<ProductoBackend[]>([])
 
   useEffect(() => {
-    Promise.all([getMasPedidos(sucursalId), getProducts(sucursalId), getCategories()])
-      .then(([ranking, catalogo, categorias]) => {
+    // El ranking ya viene sin los complementos (salsas): lo arma el backend
+    Promise.all([getMasPedidos(sucursalId), getProducts(sucursalId)])
+      .then(([ranking, catalogo]) => {
         const porId = new Map(catalogo.map((p) => [p.id, p]))
-        // Las salsas se piden desde el carrito: no entran al ranking
-        const ocultas = new Set(categorias.filter((c) => esCategoriaOculta(c.nombre)).map((c) => c.id))
         setProductos(
           ranking
             .map((r) => porId.get(r.productoId))
-            .filter((p): p is ProductoBackend => Boolean(p?.disponible) && !ocultas.has(p!.categoriaId)),
+            .filter((p): p is ProductoBackend => Boolean(p?.disponible)),
         )
       })
       .catch(() => setProductos([]))

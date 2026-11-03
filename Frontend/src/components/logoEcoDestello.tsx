@@ -57,11 +57,11 @@ export const LogoConEco: React.FC<LogoProps> = ({ isAuthenticated }) => {
     // 1. Ejecutar la animación de inmediato la primera vez que se loguea/recarga
     ejecutarSecuenciaLogo();
 
-    // 2. Configurar el bucle para que se repita (ejemplo: cada 15 segundos)
+
     // NOTA: El tiempo total del intervalo debe ser mayor a los 1600ms de la animación.
     intervalId = setInterval(() => {
         ejecutarSecuenciaLogo();
-    }, 60000); // 15000ms = 15 segundos
+    }, 60000); 
 
     // Limpieza absoluta de todos los timers e intervalos al desmontar o desloguear
     return () => {

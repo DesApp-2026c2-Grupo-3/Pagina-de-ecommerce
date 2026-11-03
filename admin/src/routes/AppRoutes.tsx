@@ -23,6 +23,8 @@ import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
 import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
 import Reportes from '../pages/Reportes/Reportes'
+import Calificaciones from '../pages/Calificaciones/Calificaciones'
+import Menu from '../pages/Menu/Menu'
 import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos'
 import ProductosMenosVendidos from '../components/reportes/ProductosMenosVendidos'
 import ProductosMayorFacturacion from '../components/reportes/ProductosMayorFacturacion'
@@ -43,6 +45,7 @@ export default function AppRoutes() {
         <Route path="/admin" element={<Reportes />} />
         <Route path="/admin/reportes" element={<Reportes />} />
         <Route path="/admin/pedidos" element={<Pedidos />} />
+        <Route path="/admin/calificaciones" element={<Calificaciones />} />
         <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
         <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
         <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />
@@ -59,6 +62,7 @@ export default function AppRoutes() {
           <Route path="/admin/promociones/editar/:id" element={<EditarPromocion />} />
 
           <Route path="/admin/categorias" element={<Categorias />} />
+          <Route path="/admin/menu" element={<Menu />} />
           <Route path="/admin/categorias/nueva" element={<NuevaCategoria />} />
           <Route path="/admin/categorias/editar/:id" element={<EditarCategoria />} />
 

@@ -1,6 +1,8 @@
 jest.mock('../../src/models', () => ({
     DetallePedido: { findAll: jest.fn() },
     Pedido: {},
+    Producto: {},
+    Categoria: {},
 }));
 
 const models = require('../../src/models');
@@ -22,6 +24,15 @@ beforeEach(() => {
 });
 
 describe('obtenerMasPedidos', () => {
+    test('no cuenta los complementos (salsas) en el ranking', async () => {
+        await obtenerMasPedidos({ query: {} }, crearRes());
+
+        const { include } = DetallePedido.findAll.mock.calls[0][0];
+        const deProducto = include.find((i) => i.include);
+        expect(deProducto.required).toBe(true);
+        expect(deProducto.include[0]).toMatchObject({ as: 'categoria', where: { esComplemento: false }, required: true });
+    });
+
     test('usa el límite por defecto y no filtra por sucursal', async () => {
         const res = crearRes();
 

@@ -10,12 +10,12 @@ import PasosCompra from "../components/cart/PasosCompra";
 import CartItemRow from "../components/cart/CartItemRow";
 import SugerenciasCarrito from "../components/cart/SugerenciaCarrito";
 import ResumenCarrito from "../components/cart/ResumenCarrito";
+import NotaCocina from "../components/cart/NotaCocina";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal";
 import type { CartItem } from "../types/cart";
 import type { Promo } from "../types/promo";
 import { getPromociones } from "../services/promotionService";
-import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
@@ -37,7 +37,7 @@ function Cart() {
   const esEditable = (item: CartItem) =>
     Boolean(
       item.product.tamanios?.length ||
-        item.product.ingredientes?.some((i) => i.esRemovible || i.esAgregable),
+      item.product.ingredientes?.some((i) => i.esRemovible || i.esAgregable),
     );
 
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false);
@@ -78,7 +78,7 @@ function Cart() {
       navigate("/login", { state: { from: "/carrito" } });
       return;
     }
-    navigate("/checkout" , { state: { observaciones } });
+    navigate("/checkout", { state: { observaciones } });
   }
 
   if (items.length === 0) {
@@ -92,7 +92,7 @@ function Cart() {
               <span className="absolute -right-3 -top-3 grid h-9 w-9 rotate-12 place-items-center rounded-full border-2 border-brand-dark bg-brand-red font-display text-lg font-extrabold text-white">
                 0
               </span>
-            </span>            
+            </span>
             <h2 className="font-display text-3xl font-extrabold text-brand-dark">Todavía no agregaste nada</h2>
             <p className="text-brand-muted">Elegí tu antojo del menú y lo vas a ver acá.</p>
             <Link
@@ -115,9 +115,8 @@ function Cart() {
         <PasosCompra actual={0} />
       </PageHeader>
 
-      
 
-      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">        
+      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-3">
           {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} />}
           {faltantes.map((f) => (
@@ -130,25 +129,38 @@ function Cart() {
               {f.promo.titulo}" (compra mínima ${(f.promo.compraMinima ?? 0).toLocaleString('es-AR')}).
             </div>
           ))}
-                   <div className="flex flex-wrap items-center justify-between gap-3">
-            <Link
-              to="/catalogo"
-              className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-white
-               px-5 text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
-            >
-              <ArrowLeft className="h-4 w-4" /> Seguir agregando
-            </Link>
 
-            <button
-              type="button"
-              onClick={() => setMostrarModalVaciar(true)}
-              className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-red-600 bg-stone-100
-               px-5 text-sm font-bold shadow-[4px_4px_0px_#c556a0] transition-transform hover:translate-y-0.5
-               hover:bg-stone-500 hover:text-red-300"
-            >
-              <Trash2 className="h-4 w-4" />
-              Vaciar carrito
-            </button>
+          <div className=" min-h-6 my-4 -mb-0 ">
+            <div className="flex flex-wrap items-center justify-between gap-3 ">
+              <Link
+                to="/catalogo"
+                className="group inline-flex min-h-11 w-fit items-center gap-3 rounded-full border-2 border-brand-dark bg-amber-500 text-black
+                pl-2 pr-5 text-sm font-bold shadow-sticker transition-all duration-200 hover:translate-y-0.5 hover:bg-orange-600 hover:text-white"
+              >
+                {/* Contenedor circular de la flecha */}
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white text-green-600 transition-colors duration-200 group-hover:border-white group-hover:bg-black group-hover:text-white">
+                  <ArrowLeft className="h-4 w-4 stroke-[3px]" />
+                </div>
+
+                <span>Menú</span>
+              </Link>
+
+
+              <button
+                type="button"
+                onClick={() => setMostrarModalVaciar(true)}
+                className="group inline-flex min-h-11 w-fit items-center gap-3 rounded-full border-2 border-black !bg-amber-500 text-black
+                pl-2 pr-5 text-sm font-bold shadow-[5px_5px_0px_theme(colors.black)] transition-all duration-200 hover:translate-y-0.5
+                hover:!bg-red-600 hover:!text-white"
+              >
+                {/* Contenedor circular del tachito */}
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white text-red-600 transition-colors duration-200 group-hover:border-amber-500 group-hover:bg-black   group-hover:text-amber-500">
+                  <Trash2 className="h-4 w-4 stroke-[3px]" />
+                </div>
+
+                Eliminar todo
+              </button>
+            </div>
           </div>
 
           {items.map((item) => (
@@ -161,26 +173,8 @@ function Cart() {
             />
           ))}
 
-          <div className="mx-auto w-full max-w-lg rounded-2xl border-2 border-brand-dark bg-white p-3">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
-              <label htmlFor="observaciones" className={CLASE_LABEL}>
-                Notas para la cocina (opcional)
-              </label>
-
-              <span className="shrink-0 text-xs text-brand-muted">
-                {observaciones.length}/100
-              </span>
-            </div>
-
-              <textarea id="observaciones" value={observaciones}
-              onChange={(e) => cambiarObservaciones(e.target.value)}
-              maxLength={100}
-              placeholder="Ej.: sin cebolla, bien cocida..."
-              rows={2}
-              className={`${CLASE_INPUT} w-full resize-none`}/>
-            </div>
-
-          </div>
+          <NotaCocina guardada={observaciones} onGuardar={cambiarObservaciones} />
+        </div>
 
         <ResumenCarrito
           cantidad={cantidadTotal}
@@ -198,21 +192,22 @@ function Cart() {
 
       {itemAEliminar && (
         <ConfirmarEliminarModal
-        nombreProducto={itemAEliminar.product.nombre}
-        onCancelar={() => setItemAEliminar(null)}
-        onConfirmar={() => {
-        removeItem(itemAEliminar.id)
-        setItemAEliminar(null)
-        }}/>
+          nombreProducto={itemAEliminar.product.nombre}
+          onCancelar={() => setItemAEliminar(null)}
+          onConfirmar={() => {
+            removeItem(itemAEliminar.id)
+            setItemAEliminar(null)
+          }} />
       )}
 
       {mostrarModalVaciar && (
         <ConfirmarEliminarModal
-        nombreProducto="todos los productos"
-        onCancelar={() => setMostrarModalVaciar(false)}
-        onConfirmar={() => { clearCart();
-          setMostrarModalVaciar(false);
-        }}/>
+          nombreProducto="todos los productos"
+          onCancelar={() => setMostrarModalVaciar(false)}
+          onConfirmar={() => {
+            clearCart();
+            setMostrarModalVaciar(false);
+          }} />
       )}
     </div>
   );

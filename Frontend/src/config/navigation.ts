@@ -12,7 +12,7 @@ export interface AccountItem extends NavItem {
 // Links principales (navbar de escritorio)
 export const NAV_LINKS: NavItem[] = [
   { label: 'Inicio', to: '/' },
-  { label: 'Menú', to: '/catalogo' },
+  { label: 'Menú', to: '/catalogo?grupo=todos' },
   { label: 'Promos', to: '/promociones' },
   { label: 'Nosotros', to: '/conocenos' },
 ]

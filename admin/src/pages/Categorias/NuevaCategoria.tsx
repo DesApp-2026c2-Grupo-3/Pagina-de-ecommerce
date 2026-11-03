@@ -1,13 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
-import { crearCategoria } from '../../services/categoriaService'
+import { crearCategoria, obtenerCategorias } from '../../services/categoriaService'
+import CamposCategoria, {
+  extrasAPedido,
+  extrasVacios,
+  type CategoriaOpcion,
+  type ExtrasCategoria,
+} from '../../components/CamposCategoria'
 
 export default function NuevaCategoria() {
   const [nombre, setNombre] = useState('')
+  const [extras, setExtras] = useState<ExtrasCategoria>(extrasVacios)
+  const [categorias, setCategorias] = useState<CategoriaOpcion[]>([])
   const [errorNombre, setErrorNombre] = useState('');
+  const [errorServidor, setErrorServidor] = useState('')
   const { mostrarToast } = useToast();
   const navigate = useNavigate()
+
+  useEffect(() => {
+    obtenerCategorias()
+      .then(setCategorias)
+      .catch((error) => console.error('Error al cargar categorías:', error))
+  }, [])
 
   const guardarCategoria = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -24,12 +39,13 @@ export default function NuevaCategoria() {
     }
 
     try {
-      await crearCategoria({ nombre })
+      await crearCategoria({ nombre, ...extrasAPedido(extras) })
 
       mostrarToast('Categoria creada!')
       navigate('/admin/categorias')
     } catch (error) {
       console.error('Error al crear categoria:', error)
+      setErrorServidor(error instanceof Error ? error.message : 'No se pudo crear la categoría.')
     }
   }
 
@@ -48,8 +64,8 @@ export default function NuevaCategoria() {
           <input
             type="text"
             value={nombre}
-            maxLength={15}
-            onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
+            maxLength={20}
+            onChange={(e) => {setNombre(e.target.value); setErrorNombre(''); setErrorServidor('')}}
             className="w-full border rounded px-3 py-2"
             placeholder="Ej: Hamburguesas"
           />
@@ -58,6 +74,14 @@ export default function NuevaCategoria() {
         {errorNombre && (
           <p className="text-red-600 text-sm m-1">
             {errorNombre}
+          </p>
+        )}
+
+        <CamposCategoria categorias={categorias} valor={extras} onChange={(v) => { setExtras(v); setErrorServidor('') }} />
+
+        {errorServidor && (
+          <p role="alert" className="text-red-600 text-sm m-1">
+            {errorServidor}
           </p>
         )}
 

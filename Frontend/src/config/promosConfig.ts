@@ -30,7 +30,7 @@ const COMBO = ['Combo Fast Cheese', 'Combo Habemus Bacon', 'Combo Pickle Me Fast
 const BEBIDA = ['Coca Cola', 'Gaseosa Naranja', 'Lima-Limón', 'Agua mineral']
 const PAPAS = ['Papas fritas', 'Papas Medianas', 'Papas Rústicas', 'Papas con cheddar']
 const NUGGETS = ['Nuggets de Pollo x10', 'Nuggets de Pollo']
-const POSTRE = ['Brownie con Helado', 'Helado Sundae', 'Brownie']
+const POSTRE = ['Brownie con Helado', 'Sundae de Chocolate', 'Brownie']
 const MERIENDA = ['Combo Merienda', 'Merienda Dulce', 'Café y Medialunas']
 
 export const PROMO_ESTRELLA: Promo = {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useCart } from '../../context/CartContext'
 import { useZona } from '../../context/ZonaContext'
 import { getCategories, getMasPedidos, getProducts } from '../../services/productService'
-import { esCategoriaOculta, normalizarNombre } from '../../config/gruposCatalogo'
+import { normalizarNombre } from '../../config/gruposCatalogo'
 import { COMPLEMENTOS, INCLUYE } from '../../config/sugerencias'
 import ProductCard from '../home/ProductCard'
 import type { ProductoBackend } from '../../types/product'
@@ -56,8 +56,8 @@ function SugerenciasCarrito() {
   }, [sucursalId])
 
   const categoriaDe = new Map(categorias.map((c) => [c.id, normalizarNombre(c.nombre)]))
-  // Las categorías ocultas (salsas) no se venden: nunca se sugieren
-  const ocultas = new Set(categorias.filter((c) => esCategoriaOculta(c.nombre)).map((c) => c.id))
+  // Los complementos (salsas) se piden aparte desde el menú: nunca se sugieren
+  const ocultas = new Set(categorias.filter((c) => c.esComplemento).map((c) => c.id))
   const enCarrito = new Set(items.map((i) => i.product.id))
 
   // Lo que se puede sugerir: disponible en la sucursal, visible y que no esté ya en el carrito
@@ -123,4 +123,4 @@ function SugerenciasCarrito() {
   )
 }
 
-export default SugerenciasCarrito
+export default SugerenciasCarrito

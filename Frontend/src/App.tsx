@@ -28,6 +28,7 @@ import PantallaDespedida from './components/ui/PantallaDespedida'
 import BotonSubir from './components/layout/BotonSubir'
 import RecuperarPassword from './pages/RecuperarPassword'
 import RestablecerPassword from './pages/RestablecerPassword'
+import CalificacionPendiente from './components/calificaciones/CalificacionPendiente'
 
 function App() {
   const { user } = useAuth()
@@ -73,9 +74,10 @@ function App() {
       <ElegirZonaModal />
       <PantallaBienvenida />
       <PantallaDespedida />
+      <CalificacionPendiente />
     </div>
     </ZonaProvider>
   )
 }
 
-export default App
+export default App

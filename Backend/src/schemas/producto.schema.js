@@ -76,9 +76,10 @@ const productoSchema = Joi.object({
         'any.required': 'La descripción es obligatoria'
     }),
 
-    precio: Joi.number().positive().precision(2).required().messages({
+    // 0 = gratis (las salsas); un valor negativo no tiene sentido
+    precio: Joi.number().min(0).precision(2).required().messages({
         'number.base': 'El precio debe ser un número válido',
-        'number.positive': 'El precio debe ser un valor positivo',
+        'number.min': 'El precio no puede ser negativo',
         'any.required': 'El precio es obligatorio'
     }),
 
@@ -122,4 +123,4 @@ module.exports = {
     productoSchema,
     SABORES,
     TAMANIOS
-};
+};

@@ -98,28 +98,41 @@ function Promociones() {
       {/* ---------- Regalo de la semana ---------- */}
       {promos?.regalo && (
         <div className="mx-auto -mt-7 max-w-6xl px-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-brand-mustard px-6 py-4 shadow-sticker">
-            <p className="flex items-center gap-3 font-extrabold">
-              <Gift className="h-6 w-6 shrink-0" />
-              <span>
-                {promos.regalo.titulo} toda la semana
+         
+          <div className="relative flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-brand-mustard px-6 py-4 shadow-sticker">
+            <span className="absolute -top-3 left-20 -translate-y-px rounded-md bg-red-500 border border-2 border-black px-2 py-0.5 text-[10px] !font-black uppercase tracking-wider text-white shadow-sm z-10">
+              Esta semana
+            </span>
+
+            <div className="flex items-center gap-3 font-extrabold">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-3 border-black bg-red-600 shadow-sm">
+                <Gift
+                  className="h-6 w-6 text-white fill-blue"
+                  strokeWidth={2}
+                />
+              </div>
+
+              <span className="text-wrap">
+                {promos.regalo.titulo}
                 {promos.regalo.compraMinima ? (
                   <span className="block text-sm font-bold opacity-80">
                     Con compras desde ${promos.regalo.compraMinima.toLocaleString('es-AR')}
                   </span>
                 ) : null}
               </span>
-            </p>
+            </div>
+
             <button
               type="button"
               onClick={() => pedir(promos.regalo!, false)}
               disabled={cargando}
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-dark px-5 font-bold text-brand-cream transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
-              Sumalas gratis <ArrowRight className="h-4 w-4" />
+              Sumalas ya <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
+
       )}
       {/* ---------- Nuevo en la carta ---------- */}
       <NuevoEnLaCarta catalogo={catalogo} />
@@ -140,9 +153,8 @@ function Promociones() {
                 role="tab"
                 aria-selected={activo}
                 onClick={() => setDia(d.dia)}
-                className={`flex min-h-14 flex-col items-center justify-center rounded-2xl border-2 border-brand-dark px-1 sm:min-h-16 ${
-                  activo ? 'bg-brand-red text-white' : 'bg-white hover:bg-brand-cream'
-                }`}
+                className={`flex min-h-14 flex-col items-center justify-center rounded-2xl border-2 border-brand-dark px-1 sm:min-h-16 ${activo ? 'bg-brand-red text-white' : 'bg-white hover:bg-brand-cream'
+                  }`}
               >
                 <span className="text-xs font-extrabold uppercase tracking-wider sm:text-sm">{d.nombre.slice(0, 3)}</span>
                 {d.dia === promos.hoy && <span className="text-[10px] font-bold opacity-80">Hoy</span>}

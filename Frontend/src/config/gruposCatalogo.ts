@@ -1,16 +1,20 @@
 // Cómo se organiza el menú del cliente.
-// Es solo presentación: en la base (y en el admin) las categorías siguen siendo las mismas, y las
-// subcategorías ("Carne vacuna", "Pastelería"...) no existen en la base: se arman acá, por nombre.
-// Ojo: no fusionar categorías en la base. Los combos eligen sus opciones por categoría
-// ("Acompañamiento" sale de Papas Fritas, "Una bebida" de Bebidas).
-// Cuando el backend tenga subcategorías propias, alcanza con reemplazar este archivo.
+// Es solo presentación: en la base las categorías siguen siendo las mismas (los combos eligen sus opciones
+// por categoría: "Acompañamiento" sale de Papas Fritas, "Una bebida" de Bebidas).
+//
+// El menú lo arma el master desde el panel (GET /menu) y config/menuDinamico.ts lo convierte a esta forma.
+// Lo que está acá abajo (GRUPOS_CATALOGO) es el menú de RESPALDO: es el mismo que carga la semilla
+// 20261102120000-menu-inicial y se usa solo si el backend no responde.
 
 export interface SubgrupoCatalogo {
   slug: string
   /** Texto del botón y título de la sección */
   nombre: string
-  /** Categoría del backend de la que toma el ícono y el color del título */
+  /** Categoría (o clave de estilo) de la que toma el ícono y el color del título */
   estilo: string
+  /** Ícono y color elegidos por el master (si están, mandan sobre `estilo`) */
+  icono?: string
+  fondo?: string
   /** Categorías del backend cuyos productos entran (se comparan sin tildes ni mayúsculas) */
   categorias?: string[]
   /** Productos que entran por nombre, vengan de la categoría que vengan (gana sobre `categorias`) */
@@ -40,10 +44,10 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     categorias: ['Combos'],
     subgrupos: [
       { slug: 'combo-carne-vacuna', nombre: 'Carne de Res', estilo: 'Combos', categorias: ['Combos', 'Combo'] },
-      { slug: 'combo-pollo', nombre: 'Carne de Pollo  ', estilo: 'Combos', productos: ['Combo Crispy Crack', 'Combo Crispy Ranch'] },
+      { slug: 'combo-pollo', nombre: 'Carne de Pollo', estilo: 'Combos', productos: ['Combo Crispy Crack', 'Combo Crispy Ranch'] },
       { slug: 'combo-veggie', nombre: 'Veggie', estilo: 'Combos', productos: ['Combo Seed Vicious'] },
     ],
-    subgrupoPorDefecto: 'carne-vacuna',
+    subgrupoPorDefecto: 'combo-carne-vacuna',
     porSecciones: false,
   },
   {
@@ -88,13 +92,13 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
       {
         slug: 'gaseosas',
         nombre: 'Gaseosas',
-        estilo: 'bebida',
+        estilo: 'Bebidas',
         productos: ['Coca Cola', 'Sprite', 'Fanta'],
       },
       {
         slug: 'agua',
         nombre: 'Agua',
-        estilo: 'bebida',
+        estilo: 'Bebidas',
         productos: ['Agua Mineral'],
       },
     ],
@@ -105,9 +109,10 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     id: 4,
     slug: 'cafeteria',
     nombre: 'Cafetería',
-    categorias: ['Café', 'Menú Café'],
+    // "Cafetería" es la categoría principal; Café y Menú Café, sus hijas
+    categorias: ['Cafetería', 'Café', 'Menú Café'],
     subgrupos: [
-      { slug: 'bebidas-calientes', nombre: 'Cafés', estilo: 'Café', categorias: ['Café'] },
+      { slug: 'cafes', nombre: 'Cafés', estilo: 'Café', categorias: ['Café'] },
       {
         slug: 'clasicos',
         nombre: 'Clásicos',
@@ -121,11 +126,11 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
         productos: ['Tostado de Jamón y Queso', 'Desayuno Americano'],
       },
       {
-        slug: 'pasteleria',
+        slug: 'dulces',
         nombre: 'Dulces',
         estilo: 'Torta',
         // Brownie y Cheesecake son de la categoría Postres: se muestran acá y también en Postres → Tortas
-        productos: ['Hot Cakes', 'Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
+        productos: ['Hot Cakes de Miel y Manteca', 'Hot Cakes de Dulce de Leche', 'Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
       },
     ],
     subgrupoPorDefecto: 'clasicos',
@@ -141,7 +146,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
         slug: 'helados',
         nombre: 'Helados',
         estilo: 'Postres',
-        productos: ['Helado Crunch', 'Helado Sundae', 'Batido de Vainilla'],
+        productos: ['Helado Crunch', 'Sundae de Chocolate', 'Sundae de Frutilla', 'Batido de Vainilla'],
       },
       {
         slug: 'tortas',
@@ -153,13 +158,18 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     subgrupoPorDefecto: 'tortas',
     porSecciones: true,
   },
+  {
+    // Siempre al final: son un agregado (Mayonesa, Ketchup...), con tope por pedido
+    id: 7,
+    slug: 'salsas',
+    nombre: 'Salsas',
+    categorias: ['Salsas'],
+    porSecciones: false,
+  },
 ]
 
-/** Categorías que no se muestran en el menú: se ofrecen en otro lado (las salsas, en el carrito) */
-export const CATEGORIAS_OCULTAS = ['Salsas']
-
 /** El catálogo arranca en Combos */
-export const GRUPO_INICIAL = 2
+export const GRUPO_INICIAL_SLUG = 'combos'
 
 // "Menú Café" → "menu cafe"
 export function normalizarNombre(nombre: string) {
@@ -168,26 +178,31 @@ export function normalizarNombre(nombre: string) {
 
 const igual = (a: string, b: string) => normalizarNombre(a) === normalizarNombre(b)
 
-export function esCategoriaOculta(nombreCategoria: string) {
-  return CATEGORIAS_OCULTAS.some((c) => igual(c, nombreCategoria))
-}
-
-// Productos nombrados a mano en algún subgrupo: se ven en el menú aunque su categoría esté oculta
-const NOMBRADOS = GRUPOS_CATALOGO.flatMap((g) => g.subgrupos ?? []).flatMap((s) => s.productos ?? [])
-
-/** Si un producto se muestra en el menú (y en la búsqueda) */
-export function visibleEnMenu(nombreProducto: string, nombreCategoria: string) {
-  return !esCategoriaOculta(nombreCategoria) || NOMBRADOS.some((n) => igual(n, nombreProducto))
-}
-
 /** Grupo al que pertenece una categoría del backend (por nombre), si pertenece a alguno */
-export function grupoDeCategoria(nombreCategoria: string): GrupoCatalogo | undefined {
-  return GRUPOS_CATALOGO.find((g) => g.categorias.some((c) => igual(c, nombreCategoria)))
+export function grupoDeCategoria(nombreCategoria: string, grupos: GrupoCatalogo[] = GRUPOS_CATALOGO): GrupoCatalogo | undefined {
+  return grupos.find((g) => g.categorias.some((c) => igual(c, nombreCategoria)))
 }
 
 /** Subgrupo que reúne a toda una categoría (ej: "Nuggets" → el botón Nuggets), si hay uno */
 export function subgrupoDeCategoria(grupo: GrupoCatalogo, nombreCategoria: string): SubgrupoCatalogo | undefined {
   return grupo.subgrupos?.find((s) => s.categorias?.some((c) => igual(c, nombreCategoria)))
+}
+
+/**
+ * Subcategoría que se abre al llegar desde la tarjeta de una categoría del Home.
+ * Solo si el grupo reúne varias categorías (Para acompañar: Papas, Nuggets, Ensaladas) se abre la sección
+ * de esa categoría. Si el grupo ES esa categoría (Combos, Hamburguesas) se abre entero, en "Todo": sus secciones
+ * son una división interna (carne, pollo, veggie) y abrir solo una mostraría una parte.
+ * `categoriasExistentes`: nombres de las categorías que hay en el catálogo (ignora alias que no existen).
+ */
+export function seccionAlAbrirCategoria(
+  grupo: GrupoCatalogo,
+  nombreCategoria: string,
+  categoriasExistentes: string[],
+): SubgrupoCatalogo | undefined {
+  const delGrupo = grupo.categorias.filter((c) => categoriasExistentes.some((e) => igual(e, c)))
+  if (delGrupo.length <= 1) return undefined
+  return subgrupoDeCategoria(grupo, nombreCategoria)
 }
 
 /**

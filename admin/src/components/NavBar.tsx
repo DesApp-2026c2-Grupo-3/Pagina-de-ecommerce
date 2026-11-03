@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, LogOut, ShoppingBag, Package,
    Store, ChartNoAxesCombined, ChevronLeft, ChevronRight,Users, Wheat, Tags, Hamburger, type LucideIcon,
-   Percent,} from 'lucide-react'
+   Percent,
+   Star,
+   UtensilsCrossed,} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { cerrarSesionService } from '../services/authService'
 import { enlacesDe } from '../config/menu'
 import type Promociones from '../pages/Promociones/Promociones'
+import Calificaciones from '../pages/Calificaciones/Calificaciones'
 
 interface NavBarProps {
   menuAbierto: boolean
@@ -16,14 +19,16 @@ interface NavBarProps {
 const iconosPorEnlace: Record<string, LucideIcon> = {
   Inicio: LayoutDashboard,
   Pedidos: ShoppingBag,
+  Calificaciones: Star,
   Productos: Package,
   Sucursales: Store,
   Reportes: ChartNoAxesCombined,
   Insumos: Wheat,
   Categorías: Tags,
+  Menú: UtensilsCrossed,
   Promociones: Percent,
   Administradores: Users,
-  Stock: Package
+  Stock: Package,
 }
 
 
