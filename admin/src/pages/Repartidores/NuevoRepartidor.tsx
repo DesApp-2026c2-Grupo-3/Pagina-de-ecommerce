@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { obtenerSucursales } from '../../services/sucursalService'
 import { crearRepartidor } from '../../services/repartidorService'
 import type { PayloadRepartidor } from '../../types/repartidor.types'
@@ -12,215 +13,283 @@ interface SucursalOpcion {
 }
 
 export default function NuevoRepartidor() {
-  const navigate = useNavigate()
-  const { administrador } = useAuth()
-
-  const esMaster = administrador?.rol === 'MASTER'
-  const sucursalIdAdmin = administrador?.sucursalId
-
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [sucursalId, setSucursalId] = useState(
-    sucursalIdAdmin ? String(sucursalIdAdmin) : ''
-  )
+
+  const [errorNombre, setErrorNombre] = useState('')
+  const [errorApellido, setErrorApellido] = useState('')
+  const [errorEmail, setErrorEmail] = useState('')
+  const [errorPassword, setErrorPassword] = useState('')
+  const [errorSucursal, setErrorSucursal] = useState('')
+
+  const [sucursalId, setSucursalId] = useState('')
 
   const [sucursales, setSucursales] = useState<SucursalOpcion[]>([])
-  const [cargandoSucursales, setCargandoSucursales] = useState(false)
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState('')
+
+  const { administrador } = useAuth()
+  const { mostrarToast } = useToast()
+  const navigate = useNavigate()
+
+  const esMaster = administrador?.rol === 'MASTER'
+  const sucursalIdAdmin = administrador?.sucursalId
 
   useEffect(() => {
     if (!esMaster) return
 
     const cargarSucursales = async () => {
       try {
-        setCargandoSucursales(true)
         const datos = await obtenerSucursales()
-        setSucursales(datos.filter((sucursal) => sucursal.activa))
+        setSucursales(datos.filter((sucursal: SucursalOpcion) => sucursal.activa))
       } catch (error) {
         console.error('Error al cargar sucursales:', error)
-        setError('No se pudieron cargar las sucursales.')
-      } finally {
-        setCargandoSucursales(false)
+        mostrarToast('Error al cargar las sucursales.')
       }
     }
 
     cargarSucursales()
-  }, [esMaster])
+  }, [esMaster, mostrarToast])
 
   const guardarRepartidor = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError('')
+
+    let hayErrores = false
+
+    setErrorNombre('')
+    setErrorApellido('')
+    setErrorEmail('')
+    setErrorPassword('')
+    setErrorSucursal('')
 
     if (nombre.trim().length < 3) {
-      setError('El nombre debe tener al menos 3 caracteres.')
-      return
+      setErrorNombre('El nombre debe tener al menos 3 caracteres.')
+      hayErrores = true
     }
 
     if (apellido.trim().length < 3) {
-      setError('El apellido debe tener al menos 3 caracteres.')
-      return
+      setErrorApellido('El apellido debe tener al menos 3 caracteres.')
+      hayErrores = true
     }
 
-    if (!email.trim() || !email.includes('@')) {
-      setError('Ingresá un email válido.')
-      return
+    if (email.trim() === '') {
+      setErrorEmail('El email es obligatorio.')
+      hayErrores = true
+    } else if (!email.includes('@')) {
+      setErrorEmail('Ingresá un email válido.')
+      hayErrores = true
     }
 
-    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.')
-      return
+    if (password.trim() === '') {
+      setErrorPassword('La contraseña es obligatoria.')
+      hayErrores = true
+    } else if (password.length < 8) {
+      setErrorPassword('La contraseña debe tener al menos 8 caracteres.')
+      hayErrores = true
+    } else if (!/[A-Z]/.test(password)) {
+      setErrorPassword('La contraseña debe contener al menos una mayúscula.')
+      hayErrores = true
+    } else if (!/[0-9]/.test(password)) {
+      setErrorPassword('La contraseña debe contener al menos un número.')
+      hayErrores = true
     }
 
-    if (!sucursalId) {
-      setError('Debés seleccionar una sucursal.')
-      return
+    const sucursalAsignada = esMaster
+      ? sucursalId
+      : sucursalIdAdmin ? String(sucursalIdAdmin) : ''
+
+    if (sucursalAsignada === '') {
+      setErrorSucursal('Seleccioná una sucursal.')
+      hayErrores = true
     }
 
-    const payload: PayloadRepartidor = {
+    if (hayErrores) return
+
+    const nuevoRepartidor: PayloadRepartidor = {
       nombre: nombre.trim(),
       apellido: apellido.trim(),
       email: email.trim(),
       password,
-      sucursalId: Number(sucursalId),
+      sucursalId: Number(sucursalAsignada),
     }
 
     try {
-      setGuardando(true)
-      await crearRepartidor(payload)
+      await crearRepartidor(nuevoRepartidor)
+
+      mostrarToast('¡Repartidor creado!')
       navigate('/admin/repartidores')
     } catch (error) {
       console.error('Error al crear repartidor:', error)
-      setError(
+
+      mostrarToast(
         error instanceof Error
           ? error.message
-          : 'No se pudo crear el repartidor.'
+          : 'Error al crear repartidor'
       )
-    } finally {
-      setGuardando(false)
     }
   }
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="mx-auto max-w-md">
-        <h1 className="mb-2 text-3xl font-bold">Nuevo repartidor</h1>
-        <p className="mb-6 text-gray-600">
-          Completá los datos para registrar un repartidor.
-        </p>
+    <main className="p-8">
+      <h1 className="mb-6 text-3xl font-bold">
+        Nuevo repartidor
+      </h1>
 
-        <form
-          onSubmit={guardarRepartidor}
-          className="space-y-4 rounded-xl border bg-white p-6 shadow-sm"
-        >
-          <div>
-            <label className="mb-1 block text-sm font-medium">Nombre</label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="w-full rounded-lg border p-2"
-              required
-            />
-          </div>
+      <form
+        onSubmit={guardarRepartidor}
+        className="max-w-md"
+        noValidate
+      >
+        <div className="mb-4">
+          <label className="mb-2 block font-medium">
+            Nombre
+          </label>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium">Apellido</label>
-            <input
-              type="text"
-              value={apellido}
-              onChange={(e) => setApellido(e.target.value)}
-              className="w-full rounded-lg border p-2"
-              required
-            />
-          </div>
+          <input
+            type="text"
+            value={nombre}
+            maxLength={30}
+            onChange={(e) => {
+              setNombre(e.target.value)
+              setErrorNombre('')
+            }}
+            className="w-full rounded border px-3 py-2"
+          />
+        </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border p-2"
-              required
-            />
-          </div>
+        {errorNombre && (
+          <p className="m-1 text-sm text-red-600">
+            {errorNombre}
+          </p>
+        )}
 
-          <div>
-            <label className="mb-1 block text-sm font-medium">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border p-2"
-              required
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Mínimo 8 caracteres, una mayúscula y un número.
-            </p>
-          </div>
+        <div className="mb-4">
+          <label className="mb-2 block font-medium">
+            Apellido
+          </label>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium">Sucursal</label>
+          <input
+            type="text"
+            value={apellido}
+            maxLength={30}
+            onChange={(e) => {
+              setApellido(e.target.value)
+              setErrorApellido('')
+            }}
+            className="w-full rounded border px-3 py-2"
+          />
+        </div>
 
-            {esMaster ? (
-              <select
-                value={sucursalId}
-                onChange={(e) => setSucursalId(e.target.value)}
-                className="w-full rounded-lg border bg-white p-2"
-                required
-                disabled={cargandoSucursales}
-              >
-                <option value="">
-                  {cargandoSucursales
-                    ? 'Cargando sucursales...'
-                    : 'Seleccionar sucursal'}
+        {errorApellido && (
+          <p className="m-1 text-sm text-red-600">
+            {errorApellido}
+          </p>
+        )}
+
+        <div className="mb-4">
+          <label className="mb-2 block font-medium">
+            Email
+          </label>
+
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setErrorEmail('')
+            }}
+            className="w-full rounded border px-3 py-2"
+          />
+        </div>
+
+        {errorEmail && (
+          <p className="m-1 text-sm text-red-600">
+            {errorEmail}
+          </p>
+        )}
+
+        <div className="mb-4">
+          <label className="mb-2 block font-medium">
+            Sucursal
+          </label>
+
+          {esMaster ? (
+            <select
+              value={sucursalId}
+              onChange={(e) => {
+                setSucursalId(e.target.value)
+                setErrorSucursal('')
+              }}
+              className="w-full rounded border px-3 py-2"
+            >
+              <option value="">Seleccionar sucursal</option>
+
+              {sucursales.map((sucursal) => (
+                <option key={sucursal.id} value={sucursal.id}>
+                  {sucursal.nombre}
                 </option>
-
-                {sucursales.map((sucursal) => (
-                  <option key={sucursal.id} value={sucursal.id}>
-                    {sucursal.nombre}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={administrador?.sucursal?.nombre ?? 'Sin sucursal asignada'}
-                className="w-full rounded-lg border bg-gray-100 p-2 text-gray-600"
-                disabled
-              />
-            )}
-          </div>
-
-          {error && (
-            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </p>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={administrador?.sucursal?.nombre ?? 'Sin sucursal asignada'}
+              className="w-full rounded border bg-gray-100 px-3 py-2 text-gray-600"
+              disabled
+            />
           )}
+        </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/repartidores')}
-              className="rounded-lg border px-4 py-2 hover:bg-gray-50"
-              disabled={guardando}
-            >
-              Cancelar
-            </button>
+        {errorSucursal && (
+          <p className="m-1 text-sm text-red-600">
+            {errorSucursal}
+          </p>
+        )}
 
-            <button
-              type="submit"
-              disabled={guardando || (esMaster && cargandoSucursales)}
-              className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {guardando ? 'Guardando...' : 'Crear repartidor'}
-            </button>
-          </div>
-        </form>
-      </div>
+        <div className="mb-4">
+          <label className="mb-2 block font-medium">
+            Contraseña
+          </label>
+
+          <input
+            type="password"
+            value={password}
+            maxLength={20}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setErrorPassword('')
+            }}
+            className="w-full rounded border px-3 py-2"
+          />
+
+          <p className="mt-1 text-xs text-gray-500">
+            Mínimo 8 caracteres, una mayúscula y un número.
+          </p>
+        </div>
+
+        {errorPassword && (
+          <p className="m-1 text-sm text-red-600">
+            {errorPassword}
+          </p>
+        )}
+
+        <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/repartidores')}
+            className="rounded border border-red-300 bg-danger px-4 py-2 text-white transition-colors hover:bg-danger-hover"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            className="rounded border border-orange-300 bg-action px-4 py-2 text-white transition-colors hover:bg-action-hover"
+          >
+            Crear repartidor
+          </button>
+        </div>
+      </form>
     </main>
   )
 }

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Viaje, Pedido } = require('../../models');
+const { Viaje, Pedido , Usuario, Direccion, DetallePedido, Producto }= require('../../models');
 
 const iniciarViaje = async (req, res) => {
     const { pedidoIds } = req.body;
@@ -125,11 +125,11 @@ const obtenerViajeActivo = async (req, res) => {
                     model: Pedido,
                     include: [
                         {
-                            model: require('../../models').Usuario,
+                            model: Usuario,
                             attributes: ['id', 'nombre', 'apellido', 'telefono'],
                         },
                         {
-                            model: require('../../models').Direccion,
+                            model: Direccion,
                             attributes: [
                                 'id', 'alias', 'calle', 'numero', 'piso',
                                 'localidad', 'provincia', 'observaciones',
@@ -138,10 +138,10 @@ const obtenerViajeActivo = async (req, res) => {
                             paranoid: false,
                         },
                         {
-                            model: require('../../models').DetallePedido,
+                            model: DetallePedido,
                             include: [
                                 {
-                                    model: require('../../models').Producto,
+                                    model: Producto,
                                     attributes: ['id', 'nombre', 'imagen'],
                                     paranoid: false,
                                 },
@@ -162,6 +162,60 @@ const obtenerViajeActivo = async (req, res) => {
         });
     }
 };
+
+const obtenerHistorialViajes = async (req, res) => {
+    try {
+        const { id: repartidorId } = req.repartidor;
+
+        const viajes = await Viaje.findAll({
+            where: {
+                repartidorId,
+                estado: 'finalizado',
+            },
+            include: [
+                {
+                    model: Pedido,
+                    include: [
+                        {
+                            model: Usuario,
+                            attributes: ['id', 'nombre', 'apellido', 'telefono'],
+                        },
+                        {
+                            model: Direccion,
+                            attributes: [
+                                'id', 'alias', 'calle', 'numero', 'piso',
+                                'localidad', 'provincia', 'observaciones',
+                                'latitud', 'longitud',
+                            ],
+                            paranoid: false,
+                        },
+                        {
+                            model: DetallePedido,
+                            include: [
+                                {
+                                    model: Producto,
+                                    attributes: ['id', 'nombre', 'imagen'],
+                                    paranoid: false,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            order: [['fechaInicio', 'DESC']],
+        });
+
+        return res.status(200).json(viajes);
+
+    } catch (error) {
+        console.error('Error al obtener historial de viajes:', error.message);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el historial de viajes',
+        });
+    }
+};
+
 module.exports = {
-    iniciarViaje, obtenerViajeActivo
+    iniciarViaje, obtenerViajeActivo, obtenerHistorialViajes
 };

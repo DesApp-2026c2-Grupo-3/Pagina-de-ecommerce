@@ -17,3 +17,8 @@ export interface ViajeActivo extends ViajeCreado {
   fechaFin: string | null
   Pedidos: Pedido[]
 }
+
+export interface ViajeHistorial extends ViajeCreado {
+  fechaFin: string | null
+  Pedidos: Pedido[]
+}

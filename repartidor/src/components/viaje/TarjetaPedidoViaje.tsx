@@ -1,4 +1,12 @@
-import { MapPin, UserRound, Package, Clock } from 'lucide-react'
+import {
+  MapPin,
+  UserRound,
+  Package,
+  Clock,
+  Phone,
+  ExternalLink,
+} from 'lucide-react'
+
 import type { Pedido } from '../../types/pedido.types'
 
 interface TarjetaPedidoViajeProps {
@@ -16,6 +24,15 @@ export default function TarjetaPedidoViaje({
   procesando,
 }: TarjetaPedidoViajeProps) {
   const fecha = new Date(pedido.fecha)
+  const direccion = pedido.Direccion
+  const telefono = pedido.Usuario.telefono
+
+  const tieneCoordenadas =
+    direccion?.latitud != null && direccion?.longitud != null
+
+  const urlMaps = tieneCoordenadas
+    ? `https://www.google.com/maps/search/?api=1&query=${direccion.latitud},${direccion.longitud}`
+    : null
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -32,21 +49,74 @@ export default function TarjetaPedidoViaje({
         </span>
       </div>
 
-      <div className="mt-5 space-y-3 border-t border-slate-100 pt-4">
+      {/* Datos del cliente y dirección */}
+      <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
         <div className="flex items-start gap-3 text-sm text-slate-600">
           <UserRound size={18} className="mt-0.5 shrink-0 text-slate-400" />
-          <span>
-            {pedido.Usuario.nombre} {pedido.Usuario.apellido ?? ''}
-          </span>
+          <div>
+            <p className="font-semibold text-slate-800">
+              {pedido.Usuario.nombre} {pedido.Usuario.apellido ?? ''}
+            </p>
+
+            {telefono && (
+              <a
+                href={`tel:${telefono}`}
+                className="mt-1 inline-flex items-center gap-2 text-orange-600 hover:text-orange-700"
+              >
+                <Phone size={14} />
+                {telefono}
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="flex items-start gap-3 text-sm text-slate-600">
           <MapPin size={18} className="mt-0.5 shrink-0 text-slate-400" />
-          <span>
-            {pedido.Direccion
-              ? `${pedido.Direccion.calle} ${pedido.Direccion.numero}, ${pedido.Direccion.localidad}`
-              : 'Dirección no disponible'}
-          </span>
+
+          <div className="min-w-0">
+            {direccion ? (
+              <>
+                <p className="font-semibold text-slate-800">
+                  {direccion.calle} {direccion.numero}
+                  {direccion.piso ? `, ${direccion.piso}` : ''}
+                </p>
+
+                <p className="mt-1">
+                  {direccion.localidad}
+                  {direccion.provincia ? `, ${direccion.provincia}` : ''}
+                </p>
+
+                {direccion.alias && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    {direccion.alias}
+                  </p>
+                )}
+
+                {direccion.observaciones && (
+                  <p className="mt-2 rounded-lg bg-slate-50 p-2 text-xs text-slate-600">
+                    <span className="font-semibold">
+                      Indicaciones:
+                    </span>{' '}
+                    {direccion.observaciones}
+                  </p>
+                )}
+
+                {urlMaps && (
+                  <a
+                    href={urlMaps}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 font-semibold text-orange-600 hover:text-orange-700"
+                  >
+                    <ExternalLink size={15} />
+                    Abrir en Google Maps
+                  </a>
+                )}
+              </>
+            ) : (
+              'Dirección no disponible'
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 text-sm text-slate-600">
@@ -61,6 +131,7 @@ export default function TarjetaPedidoViaje({
         </div>
       </div>
 
+      {/* Productos */}
       <div className="mt-5 border-t border-slate-100 pt-4">
         <h4 className="mb-3 text-sm font-bold text-slate-800">
           Productos del pedido
@@ -98,6 +169,7 @@ export default function TarjetaPedidoViaje({
         </div>
       </div>
 
+      {/* Observaciones del pedido */}
       {pedido.observaciones && (
         <div className="mt-4 rounded-xl bg-slate-50 p-3">
           <p className="text-xs font-semibold text-slate-500">

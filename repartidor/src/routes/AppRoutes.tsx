@@ -8,6 +8,7 @@ import MainLayout from '../components/layout/MainLayout'
 import Inicio from '../pages/Inicio/Inicio'
 import Pedidos from '../pages/Pedidos/Pedidos'
 import Viaje from '../pages/Viaje/Viaje'
+import Historial from '../pages/Historial/Historial'
 
 export default function AppRoutes() {
   const { repartidor, cargando } = useAuth()
@@ -36,6 +37,7 @@ export default function AppRoutes() {
           <Route path="/" element={<Inicio />} />
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/viaje" element={<Viaje />} />
+          <Route path="/historial" element={<Historial />} />
         </Route>
       </Route>
 
