@@ -24,7 +24,7 @@ function ResumenCarrito({ cantidad, subtotal, logueado, deshabilitado = false, m
   let aderezos = 0;
 
   items?.forEach((item) => {
-    const esAderezo = item.unitPrice === 0;
+    const esAderezo = item.unitPrice === 0 && !item.promoId;
 
     if (esAderezo) {
       aderezos += item.quantity;
