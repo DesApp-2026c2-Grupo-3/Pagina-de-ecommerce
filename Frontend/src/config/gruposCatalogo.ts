@@ -107,7 +107,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     nombre: 'Cafetería',
     categorias: ['Café', 'Menú Café'],
     subgrupos: [
-      { slug: 'bebidas-calientes', nombre: 'Cafés', estilo: 'Café', categorias: ['Café'] },
+      { slug: 'cafés', nombre: 'Cafés', estilo: 'Café', categorias: ['Café'] },
       {
         slug: 'clasicos',
         nombre: 'Clásicos',
@@ -121,7 +121,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
         productos: ['Tostado de Jamón y Queso', 'Desayuno Americano'],
       },
       {
-        slug: 'pasteleria',
+        slug: 'dulces',
         nombre: 'Dulces',
         estilo: 'Torta',
         // Brownie y Cheesecake son de la categoría Postres: se muestran acá y también en Postres → Tortas
