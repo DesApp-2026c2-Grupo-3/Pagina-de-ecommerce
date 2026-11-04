@@ -50,7 +50,7 @@ module.exports = {
         // Permite "apagar" una sucursal sin borrarla (no rompe usuarios ni pedidos)
         activa: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
         zona_horaria: { type: Sequelize.STRING, allowNull: false, defaultValue: 'America/Argentina/Buenos_Aires' },
-        // Horario por día: { lunes: { apertura, cierre, abierto }, ... }
+        // Horario por día: { lunes: { abierto, turnos: [{ apertura, cierre, cruzaMedianoche }] }, ... }
         horario: { type: Sequelize.JSONB, allowNull: false, defaultValue: JSON.stringify(HORARIO_POR_DEFECTO) },
         ...timestamps,
       });

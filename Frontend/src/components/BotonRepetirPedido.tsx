@@ -122,6 +122,7 @@ function BotonRepetirPedido({ pedido, variante = "claro" }: Props) {
         type="button"
         onClick={repetir}
         disabled={cargando || sucursalCerrada}
+        title={sucursalCerrada ? "La sucursal está cerrada" : undefined}
         className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${estilos[variante]}`}
       >
         <RotateCcw size={16} />
@@ -129,11 +130,6 @@ function BotonRepetirPedido({ pedido, variante = "claro" }: Props) {
       </button>
       {error && (
         <p className="mt-2 text-sm font-semibold text-brand-red">{error}</p>
-      )}
-      {sucursalCerrada && !error && (
-        <p className="mt-2 text-sm font-semibold text-brand-red">
-          La sucursal está cerrada. No podés repetir el pedido ahora.
-        </p>
       )}
       {cargando && <ArmandoPedido pedido={pedido} />}
 

@@ -38,6 +38,12 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     slug: 'combos',
     nombre: 'Combos',
     categorias: ['Combos'],
+    subgrupos: [
+      { slug: 'combo-carne-vacuna', nombre: 'Carne de Res', estilo: 'Combos', categorias: ['Combos', 'Combo'] },
+      { slug: 'combo-pollo', nombre: 'Carne de Pollo  ', estilo: 'Combos', productos: ['Combo Crispy Crack', 'Combo Crispy Ranch'] },
+      { slug: 'combo-veggie', nombre: 'Veggie', estilo: 'Combos', productos: ['Combo Seed Vicious'] },
+    ],
+    subgrupoPorDefecto: 'carne-vacuna',
     porSecciones: false,
   },
   {
@@ -46,8 +52,8 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     nombre: 'Hamburguesas',
     categorias: ['Hamburguesas', 'Hamburguesa'],
     subgrupos: [
-      { slug: 'carne-vacuna', nombre: 'Carne vacuna', estilo: 'Hamburguesas', categorias: ['Hamburguesas', 'Hamburguesa'] },
-      { slug: 'pollo', nombre: 'Pollo', estilo: 'Hamburguesas', productos: ['Crispy Crack', 'Crispy Ranch'] },
+      { slug: 'carne-vacuna', nombre: 'Carne de Res', estilo: 'Hamburguesas', categorias: ['Hamburguesas', 'Hamburguesa'] },
+      { slug: 'pollo', nombre: 'Carne de Pollo', estilo: 'Hamburguesas', productos: ['Crispy Crack', 'Crispy Ranch'] },
       { slug: 'veggie', nombre: 'Veggie', estilo: 'Hamburguesas', productos: ['Seed Vicious'] },
     ],
     subgrupoPorDefecto: 'carne-vacuna',
@@ -61,16 +67,16 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     subgrupos: [
       { slug: 'papas-fritas', nombre: 'Papas', estilo: 'Papas Fritas', categorias: ['Papas Fritas'] },
       { slug: 'nuggets', nombre: 'Nuggets', estilo: 'Nuggets', categorias: ['Nuggets'] },
-      {
+      { slug: 'ensaladas', nombre: 'Ensaladas', estilo: 'Ensaladas', categorias: ['Ensaladas'] },
+       {
         slug: 'otros',
         nombre: 'Otros',
-        estilo: 'Nuggets',
+        estilo: 'aro',
         // El Cheddar Fundido es una salsa en la base, pero acá se vende como pileta para mojar
         productos: ['Palitos de Muzzarela', 'Aros de Cebolla x8', 'Cheddar Fundido'],
       },
-      { slug: 'ensaladas', nombre: 'Ensaladas', estilo: 'Ensaladas', categorias: ['Ensaladas'] },
     ],
-    subgrupoPorDefecto: 'otros',
+    subgrupoPorDefecto: 'papas-fritas',
     porSecciones: true,
   },
   {
@@ -78,6 +84,21 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     slug: 'bebidas',
     nombre: 'Bebidas',
     categorias: ['Bebidas'],
+     subgrupos: [
+      {
+        slug: 'gaseosas',
+        nombre: 'Gaseosas',
+        estilo: 'bebida',
+        productos: ['Coca Cola', 'Sprite', 'Fanta'],
+      },
+      {
+        slug: 'agua',
+        nombre: 'Agua',
+        estilo: 'bebida',
+        productos: ['Agua Mineral'],
+      },
+    ],
+    subgrupoPorDefecto: 'gaseosas',
     porSecciones: false,
   },
   {
@@ -86,13 +107,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
     nombre: 'Cafetería',
     categorias: ['Café', 'Menú Café'],
     subgrupos: [
-      { slug: 'bebidas-calientes', nombre: 'Bebidas calientes', estilo: 'Café', categorias: ['Café'] },
-      {
-        slug: 'sandwiches',
-        nombre: 'Sandwiches',
-        estilo: 'Menú Café',
-        productos: ['Tostado de Jamón y Queso', 'Desayuno Americano'],
-      },
+      { slug: 'bebidas-calientes', nombre: 'Cafés', estilo: 'Café', categorias: ['Café'] },
       {
         slug: 'clasicos',
         nombre: 'Clásicos',
@@ -100,11 +115,17 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
         productos: ['Medialunas x2', 'Tostadas con Palta'],
       },
       {
+        slug: 'sandwiches',
+        nombre: 'Sandwiches',
+        estilo: 'sandwich',
+        productos: ['Tostado de Jamón y Queso', 'Desayuno Americano'],
+      },
+      {
         slug: 'pasteleria',
-        nombre: 'Pastelería',
-        estilo: 'Postres',
+        nombre: 'Dulces',
+        estilo: 'Torta',
         // Brownie y Cheesecake son de la categoría Postres: se muestran acá y también en Postres → Tortas
-        productos: ['Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
+        productos: ['Hot Cakes', 'Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
       },
     ],
     subgrupoPorDefecto: 'clasicos',
@@ -125,7 +146,7 @@ export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
       {
         slug: 'tortas',
         nombre: 'Tortas',
-        estilo: 'Postres',
+        estilo: 'torta',
         productos: ['Brownie con Helado', 'Cheesecake de Frutos Rojos'],
       },
     ],

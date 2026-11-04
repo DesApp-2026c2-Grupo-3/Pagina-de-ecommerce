@@ -1,0 +1,421 @@
+[
+  {
+    "tipo": "SEMANA",
+    "titulo": "Combo Habemus Bacon",
+    "destacado": "20%",
+    "detalle": "El más pedido de la casa, con 20 % menos toda la semana.",
+    "items": [
+      {
+        "nombre": "Combo Habemus Bacon",
+        "cantidad": 1,
+        "descuento": 0.2
+      }
+    ]
+  },
+  {
+    "tipo": "REGALO",
+    "titulo": "Papas con cheddar gratis",
+    "destacado": "Gratis",
+    "detalle": "Toda la semana, con compras desde $15.000 sumá unas papas con cheddar sin cargo.",
+    "maxPorPedido": 1,
+    "compraMinima": 15000,
+    "items": [
+      {
+        "nombre": "Papas con cheddar",
+        "cantidad": 1,
+        "descuento": 1
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Lunes clásico",
+    "destacado": "25%",
+    "detalle": "El Combo Fast Classic con 25 % menos para arrancar la semana.",
+    "dias": [
+      1
+    ],
+    "items": [
+      {
+        "nombre": "Combo Fast Classic",
+        "cantidad": 1,
+        "descuento": 0.25
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Doble queso",
+    "destacado": "20%",
+    "detalle": "La Doble Fast Cheese con 20 % menos.",
+    "dias": [
+      1
+    ],
+    "items": [
+      {
+        "nombre": "Doble Fast Cheese",
+        "cantidad": 1,
+        "descuento": 0.2
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Café y medialunas",
+    "destacado": "30%",
+    "detalle": "Un latte y dos medialunas con 30 % menos.",
+    "dias": [
+      1
+    ],
+    "items": [
+      {
+        "nombre": "Latte",
+        "cantidad": 1,
+        "descuento": 0.3
+      },
+      {
+        "nombre": "Medialunas x2",
+        "cantidad": 1,
+        "descuento": 0.3
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Martes de 2×1",
+    "destacado": "2×1",
+    "detalle": "Llevás dos Fast Classic y pagás una.",
+    "dias": [
+      2
+    ],
+    "items": [
+      {
+        "nombre": "Fast Classic",
+        "cantidad": 2,
+        "descuento": 0.5
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "2×1 Crispy",
+    "destacado": "2×1",
+    "detalle": "Dos Crispy Crack al precio de una.",
+    "dias": [
+      2
+    ],
+    "items": [
+      {
+        "nombre": "Crispy Crack",
+        "cantidad": 2,
+        "descuento": 0.5
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Nuggets con papas",
+    "destacado": "25%",
+    "detalle": "Nuggets x10 y papas fritas con 25 % menos.",
+    "dias": [
+      2
+    ],
+    "items": [
+      {
+        "nombre": "Nuggets de Pollo x10",
+        "cantidad": 1,
+        "descuento": 0.25
+      },
+      {
+        "nombre": "Papas fritas",
+        "cantidad": 1,
+        "descuento": 0.25
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Papas a mitad de precio",
+    "destacado": "50%",
+    "detalle": "Con tu Fast Cheese, las papas con cheddar van a mitad de precio.",
+    "dias": [
+      3
+    ],
+    "items": [
+      {
+        "nombre": "Fast Cheese",
+        "cantidad": 1,
+        "descuento": 0
+      },
+      {
+        "nombre": "Papas con cheddar",
+        "cantidad": 1,
+        "descuento": 0.5
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Miércoles picante",
+    "destacado": "20%",
+    "detalle": "El Combo Spicy Fast con 20 % menos.",
+    "dias": [
+      3
+    ],
+    "items": [
+      {
+        "nombre": "Combo Spicy Fast",
+        "cantidad": 1,
+        "descuento": 0.2
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Aros y gaseosa",
+    "destacado": "30%",
+    "detalle": "Aros de cebolla x8 y una Coca Cola con 30 % menos.",
+    "dias": [
+      3
+    ],
+    "items": [
+      {
+        "nombre": "Aros de Cebolla x8",
+        "cantidad": 1,
+        "descuento": 0.3
+      },
+      {
+        "nombre": "Coca Cola",
+        "cantidad": 1,
+        "descuento": 0.3
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Jueves verde",
+    "destacado": "25%",
+    "detalle": "La Fast Green con 25 % menos.",
+    "dias": [
+      4
+    ],
+    "items": [
+      {
+        "nombre": "Fast Green",
+        "cantidad": 1,
+        "descuento": 0.25
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Dúo de combos",
+    "destacado": "20%",
+    "detalle": "Dos Combo Fast Cheese con 20 % menos cada uno.",
+    "dias": [
+      4
+    ],
+    "items": [
+      {
+        "nombre": "Combo Fast Cheese",
+        "cantidad": 2,
+        "descuento": 0.2
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "2×1 en picantes",
+    "destacado": "2×1",
+    "detalle": "Dos porciones de Nuggets Picantes x6 al precio de una.",
+    "dias": [
+      4
+    ],
+    "items": [
+      {
+        "nombre": "Nuggets Picantes x6",
+        "cantidad": 2,
+        "descuento": 0.5
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Box familiar",
+    "destacado": "20%",
+    "detalle": "Cuatro hamburguesas, dos papas y cuatro bebidas con 20 % menos.",
+    "dias": [
+      5
+    ],
+    "items": [
+      {
+        "nombre": "Fast Classic",
+        "cantidad": 2,
+        "descuento": 0.2
+      },
+      {
+        "nombre": "Fast Cheese",
+        "cantidad": 2,
+        "descuento": 0.2
+      },
+      {
+        "nombre": "Papas fritas",
+        "cantidad": 2,
+        "descuento": 0.2
+      },
+      {
+        "nombre": "Coca Cola",
+        "cantidad": 4,
+        "descuento": 0.2
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Viernes Magnum",
+    "destacado": "20%",
+    "detalle": "El Combo Magnum Fast con 20 % menos.",
+    "dias": [
+      5
+    ],
+    "items": [
+      {
+        "nombre": "Combo Magnum Fast",
+        "cantidad": 1,
+        "descuento": 0.2
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Bebida de regalo",
+    "destacado": "Gratis",
+    "detalle": "Pedí el Combo Blue Fast y te regalamos una Sprite.",
+    "dias": [
+      5
+    ],
+    "items": [
+      {
+        "nombre": "Combo Blue Fast",
+        "cantidad": 1,
+        "descuento": 0
+      },
+      {
+        "nombre": "Sprite",
+        "cantidad": 1,
+        "descuento": 1
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Sábado bestia",
+    "destacado": "20%",
+    "detalle": "El Combo Bestia Fast con 20 % menos.",
+    "dias": [
+      6
+    ],
+    "items": [
+      {
+        "nombre": "Combo Bestia Fast",
+        "cantidad": 1,
+        "descuento": 0.2
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Pollo para compartir",
+    "destacado": "25%",
+    "detalle": "Pollo frito y papas rústicas con 25 % menos.",
+    "dias": [
+      6
+    ],
+    "items": [
+      {
+        "nombre": "Pollo Frito",
+        "cantidad": 1,
+        "descuento": 0.25
+      },
+      {
+        "nombre": "Papas Rústicas",
+        "cantidad": 1,
+        "descuento": 0.25
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Mushroom con cajún",
+    "destacado": "50%",
+    "detalle": "Con el Combo Fast Mushroom, las papas cajún van a mitad de precio.",
+    "dias": [
+      6
+    ],
+    "items": [
+      {
+        "nombre": "Combo Fast Mushroom",
+        "cantidad": 1,
+        "descuento": 0
+      },
+      {
+        "nombre": "Papas Cajún",
+        "cantidad": 1,
+        "descuento": 0.5
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Desayuno para dos",
+    "destacado": "30%",
+    "detalle": "Dos Desayunos Americanos con 30 % menos.",
+    "dias": [
+      0
+    ],
+    "items": [
+      {
+        "nombre": "Desayuno Americano",
+        "cantidad": 2,
+        "descuento": 0.3
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Merienda de domingo",
+    "destacado": "25%",
+    "detalle": "Dos latte y unos hot cakes con 25 % menos.",
+    "dias": [
+      0
+    ],
+    "items": [
+      {
+        "nombre": "Latte",
+        "cantidad": 2,
+        "descuento": 0.25
+      },
+      {
+        "nombre": "Hot Cakes",
+        "cantidad": 1,
+        "descuento": 0.25
+      }
+    ]
+  },
+  {
+    "tipo": "DIA",
+    "titulo": "Domingo de combos",
+    "destacado": "25%",
+    "detalle": "El Combo Doble Habemus con 25 % menos.",
+    "dias": [
+      0
+    ],
+    "items": [
+      {
+        "nombre": "Combo Doble Habemus",
+        "cantidad": 1,
+        "descuento": 0.25
+      }
+    ]
+  }
+]

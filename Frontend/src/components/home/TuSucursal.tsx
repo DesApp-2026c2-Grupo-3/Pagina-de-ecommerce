@@ -3,7 +3,8 @@ import { AdvancedMarker, APIProvider, Map } from '@vis.gl/react-google-maps'
 import { Clock, MapPin, Navigation, Phone, Store } from 'lucide-react'
 import { useZona } from '../../context/ZonaContext'
 import { getSucursales } from '../../services/sucursalService'
-import { formatearHorario } from '../../utils/horario'
+import { estadoSucursal, formatearHorario } from '../../utils/horario'
+import AvisoCierreSucursal from '../sucursal/AvisoCierreSucursal'
 import type { Sucursal } from '../../types/sucursal'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
@@ -56,6 +57,8 @@ function TuSucursal() {
 
   if (!sucursal) return null
 
+  const estado = estadoSucursal(sucursal.horario, sucursal.zona_horaria)
+  const sucursalCerrada = !estado.abierta
   const posicion = { lat: sucursal.latitud, lng: sucursal.longitud }
 
   return (
@@ -85,10 +88,10 @@ function TuSucursal() {
             <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu sucursal</p>
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${
-                zona.sucursalAbierta === false ? 'bg-brand-red text-white' : 'bg-brand-mustard text-brand-dark'
+                sucursalCerrada ? 'bg-brand-red text-white' : 'bg-brand-mustard text-brand-dark'
               }`}
             >
-              {zona.sucursalAbierta === false ? 'Cerrada ahora' : 'Abierta ahora'}
+              {sucursalCerrada ? 'Cerrada ahora' : 'Abierta ahora'}
             </span>
           </div>
           <h2 className="font-display text-3xl font-extrabold leading-tight tracking-tight">{sucursal.nombre}</h2>
@@ -98,12 +101,10 @@ function TuSucursal() {
           </p>
 
           <div className="flex flex-col gap-2 border-t-2 border-dashed border-brand-sand pt-4 text-sm">
-            {sucursal.horario && (
-              <p className="flex items-center gap-2">
-                <Clock className="h-4 w-4 shrink-0" />{' '}
-                <span className="font-bold">{formatearHorario(sucursal.horario)}</span>
-              </p>
-            )}
+            <p className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0" />{' '}
+              <span className="font-bold">{formatearHorario(sucursal.horario)}</span>
+            </p>
             {sucursal.telefono && (
               <a href={`tel:${sucursal.telefono}`} className="flex items-center gap-2 hover:text-brand-red">
                 <Phone className="h-4 w-4 shrink-0" /> <span className="font-bold">{sucursal.telefono}</span>
@@ -113,6 +114,10 @@ function TuSucursal() {
               A {zona.distanciaKm.toLocaleString('es-AR', { maximumFractionDigits: 1 })} km de tu dirección
             </p>
           </div>
+
+          {sucursalCerrada && (
+            <AvisoCierreSucursal sucursal={sucursal.nombre} motivo={estado.motivo} />
+          )}
 
           <div className="mt-auto flex flex-col gap-2 pt-2">
             <a

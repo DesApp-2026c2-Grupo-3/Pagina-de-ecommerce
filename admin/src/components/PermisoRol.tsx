@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-// Pantallas del master (productos, categorías, insumos, sucursales, administradores)
+// Pantallas del master (productos, promociones, categorías, insumos, sucursales, administradores)
 export function SoloMaster() {
   const { administrador } = useAuth()
   return administrador?.rol === 'MASTER' ? <Outlet /> : <Navigate to="/admin" replace />

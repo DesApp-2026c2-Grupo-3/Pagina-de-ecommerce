@@ -1,10 +1,11 @@
 import { Store } from 'lucide-react'
-import Aviso from './ui/Aviso'
+import AvisoCierreSucursal from './sucursal/AvisoCierreSucursal'
 
 interface Props {
   sucursal: string
   distanciaKm: number
   abierta: boolean
+  onCambiarDireccion?: () => void
 }
 
 // Cuadrícula de calles del mini mapa
@@ -15,7 +16,7 @@ const CALLES = {
 }
 
 // Pantalla decorativa al elegir una dirección: busca y muestra la sucursal que te atiende
-function BuscandoSucursal({ sucursal, distanciaKm, abierta }: Props) {
+function BuscandoSucursal({ sucursal, distanciaKm, abierta, onCambiarDireccion }: Props) {
   const km = distanciaKm.toLocaleString('es-AR', { maximumFractionDigits: 1 })
 
   return (
@@ -70,10 +71,10 @@ function BuscandoSucursal({ sucursal, distanciaKm, abierta }: Props) {
         </div>
 
         {!abierta && (
-          <Aviso
-            variante="error"
-            titulo="La sucursal está cerrada ahora."
-            mensaje="Está fuera del horario de atención, así que no se pueden generar pedidos por ahora."
+          <AvisoCierreSucursal
+            sucursal={sucursal}
+            onAccion={onCambiarDireccion}
+            mostrarEnMobile
           />
         )}
       </div>

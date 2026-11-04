@@ -1,34 +1,29 @@
-const { Op } = require('sequelize');
-const { Producto } = require('../models');
-const { PRODUCTO_SEMANA, REGALO, PROMOS_DEL_DIA, TODAS, NOMBRES_DIAS, diaDeHoy } = require('../config/promociones');
+const { Promocion } = require('../models');
+const { NOMBRES_DIAS, TIPOS_PROMO, diaDeHoy } = require('../config/promociones');
+const { incluirItems, promoCompleta, aPromoPublica } = require('../utils/promociones');
 
 // GET /promociones → producto de la semana, regalo y las promos de cada día, con los productos ya resueltos (id).
-// "hoy" es el día de la semana en Argentina (0 = domingo).
+// "hoy" es el día de la semana en Argentina (0 = domingo). Solo las promos activas y completas:
+// una promo con un producto que ya no existe no se ofrece.
 const obtenerPromociones = async (req, res) => {
     try {
-        const nombres = [...new Set(TODAS.flatMap((p) => p.items.map((i) => i.nombre)))];
-        const productos = await Producto.findAll({
-            where: { nombre: { [Op.in]: nombres } },
-            attributes: ['id', 'nombre'],
+        const promociones = await Promocion.findAll({
+            where: { activo: true },
+            include: incluirItems(),
+            order: [['id', 'ASC']],
         });
-        const idPorNombre = new Map(productos.map((p) => [p.nombre, p.id]));
 
-        // Una promo con un producto que ya no existe no se ofrece
-        const resolver = (promo) => {
-            const items = promo.items.map((i) => ({ ...i, productoId: idPorNombre.get(i.nombre) ?? null }));
-            if (items.some((i) => i.productoId === null)) return null;
-            const { items: _ignorados, ...resto } = promo;
-            return { ...resto, items };
-        };
+        const ofrecidas = promociones.filter(promoCompleta).map(aPromoPublica);
+        const primera = (tipo) => ofrecidas.find((p) => p.tipo === tipo) ?? null;
 
         res.json({
             hoy: diaDeHoy(),
-            productoSemana: resolver(PRODUCTO_SEMANA),
-            regalo: resolver(REGALO),
+            productoSemana: primera(TIPOS_PROMO.SEMANA),
+            regalo: primera(TIPOS_PROMO.REGALO),
             dias: [1, 2, 3, 4, 5, 6, 0].map((dia) => ({
                 dia,
                 nombre: NOMBRES_DIAS[dia],
-                promos: PROMOS_DEL_DIA.filter((p) => p.dias.includes(dia)).map(resolver).filter(Boolean),
+                promos: ofrecidas.filter((p) => p.tipo === TIPOS_PROMO.DIA && p.dias.includes(dia)),
             })),
         });
     } catch (error) {

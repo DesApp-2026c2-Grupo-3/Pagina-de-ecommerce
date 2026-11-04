@@ -40,6 +40,7 @@ module.exports = (sequelize, DataTypes) => {
     localidad: { type: DataTypes.STRING, allowNull: false },
     provincia: { type: DataTypes.STRING, allowNull: false },
     telefono: { type: DataTypes.STRING, allowNull: true },
+    // Horario por día: { lunes: { abierto, turnos: [{ apertura, cierre, cruzaMedianoche }] }, ... }
     horario: { type: DataTypes.JSONB, allowNull: false, defaultValue: HORARIO_POR_DEFECTO },
     zona_horaria: { type: DataTypes.STRING, allowNull: false, defaultValue: ZONA_HORARIA_POR_DEFECTO },
     latitud: { type: DataTypes.FLOAT, allowNull: false },
