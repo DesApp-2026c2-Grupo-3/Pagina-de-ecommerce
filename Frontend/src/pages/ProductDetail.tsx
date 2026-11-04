@@ -403,7 +403,7 @@ function DetalleProducto({ id }: { id: number }) {
       <div className="bg-brand-dark px-4 pb-28 pt-6 sm:pb-40">
         <div className="mx-auto max-w-6xl">
           <Link
-            to="/catalogo"
+            to="/catalogo?grupo=todos"
             className="inline-flex min-h-11 items-center gap-2 font-bold text-brand-cream/70 transition-colors hover:text-brand-cream"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -599,4 +599,4 @@ function DetalleProducto({ id }: { id: number }) {
     </div>
   )
 }
-export default ProductDetail
+export default ProductDetail
