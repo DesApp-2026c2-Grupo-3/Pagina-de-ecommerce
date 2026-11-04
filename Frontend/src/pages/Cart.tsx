@@ -16,6 +16,7 @@ import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal
 import type { CartItem } from "../types/cart";
 import type { Promo } from "../types/promo";
 import { getPromociones } from "../services/promotionService";
+import { Gift } from 'lucide-react';
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
@@ -118,17 +119,7 @@ function Cart() {
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-3">
-          {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} />}
-          {faltantes.map((f) => (
-            <div
-              key={f.promo.id}
-              role="alert"
-              className="rounded-2xl border-2 border-brand-dark bg-brand-mustard p-4 font-bold"
-            >
-              🎁 Te faltan ${f.falta.toLocaleString('es-AR')} en otros productos para llevarte la promo "
-              {f.promo.titulo}" (compra mínima ${(f.promo.compraMinima ?? 0).toLocaleString('es-AR')}).
-            </div>
-          ))}
+
 
           <div className=" min-h-6 my-4 -mb-0 ">
             <div className="flex flex-wrap items-center justify-between gap-3 ">
@@ -162,6 +153,25 @@ function Cart() {
               </button>
             </div>
           </div>
+
+          {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} />}
+          {faltantes.map((f) => (
+            <div
+              key={f.promo.id}
+              role="alert"
+              className="rounded-2xl border-2 border-brand-dark bg-brand-mustard p-4 font-bold"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full border-2 border-black bg-brand-red">
+                  <Gift className="w-5 h-5 text-white" />
+                </div>
+                <span>
+                  Te faltan ${f.falta.toLocaleString('es-AR')} en otros productos para la promo "{f.promo.titulo}" (la compra mínima es de ${(f.promo.compraMinima ?? 0).toLocaleString('es-AR')}).
+                </span>
+              </div>
+
+            </div>
+          ))}
 
           {items.map((item) => (
             <CartItemRow

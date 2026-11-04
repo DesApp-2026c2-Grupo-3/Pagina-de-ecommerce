@@ -48,13 +48,21 @@ function Login() {
       titulo="Iniciar sesión"
       subtitulo="Ingresá tus datos para continuar con tu pedido."
       pie={
-        <>
-          ¿No tenés cuenta?{' '}
-          <Link to="/registro" state={{ from }} className="font-bold text-brand-red hover:underline">
-            Registrate
-          </Link>
-        </>
+        <div className="flex flex-col gap-2">
+          <div>
+            ¿No tenés cuenta?{' '}
+            <Link to="/registro" state={{ from }} className="font-bold text-brand-red hover:underline">
+              Registrate
+            </Link>
+          </div>
+
+          {/* Contenedor con altura mínima reservada para evitar el salto */}
+          <div className="min-h-[40px] transition-all duration-200">
+            {error && <ErrorAlert message={error} show={!!error} />}
+          </div>
+        </div>
       }
+
     >
       {estado?.mensaje && (
         <p className="mb-5 rounded-2xl border-2 border-brand-mustard bg-brand-cream px-4 py-3 text-sm font-bold">
@@ -73,7 +81,10 @@ function Login() {
             required
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (error) setError("");
+            }}
             placeholder="tu@email.com"
             className={CLASE_INPUT}
           />
@@ -87,7 +98,10 @@ function Login() {
             id="password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error) setError("");
+            }}
             placeholder="Tu contraseña"
             autoComplete="current-password"
             className={CLASE_INPUT}
@@ -95,17 +109,20 @@ function Login() {
         </div>
 
         <div className="text-right">
-          <Link to="/recuperar-password"
-          className="text-sm font-bold text-brand-red hover:underline"
-          >
+          <Link to="/recuperar-password" className="text-sm font-bold text-brand-red hover:underline">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
 
-        <ErrorAlert message={error} />
+        {/* Tip: Simplifiqué el 'show' pasando directamente la condición lógica */}
+
+
         <BotonEnviar cargando={loading} texto="Ingresar" textoCargando="Ingresando..." />
+
+
       </form>
-    </AuthLayout>
+
+    </AuthLayout >
   )
 }
 

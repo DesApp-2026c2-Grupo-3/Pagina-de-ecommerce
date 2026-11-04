@@ -344,6 +344,7 @@ function DetalleProducto({ id }: { id: number }) {
       alt={product.nombre}
       className={`${claseImg} ${product.disponible ? '' : 'opacity-60 grayscale'}`}
       claseIcono={claseIcono}
+      ancho={800}
     />
   )
 
@@ -355,7 +356,7 @@ function DetalleProducto({ id }: { id: number }) {
           {categoryName}
         </span>
       )}
-      <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
+      <h1 className="mt-3 font-display text-3xl font-extrabold leading-none tracking-tight sm:text-5xl">
         {product.nombre}
       </h1>
       {descuentoSemana > 0 ? (
@@ -399,7 +400,7 @@ function DetalleProducto({ id }: { id: number }) {
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       {/* Banda oscura arriba: la imagen y la tarjeta se montan sobre ella */}
-      <div className="bg-brand-dark px-4 pb-40 pt-6">
+      <div className="bg-brand-dark px-4 pb-28 pt-6 sm:pb-40">
         <div className="mx-auto max-w-6xl">
           <Link
             to="/catalogo"
@@ -411,28 +412,31 @@ function DetalleProducto({ id }: { id: number }) {
         </div>
       </div>
 
-      <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12 [&>*]:min-w-0">
+      <div className="mx-auto -mt-24 grid max-w-6xl gap-5 px-4 pb-8 sm:-mt-36 sm:gap-8 sm:pb-12 md:grid-cols-2 md:items-start md:gap-12 [&>*]:min-w-0">
         {/* La imagen grande queda a la izquierda. En celular se oculta mientras se arma el pedido */}
         <div className={armando ? 'hidden md:block' : ''}>
-          <div className="relative mx-auto grid aspect-square w-full max-w-md rotate-2 place-items-center rounded-[2.5rem] border-2 border-brand-dark bg-brand-red">
+          <div className="relative mx-auto grid h-52 w-full max-w-md rotate-2 place-items-center rounded-[2rem] border-2 border-brand-dark bg-brand-red sm:aspect-square sm:h-auto sm:rounded-[2.5rem]">
             <div className="absolute inset-[8%] rounded-full bg-black/15" />
-            {imagenProducto('relative w-[85%] -rotate-2 object-contain drop-shadow-2xl', 'relative h-32 w-32 text-brand-cream')}
+            {imagenProducto(
+              'relative h-40 w-auto max-w-[85%] -rotate-2 object-contain drop-shadow-2xl sm:h-auto sm:w-[85%] sm:max-w-none',
+              'relative h-20 w-20 text-brand-cream sm:h-32 sm:w-32',
+            )}
           </div>
         </div>
 
         {/* A la derecha: primero la descripción con "Agregar"; al tocarlo, se reemplaza por los pasos */}
         {!armando ? (
-          <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
+          <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-5 shadow-sticker sm:p-8">
             {infoProducto}
             <div className="mt-8 hidden md:block">{botonEmpezar}</div>
           </div>
         ) : (
           <>
-            <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
+            <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-5 shadow-sticker sm:p-8">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-extrabold uppercase tracking-wider text-brand-red">Armá tu pedido</p>
-                  <h2 className="mt-1 font-display text-3xl font-extrabold leading-none tracking-tight">{product.nombre}</h2>
+                  <h2 className="mt-1 font-display text-2xl font-extrabold leading-none tracking-tight sm:text-3xl">{product.nombre}</h2>
                 </div>
                 <button
                   type="button"
@@ -546,7 +550,7 @@ function DetalleProducto({ id }: { id: number }) {
       </div>
 
       {/* En el celular la barra queda pegada al pie de la pantalla */}
-      <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
+      <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
         {armando ? (
           <>
             {esUltimoPaso && sucursalCerrada && (
@@ -595,4 +599,4 @@ function DetalleProducto({ id }: { id: number }) {
     </div>
   )
 }
-export default ProductDetail
+export default ProductDetail

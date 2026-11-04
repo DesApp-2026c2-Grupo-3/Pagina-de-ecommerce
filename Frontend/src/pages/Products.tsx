@@ -307,9 +307,9 @@ function Products() {
                     {seccion.nombre}
                     <span className="text-base font-bold text-brand-muted">({seccion.productos.length})</span>
                   </h2>
-                  <div className="bf-escalonado grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="bf-escalonado grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                     {seccion.productos.map((product, i) => (
-                      <ProductCard key={product.id} product={product} indice={i} />
+                      <ProductCard key={product.id} product={product} indice={i} compacta />
                     ))}
                   </div>
                 </section>
@@ -322,10 +322,10 @@ function Products() {
             {/* La key cambia con cada filtro o página: la grilla se vuelve a armar */}
             <div
               key={`${grupoId}-${subSlug}-${busqueda}-${pagina}`}
-              className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              className="bf-escalonado mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4"
             >
               {mostrados.map((product, i) => (
-                <ProductCard key={product.id} product={product} indice={i} />
+                <ProductCard key={product.id} product={product} indice={i} compacta />
               ))}
             </div>
 

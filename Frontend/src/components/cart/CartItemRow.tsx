@@ -79,11 +79,15 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
           {formatearPrecio(item.unitPrice * item.quantity)}
         </span>
         <div className="flex items-center">
-          {onEditar && (
+          {onEditar ? (
             <button type="button" onClick={onEditar} aria-label={`Editar ${product.nombre}`} className={`${botonIcono} hover:bg-brand-cream`}>
               <Pencil className="h-5 w-5" />
+            </button> 
+          ) :
+            <button type="button" onClick={() => {}} aria-label={`${product.nombre} no es editable`} className={`${botonIcono} !text-gray-400 opacity-50 cursor-not-allowed pointer-events-none`}>
+              <Pencil className="h-5 w-5" />
             </button>
-          )}
+          }
           <button
             type="button"
             onClick={quitar}
