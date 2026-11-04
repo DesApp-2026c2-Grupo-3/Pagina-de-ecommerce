@@ -40,7 +40,7 @@ function BottomNav() {
 
   const izquierda: Tab[] = [
     { label: 'Inicio', to: '/', Icono: House },
-    { label: 'Menú', to: '/catalogo', Icono: UtensilsCrossed },
+    { label: 'Menú', to: '/catalogo?grupo=todos', Icono: UtensilsCrossed },
   ]
   const derecha: Tab[] = [
     { label: 'Promos', to: '/promociones', Icono: BadgePercent },
