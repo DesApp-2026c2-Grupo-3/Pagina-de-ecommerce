@@ -1,5 +1,6 @@
 import { ShoppingBag } from 'lucide-react'
 import Modal from '../Modal'
+import AvisoCierreSucursal from '../sucursal/AvisoCierreSucursal'
 import { formatearPrecio } from '../../utils/precio'
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
   cantidad: number
   total: number
   deshabilitado?: boolean
+  sucursal?: string
+  onCambiarDireccion?: () => void
   onCancelar: () => void
   onConfirmar: () => void
 }
@@ -24,6 +27,8 @@ function ModalConfirmarAgregar({
   cantidad,
   total,
   deshabilitado = false,
+  sucursal,
+  onCambiarDireccion,
   onCancelar,
   onConfirmar,
 }: Props) {
@@ -47,9 +52,12 @@ function ModalConfirmarAgregar({
       </div>
 
       {deshabilitado && (
-        <p className="mt-4 rounded-xl border-2 border-brand-red/40 bg-brand-red/5 px-4 py-3 text-sm font-semibold text-brand-red">
-          La sucursal está cerrada. No se pueden generar pedidos ahora.
-        </p>
+        <AvisoCierreSucursal
+          sucursal={sucursal}
+          className="mt-4"
+          onAccion={onCambiarDireccion}
+          mostrarEnMobile
+        />
       )}
 
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

@@ -1,6 +1,8 @@
 import {
+  DIAS_SEMANA,
   ZONA_HORARIA_POR_DEFECTO,
   type DatosSucursal,
+  type HorarioSemana,
   type PayloadSucursal,
   type Sucursal,
 } from '../types/sucursal.types'
@@ -40,12 +42,34 @@ export function desdeSucursal(s: Sucursal): DatosSucursal {
   }
 }
 
+// El backend exige que un día cerrado no tenga turnos: se limpia antes de enviar
+function horarioParaEnviar(horario: HorarioSemana): HorarioSemana {
+  return Object.fromEntries(
+    DIAS_SEMANA.map((dia) => {
+      const config = horario[dia]
+      if (!config || !config.abierto) return [dia, { abierto: false, turnos: [] }]
+
+      return [
+        dia,
+        {
+          abierto: true,
+          turnos: config.turnos.slice(0, 2).map((turno) => ({
+            apertura: turno.apertura,
+            cierre: turno.cierre,
+            cruzaMedianoche: turno.cruzaMedianoche,
+          })),
+        },
+      ]
+    }),
+  ) as HorarioSemana
+}
+
 // Del formulario a lo que espera el backend (las claves exactas del schema Joi)
 export function aPedido(d: DatosSucursal): PayloadSucursal {
   return {
     nombre: d.nombre.trim(),
     telefono: d.telefono.trim(),
-    horario: normalizarHorario(d.horario),
+    horario: horarioParaEnviar(normalizarHorario(d.horario)),
     zona_horaria: d.zonaHoraria.trim(),
     calle: d.ubicacion.calle,
     numero: d.ubicacion.numero,

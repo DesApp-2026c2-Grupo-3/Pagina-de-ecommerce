@@ -33,7 +33,7 @@ function DetalleProducto({ id }: { id: number }) {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const { showToast } = useToast()
-  const { zona } = useZona()
+  const { zona, abrirSelector } = useZona()
   const promos = usePromociones()
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
   const [product, setProduct] = useState<ProductoBackend | null>(null)
@@ -328,6 +328,7 @@ function DetalleProducto({ id }: { id: number }) {
     )
 
   function empezarAArmar() {
+    if (!product || !product.disponible || sucursalCerrada) return
     setPaso(1)
     setArmando(true)
     window.scrollTo(0, 0)
@@ -388,7 +389,7 @@ function DetalleProducto({ id }: { id: number }) {
     <button
       type="button"
       onClick={empezarAArmar}
-      disabled={!product.disponible}
+      disabled={!product.disponible || sucursalCerrada}
       className="flex min-h-13 w-full items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
     >
       <ShoppingBag className="h-5 w-5" />
@@ -442,6 +443,10 @@ function DetalleProducto({ id }: { id: number }) {
                   Cancelar
                 </button>
               </div>
+
+              {sucursalCerrada && (
+                <AvisoCierreSucursal sucursal={zona?.sucursalNombre} className="mt-5" />
+              )}
 
             {pasos.length > 1 && (
               <div className="mt-6">
@@ -548,14 +553,7 @@ function DetalleProducto({ id }: { id: number }) {
       {/* En el celular la barra queda pegada al pie de la pantalla */}
       <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
         {armando ? (
-          <>
-            {esUltimoPaso && sucursalCerrada && (
-              <p className="mb-3 rounded-xl bg-brand-red px-3 py-2 text-center text-xs font-bold text-white">
-                La sucursal está cerrada. No se pueden generar pedidos ahora.
-              </p>
-            )}
-            {barraCompra(true)}
-          </>
+          barraCompra(true)
         ) : (
           <div className="flex items-center justify-between gap-4">
             {totalTexto(true)}
@@ -572,6 +570,11 @@ function DetalleProducto({ id }: { id: number }) {
         cantidad={cantidad}
         total={total}
         deshabilitado={sucursalCerrada}
+        sucursal={zona?.sucursalNombre}
+        onCambiarDireccion={() => {
+          setConfirmandoAgregar(false)
+          abrirSelector()
+        }}
         onCancelar={() => setConfirmandoAgregar(false)}
         onConfirmar={() => {
           setConfirmandoAgregar(false)

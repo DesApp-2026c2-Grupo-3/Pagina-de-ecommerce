@@ -7,6 +7,8 @@ import type { UbicacionElegida, Zona } from '../types/zona'
 
 interface ZonaContextType {
   zona: Zona | null
+  // true cuando la sucursal asignada está fuera de horario
+  sucursalCerrada: boolean
   // true cuando ya llegaron las sucursales (antes no se puede asignar una zona)
   sucursalesCargadas: boolean
   selectorAbierto: boolean
@@ -52,6 +54,7 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
   const [zona, setZona] = useState<Zona | null>(() => leerZonaGuardada())
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [selectorAbierto, setSelectorAbierto] = useState(false)
+  const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
 
   useEffect(() => {
     getSucursales()
@@ -126,6 +129,7 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
     <ZonaContext.Provider
       value={{
         zona,
+        sucursalCerrada,
         sucursalesCargadas: sucursales.length > 0,
         selectorAbierto,
         abrirSelector: () => setSelectorAbierto(true),

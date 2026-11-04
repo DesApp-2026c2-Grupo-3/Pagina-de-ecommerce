@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Sucursal, Admin, Insumo, StockSucursal, sequelize } = require('../../models');
+const { validarHorarioSucursal } = require('../../utils/horarioSucursal');
 
 // Los admins de cada sucursal, solo con los datos que necesita el panel
 const ADMINS = { model: Admin, attributes: ['id', 'nombre', 'email'] };
@@ -47,6 +48,11 @@ const obtenerSucursalPorId = async (req, res) => {
 
 // POST /admin/sucursales/nueva → crea la sucursal y su stock en 0 para todos los insumos
 const crearSucursal = async (req, res) => {
+    const errorHorario = validarHorarioSucursal(req.body.horario);
+    if (errorHorario) {
+        return res.status(400).json({ code: errorHorario });
+    }
+
     const t = await sequelize.transaction();
 
     try {
@@ -75,6 +81,13 @@ const crearSucursal = async (req, res) => {
 
 // PATCH /admin/sucursales/editar/:id → edita los datos (no el estado)
 const editarSucursal = async (req, res) => {
+    if (req.body.horario !== undefined) {
+        const errorHorario = validarHorarioSucursal(req.body.horario);
+        if (errorHorario) {
+            return res.status(400).json({ code: errorHorario });
+        }
+    }
+
     try {
         const sucursal = await Sucursal.findByPk(req.params.id);
 
