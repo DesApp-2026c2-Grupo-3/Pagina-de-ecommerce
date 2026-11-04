@@ -155,7 +155,7 @@ function Cart() {
               >
                 {/* Contenedor circular del tachito */}
                 <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white text-red-600 transition-colors duration-200 group-hover:border-amber-500 group-hover:bg-black   group-hover:text-amber-500">
-                  <Trash2 className="h-4 w-4 stroke-[3px]" />
+                  <Trash2 className="h-4 w-4 stroke-[2.4px]" />
                 </div>
 
                 Eliminar todo
