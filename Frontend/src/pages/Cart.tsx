@@ -124,7 +124,7 @@ function Cart() {
           <div className=" min-h-6 my-4 -mb-0 ">
             <div className="flex flex-wrap items-center justify-between gap-3 ">
               <Link
-                to="/catalogo"
+                to="/catalogo?grupo=todos"
                 className="group inline-flex min-h-11 w-fit items-center gap-3 rounded-full border-2 border-brand-dark bg-amber-500 text-black
                 pl-2 pr-5 text-sm font-bold shadow-sticker transition-all duration-200 hover:translate-y-0.5 hover:bg-orange-600 hover:text-white"
               >
