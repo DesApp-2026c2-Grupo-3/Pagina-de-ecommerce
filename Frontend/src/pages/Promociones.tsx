@@ -44,14 +44,15 @@ function Promociones() {
     <div className="min-h-screen bg-brand-cream pb-16 text-brand-dark">
       {/* ---------- Hero: producto de la semana ---------- */}
       <section className="overflow-hidden bg-brand-dark px-4 pb-16 pt-10 text-brand-cream">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-10">
-          <div className="flex min-w-[18rem] flex-1 flex-col gap-4">
-            <h1 className="font-display text-6xl font-extrabold leading-[0.9] tracking-tight sm:text-7xl">
+        <div className="mx-auto grid grid-cols-1 max-w-6xl gap-10 md:grid-cols-2 md:items-center">
+
+          <div className="flex flex-col gap-4">
+            <h1 className="font-display text-5xl font-extrabold leading-[0.9] tracking-tight sm:text-6xl md:text-7xl">
               Promos
               <br />
               <span className="text-brand-red">que pegan</span>
             </h1>
-            <p className="max-w-md text-lg text-brand-cream/70">
+            <p className="max-w-md text-base text-brand-cream/70 sm:text-lg">
               Elegí una promo y la sumamos a tu carrito con el descuento aplicado. Después lo revisás y confirmás.
             </p>
           </div>
@@ -61,44 +62,61 @@ function Promociones() {
               type="button"
               onClick={() => pedir(semana)}
               disabled={cargando || !semanaResuelta.disponible}
-              className="flex min-w-[18rem] flex-1 -rotate-[1.5deg] items-center gap-5 rounded-[2rem] border-2 border-brand-cream bg-brand-red p-6 text-left text-white shadow-[10px_10px_0_var(--color-brand-mustard)] transition-transform duration-200 hover:rotate-0 disabled:cursor-not-allowed disabled:opacity-60 sm:p-8"
+              className="grid w-full max-w-md mx-auto grid-cols-[1fr_auto] -rotate-[1.5deg] items-center gap-4 rounded-[2rem] border-2 border-brand-cream bg-brand-red p-5 pr-6 text-left text-white shadow-[10px_10px_0_var(--color-brand-mustard)] transition-transform duration-200 hover:rotate-0 disabled:cursor-not-allowed disabled:opacity-60 sm:p-6 sm:pr-8 sm:max-w-xl md:max-w-none md:grid-cols-[1.15fr_1fr] md:gap-5 lg:p-8"
             >
-              <div className="flex flex-1 flex-col gap-2">
-                <span className="self-start rounded-full bg-brand-dark px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-brand-mustard">
+              {/* Lado Izquierdo del Botón: Textos */}
+              <div className="flex flex-col gap-1 sm:gap-1.5 min-w-0">
+                {/* Etiqueta superior pulida */}
+                <span className="self-start rounded-full bg-brand-dark px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-brand-mustard sm:text-[10px] md:text-xs">
                   Producto de la semana
                 </span>
-                <span className="font-display text-7xl font-extrabold leading-[0.85]">
+
+                {/* Escalado armónico del Descuento */}
+                <span className="font-display text-4xl font-extrabold leading-none sm:text-5xl md:text-5xl lg:text-7xl whitespace-nowrap">
                   {semana.destacado}
-                  <span className="text-3xl"> OFF</span>
+                  <span className="text-lg sm:text-2xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight"> OFF</span>
                 </span>
-                <span className="font-display text-3xl font-extrabold tracking-tight">{semana.titulo}</span>
+
+                {/* Ajuste fino del título para evitar cortes toscos */}
+                <h2 className="font-display text-lg font-extrabold tracking-tight break-words sm:text-2xl md:text-xl lg:text-3xl leading-tight mt-0.5">
+                  {semana.titulo}
+                </h2>
+
                 {semanaResuelta.disponible && (
-                  <span className="flex items-baseline gap-2">
-                    <span className="text-2xl font-extrabold">{formatearPrecio(semanaResuelta.total)}</span>
-                    <s className="font-bold text-white/70">{formatearPrecio(semanaResuelta.totalLista)}</s>
+                  <span className="flex items-baseline gap-2 pt-0.5">
+                    <span className="text-lg font-extrabold sm:text-xl md:text-xl lg:text-2xl">{formatearPrecio(semanaResuelta.total)}</span>
+                    <s className="text-[10px] font-bold text-white/70 sm:text-xs md:text-sm">{formatearPrecio(semanaResuelta.totalLista)}</s>
                   </span>
                 )}
-                <span className="mt-1 inline-flex items-center gap-2 self-start rounded-full bg-white px-5 py-3 font-extrabold text-brand-dark">
-                  {cargando ? 'Cargando…' : semanaResuelta.disponible ? 'La quiero' : 'No disponible en tu zona'}{' '}
-                  <ArrowRight className="h-5 w-5" />
+
+                {/* Botón de acción con proporciones equilibradas */}
+                <span className="mt-2 inline-flex min-h-9 min-w-[7rem] items-center justify-center gap-1.5 self-start rounded-full bg-white px-4 py-1.5 text-[11px] font-extrabold text-brand-dark sm:min-h-11 sm:min-w-[8rem] sm:px-6 sm:text-sm md:mt-2">
+                  {cargando ? 'Cargando…' : 'La quiero'} <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </span>
               </div>
-              <span className="hidden w-40 shrink-0 sm:block">
+
+              {/* Lado Derecho: Imagen Flotante Adaptativa */}
+              <div className="w-28 shrink-0 overflow-visible sm:w-40 md:w-44 lg:w-56 flex justify-center items-center">
                 {productoSemana?.imagen ? (
-                  <img src={productoSemana.imagen} alt="" className="w-full object-contain drop-shadow-2xl" />
+                  <img
+                    src={productoSemana.imagen}
+                    alt=""
+                    className="w-[105%] h-auto object-contain drop-shadow-2xl transition-transform scale-110 sm:scale-105 md:scale-110 lg:scale-105"
+                  />
                 ) : (
-                  <CategoryIcon icono="combo" className="h-24 w-24" />
+                  <CategoryIcon icono="combo" className="h-20 w-20 text-white/80 sm:h-28 sm:w-28" />
                 )}
-              </span>
+              </div>
             </button>
           )}
         </div>
       </section>
 
+
       {/* ---------- Regalo de la semana ---------- */}
       {promos?.regalo && (
         <div className="mx-auto -mt-7 max-w-6xl px-4">
-         
+
           <div className="relative flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-brand-mustard px-6 py-4 shadow-sticker">
             <span className="absolute -top-3 left-20 -translate-y-px rounded-md bg-red-500 border border-2 border-black px-2 py-0.5 text-[10px] !font-black uppercase tracking-wider text-white shadow-sm z-10">
               Esta semana

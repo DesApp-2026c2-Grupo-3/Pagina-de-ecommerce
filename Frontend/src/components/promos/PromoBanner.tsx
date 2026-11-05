@@ -24,25 +24,30 @@ interface Props {
   onPedir: () => void
 }
 
-// Bloque grande de una promo (mismo estilo que la promo destacada del Home):
-// título, qué incluye, precio con descuento y la foto con el círculo del descuento
 function PromoBanner({ promo, resuelta, etiqueta, tono = 'rojo', cargando, deshabilitado, onPedir }: Props) {
   const t = TONOS[tono]
   const [principal, segunda] = resuelta.lineas
   const ahorro = resuelta.totalLista - resuelta.total
 
   return (
-    <article className={`flex flex-wrap overflow-hidden rounded-[2.25rem] border-2 border-brand-dark ${t.fondo} ${t.texto}`}>
-      <div className="flex flex-1 basis-80 flex-col items-start gap-4 p-7 sm:p-10">
-        <span className={`rounded-full px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider ${t.etiqueta}`}>{etiqueta}</span>
-        <h3 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight sm:text-5xl">{promo.titulo}</h3>
-        <p className={`max-w-md text-lg ${t.suave}`}>{promo.detalle}</p>
-        {resuelta.lineas.length > 0 && <p className={`text-sm font-semibold ${t.suave}`}>Incluye: {resumenLineas(resuelta.lineas)}</p>}
+    /* 
+      1. SOLUCIÓN COMPACTA HORIZONTAL: Usamos 'grid grid-cols-2' en la base. 
+         Esto fuerza a que tanto en celulares chicos como en tablets la pantalla esté dividida a la mitad.
+         En md:flex devolvemos tu comportamiento elástico original de escritorio.
+    */
+    <article className={`grid grid-cols-2 overflow-hidden rounded-[2.25rem] border-2 border-brand-dark md:flex md:flex-wrap ${t.fondo} ${t.texto}`}>
+      
+      {/* Mitad Izquierda: Texto y Botón */}
+      <div className="flex flex-col items-start gap-2 p-5 pr-2 sm:p-8 md:flex-1 md:basis-80 md:p-10">
+        <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider md:text-xs ${t.etiqueta}`}>{etiqueta}</span>
+        <h3 className="font-display text-2xl font-extrabold leading-[0.95] tracking-tight sm:text-3xl md:text-5xl">{promo.titulo}</h3>
+        <p className={`max-w-md text-xs sm:text-sm md:text-lg ${t.suave}`}>{promo.detalle}</p>
+        {resuelta.lineas.length > 0 && <p className={`text-[11px] font-semibold md:text-sm ${t.suave}`}>Incluye: {resumenLineas(resuelta.lineas)}</p>}
 
         {resuelta.disponible && (
-          <div className="flex flex-wrap items-baseline gap-x-3">
-            <span className="font-display text-3xl font-extrabold">{resuelta.total === 0 ? 'Gratis' : formatearPrecio(resuelta.total)}</span>
-            {ahorro > 0 && <s className={`font-bold ${t.suave}`}>{formatearPrecio(resuelta.totalLista)}</s>}
+          <div className="flex flex-wrap items-baseline gap-x-2 pt-1">
+            <span className="font-display text-xl font-extrabold sm:text-2xl md:text-3xl">{resuelta.total === 0 ? 'Gratis' : formatearPrecio(resuelta.total)}</span>
+            {ahorro > 0 && <s className={`text-xs font-bold ${t.suave}`}>{formatearPrecio(resuelta.totalLista)}</s>}
           </div>
         )}
 
@@ -50,32 +55,44 @@ function PromoBanner({ promo, resuelta, etiqueta, tono = 'rojo', cargando, desha
           type="button"
           onClick={onPedir}
           disabled={cargando || Boolean(deshabilitado) || !resuelta.disponible}
-          className={`inline-flex min-h-12 items-center gap-2 rounded-full px-6 font-bold transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${t.boton}`}
+          className={`mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-xs font-bold transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm md:min-h-12 md:px-6 md:text-base ${t.boton}`}
         >
-          <ShoppingBag className="h-5 w-5" />
+          <ShoppingBag className="h-4 w-4 md:h-5 md:w-5" />
           {cargando ? 'Cargando…' : deshabilitado ?? (resuelta.disponible ? 'La quiero' : 'No disponible en tu zona')}
         </button>
       </div>
 
-      <div className="relative grid min-h-64 flex-1 basis-72 place-items-center bg-black/15 p-8">
+      {/* Mitad Derecha: Imagen Flotante con Fondo Limpio Integrado */}
+      <div className="relative grid w-full place-items-center p-4 md:relative md:flex-1 md:basis-72 md:bg-black/15 md:p-8 md:min-h-64">
+        
+        {/* Hamburguesa principal contenida perfectamente al alto disponible */}
         {principal?.producto.imagen ? (
-          <img src={principal.producto.imagen} alt="" className="w-full max-w-[13rem] object-contain drop-shadow-2xl sm:max-w-xs" />
+          <img 
+            src={principal.producto.imagen} 
+            alt="" 
+            className="h-auto w-full max-w-[8.5rem] object-contain drop-shadow-2xl sm:max-w-[11rem] md:max-w-xs" 
+          />
         ) : (
           <CategoryIcon icono="generico" className="h-24 w-24 opacity-60" />
         )}
+
+        {/* Producto secundario reubicado sutilmente en celular */}
         {segunda?.producto.imagen && (
           <img
             src={segunda.producto.imagen}
             alt=""
-            className="absolute bottom-6 left-6 w-24 rounded-3xl border-2 border-brand-dark bg-brand-cream object-contain p-2 sm:w-28"
+            className="absolute bottom-2 left-2 w-12 rounded-xl border border-brand-dark bg-brand-cream object-contain p-1 sm:w-16 md:absolute md:bottom-6 md:left-6 md:w-28 md:rounded-3xl md:border-2 md:p-2"
           />
         )}
-        <div className="absolute right-6 top-6 grid h-28 w-28 -rotate-12 place-items-center rounded-full border-[3px] border-brand-dark bg-brand-mustard text-center font-display font-extrabold leading-none text-brand-dark sm:h-32 sm:w-32">
+        
+        {/* Círculo de descuento adaptado para no asfixiar el espacio de la mitad */}
+        <div className="absolute right-2 top-2 grid h-14 w-14 -rotate-12 place-items-center rounded-full border-2 border-brand-dark bg-brand-mustard text-center font-display font-extrabold leading-none text-brand-dark sm:h-20 sm:w-20 md:absolute md:right-6 md:top-6 md:h-32 md:w-32 md:border-[3px]">
           <span>
-            <span className="block text-4xl">{promo.destacado}</span>
-            {promo.destacado.endsWith('%') && <span className="block text-sm">OFF</span>}
+            <span className="block text-sm sm:text-xl md:text-4xl">{promo.destacado}</span>
+            {promo.destacado.endsWith('%') && <span className="block text-[8px] sm:text-[10px] md:text-sm">OFF</span>}
           </span>
         </div>
+
       </div>
     </article>
   )
