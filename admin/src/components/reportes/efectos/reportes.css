@@ -1,0 +1,559 @@
+/* =========================================================
+   EFECTOS DE LA VISTA REPORTES
+   Todas las clases empiezan con "rep-" para no chocar
+   con Tailwind ni con el resto del admin.
+   ========================================================= */
+
+
+/* ---------- 1. Corona que se balancea ----------
+   Para el 1.º puesto: producto, sucursal, cliente. */
+@keyframes rep-balanceo {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50%      { transform: translateY(-3px) rotate(8deg); }
+}
+
+.rep-corona {
+  display: inline-flex;
+  transform-origin: 50% 90%;
+  animation: rep-balanceo 2.4s ease-in-out infinite;
+}
+
+
+/* ---------- 2. Brillo dorado del ganador ----------
+   Un halo que "respira" alrededor de la fila o tarjeta ganadora. */
+@keyframes rep-brillo {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0); }
+  50%      { box-shadow: 0 0 0 4px rgb(245 158 11 / 0.25),
+                         0 0 24px rgb(245 158 11 / 0.25); }
+}
+
+.rep-ganador {
+  animation: rep-brillo 2.2s ease-in-out infinite;
+}
+
+
+/* ---------- 3. Etiqueta dorada con reflejo ----------
+   Para "MÁS VENDIDO", "SUCURSAL ESTRELLA", etc. */
+@keyframes rep-reflejo {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+.rep-etiqueta-oro {
+  background: linear-gradient(110deg, #f59e0b 38%, #fde68a 50%, #f59e0b 62%);
+  background-size: 220% 100%;
+  color: #451a03;
+  animation: rep-reflejo 2.6s linear infinite;
+}
+
+
+/* ---------- 4. Aparecer con rebote ----------
+   Íconos del ranking y sellos ("Nº 1 EN VENTAS", "AGOTADO"). */
+@keyframes rep-pop {
+  0%   { transform: scale(0) rotate(-25deg); }
+  65%  { transform: scale(1.25) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.rep-pop {
+  animation: rep-pop 0.6s cubic-bezier(.2, .9, .3, 1.3) both;
+}
+
+
+/* ---------- 5. Subir y aparecer ----------
+   Filas y tarjetas que entran escalonadas.
+   El escalonado se logra con style={{ animationDelay: "0.1s" }}. */
+@keyframes rep-subir {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.rep-subir {
+  animation: rep-subir 0.5s ease-out both;
+}
+
+
+/* ---------- 6. Caer y aterrizar ----------
+   Para la montañita de hamburguesas al lado del nombre. */
+@keyframes rep-aterrizar {
+  0%   { transform: translateY(-200px) rotate(-40deg); opacity: 0; }
+  12%  { opacity: 1; }
+  70%  { transform: translateY(5px) rotate(6deg); }
+  85%  { transform: translateY(-6px) rotate(-3deg); }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+.rep-aterrizar {
+  animation: rep-aterrizar 0.9s cubic-bezier(.2, .7, .3, 1) both;
+}
+
+
+/* ---------- 7. Lluvia de íconos (dentro de un recuadro) ----------
+   El contenedor que la recibe tiene que tener "relative" y "overflow-hidden".
+   Las gotas caen desde arriba hasta el borde inferior del recuadro. */
+@keyframes rep-caer {
+  from { top: -50px; transform: rotate(0deg); }
+  to   { top: 100%;  transform: rotate(var(--giro, 360deg)); }
+}
+
+.rep-lluvia {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;     /* deja hacer clic "a través" de la lluvia */
+  border-radius: inherit;   /* respeta las esquinas redondeadas de la tarjeta */
+}
+
+.rep-gota {
+  position: absolute;
+  top: -50px;
+  animation-name: rep-caer;
+  animation-timing-function: cubic-bezier(.45, .05, .75, .6);
+  animation-fill-mode: both;
+}
+
+
+.rep-cartel {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  z-index: 21;
+  pointer-events: none;
+  animation: rep-cartel 3.6s ease-out both;
+}
+
+
+/* ---------- 9. Ticket que se imprime ----------
+   Se "despliega" de arriba hacia abajo al cambiar de producto. */
+@keyframes rep-imprimir {
+  from { clip-path: inset(0 0 100% 0); transform: translateY(-16px); }
+  to   { clip-path: inset(0 0 0 0);    transform: none; }
+}
+
+.rep-imprimir {
+  animation: rep-imprimir 0.7s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+
+/* ---------- 10. Papel de ticket con bordes dentados ---------- */
+.rep-ticket {
+  position: relative;
+  background: #fffbeb;   /* amber-50 */
+}
+
+.rep-ticket::before,
+.rep-ticket::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: radial-gradient(circle at 8px 10px, #fffbeb 7px, transparent 7.5px)
+              0 0 / 16px 10px repeat-x;
+}
+
+.rep-ticket::before { top: -10px; }
+.rep-ticket::after  { bottom: -10px; transform: rotate(180deg); }
+
+/* ---------- 11. Sello que cae y se estampa ----------
+   Para "AGOTADO" en el ticket. */
+@keyframes rep-sello {
+  0%   { transform: scale(2.2) rotate(-14deg); opacity: 0; }
+  60%  { transform: scale(0.92) rotate(-6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-6deg);    opacity: 1; }
+}
+
+.rep-sello {
+  display: inline-block;
+  animation: rep-sello 0.5s cubic-bezier(.2, .8, .3, 1.2) 0.5s both;
+}
+
+
+/* ---------- 12. Barra que se llena ----------
+   Para la participación en el ticket. */
+@keyframes rep-barra {
+  from { width: 0; }
+}
+
+.rep-barra {
+  animation: rep-barra 0.9s cubic-bezier(.2, .8, .2, 1) 0.35s both;
+}
+
+/* =========================================================
+   LA HELADERA (Menos vendidos)
+   ========================================================= */
+
+
+/* ---------- 13. Copos de nieve ----------
+   Caen lento y sin parar dentro del freezer, de fondo.
+   La duración y el retraso de cada copo se pasan desde React. */
+@keyframes rep-nieve {
+  from { transform: translateY(-24px) rotate(0deg); }
+  to   { transform: translateY(560px) rotate(200deg); }
+}
+
+.rep-copo {
+  position: absolute;
+  top: 0;
+  opacity: 0.75;
+  pointer-events: none;
+  animation-name: rep-nieve;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+
+/* ---------- 14. Fila del freezer + cubito que tiembla ----------
+   Al pasar el mouse por la fila, el cubito tiembla de frío. */
+@keyframes rep-temblar {
+  0%, 100% { transform: rotate(0); }
+  25%      { transform: rotate(-4deg); }
+  75%      { transform: rotate(4deg); }
+}
+
+.rep-fila-hielo {
+  transition: background-color 0.6s, border-color 0.6s, box-shadow 0.2s, transform 0.2s;
+}
+
+.rep-fila-hielo:hover {
+  transform: translateX(3px);
+  box-shadow: 0 4px 12px rgb(3 105 161 / 0.12);
+}
+
+.rep-fila-hielo:hover .rep-cubo-congelado {
+  animation: rep-temblar 0.3s ease-in-out 2;
+}
+
+
+/* ---------- 15. Reflejo que cruza el hielo ----------
+   Se pone como capa encima del cubito. */
+@keyframes rep-reflejo-hielo {
+  0%, 65% { transform: translateX(-140%) skewX(-20deg); }
+  100%    { transform: translateX(260%) skewX(-20deg); }
+}
+
+.rep-brillo-hielo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.rep-brillo-hielo::after {
+  content: "";
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  width: 28%;
+  background: rgb(255 255 255 / 0.75);
+  animation: rep-reflejo-hielo 4.5s ease-in-out infinite;
+}
+
+
+/* ---------- 16. Rotura del hielo ----------
+   Al tocar el cubito: se sacude, se dibujan las grietas
+   y saltan las esquirlas. */
+@keyframes rep-sacudon {
+  0%, 100% { transform: none; }
+  20%      { transform: translateX(-3px) rotate(-3deg); }
+  40%      { transform: translateX(3px) rotate(3deg); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+
+.rep-sacudon {
+  animation: rep-sacudon 0.3s ease-in-out;
+}
+
+/* Las grietas son líneas SVG que se "dibujan" solas */
+@keyframes rep-grieta {
+  from { stroke-dashoffset: 60; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.rep-grieta {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: rep-grieta 0.3s ease-out forwards;
+}
+
+/* Cada esquirla sale disparada en su dirección (--dx, --dy, --giro) */
+@keyframes rep-esquirla {
+  from { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
+  to   {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--giro));
+    opacity: 0;
+  }
+}
+
+.rep-esquirla {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  border: 1px solid #7dd3fc;   /* sky-300 */
+  border-radius: 2px;
+  background: #e0f2fe;         /* sky-100 */
+  animation: rep-esquirla 0.7s cubic-bezier(.2, .7, .3, 1) 0.28s both;
+}
+
+
+/* ---------- 17. Producto liberado + gotitas de agua ---------- */
+@keyframes rep-liberado {
+  0%   { transform: scale(0.6) rotate(-12deg); }
+  60%  { transform: scale(1.2) rotate(6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.rep-liberado {
+  display: inline-flex;
+  animation: rep-liberado 0.55s cubic-bezier(.2, .9, .3, 1.3) both;
+}
+
+@keyframes rep-gota-agua {
+  0%   { transform: translateY(0);    opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translateY(16px); opacity: 0; }
+}
+
+.rep-gota-agua {
+  position: absolute;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: #38bdf8;         /* sky-400 */
+  animation: rep-gota-agua 1.3s ease-in infinite;
+}
+
+
+/* ---------- 18. Ticket frío (papel celeste con bordes dentados) ---------- */
+.rep-ticket-frio {
+  position: relative;
+  background: #f0f9ff;         /* sky-50 */
+}
+
+.rep-ticket-frio::before,
+.rep-ticket-frio::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: radial-gradient(circle at 8px 10px, #f0f9ff 7px, transparent 7.5px)
+              0 0 / 16px 10px repeat-x;
+}
+
+.rep-ticket-frio::before { top: -10px; }
+.rep-ticket-frio::after  { bottom: -10px; transform: rotate(180deg); }
+
+
+/* ---------- Heladera sin animaciones ----------
+   El bloque de Accesibilidad de abajo apaga todo lo que tiene "rep-",
+   pero hay casos que necesitan un ajuste extra para verse bien quietos. */
+@media (prefers-reduced-motion: reduce) {
+  .rep-brillo-hielo::after { animation: none !important; display: none; }
+  .rep-grieta { stroke-dashoffset: 0; }     /* las grietas se ven dibujadas */
+  .rep-esquirla,
+  .rep-copo { display: none; }               /* sin esquirlas ni nieve */
+}
+
+/* =========================================================
+   LAS TORRES DE MONEDAS (Mayor facturación)
+   ========================================================= */
+
+
+/* ---------- 19. Moneda que cae y se acomoda en la torre ----------
+   Cada moneda trae su corrimiento (--x) y su inclinación (--r)
+   para que la pila parezca armada a mano. */
+@keyframes rep-moneda-entra {
+  0%   { transform: translateY(-340px) rotate(calc(var(--r) * 30)); opacity: 0; }
+  12%  { opacity: 1; }
+  68%  { transform: translateY(4px) rotate(calc(var(--r) * -1.2)); }
+  84%  { transform: translateY(-5px) rotate(calc(var(--r) * 1.4)); }
+  100% { transform: translateY(0) rotate(var(--r)); opacity: 1; }
+}
+
+.rep-moneda {
+  position: absolute;
+  left: 50%;
+  width: 42px;
+  height: 14px;
+  margin-left: calc(-21px + var(--x));
+  transform: rotate(var(--r));
+  animation: rep-moneda-entra 0.9s cubic-bezier(.2, .7, .3, 1) both;
+}
+
+/* La cara visible de la moneda (va adentro de .rep-moneda) */
+.rep-moneda-cara {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid #b45309;
+  border-radius: 50%;
+  background: var(--c, #fbbf24);
+  box-shadow: inset 0 -3px 0 #d97706, 0 1px 2px rgb(0 0 0 / 0.2);
+  color: #92400e;
+  font: 800 9px/1 ui-sans-serif, system-ui, sans-serif;
+}
+
+
+/* ---------- 20. Monedas que se caen de la torre ---------- */
+@keyframes rep-moneda-cae {
+  from { transform: translate(0, 0) rotate(var(--r)); opacity: 1; }
+  70%  { opacity: 1; }
+  to   { transform: translate(var(--dx), var(--dy)) rotate(var(--giro)); opacity: 0; }
+}
+
+.rep-moneda.rep-cayendo {
+  animation: rep-moneda-cae 1s cubic-bezier(.4, 0, .8, .6) both;
+  animation-delay: var(--d);
+}
+
+
+/* ---------- 21. Monedas sueltas al pie de la torre ---------- */
+.rep-moneda-suelta {
+  position: absolute;
+  bottom: 0;
+  width: 30px;
+  height: 10px;
+  border: 1px solid #b45309;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: inset 0 -2px 0 #d97706;
+  animation: rep-moneda-entra 0.9s cubic-bezier(.2, .7, .3, 1) both;
+}
+
+/* La moneda parada de canto, apoyada en la torre ganadora */
+.rep-moneda-canto {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #b45309;
+  border-radius: 50%;
+  background: #fcd34d;
+  box-shadow: inset 0 0 0 2px #fbbf24;
+  color: #92400e;
+  font: 800 10px/1 ui-sans-serif, system-ui, sans-serif;
+  animation: rep-moneda-entra 0.9s cubic-bezier(.2, .7, .3, 1) both;
+}
+
+/* Empujoncito a las sueltas cuando se derrumba la torre */
+@keyframes rep-empujon {
+  0%   { translate: 0 0; }
+  40%  { translate: var(--ex) -6px; }
+  100% { translate: var(--ex) 0; }
+}
+
+.rep-empujada {
+  animation: rep-empujon 0.5s ease-out 0.3s both;
+}
+
+
+/* ---------- 22. La torre: se eleva, gira la moneda de arriba y suben "$" ---------- */
+.rep-torre {
+  transition: transform 0.2s;
+}
+
+.rep-torre:hover {
+  transform: translateY(-5px);
+}
+
+@keyframes rep-girar-moneda {
+  from { transform: rotateX(0); }
+  to   { transform: rotateX(360deg); }
+}
+
+.rep-torre:hover .rep-moneda-top {
+  animation: rep-girar-moneda 0.7s ease-in-out;
+}
+
+@keyframes rep-chispa-sube {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  25%  { opacity: 1; }
+  100% { transform: translateY(-34px) scale(1.1); opacity: 0; }
+}
+
+.rep-chispa {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  color: #16a34a;
+  font: 800 12px/1 ui-sans-serif, system-ui, sans-serif;
+}
+
+.rep-torre:hover .rep-chispa {
+  animation: rep-chispa-sube 0.9s ease-out infinite;
+}
+
+/* Resplandor dorado de la torre ganadora */
+@keyframes rep-brillo-torre {
+  0%, 100% { filter: drop-shadow(0 0 0 rgb(245 158 11 / 0)); }
+  50%      { filter: drop-shadow(0 0 10px rgb(245 158 11 / 0.55)); }
+}
+
+.rep-torre-oro {
+  animation: rep-brillo-torre 2.2s ease-in-out infinite;
+}
+
+
+/* ---------- 23. Cajón de la caja registradora ---------- */
+.rep-cajon {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.35s cubic-bezier(.2, .8, .3, 1.2);
+}
+
+.rep-cajon.rep-abierto {
+  height: 40px;
+}
+
+@keyframes rep-billete {
+  from { transform: translateY(-14px) rotate(-6deg); opacity: 0; }
+  to   { transform: translateY(0) rotate(0);         opacity: 1; }
+}
+
+.rep-billete {
+  animation: rep-billete 0.4s ease-out both;
+}
+
+
+/* ---------- 24. Ticket verde (comprobante) ---------- */
+.rep-ticket-verde {
+  position: relative;
+  background: #f0fdf4;         /* green-50 */
+}
+
+.rep-ticket-verde::before,
+.rep-ticket-verde::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: radial-gradient(circle at 8px 10px, #f0fdf4 7px, transparent 7.5px)
+              0 0 / 16px 10px repeat-x;
+}
+
+.rep-ticket-verde::before { top: -10px; }
+.rep-ticket-verde::after  { bottom: -10px; transform: rotate(180deg); }
+
+/* ---------- Accesibilidad ----------
+   Si la persona desactivó las animaciones en su sistema,
+   apagamos todos los efectos. */
+@media (prefers-reduced-motion: reduce) {
+  [class*="rep-"] {
+    animation: none !important;
+  }
+}

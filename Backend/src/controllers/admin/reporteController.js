@@ -1,4 +1,4 @@
-const { Pedido, DetallePedido,Producto,Admin,Sucursal,StockSucursal,
+const { Pedido, DetallePedido,Producto,Categoria,Admin,Sucursal,StockSucursal,    
     RecetaInsumo,ProductoTamanio,ComboGrupo,Insumo,sequelize,historialDeTiemposPedido
 } = require('../../models');
 
@@ -46,11 +46,22 @@ const obtenerProductosMasVendidos = async (req, res) => {
                     attributes: ['nombre', 'imagen'],
                     paranoid: false,
                     required: true,
+                    // Traemos el nombre de la categoría para elegir el ícono
+                    include: [
+                        {
+                            model: Categoria,
+                            as: 'categoria',
+                            attributes: ['nombre'],
+                            required: false, // si un producto no tiene categoría, igual aparece
+                        },
+                    ],
                 },
             ],
             group: [
                 'DetallePedido.productoId',
                 'Producto.id',
+                // PostgreSQL exige agrupar también por la categoría
+                'Producto->categoria.id',
             ],
             order: [[sequelize.literal('"unidadesVendidas"'), 'DESC']],
         });
@@ -111,6 +122,13 @@ const obtenerProductosMenosVendidos = async (req, res) => {
                 ],
             ],
             include: [
+                // Traemos el nombre de la categoría para elegir el ícono
+                {
+                    model: Categoria,
+                    as: 'categoria',
+                    attributes: ['nombre'],
+                    required: false,
+                },
                 {
                     model: DetallePedido,
                     attributes: [],
@@ -125,7 +143,8 @@ const obtenerProductosMenosVendidos = async (req, res) => {
                     ],
                 },
             ],
-            group: ['Producto.id'],
+            // PostgreSQL exige agrupar también por la categoría
+            group: ['Producto.id', 'categoria.id'],            
             order: [
                 [sequelize.literal('"unidadesVendidas"'), 'ASC'],
                 ['nombre', 'ASC'],
@@ -136,7 +155,10 @@ const obtenerProductosMenosVendidos = async (req, res) => {
             productos.map((producto) => ({
                 productoId: producto.id,
                 nombre: producto.nombre,
-                imagen: producto.imagen,
+                        imagen: producto.imagen,
+                categoria: producto.categoria
+                    ? { nombre: producto.categoria.nombre }
+                    : null,
                 unidadesVendidas: producto.get('unidadesVendidas'),
             })),
         );
@@ -199,9 +221,19 @@ const obtenerProductosMayorFacturacion = async (req, res) => {
                     attributes: ['nombre', 'imagen'],
                     paranoid: false,
                     required: true,
+                    // Traemos el nombre de la categoría para elegir el ícono
+                    include: [
+                        {
+                            model: Categoria,
+                            as: 'categoria',
+                            attributes: ['nombre'],
+                            required: false,
+                        },
+                    ],
                 },
             ],
-            group: ['DetallePedido.productoId', 'Producto.id'],
+            // PostgreSQL exige agrupar también por la categoría
+            group: ['DetallePedido.productoId', 'Producto.id', 'Producto->categoria.id'],
             order: [
                 [sequelize.literal('"facturacion"'), 'DESC'],
             ],
@@ -212,6 +244,9 @@ const obtenerProductosMayorFacturacion = async (req, res) => {
                 productoId: producto.productoId,
                 nombre: producto.Producto.nombre,
                 imagen: producto.Producto.imagen,
+                categoria: producto.Producto.categoria
+                    ? { nombre: producto.Producto.categoria.nombre }
+                    : null,
                 facturacion: producto.get('facturacion'),
             })),
         );

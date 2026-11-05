@@ -4,6 +4,7 @@ export interface ProductoMasVendido {
   Producto: {
     nombre: string
     imagen: string | null
+    categoria: { nombre: string } | null
   }
 }
 
@@ -11,6 +12,7 @@ export interface ProductoMenosVendido {
   productoId: number
   nombre: string
   imagen: string | null
+  categoria: { nombre: string } | null
   unidadesVendidas: string | number
 }
 
@@ -18,6 +20,7 @@ export interface ProductoMayorFacturacion {
   productoId: number
   nombre: string
   imagen: string | null
+  categoria: { nombre: string } | null
   facturacion: string | number
 }
 
