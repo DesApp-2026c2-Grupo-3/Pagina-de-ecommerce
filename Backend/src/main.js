@@ -59,6 +59,7 @@ app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
 app.use('/admin/promociones', require('./routes/admin/promocionRoutes'));
 app.use('/admin/reportes', require('./routes/admin/reportesRoutes'));
 app.use('/admin/repartidores', repartidorRoutes);
+app.use('/admin/viajes', require('./routes/admin/viajeRoutes'));
 app.use('/admin', adminRoutes);
 
 app.use('/productos', productoRoutes);

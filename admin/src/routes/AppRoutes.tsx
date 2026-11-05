@@ -30,6 +30,7 @@ import ProductosSinStock from '../components/reportes/ProductosSinStock'
 import Repartidores from '../pages/Repartidores/Repartidores'
 import NuevoRepartidor from '../pages/Repartidores/NuevoRepartidor'
 import EditarRepartidor from '../pages/Repartidores/EditarRepartidor'
+import Viajes from '../pages/Viajes/Viajes'
 
 export default function AppRoutes() {
   return (
@@ -81,6 +82,7 @@ export default function AppRoutes() {
           <Route path="/admin/sucursales/:id/stock" element={<Stock />} />
 
           <Route path="/admin/repartidores" element={<Repartidores />} />
+          <Route path="/admin/viajes" element={<Viajes />} />
           <Route path="/admin/repartidores/editar/:id" element={<EditarRepartidor />}/>
           <Route path="/admin/repartidores/nuevo" element={<NuevoRepartidor />} />
           

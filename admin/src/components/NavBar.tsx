@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef} from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, LogOut, ShoppingBag, Package,
   Store, ChartNoAxesCombined, ChevronLeft, ChevronRight,Users, Wheat,
-  Tags, Hamburger, Bike, type LucideIcon, Percent,} from 'lucide-react'
+  Tags, Hamburger, Bike, type LucideIcon, Percent,
+  Route,
+  ChevronDown,
+  ChevronUp,} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { cerrarSesionService } from '../services/authService'
 import { enlacesDe } from '../config/menu'
@@ -24,14 +27,20 @@ const iconosPorEnlace: Record<string, LucideIcon> = {
   Promociones: Percent,
   Administradores: Users,
   Stock: Package,
-  Repartidores: Bike
+  Repartidores: Bike,
+  Viajes: Route,
 }
 
 
 export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false)
   const navigate = useNavigate()
-  const { administrador, cerrarSesion } = useAuth()
+  const { administrador, cerrarSesion } = useAuth();
+
+  const navRef = useRef<HTMLElement>(null)
+
+  const [puedeSubir, setPuedeSubir] = useState(false)
+  const [puedeBajar, setPuedeBajar] = useState(false)
 
   const enlaces = enlacesDe(administrador)
 
@@ -53,6 +62,28 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
     }
   }, [])
 
+  useEffect(() => { const nav = navRef.current
+    if (!nav) return
+
+    const actualizarIndicadores = () => {
+      setPuedeSubir(nav.scrollTop > 0)
+
+      setPuedeBajar(
+        nav.scrollTop + nav.clientHeight < nav.scrollHeight - 1
+      )
+    }
+
+    actualizarIndicadores()
+
+    nav.addEventListener('scroll', actualizarIndicadores)
+    window.addEventListener('resize', actualizarIndicadores)
+
+    return () => {
+      nav.removeEventListener('scroll', actualizarIndicadores)
+      window.removeEventListener('resize', actualizarIndicadores)
+    }
+  }, [enlaces.length])
+
   const rolTexto =
     administrador?.rol === 'MASTER'
       ? 'Administrador general'
@@ -69,7 +100,7 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
   }
 
   const contenidoMenu = (
-    <div className=''>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
     <div className="flex shrink-0 items-center justify-center gap-2 px-3 py-5">
       <div className="flex min-w-0 items-center gap-3">
         <Hamburger size={36} className="shrink-0 text-orange-400" />
@@ -96,27 +127,83 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
       </button>
     </div>
 
-    <nav className="flex min-h-0 flex-1 flex-col space-y-2
-                overflow-y-auto p-3
-                [scrollbar-width:none]
-                [&::-webkit-scrollbar]:hidden
-                ">
-      {enlaces.map((enlace) => {
-        const Icono = iconosPorEnlace[enlace.label] ?? Store
+    <div className="relative flex-1 min-h-0 menu-scroll-container">
 
-        return (
-        <NavLink key={enlace.to} to={enlace.to} end={enlace.end}
+  <nav
+    ref={navRef}
+    className="flex h-full min-h-0 flex-col space-y-2
+      overflow-y-auto overscroll-contain p-3
+      [scrollbar-width:none]
+      [&::-webkit-scrollbar]:hidden"
+  >
+    {enlaces.map((enlace) => {
+      const Icono = iconosPorEnlace[enlace.label] ?? Store
+
+      return (
+        <NavLink
+          key={enlace.to}
+          to={enlace.to}
+          end={enlace.end}
           title={!menuAbierto ? enlace.label : undefined}
           onClick={() => setMenuMovilAbierto(false)}
-          className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-3 transition-colors ${
-              isActive ? 'bg-orange-500/15 font-semibold text-orange-400' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }`}>
-        
+          className={({ isActive }) =>
+            `flex items-center gap-3 rounded-lg px-3 py-3 transition-colors ${
+              isActive
+                ? 'bg-orange-500/15 font-semibold text-orange-400'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            }`
+          }
+        >
           <Icono size={20} className="shrink-0" />
-            {mostrarTexto && <span>{enlace.label}</span>}
+          {mostrarTexto && <span>{enlace.label}</span>}
         </NavLink>
-        )
-      })}
-      </nav>
+      )
+    })}
+  </nav>
+
+  {/* Indicador superior */}
+  {puedeSubir && (
+    <button
+      type="button"
+      onClick={(e) => {
+        const nav = e.currentTarget.parentElement?.querySelector('nav')
+
+      nav?.scrollBy({
+        top: -150,
+        behavior: 'smooth'
+      })
+      }}
+      className="absolute left-1/2 top-1 z-10 -translate-x-1/2
+        rounded-full bg-gray-800/90 p-1.5 text-orange-400
+        shadow-lg hover:bg-gray-700"
+        aria-label="Desplazar hacia arriba"
+      >
+      <ChevronUp size={18} />
+    </button>
+  )}
+
+  {/* Indicador inferior */}
+  {puedeBajar && (
+    <button
+      type="button"
+      onClick={(e) => {
+        const nav = e.currentTarget.parentElement?.querySelector('nav')
+
+      nav?.scrollBy({
+        top: 150,
+        behavior: 'smooth'
+      })
+    }}
+      className="absolute bottom-1 left-1/2 z-10 -translate-x-1/2
+        rounded-full bg-gray-800/90 p-1.5 text-orange-400
+        shadow-lg hover:bg-gray-700"
+        aria-label="Desplazar hacia abajo"
+      >
+      <ChevronDown size={18} />
+    </button>
+  )}
+
+</div>
 
       <div className="border-t border-gray-700 p-3">
         <div className={`flex items-center gap-2 ${menuAbierto ? '' : 'flex-col'}`}>
