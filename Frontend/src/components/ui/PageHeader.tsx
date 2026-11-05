@@ -12,7 +12,7 @@ function PageHeader({ titulo, subtitulo, children }: Props) {
   let restoDelTexto = "";
   let ultimaPalabra = "";
    if (titulo) {
-    const palabras = titulo.trim().split(/\s+/);
+    const palabras = String(titulo || '').trim().split(/\s+/);
     ultimaPalabra = palabras.pop() || "";
     restoDelTexto = palabras.join(" ");
   }

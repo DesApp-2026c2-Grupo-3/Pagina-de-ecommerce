@@ -62,5 +62,5 @@ export function validarFechaNacimiento(fecha: string, hoy = hoyEnArgentina()) {
   if (fecha < '1900-01-01') return 'Revisá el año de nacimiento'
   if (edadEn(fecha, hoy) < EDAD_MINIMA) return `Tenés que tener al menos ${EDAD_MINIMA} años`
   return ''
-  return ''
+ 
 }
