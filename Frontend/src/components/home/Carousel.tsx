@@ -7,13 +7,14 @@ import SlideBackdrop from './SlideBackdrop'
 interface CarouselProps {
   slides: CarouselSlide[]
   autoPlayMs?: number
+
+  transparentesEnMovil?: boolean
 }
 
-function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
+function Carousel({ slides, autoPlayMs = 6000, transparentesEnMovil = false }: CarouselProps) {
   const [index, setIndex] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Si cambia la cantidad de slides (ej. al loguearse), volvemos al primero.
   useEffect(() => {
     setIndex(0)
   }, [slides.length])
@@ -29,8 +30,6 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-    // Reiniciamos el timer también cuando el usuario navega manualmente,
-    // así no "salta" un slide extra apenas después de un click.
   }, [slides.length, autoPlayMs, index])
 
   function goTo(next: number) {
@@ -44,8 +43,16 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
     <section className="relative overflow-hidden border-b-4 border-brand-red bg-brand-dark text-white">
       <SlideBackdrop imagen={slide.backgroundImage} />
 
-      <div className="relative mx-auto flex min-h-[24rem] max-w-7xl items-center px-4 py-12 md:min-h-[30rem]">
-        <SlideContent slide={slide} />
+      {/* 
+        🛠️ REDUCCIÓN DE ALTURA COMPACTA EN SM Y MÓVIL:
+        - Mantenemos la compresión perfecta de altura (min-h-[17rem]) y el control de ancho responsivo.
+      */}
+      <div className="relative mx-auto flex min-h-[17rem] w-full max-w-[320px] items-center px-4 pb-16 pt-8 sm:max-w-md md:mx-auto md:min-h-[30rem] md:max-w-7xl md:py-12">
+        {/* 
+          🔑 PASES CLAVE: 
+          Le inyectamos el nuevo parámetro al componente hijo para que se encargue de mutar las clases del botón.
+        */}
+        <SlideContent slide={slide} transparentesEnMovil={transparentesEnMovil} />
       </div>
 
       {slides.length > 1 && (
@@ -68,7 +75,7 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
             <ArrowBigRight size={18} />
           </button>
 
-          <div className="relative flex justify-center gap-2 pb-14">
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
             {slides.map((s, i) => (
               <button
                 key={s.id}
@@ -88,4 +95,4 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
   )
 }
 
-export default Carousel
+export default Carousel;

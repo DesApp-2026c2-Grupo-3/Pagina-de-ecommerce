@@ -11,4 +11,5 @@ export interface CarouselSlide {
   ctaVariant?: 'solid' | 'outline'
   /** Foto de fondo: es la protagonista del slide */
   backgroundImage: string
+  transparentesEnMovil?: boolean
 }

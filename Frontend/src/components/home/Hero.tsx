@@ -45,7 +45,8 @@ function Hero() {
     },
   ]
 
-  return <Carousel slides={slides} />
+  return <Carousel slides={slides} transparentesEnMovil={true} />
+
 }
 
 export default Hero

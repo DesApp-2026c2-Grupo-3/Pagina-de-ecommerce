@@ -28,24 +28,37 @@ function MasPedidosSection() {
   if (productos.length === 0) return null
 
   return (
-    <section className="bg-brand-cream px-4 py-16 text-brand-dark">
-      <div className="mx-auto max-w-7xl">
-        <h2 className="mb-8 font-display text-4xl font-extrabold tracking-tight">
-          Los más pedidos en {zona ? <span className="text-brand-red"> {zona.sucursalNombre}</span> : <span className="text-brand-red">Burger<span className="text-brand-red">Fast</span></span>}
-        </h2>
+    <section className="bg-brand-cream px-4 py-12 text-brand-dark sm:py-16">
+  <div className="mx-auto max-w-7xl">
+    <h2 className="mb-6 font-display text-3xl font-extrabold tracking-tight sm:mb-8 sm:text-4xl">
+      Los más pedidos en {zona ? <span className="text-brand-red"> {zona.sucursalNombre}</span> : <span className="text-brand-red">BurgerFast</span>}
+    </h2>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {productos.map((producto, i) => (
-            <div key={producto.id} className="relative">
-              <span className="absolute left-3 top-3 z-10 grid h-10 w-10 -rotate-6 place-items-center rounded-full border-2 border-brand-dark bg-brand-dark font-display text-sm font-extrabold text-white">
-                #{i + 1}
-              </span>
-              <ProductCard product={producto} />
-            </div>
-          ))}
+    <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+      {productos.map((producto, i) => (
+        <div key={producto.id} className="relative">
+         <span className="absolute left-2 top-2 z-10 grid h-8 w-8 -rotate-6 place-items-center rounded-full border-2 border-brand-dark bg-brand-dark font-display text-xs font-extrabold text-white sm:left-3 sm:top-3 sm:h-10 sm:w-10 sm:text-sm">
+  #{i + 1}
+</span>
+
+          
+          {/* 
+            🛠️ ACOPLE DEFINITIVO:
+            Inyectamos mostrarDescripcion={false} para limpiar el cuerpo de la tarjeta,
+            dejando que la grilla de dos columnas luzca súper simétrica y simétrica en móviles.
+          */}
+          <ProductCard 
+            product={producto} 
+            indice={i} 
+            compacta={false} 
+            mostrarDescripcion={false} 
+          />
         </div>
-      </div>
-    </section>
+      ))}
+    </div>
+  </div>
+</section>
+
   )
 }
 
