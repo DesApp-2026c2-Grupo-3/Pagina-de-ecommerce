@@ -39,7 +39,8 @@ function SugerenciasCarrito() {
 
   const [catalogo, setCatalogo] = useState<ProductoBackend[]>([])
   const [ranking, setRanking] = useState<number[]>([])
-  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
+  const [categorias, setCategorias] = useState<{ id: number; nombre: string; esComplemento?: boolean }[]>([])
+
 
   useEffect(() => {
     Promise.all([getMasPedidos(sucursalId, TAMANIO_RANKING), getProducts(sucursalId), getCategories()])
@@ -116,11 +117,11 @@ function SugerenciasCarrito() {
       </h2>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {sugerencias.map((producto) => (
-          <ProductCard key={producto.id} product={producto} />
+          <ProductCard key={producto.id} product={producto} compacta= {true}/>
         ))}
       </div>
     </section>
   )
 }
 
-export default SugerenciasCarrito
+export default SugerenciasCarrito

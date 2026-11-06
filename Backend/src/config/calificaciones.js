@@ -2,7 +2,7 @@
 // (la línea de tiempo de estados), no con la fecha en que se hizo el pedido.
 
 // Se puede calificar a partir de este tiempo desde la entrega (para que el cliente ya haya probado el pedido)
-const MINUTOS_PARA_CALIFICAR = 60;
+const MINUTOS_PARA_CALIFICAR = 0;
 // ...y hasta este plazo
 const DIAS_PARA_CALIFICAR = 7;
 // Una calificación se puede corregir durante este tiempo desde que se envió

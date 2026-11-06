@@ -85,29 +85,61 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
           className={`${CLASE_INPUT} w-full resize-none`}
         />
 
-        {sinGuardar && (
-          <p className="mt-1 text-xs text-brand-muted">Todavía no está guardada: sin guardar no se envía con el pedido.</p>
-        )}
+       
+                {/* 
+          Contenedor de base unificado:
+          - flex-row items-center justify-between: Mantiene el flujo horizontal limpio.
+          - mt-2: Compactación vertical quirúrgica para que no estire la card.
+        */}
+        <div className="mt-2 flex flex-row items-center justify-between gap-1.5 w-full">
+          
+          {/* 
+            Lado Izquierdo Elástico (Mensaje de advertencia):
+            - text-xs sm:text-sm md:text-sm: Asegura que el texto se mantenga grande y gordo (14px lógicos) 
+              en todo el tramo responsivo por debajo de 768px (`max-md:`).
+          */}
+          <div className="flex-1 min-w-0">
+            {sinGuardar && (
+              <p className="text-xs sm:text-sm md:text-sm text-brand-muted leading-tight animate-fade-in break-words font-semibold pr-1">
+                Guarda para que se envíe con el pedido.
+              </p>
+            )}
+          </div>
 
-        <div className="mt-3 flex flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            onClick={descartar}
-            className={`${BOTON} bg-red-50 text-red-600 hover:bg-red-100 p-2 rounded-full transition-colors`}
-            title="Descartar"
-          >
-            <Trash2 className="w-4 h-4" />Descartar
-          </button>
-          <button
-            type="button"
-            onClick={guardar}
-            disabled={borrador.trim() === ""}
-            className={`${BOTON} bg-green-50 text-green-600 hover:bg-green-100 p-2 rounded-full transition-colors`}
-            title="Aceptar"
-          >
-            <Check className="w-4 h-4" />Guardar
-          </button>
+          {/* 
+            Lado Derecho: Botones Circulares Mutables
+            - max-sm:!gap-1.5: Junta los dos botones en celulares para optimizar el espacio horizontal.
+          */}
+          <div className="flex flex-row items-center gap-1.5 max-sm:gap-1.5 shrink-0">
+            
+            {/* Botón Descartar: Se convierte en un círculo perfecto menor a SM (< 640px) */}
+            <button
+              type="button"
+              onClick={descartar}
+              className={`${BOTON} bg-red-50 text-red-600 hover:bg-red-100 min-h-9 max-sm:!min-h-9 max-sm:!w-9 max-sm:!p-0 max-sm:!rounded-full sm:min-h-11 px-3 sm:px-5 text-xs sm:text-sm transition-colors`}
+              title="Descartar cambios"
+            >
+              <Trash2 className="w-4 h-4 shrink-0" />
+              <span className="max-sm:hidden">Descartar</span>
+            </button>
+            
+           
+            <button
+              type="button"
+              onClick={guardar}
+              disabled={borrador.trim() === ""}
+              className={`${BOTON} bg-green-50 text-green-600 hover:bg-green-100 min-h-9 max-sm:!min-h-9 max-sm:!w-9 max-sm:!p-0 max-sm:!rounded-full sm:min-h-11 px-3 sm:px-5 text-xs sm:text-sm transition-colors`}
+              title="Aceptar"
+            >
+              <Check className="w-4 h-4 shrink-0" />
+              <span className="max-sm:hidden">Guardar</span>
+            </button>
+
+          </div>
+
         </div>
+
+
       </div>
     );
   }

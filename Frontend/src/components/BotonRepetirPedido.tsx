@@ -29,9 +29,10 @@ interface Props {
   /** El pedido a repetir (se usa su id y, en la pantalla de carga, sus productos) */
   pedido: Order;
   variante?: keyof typeof estilos;
+   ocultarMensaje?: boolean;
 }
 
-function BotonRepetirPedido({ pedido, variante = "claro" }: Props) {
+function BotonRepetirPedido({ pedido, variante = "claro",ocultarMensaje = false }: Props) {
   const { user } = useAuth();
   const { addItem } = useCart();
   const { zona, abrirSelector } = useZona();
@@ -127,14 +128,19 @@ function BotonRepetirPedido({ pedido, variante = "claro" }: Props) {
         <RotateCcw size={16} />
         {cargando ? "Cargando..." : "Repetir pedido"}
       </button>
-      {error && (
+      
+      {/* 
+        Silenciamos los textos únicamente si ocultarMensaje es false 
+      */}
+      {error && !ocultarMensaje && (
         <p className="mt-2 text-sm font-semibold text-brand-red">{error}</p>
       )}
-      {sucursalCerrada && !error && (
+      {sucursalCerrada && !error && !ocultarMensaje && (
         <p className="mt-2 text-sm font-semibold text-brand-red">
           La sucursal está cerrada. No podés repetir el pedido ahora.
         </p>
       )}
+      
       {cargando && <ArmandoPedido pedido={pedido} />}
 
       <Modal

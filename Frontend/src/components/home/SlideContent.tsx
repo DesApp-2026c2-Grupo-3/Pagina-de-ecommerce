@@ -38,7 +38,13 @@ function TituloConResaltado({ title, highlight }: { title: string; highlight?: s
 }
 
 // Texto y botón de un slide, sobre la foto de fondo
-function SlideContent({ slide }: { slide: CarouselSlide }) {
+function SlideContent({ 
+  slide, 
+  transparentesEnMovil = false // 👈 Recibimos la prop con un valor por defecto
+}: { 
+  slide: CarouselSlide; 
+  transparentesEnMovil?: boolean; // 👈 La declaramos en el tipado de TypeScript
+}) {
   return (
     /* Cambiamos a text-left para acompañar el nuevo diseño de cinta baja que elegiste en el carrusel */
     <div className="w-full max-w-2xl text-left">
@@ -61,9 +67,16 @@ function SlideContent({ slide }: { slide: CarouselSlide }) {
           className={`rounded-full px-6 py-3 text-center font-bold min-w-[14rem] sm:min-w-[16rem] transition-all hover:translate-y-0.5
             border-2 border-brand-cream bg-transparent text-brand-cream
             ${
-              slide.ctaVariant === 'outline'
-                ? 'md:border-2 md:border-brand-cream md:bg-transparent md:text-brand-cream md:hover:bg-brand-cream md:hover:text-brand-dark'
-                : 'md:border-0 md:bg-brand-red md:text-white md:hover:translate-y-0.5'
+              /* 
+                🔑 MUTACIÓN DE CLASES DEL BOTÓN:
+                Si transparentesEnMovil es true, forzamos clases transparentes en responsive, 
+                si es false o estamos en escritorio (md:), aplicamos la variante correspondiente.
+              */
+              transparentesEnMovil
+                ? 'border-2 border-brand-cream bg-transparent text-brand-cream md:border-0 md:bg-brand-red md:text-white' 
+                : slide.ctaVariant === 'outline'
+                  ? 'md:border-2 md:border-brand-cream md:bg-transparent md:text-brand-cream md:hover:bg-brand-cream md:hover:text-brand-dark'
+                  : 'md:border-0 md:bg-brand-red md:text-white md:hover:translate-y-0.5'
             }
           `}
         >
