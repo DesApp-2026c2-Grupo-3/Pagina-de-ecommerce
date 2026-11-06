@@ -8,12 +8,8 @@ function TituloConResaltado({ title, highlight }: { title: string; highlight?: s
   const [antes, despues] = title.split(highlight)
 
   if (title.includes("Hola,")) {
-    // 1. Separamos el "Hola, " del resto de la frase
     const [antesDelNombre, resto] = title.split(", ")
-    // 2. Del resto, separamos el nombre usando el punto como límite ("Juan. ¿Qué se te...")
     const [userName, fraseFinal] = resto.split(". ")
-
-    // 3. De la frase final, hacemos el split del highlight ("antoja")
     const [antesHighlight, despuesHighlight] = fraseFinal.split(highlight)
     
     return (
@@ -40,43 +36,57 @@ function TituloConResaltado({ title, highlight }: { title: string; highlight?: s
 // Texto y botón de un slide, sobre la foto de fondo
 function SlideContent({ 
   slide, 
-  transparentesEnMovil = false // 👈 Recibimos la prop con un valor por defecto
+  transparentesEnMovil = false 
 }: { 
   slide: CarouselSlide; 
-  transparentesEnMovil?: boolean; // 👈 La declaramos en el tipado de TypeScript
+  transparentesEnMovil?: boolean; 
 }) {
   return (
-    /* Cambiamos a text-left para acompañar el nuevo diseño de cinta baja que elegiste en el carrusel */
-    <div className="w-full max-w-2xl text-left">
-      {slide.eyebrow && (
-        <span className="mb-4 inline-block rounded-full bg-brand-mustard px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-dark">
-          {slide.eyebrow}
-        </span>
-      )}
+    /* 
+      ✨ ALTURA AUTO-ADAPTABLE SIN ESPACIO OCIOSO:
+      Eliminamos por completo las alturas fijas rígidas (min-h). Dejamos que sea un contenedor flexible 
+      que respire usando un padding inferior constante (pb-4) para que el botón no quede flotando abajo.
+    */
+    <div className="w-full max-w-2xl text-left flex flex-col items-start justify-start pb-4 sm:block sm:pb-0">
+      
+      <div className="w-full flex flex-col items-start sm:block">
+        
+        {/* El eyebrow se renderiza de forma orgánica sin dejar cajas vacías artificiales */}
+        {slide.eyebrow && (
+          <div className="mb-3 sm:mb-6">
+            <span className="inline-block rounded-full bg-brand-mustard px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-dark">
+              {slide.eyebrow}
+            </span>
+          </div>
+        )}
 
-      <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight drop-shadow-lg sm:text-6xl">
-        <TituloConResaltado title={slide.title} highlight={slide.highlight} /> 
-      </h1>
+        {/* 
+          🎨 TEXTO AMPLIADO Y COMPACTO:
+          Usamos 'text-[2.5rem]' en móviles para que las letras llenen horizontalmente la pantalla 
+          en lugar de dejar huecos. Con 'leading-[1.05]' evitamos saltos de línea exagerados.
+        */}
+        <h1 className="font-display text-[2.5rem] font-extrabold leading-[1.05] tracking-tight drop-shadow-lg sm:text-5xl md:text-6xl w-full text-left sm:max-w-md md:max-w-xl">
+          <TituloConResaltado title={slide.title} highlight={slide.highlight} /> 
+        </h1>
 
-      <p className="mt-5 max-w-xl text-lg text-white/85">{slide.description}</p>
+        {/* La descripción gana un interlineado más alto (leading-relaxed) para rellenar el espacio de forma elegante */}
+        <p className="mt-4 sm:mt-5 text-base sm:text-lg md:text-xl leading-relaxed text-white/85 w-full text-left max-w-sm md:max-w-xl">
+          {slide.description}
+        </p>
+      </div>
 
-      {/* Ajustamos el flex a justify-start para mantener la coherencia hacia la izquierda */}
-       <div className="mt-7 flex flex-col gap-3 sm:flex-row justify-center md:justify-start">
+       {/* El botón se acopla inmediatamente abajo del texto, eliminando el aire muerto */}
+       <div className="mt-6 sm:mt-8 w-full flex justify-start sm:block">
         <Link
           to={slide.ctaTo}
-          className={`rounded-full px-6 py-3 text-center font-bold min-w-[14rem] sm:min-w-[16rem] transition-all hover:translate-y-0.5
-            border-2 border-brand-cream bg-transparent text-brand-cream
+          className={`rounded-full px-6 py-3 text-center font-bold transition-all hover:translate-y-0.5
+            w-full block md:inline-block md:w-auto md:min-w-[16rem]
             ${
-              /* 
-                🔑 MUTACIÓN DE CLASES DEL BOTÓN:
-                Si transparentesEnMovil es true, forzamos clases transparentes en responsive, 
-                si es false o estamos en escritorio (md:), aplicamos la variante correspondiente.
-              */
               transparentesEnMovil
                 ? 'border-2 border-brand-cream bg-transparent text-brand-cream md:border-0 md:bg-brand-red md:text-white' 
                 : slide.ctaVariant === 'outline'
-                  ? 'md:border-2 md:border-brand-cream md:bg-transparent md:text-brand-cream md:hover:bg-brand-cream md:hover:text-brand-dark'
-                  : 'md:border-0 md:bg-brand-red md:text-white md:hover:translate-y-0.5'
+                  ? 'border-2 border-brand-cream bg-transparent text-brand-cream md:hover:bg-brand-cream md:hover:text-brand-dark'
+                  : 'bg-brand-red text-white border-2 border-transparent'
             }
           `}
         >

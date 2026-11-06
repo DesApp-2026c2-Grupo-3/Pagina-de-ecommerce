@@ -6,7 +6,9 @@ import Carousel from './Carousel'
 function Hero() {
   const { isAuthenticated, user } = useAuth()
   const { zona } = useZona()
-  const primerNombre = user?.name?.split(' ')[0]
+  const nombreMinus = (user?.name?.split(' ')[0] || '');
+  const primerNombre = nombreMinus.charAt(0).toUpperCase() + nombreMinus.slice(1);
+
 
   const slides: CarouselSlide[] = [
     {
@@ -26,9 +28,10 @@ function Hero() {
     },
     {
       id: 2,
+      eyebrow: zona ? `Pedís desde ${zona.sucursalNombre}` : undefined,
       title: 'Pedí en pocos pasos',
       highlight: 'pocos pasos',
-      description: 'Elegí, personalizá y pagá online: tu pedido llega directo a la puerta de tu casa.',
+      description: `Elegí, personalizá y pagá online: \ntu pedido llega directo a la puerta de tu casa.`,
       ctaLabel: 'Empezar a pedir',
       ctaTo: '/catalogo',
       ctaVariant: 'outline',
@@ -36,6 +39,7 @@ function Hero() {
     },
     {
       id: 3,
+      eyebrow: zona ? `Pedís desde ${zona.sucursalNombre}` : undefined,
       title: 'Box Familiar con 20% off',
       highlight: '20% off',
       description: 'Hamburguesas, papas grandes y bebidas para compartir, a un precio especial.',

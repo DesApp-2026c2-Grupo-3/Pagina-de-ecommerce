@@ -5,17 +5,16 @@ import SlideContent from './SlideContent'
 import SlideBackdrop from './SlideBackdrop'
 
 interface CarouselProps {
-  slides?: CarouselSlide[] // Ahora es opcional si usás children
+  slides?: CarouselSlide[]
   autoPlayMs?: number
   transparentesEnMovil?: boolean
-  children?: React.ReactNode[] // 👈 Agregamos soporte para recibir tarjetas o divs
+  children?: React.ReactNode[]
 }
 
 function Carousel({ slides = [], autoPlayMs = 6000, transparentesEnMovil = false, children }: CarouselProps) {
   const [index, setIndex] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Determinamos el total de elementos dinámicamente
   const totalItems = children ? children.length : slides.length
 
   useEffect(() => {
@@ -46,11 +45,9 @@ function Carousel({ slides = [], autoPlayMs = 6000, transparentesEnMovil = false
     }
   }
 
-  // Si usa children, renderizamos el flujo genérico
   if (children) {
     return (
       <div className="relative w-full">
-        {/* Renderiza únicamente el paso/tarjeta activo del array */}
         <div className="w-full flex justify-center transition-all duration-300">
           {children[index]}
         </div>
@@ -94,16 +91,22 @@ function Carousel({ slides = [], autoPlayMs = 6000, transparentesEnMovil = false
     )
   }
 
-  // --- ABAJO QUEDA TU LÓGICA ORIGINAL INTACTA PARA EL HERO ---
   const slide = slides[index]
   if (!slide) return null
 
   return (
     <section className="relative overflow-hidden border-b-4 border-brand-red bg-brand-dark text-white">
       <SlideBackdrop imagen={slide.backgroundImage} />
-      <div className="relative mx-auto flex min-h-[17rem] w-full max-w-[320px] items-center px-4 pb-16 pt-8 sm:max-w-md md:mx-auto md:min-h-[30rem] md:max-w-7xl md:py-12">
+      
+      {/* 
+        🛠️ CORRECCIÓN AQUÍ: 
+        Cambiamos 'max-w-[320px] sm:max-w-md' por 'w-full' para que en móviles use todo el ancho real de la pantalla.
+        Mantenemos intacto el max-w-7xl y el md:mx-auto para proteger el modo escritorio.
+      */}
+      <div className="relative flex min-h-[17rem] w-full items-center px-4 pb-16 pt-8 md:mx-auto md:min-h-[30rem] md:max-w-7xl md:py-12">
         <SlideContent slide={slide} transparentesEnMovil={transparentesEnMovil} />
       </div>
+      
       {slides.length > 1 && (
         <>
           <button type="button" onClick={() => goTo(index - 1)} className="absolute left-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-white hover:bg-black/40 md:block">
