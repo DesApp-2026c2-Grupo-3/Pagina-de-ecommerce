@@ -93,7 +93,7 @@ const actualizarEstadoPedido = async (req, res) => {
         const viaje = await Viaje.findOne({
             where: {
                 repartidorId,
-                estado: 'activo',
+                estado: {[Op.in]:['preparando', 'activo']},
             },
             transaction,
             lock: transaction.LOCK.UPDATE,
@@ -122,6 +122,23 @@ const actualizarEstadoPedido = async (req, res) => {
             error.statusCode = 404;
             throw error;
         }
+
+        // Validar que la acción corresponda al estado actual del viaje.
+        if ( pedido.estado === 'Listo para retirar' && viaje.estado !== 'preparando') 
+            {const error = new Error(
+                'Solo podés retirar pedidos mientras preparás el viaje'
+                );
+                error.statusCode = 409;
+                throw error;
+            }
+
+        if (pedido.estado === 'En camino' && viaje.estado !== 'activo') 
+            {const error = new Error(
+                'Primero debés iniciar el viaje para entregar pedidos'
+                );
+                error.statusCode = 409;
+                throw error;
+            }
 
         // Comprobar que la transición esté permitida.
         const estadosPermitidos = TRANSICIONES[pedido.estado];

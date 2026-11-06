@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 
 import TarjetaPedido from '../../components/pedidos/TarjetaPedido'
 import { obtenerPedidosDisponibles } from '../../services/pedidoService'
-import { iniciarViaje } from '../../services/viajeService'
+import { tomarPedidos } from '../../services/viajeService'
 import type { Pedido } from '../../types/pedido.types'
 
 export default function Pedidos() {
@@ -14,7 +14,7 @@ export default function Pedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [seleccionados, setSeleccionados] = useState<number[]>([])
   const [cargando, setCargando] = useState(true)
-  const [iniciandoViaje, setIniciandoViaje] = useState(false)
+  const [tomandoPedidos, setTomandoPedidos] = useState(false)
   const [error, setError] = useState('')
   const [errorViaje, setErrorViaje] = useState('')
 
@@ -51,14 +51,14 @@ export default function Pedidos() {
     setErrorViaje('')
   }
 
-  const manejarInicioViaje = async () => {
+  const manejarTomaPedidos = async () => {
     if (seleccionados.length === 0) return
 
     try {
       setErrorViaje('')
-      setIniciandoViaje(true)
+      setTomandoPedidos(true)
 
-      await iniciarViaje(seleccionados)
+      await tomarPedidos(seleccionados)
 
       setSeleccionados([])
       navigate('/viaje')
@@ -66,13 +66,13 @@ export default function Pedidos() {
       setErrorViaje(
         error instanceof Error
           ? error.message
-          : 'No se pudo iniciar el viaje.',
+          : 'No se pudieron tomar los pedidos.',
       )
 
       // Actualizar los pedidos por si alguno dejó de estar disponible.
       await cargarPedidos()
     } finally {
-      setIniciandoViaje(false)
+      setTomandoPedidos(false)
     }
   }
 
@@ -90,8 +90,9 @@ export default function Pedidos() {
 
         <button
           onClick={cargarPedidos}
-          disabled={cargando || iniciandoViaje}
-          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          disabled={cargando || tomandoPedidos}
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold 
+          text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
         >
           <RefreshCw size={17} className={cargando ? 'animate-spin' : ''} />
           Actualizar
@@ -158,17 +159,18 @@ export default function Pedidos() {
                     : 'pedidos seleccionados'}
                 </p>
                 <p className="text-sm text-slate-500">
-                  Listos para comenzar el viaje.
+                  Se asignarán a tu viaje en preparación.
                 </p>
               </div>
 
               <button
-                onClick={manejarInicioViaje}
-                disabled={iniciandoViaje}
-                className="flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={manejarTomaPedidos}
+                disabled={tomandoPedidos}
+                className="flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 font-semibold
+                 text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Truck size={19} />
-                {iniciandoViaje
+                {tomandoPedidos
                   ? 'Iniciando viaje...'
                   : `Iniciar viaje (${seleccionados.length})`}
               </button>

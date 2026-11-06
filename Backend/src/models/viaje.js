@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     fechaInicio: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
       defaultValue: DataTypes.NOW,
     },
     fechaFin: {
@@ -33,7 +33,19 @@ module.exports = (sequelize, DataTypes) => {
     estado: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'activo',
+      defaultValue: 'preparando',
+    },
+     motivoAsistencia: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    comentarioAsistencia: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    fechaSolicitudAsistencia: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   }, {
     sequelize,

@@ -271,23 +271,40 @@ module.exports = {
         },
         fechaInicio: {
           type: Sequelize.DATE,
-          allowNull: false,
+          allowNull: true,
           defaultValue: Sequelize.NOW,
         },
-        fechaFin: { type: Sequelize.DATE, allowNull: true },
+        fechaFin: { type: Sequelize.DATE, allowNull: true 
+        },
         estado: {
           type: Sequelize.STRING,
           allowNull: false,
-          defaultValue: 'activo',
+          defaultValue: 'preparando',
+        },
+        motivoAsistencia: {
+          type: Sequelize.STRING,
+          allowNull: true,
+        },
+        comentarioAsistencia: {
+          type: Sequelize.TEXT,
+          allowNull: true,
+        },
+        fechaSolicitudAsistencia: {
+          type: Sequelize.DATE,
+          allowNull: true,
         },
         ...timestamps,
       });
 
 //La propia base de datos impide que un repartidor tenga dos viajes con estado activo, incluso si llegan dos peticiones simultaneas.
       await queryInterface.addIndex('Viajes', ['repartidorId'], {
-        name: 'viaje_activo_por_repartidor_unico',
+        name: 'viaje_en_curso_por_repartidor_unico',
         unique: true,
-        where: { estado: 'activo' },
+        where: {
+          estado:{
+            [Sequelize.Op.in]: ['activo', 'requiere asistencia'],
+          },
+        },
         transaction,
       });
 
@@ -388,7 +405,7 @@ module.exports = {
   async down(queryInterface) {
     // Orden inverso al de creación, por las claves foráneas
     const tablas = [
-      'MovimientoStocks', 'historialDeTiemposPedido', 'DetallePedidos', 'Pedidos', ,'Viajes', 'Repartidores',
+      'MovimientoStocks', 'historialDeTiemposPedido', 'DetallePedidos', 'Pedidos', 'Viajes', 'Repartidores',
       'StockSucursals', 'RecetaInsumos', 'Insumos',
       'ComboGrupos', 'ProductoTamanios', 'Tamanios', 'Productos', 'Categoria',
       'Direccions', 'TokensRecuperacion', 'Admins', 'Usuarios', 'Sucursals',

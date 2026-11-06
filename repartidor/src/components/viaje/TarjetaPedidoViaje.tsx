@@ -9,20 +9,21 @@ import {
 
 import type { Pedido } from '../../types/pedido.types'
 
-interface TarjetaPedidoViajeProps {
+interface TarjetaPedidoViajeProps { 
   pedido: Pedido
   onActualizarEstado: (
     pedidoId: number,
     estado: 'En camino' | 'Entregado'
   ) => void
   procesando: boolean
+  puedeRetirar: boolean
+  puedeEntregar: boolean
+  puedeQuitar?: boolean
+  onQuitarPedido?: (pedidoId: number) => void
 }
 
-export default function TarjetaPedidoViaje({
-  pedido,
-  onActualizarEstado,
-  procesando,
-}: TarjetaPedidoViajeProps) {
+export default function TarjetaPedidoViaje({ pedido, onActualizarEstado, procesando,
+   puedeRetirar, puedeEntregar, puedeQuitar, onQuitarPedido }: TarjetaPedidoViajeProps) {
   const fecha = new Date(pedido.fecha)
   const direccion = pedido.Direccion
   const telefono = pedido.Usuario.telefono
@@ -185,17 +186,25 @@ export default function TarjetaPedidoViaje({
       {pedido.estado === 'Listo para retirar' && (
         <button
           onClick={() => onActualizarEstado(pedido.id, 'En camino')}
-          disabled={procesando}
+          disabled={procesando || !puedeRetirar}
           className="mt-5 w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {procesando ? 'Procesando...' : 'Retirar pedido'}
         </button>
       )}
 
+      {pedido.estado === 'Listo para retirar' && puedeQuitar && (
+        <button onClick={() => onQuitarPedido?.(pedido.id)}
+          className="mt-3 w-full rounded-xl border border-red-200 bg-white
+           px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50">
+            Quitar del viaje
+        </button>
+      )}
+
       {pedido.estado === 'En camino' && (
         <button
           onClick={() => onActualizarEstado(pedido.id, 'Entregado')}
-          disabled={procesando}
+          disabled={procesando || !puedeEntregar}
           className="mt-5 w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {procesando ? 'Procesando...' : 'Confirmar entrega'}
