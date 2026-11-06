@@ -265,15 +265,15 @@ function DetalleProducto({ id }: { id: number }) {
 
   // Pasos intermedios: total + Atrás / Continuar.
   // Último paso: cantidad, total y los dos botones de compra. En el celular la barra es oscura y va pegada abajo.
-  const barraCompra = (movil: boolean) =>
-    !esUltimoPaso ? (
-      <div className={movil ? 'flex flex-col gap-3' : 'flex items-center justify-between gap-3'}>
+  const barraCompra = (movil: boolean) => {
+    const contenido = !esUltimoPaso ? (
+      <div className={movil ? 'flex flex-col gap-2' : 'flex items-center justify-between gap-3'}>
         {totalTexto(movil)}
         <div className={`flex gap-2 ${movil ? 'w-full' : ''}`}>
           <button
             type="button"
             onClick={() => (paso > 1 ? setPaso(paso - 1) : volverAlProducto())}
-            className={`min-h-13 rounded-full border-2 px-5 font-bold ${botonBorde(movil)}`}
+            className={`min-h-11 sm:min-h-13 rounded-full border-2 px-4 sm:px-5 font-bold ${botonBorde(movil)}`}
           >
             Atrás
           </button>
@@ -281,51 +281,58 @@ function DetalleProducto({ id }: { id: number }) {
             type="button"
             onClick={() => irAPaso(paso + 1)}
             disabled={!puedeAvanzar}
-            className={`flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${movil ? 'flex-1' : ''}`}
+            className={`flex min-h-11 sm:min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-5 sm:px-6 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${movil ? 'flex-1' : ''}`}
           >
-            Continuar <ArrowRight className="h-5 w-5" />
+            Continuar <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
       </div>
-    ) : (
-      <>
-        <div className="flex items-center justify-between gap-4 pb-4">
+    ) :     (
+      <div className={movil ? 'flex flex-col gap-2' : 'flex items-center justify-between gap-3'}>
+        <div className="flex items-center justify-between gap-4 pb-2 sm:pb-4">
           <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
           {totalTexto(movil)}
         </div>
 
-
-        <button
-          type="button"
-          onClick={() => setConfirmandoAgregar(true)}
-          disabled={!puedeComprar}
-          className="group flex min-h-14 w-full items-center justify-center gap-3
-            rounded-full border-2 border-brand-dark bg-brand-red
-            px-6 py-4 font-extrabold text-white
-            shadow-[4px_4px_0px_#252525] transition-all duration-200
-            hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#252525]
-            active:translate-y-1 active:shadow-none
-            disabled:cursor-not-allowed disabled:opacity-40">
-          <ShoppingBag className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-          <span className="text-base sm:text-lg">Añadir al carrito</span>
-          <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
-        </button>
-
-        {paso > 1 && (
+        {/* 
+          👑 REPLICA EXACTA DE LA CAPA ANTECESORA:
+          - Usamos exactamente la misma estructura flex y las clases idénticas del paso anterior.
+        */}
+        <div className={`flex gap-2 ${movil ? 'w-full' : ''}`}>
+          {paso > 1 && (
+            <button
+              type="button"
+              onClick={() => setPaso(paso - 1)}
+              className={`min-h-11 sm:min-h-13 rounded-full border-2 px-4 sm:px-5 font-bold ${botonBorde(movil)}`}
+            >
+              Atrás
+            </button>
+          )}
+          
           <button
             type="button"
-            onClick={() => setPaso(paso - 1)}
-            className={`group mt-3 flex w-full items-center justify-center gap-2
-              rounded-full py-2.5 text-sm font-bold
-              transition-all duration-200
-              hover:bg-brand-dark/5 ${movil ? 'text-brand-cream/80' : 'text-brand-muted'}`}
+            onClick={() => setConfirmandoAgregar(true)}
+            disabled={!puedeComprar}
+            className={`flex min-h-11 sm:min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-5 sm:px-6 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${movil ? 'flex-1' : ''}`}
           >
-            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
-            <span>Volver al paso anterior</span>
+            <ShoppingBag className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">Añadir al carrito</span>
+            <ArrowRight className="h-4 w-4 shrink-0" />
           </button>
-        )}
-      </>
+        </div>
+      </div>
     )
+
+
+    return movil ? (
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-brand-dark bg-[#1A1A1A] px-4 pb-5 pt-4 rounded-t-[1.75rem] border-x-2 shadow-[0_-8px_16px_rgba(0,0,0,0.2)] transition-all animate-fade-in">
+        {contenido}
+      </div>
+    ) : (
+      contenido
+    )
+  }
+
 
   function empezarAArmar() {
     setPaso(1)
@@ -399,46 +406,53 @@ function DetalleProducto({ id }: { id: number }) {
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
-  {/* Banda oscura arriba: la imagen y la tarjeta se montan sobre ella */}
-  <div className="bg-brand-dark px-4 pb-28 pt-6 sm:pb-40">
-    <div className="mx-auto max-w-6xl">
-      <Link
-        to="/catalogo?grupo=todos"
-        className="inline-flex min-h-11 items-center gap-2 font-bold text-brand-cream/70 transition-colors hover:text-brand-cream"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        Menú{categoryName && <span className="text-brand-cream/40">/ {categoryName}</span>}
-      </Link>
-    </div>
-  </div>
+      {/* Banda oscura arriba: la imagen y la tarjeta se montan sobre ella */}
+      <div className="bg-brand-dark px-4 pb-28 pt-6 sm:pb-40">
+        <div className="mx-auto max-w-6xl">
+          <Link
+            to="/catalogo?grupo=todos"
+            className="inline-flex min-h-11 items-center gap-2 font-bold text-brand-cream/70 transition-colors hover:text-brand-cream"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Menú{categoryName && <span className="text-brand-cream/40">/ {categoryName}</span>}
+          </Link>
+        </div>
+      </div>
 
- <div className="mx-auto -mt-24 grid max-w-6xl gap-5 px-4 pb-8 justify-items-center sm:-mt-36 sm:gap-8 sm:pb-12 md:grid-cols-2 md:items-start md:justify-items-stretch md:gap-12 [&>*]:min-w-0">
-
-
-
-    {/* La imagen grande queda a la izquierda. En celular se oculta mientras se arma el pedido */}
-  <div className={armando ? 'hidden md:block' : ''}>
-  <div className="relative mx-auto grid aspect-square h-auto w-full max-w-[280px] rotate-2 place-items-center rounded-[2rem] border-2 border-brand-dark bg-brand-red sm:max-w-[288px] sm:rounded-[2.5rem] md:max-w-md">
-    <div className="absolute inset-[8%] rounded-full bg-black/15" />
-    {imagenProducto(
-      'relative h-[70%] w-auto max-w-[70%] -rotate-2 object-contain drop-shadow-2xl md:h-auto md:w-[85%] md:max-w-none md:max-h-[82%]',
-      'relative h-20 w-20 text-brand-cream sm:h-32 sm:w-32',
-    )}
-  </div>
-</div>
+      <div className="mx-auto -mt-24 grid max-w-6xl gap-5 px-4 pb-8 justify-items-center sm:-mt-36 sm:gap-8 sm:pb-12 md:grid-cols-2 md:items-start md:justify-items-stretch md:gap-12 [&>*]:min-w-0">
 
 
 
-
-        {/* A la derecha: primero la descripción con "Agregar"; al tocarlo, se reemplaza por los pasos */}
-        {!armando ? (
-          <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-5 shadow-sticker sm:p-8">
-            {infoProducto}
-            <div className="mt-8 hidden md:block">{botonEmpezar}</div>
+        {/* La imagen grande queda a la izquierda. En celular se oculta mientras se arma el pedido */}
+        
+        <div className={armando ? 'hidden md:block' : ''}>
+          <div className="relative mx-auto grid aspect-square h-auto w-full max-w-[280px] rotate-2 place-items-center rounded-[2rem] border-2 border-brand-dark bg-brand-red sm:max-w-[288px] sm:rounded-[2.5rem] md:max-w-md">
+            <div className="absolute inset-[8%] rounded-full bg-black/15" />
+            {imagenProducto(
+              'relative h-[70%] w-auto max-w-[70%] -rotate-2 object-contain drop-shadow-2xl md:h-auto md:w-[85%] md:max-w-none md:max-h-[82%]',
+              'relative h-20 w-20 text-brand-cream sm:h-32 sm:w-32',
+            )}
           </div>
-        ) : (
-          <>
-            <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-5 shadow-sticker sm:p-8">
+        </div>
+
+
+
+
+                {/* 
+          👑 UNIFICACIÓN DE LA TARJETA BLANCA:
+          Ponemos la caja blanca fija como base rígida. No se moverá ni saltará nunca más en mobile.
+        */}
+        <div className="w-full rounded-[2rem] border-2 border-brand-dark bg-white p-5 shadow-sticker sm:p-8 text-brand-dark">
+          
+          {!armando ? (
+            /* CAMINO 1: Vista Inicial (Fast & Onion base) */
+            <>
+              {infoProducto}
+              <div className="mt-8 hidden md:block">{botonEmpezar}</div>
+            </>
+          ) : (
+            /* CAMINO 2: Flujo de Armado e Ingredientes */
+            <>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-extrabold uppercase tracking-wider text-brand-red">Armá tu pedido</p>
@@ -513,7 +527,6 @@ function DetalleProducto({ id }: { id: number }) {
                     const ing = ingredientes.find((i) => i.insumoId === insumoId)
                     setCantidades((prev) => {
                       const nuevas = { ...prev }
-                      // Si vuelve a la cantidad de la receta, deja de contar como cambio
                       if (ing && cantidad === ing.cantidadBase) delete nuevas[insumoId]
                       else nuevas[insumoId] = cantidad
                       return nuevas
@@ -523,40 +536,27 @@ function DetalleProducto({ id }: { id: number }) {
               )}
 
               {pasoActual === 'final' && (
-                <>
-                  {/* Repaso de lo elegido en los pasos anteriores */}
-                  {pasos.length > 1 && (
-                    <div className="mt-6 rounded-2xl border-2 border-dashed border-brand-sand bg-brand-cream/60 p-4">
-                      <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu elección</p>
-                      <p className="mt-1 font-semibold">{resumenEleccion() || 'Como viene en la receta'}</p>
-                    </div>
-                  )}
-
-                  {/*<SeccionOpciones titulo="¿Algo para la cocina?">
-                  <textarea
-                    value={nota}
-                    onChange={(e) => setNota(e.target.value)}
-                    maxLength={140}
-                    rows={2}
-                    placeholder="Ej: bien cocida, sin sal en las papas"
-                    className="w-full resize-none rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 placeholder:text-brand-muted/70 focus:border-brand-red focus:outline-none"
-                  />
-                </SeccionOpciones>*/}
-                </>
+                <div className="mt-6 rounded-2xl border-2 border-dashed border-brand-sand bg-brand-cream/60 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu elección</p>
+                  <p className="mt-1 font-semibold">{resumenEleccion() || 'Como viene en la receta'}</p>
+                </div>
               )}
-
 
               {/* En pantallas grandes la barra de compra va dentro de la tarjeta */}
               <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">
                 {barraCompra(false)}
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+
+        </div>
+
       </div>
 
       {/* En el celular la barra queda pegada al pie de la pantalla */}
-      <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
+
         {armando ? (
           <>
             {esUltimoPaso && sucursalCerrada && (
