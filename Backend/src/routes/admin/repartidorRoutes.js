@@ -11,6 +11,8 @@ router.get('/', esAdminJwt, repartidorController.verRepartidores);
 
 router.post('/', esAdminJwt, validarRepartidor, repartidorController.crearRepartidor);
 
+router.get( '/disponibles/:viajeId', esAdminJwt, repartidorController.obtenerRepartidoresDisponibles);
+
 router.get('/:id', esAdminJwt, repartidorController.obtenerRepartidorPorId);
 
 router.put('/:id', esAdminJwt, validarActualizacionRepartidor, repartidorController.actualizarRepartidor);

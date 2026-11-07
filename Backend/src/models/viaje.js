@@ -47,6 +47,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    latitudAsistencia: {
+      type: DataTypes.DECIMAL(10, 7),
+      allowNull: true,
+    },
+    longitudAsistencia: {
+      type: DataTypes.DECIMAL(10, 7),
+      allowNull: true,
+    },
   }, {
     sequelize,
     modelName: 'Viaje',

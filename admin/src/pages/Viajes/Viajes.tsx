@@ -1,23 +1,22 @@
 
 import { useEffect, useState } from "react";
-import { Bike, Package, Clock } from "lucide-react";
+import { Bike, Package, Clock, AlertTriangle, ChevronUp, ChevronDown, MapPin } from "lucide-react";
 import MensajeVacio from "../../components/MensajeVacio";
 import Paginacion from "../../components/Paginacion";
-import {
-  BarraFiltros,
-  Buscador,
-  SelectFiltro,
-} from "../../components/Filtros";
+import { BarraFiltros, Buscador, SelectFiltro } from "../../components/Filtros";
 import { obtenerSucursales } from "../../services/sucursalService";
-import { obtenerViajesPorSucursal } from "../../services/viajeService";
+import { obtenerViajesPorSucursal, reasignarViaje } from "../../services/viajeService";
 import { useAuth } from "../../context/AuthContext";
 import type { SucursalOpcion } from "../../types/pedido.types";
 import type { Viaje } from "../../types/viaje.types";
 import DetallePedidoModal from "../../components/DetallePedidoModal";
+import ModalReasignarRepartidor from "../../components/viajes/ModalReasignarRepartidor"; 
 
 const POR_PAGINA = 8;
 
-function formatearFechaHora(valor: string) {
+function formatearFechaHora(valor: string | null) {
+  if (!valor) return "Pendiente de inicio";
+
   return new Date(valor).toLocaleString("es-AR", {
     timeZone: "America/Argentina/Buenos_Aires",
     dateStyle: "short",
@@ -39,6 +38,9 @@ function EstadoViaje({ estado }: { estado: string }) {
   const colores: Record<string, string> = {
     activo: "bg-green-100 text-green-700",
     finalizado: "bg-gray-200 text-gray-700",
+    preparando: "bg-blue-100 text-blue-700",
+    "requiere asistencia": "bg-red-100 text-red-700",
+    cancelado: "bg-gray-200 text-gray-700",
   };
 
   const color = colores[estado.toLowerCase()] ?? "bg-amber-100 text-amber-700";
@@ -72,6 +74,14 @@ export default function Viajes() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
+
+  const [detalleAsistenciaId, setDetalleAsistenciaId] = useState<number | null>(null);
+
+  const [viajeReasignacionId, setViajeReasignacionId] = useState<number | null>(null);
+
+  const [reasignando, setReasignando] = useState(false);
+  const [mensajeReasignacion, setMensajeReasignacion] = useState("");
+  const [errorReasignacion, setErrorReasignacion] = useState("");
 
   // El MASTER puede consultar cualquier sucursal.
   useEffect(() => {
@@ -163,6 +173,41 @@ export default function Viajes() {
     ? sucursales.find((s) => s.id === sucursalId)?.nombre
     : administrador?.sucursal?.nombre;
 
+  function abrirReasignacion(viajeId: number) {
+    setViajeReasignacionId(viajeId);
+  }
+
+  async function confirmarReasignacion(repartidorId: number) {
+    if (viajeReasignacionId === null) return;
+
+    setReasignando(true);
+    setErrorReasignacion("");
+    setMensajeReasignacion("");
+
+    try {
+      await reasignarViaje(viajeReasignacionId, repartidorId);
+
+      setMensajeReasignacion(
+        `El viaje #${viajeReasignacionId} fue reasignado correctamente.`
+      );
+
+      setViajeReasignacionId(null);
+
+      // Actualizamos los viajes para mostrar al nuevo repartidor.
+      const lista = await obtenerViajesPorSucursal(sucursalId!);
+      setViajes(lista);
+
+    } catch (error) {
+      setErrorReasignacion(
+        error instanceof Error
+          ? error.message
+          : "No se pudo reasignar el viaje."
+      );
+    } finally {
+      setReasignando(false);
+    }
+  }
+
   return (
     <main className="w-full max-w-full overflow-hidden p-8">
       <div className="mb-6">
@@ -178,6 +223,20 @@ export default function Viajes() {
             : "Seguimiento de los viajes de la sucursal."}
         </p>
       </div>
+
+      {mensajeReasignacion && (
+        <div className="mb-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-700">
+          {mensajeReasignacion}
+        </div>
+        )
+      }
+
+      {errorReasignacion && (
+        <div role="alert" className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {errorReasignacion}
+        </div>
+      )
+    }
 
       {!esMaster && sucursalId === null ? (
         <div className="rounded-lg border bg-white px-6 py-10">
@@ -215,8 +274,11 @@ export default function Viajes() {
               etiqueta="Filtrar por estado"
               opciones={[
                 { valor: "todos", etiqueta: "Todos los viajes" },
+                { valor: "preparando", etiqueta: "Preparando" },
                 { valor: "activo", etiqueta: "Activos" },
+                { valor: "requiere asistencia", etiqueta: "Requieren asistencia" },
                 { valor: "finalizado", etiqueta: "Finalizados" },
+                { valor: "cancelado", etiqueta: "Cancelados" },
               ]}
             />
           </BarraFiltros>
@@ -319,6 +381,99 @@ export default function Viajes() {
                           );
                         })}
                       </div>
+                      
+                      {viaje.estado === "requiere asistencia" && (
+                        <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                          <button type="button"
+                          onClick={() => setDetalleAsistenciaId((actual) =>
+                          actual === viaje.id ? null : viaje.id
+                          )}
+                        className="flex w-full items-center justify-between text-left"
+                        aria-expanded={detalleAsistenciaId === viaje.id}>
+                        <span className="flex items-center gap-2 font-semibold text-amber-800">
+                          <AlertTriangle size={18} />
+                            Detalles de asistencia
+                        </span>
+
+                        {detalleAsistenciaId === viaje.id ? (
+                          <ChevronUp size={18} className="text-amber-800" />
+                        ) : (
+                          <ChevronDown size={18} className="text-amber-800" />
+                        )}
+                        </button>
+                        
+                        {detalleAsistenciaId === viaje.id && (
+                          <div className="mt-3 space-y-3 border-t border-amber-200 pt-3">
+                            <div>
+                              <p className="text-xs font-medium text-gray-500">
+                                Motivo
+                              </p>
+                              <p className="font-semibold text-gray-800">
+                                {viaje.motivoAsistencia ?? "No especificado"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-medium text-gray-500">
+                                Comentario del repartidor
+                              </p>
+                              <p className="text-sm text-gray-800">
+                                {viaje.comentarioAsistencia?.trim() ||
+                                    "El repartidor no agregó comentarios."}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-medium text-gray-500">
+                                Solicitud
+                              </p>
+                              <p className="text-sm text-gray-800">
+                                {viaje.fechaSolicitudAsistencia ? formatearFechaHora(viaje.fechaSolicitudAsistencia)
+                                : "Fecha no disponible"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                                <MapPin size={15} />
+                                  Ubicación registrada
+                              </p>
+
+                            {viaje.latitudAsistencia != null &&
+                              viaje.longitudAsistencia != null ? (
+                                <>
+                                  <p className="mt-1 text-sm text-gray-700">
+                                    Latitud: {viaje.latitudAsistencia}
+                                  </p>
+                                  <p className="text-sm text-gray-700">
+                                    Longitud: {viaje.longitudAsistencia}
+                                  </p>
+                                  
+                                  <a href={`https://www.google.com/maps?q=${viaje.latitudAsistencia},${viaje.longitudAsistencia}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700"
+                                  >
+                                    Ver ubicación en Google Maps
+                                    <span aria-hidden="true">↗</span>
+                                  </a>
+                                </>
+                              ) : (
+                                <p className="text-sm text-gray-600">
+                                    No hay una ubicación registrada.
+                                </p>
+                              )
+                            }
+                            </div>
+                          </div>
+                        )}
+
+                        <button type="button" onClick={() => abrirReasignacion(viaje.id)}
+                        className="mt-3 w-full rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">
+                          Reasignar repartidor
+                        </button>
+                        </div>
+                      )}
+
                     </div>
 
                     <div className="mt-auto flex items-center justify-between pt-3 text-xs text-gray-500">
@@ -355,6 +510,16 @@ export default function Viajes() {
       )}
 
       <DetallePedidoModal pedidoId={detalleId} onClose={() => setDetalleId(null)}/>
+
+      {viajeReasignacionId !== null && (
+        <ModalReasignarRepartidor
+        viajeId={viajeReasignacionId}
+        onClose={() => setViajeReasignacionId(null)}
+        onSeleccionar={confirmarReasignacion}
+        procesando={reasignando}
+        />
+      )}
+
     </main>
   );
 }

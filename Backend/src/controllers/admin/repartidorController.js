@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
-const { Repartidor, Sucursal, Viaje } = require('../../models');
+const { Repartidor, Sucursal, Viaje, Admin } = require('../../models');
+const { Op } = require('sequelize');
 
 const SUCURSAL = {
     model: Sucursal,
@@ -277,7 +278,7 @@ const desactivarRepartidor = async (req, res) => {
         const viajeActivo = await Viaje.findOne({
             where: {
                 repartidorId: repartidor.id,
-                estado: 'activo'
+                estado: {[Op.in]: ['preparando', 'activo', 'requiere asistencia']}
             }
         });
 
@@ -338,11 +339,99 @@ const reactivarRepartidor = async (req, res) => {
     }
 };
 
+const obtenerRepartidoresDisponibles = async (req, res) => {
+    try {
+        const { viajeId } = req.params;
+
+        // Verificar que el administrador exista.
+        const admin = await Admin.findByPk(req.usuario.id);
+
+        if (!admin) {
+            return res.status(401).json({
+                mensaje: 'Iniciá sesión de nuevo',
+            });
+        }
+
+        // Buscar el viaje que necesita reasignación.
+        const viaje = await Viaje.findByPk(viajeId, {
+            include: [{
+                model: Repartidor,
+                attributes: ['id', 'sucursalId'],
+            }],
+        });
+
+        if (!viaje) {
+            return res.status(404).json({
+                mensaje: 'Viaje no encontrado',
+            });
+        }
+
+        if (viaje.estado !== 'requiere asistencia') {
+            return res.status(400).json({
+                mensaje: 'El viaje no requiere asistencia',
+            });
+        }
+
+        const sucursalId = viaje.Repartidor.sucursalId;
+
+        // Verificar permisos sobre la sucursal.
+        if (
+            admin.sucursalId !== null &&
+            Number(admin.sucursalId) !== Number(sucursalId)
+        ) {
+            return res.status(403).json({
+                mensaje: 'No tenés permisos para acceder a esta sucursal',
+            });
+        }
+
+        // Buscar repartidores que ya tienen un viaje en curso.
+        const viajesEnCurso = await Viaje.findAll({
+            attributes: ['repartidorId'],
+            where: {
+                estado: {
+                    [Op.in]: [
+                        'preparando',
+                        'activo',
+                        'requiere asistencia',
+                    ],
+                },
+            },
+        });
+
+        const repartidoresOcupados = viajesEnCurso.map(
+            viaje => viaje.repartidorId
+        );
+
+        // Buscar repartidores activos y disponibles de la misma sucursal.
+        const repartidores = await Repartidor.findAll({
+            where: {
+                sucursalId,
+                activo: true,
+                id: {
+                    [Op.notIn]: repartidoresOcupados,
+                },
+            },
+            attributes: ['id', 'nombre', 'apellido'],
+            order: [['nombre', 'ASC']],
+        });
+
+        return res.status(200).json(repartidores);
+
+    } catch (error) {
+        console.error('Error al obtener repartidores disponibles:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener los repartidores disponibles',
+        });
+    }
+};
+
 module.exports = {
     verRepartidores,
     crearRepartidor,
     obtenerRepartidorPorId,
     actualizarRepartidor,
     desactivarRepartidor,
-    reactivarRepartidor
+    reactivarRepartidor,
+    obtenerRepartidoresDisponibles
 };

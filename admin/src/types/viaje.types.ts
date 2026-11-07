@@ -16,12 +16,26 @@ export interface RepartidorDeViaje {
   apellido: string
 }
 
+export type EstadoViaje =
+  | 'preparando'
+  | 'activo'
+  | 'requiere asistencia'
+  | 'finalizado'
+  | 'cancelado'
+
 export interface Viaje {
   id: number
   repartidorId: number
-  fechaInicio: string
+  fechaInicio: string | null
   fechaFin: string | null
-  estado: 'activo' | 'finalizado'
+  estado: EstadoViaje
+
+  motivoAsistencia: string | null
+  comentarioAsistencia: string | null
+  fechaSolicitudAsistencia: string | null
+  latitudAsistencia: string | number | null
+  longitudAsistencia: string | number | null
+
   Repartidor: RepartidorDeViaje
   Pedidos: PedidoDeViaje[]
 }

@@ -1,6 +1,7 @@
 import type {
   Repartidor,
   PayloadRepartidor,
+  RepartidorDisponible
 } from '../types/repartidor.types'
 
 import { apiFetch, API_URL } from './httpClient'
@@ -53,3 +54,10 @@ export async function reactivarRepartidor(id: number): Promise<{ mensaje: string
         mensajePorDefecto: 'Error al reactivar el repartidor',
     })
 }
+
+export async function obtenerRepartidoresDisponibles(viajeId: number): Promise<RepartidorDisponible[]> {
+  return apiFetch(`${API}/disponibles/${viajeId}`, {
+    mensajePorDefecto: 'Error al obtener los repartidores disponibles',
+  })
+}
+

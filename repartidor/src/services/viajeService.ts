@@ -1,7 +1,7 @@
 import { apiFetch } from './httpClient'
 
 import type { ViajeActivo, RespuestaIniciarViaje, ViajeHistorial, 
-  SolicitudAsistencia, RespuestaSolicitudAsistencia, 
+  SolicitudAsistenciaPayload, RespuestaSolicitudAsistencia, 
   RespuestaCambioEstadoViaje,
   ViajeCreado} from '../types/viaje.types'
 
@@ -30,7 +30,7 @@ export const obtenerHistorialViajes = () => {
   return apiFetch<ViajeHistorial[]>('/repartidor/viajes/historial')
 }
 
-export const solicitarAyuda = (datos: SolicitudAsistencia) => {
+export const solicitarAyuda = (datos: SolicitudAsistenciaPayload) => {
   return apiFetch<RespuestaSolicitudAsistencia>('/repartidor/viajes/solicitar-ayuda', {
     method: 'POST',
     headers: {

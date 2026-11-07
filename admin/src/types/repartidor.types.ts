@@ -21,3 +21,9 @@ export interface PayloadRepartidor {
   password: string
   sucursalId: number
 }
+
+export interface RepartidorDisponible {
+  id: number
+  nombre: string
+  apellido: string
+}

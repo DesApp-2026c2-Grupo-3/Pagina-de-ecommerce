@@ -426,7 +426,7 @@ const obtenerHistorialViajes = async (req, res) => {
 
 const solicitarAyuda = async (req, res) => {
     const { id: repartidorId } = req.repartidor;
-    const { motivo, comentario } = req.body;
+    const { motivo, comentario, latitud, longitud } = req.body;
 
     const motivosValidos = [
         'Problema con el vehículo',
@@ -447,6 +447,20 @@ const solicitarAyuda = async (req, res) => {
     ) {
         return res.status(400).json({
             mensaje: 'El comentario debe tener como máximo 500 caracteres',
+        });
+    }
+
+    if ( typeof latitud !== 'number' ||
+        !Number.isFinite(latitud) ||
+        latitud < -90 ||
+        latitud > 90 ||
+        typeof longitud !== 'number' ||
+        !Number.isFinite(longitud) ||
+        longitud < -180 ||
+        longitud > 180) 
+        {
+        return res.status(400).json({
+            mensaje: 'No se pudo obtener una ubicación válida',
         });
     }
 
@@ -476,6 +490,8 @@ const solicitarAyuda = async (req, res) => {
                 motivoAsistencia: motivo,
                 comentarioAsistencia: comentario?.trim() || null,
                 fechaSolicitudAsistencia: new Date(),
+                latitudAsistencia: latitud,
+                longitudAsistencia: longitud,
             },
             { transaction }
         );
@@ -490,6 +506,8 @@ const solicitarAyuda = async (req, res) => {
                 motivoAsistencia: viaje.motivoAsistencia,
                 comentarioAsistencia: viaje.comentarioAsistencia,
                 fechaSolicitudAsistencia: viaje.fechaSolicitudAsistencia,
+                latitudAsistencia: viaje.latitudAsistencia,
+                longitudAsistencia: viaje.longitudAsistencia,
             },
         });
 

@@ -3,12 +3,53 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, Truck, ClipboardList, AlertTriangle } from 'lucide-react'
 
 import { obtenerViajeActivo, solicitarAyuda, iniciarViaje, quitarPedidoDelViaje } from '../../services/viajeService'
-import type { SolicitudAsistencia, ViajeActivo } from '../../types/viaje.types'
+import type { ViajeActivo, SolicitudAsistencia, SolicitudAsistenciaPayload } from '../../types/viaje.types'
 import TarjetaPedidoViaje from '../../components/viaje/TarjetaPedidoViaje'
 import { actualizarEstadoPedido } from '../../services/pedidoService'
 import ModalQuitarPedido from '../../components/viaje/ModalQuitarPedido'
 
 import  ModalSolicitudAyuda  from '../../components/viaje/ModalSolicitudAyuda'
+
+const obtenerUbicacionActual = (): Promise<{
+  latitud: number
+  longitud: number
+}> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Tu navegador no permite obtener la ubicación.'))
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        resolve({
+          latitud: posicion.coords.latitude,
+          longitud: posicion.coords.longitude,
+        })
+      },
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            reject(new Error('Debés permitir el acceso a tu ubicación para solicitar asistencia.'))
+            break
+          case error.POSITION_UNAVAILABLE:
+            reject(new Error('No se pudo determinar tu ubicación actual.'))
+            break
+          case error.TIMEOUT:
+            reject(new Error('Se agotó el tiempo para obtener tu ubicación. Intentá nuevamente.'))
+            break
+          default:
+            reject(new Error('Ocurrió un error al obtener tu ubicación.'))
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    )
+  })
+}
 
 export default function Viaje() {
   const [viaje, setViaje] = useState<ViajeActivo | null>(null)
@@ -151,19 +192,59 @@ const confirmarQuitarPedido = async () => {
     )
   }
 
+  const obtenerUbicacionActual = (): Promise<{latitud: number,longitud: number}> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Tu navegador no permite obtener la ubicación.'))
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitud: position.coords.latitude,
+            longitud: position.coords.longitude,
+          })
+        },
+        (error) => {
+          let mensaje = 'No se pudo obtener tu ubicación.'
+
+          if (error.code === error.PERMISSION_DENIED) {
+            mensaje = 'Debés permitir el acceso a tu ubicación para solicitar asistencia.'
+          } else if (error.code === error.TIMEOUT) {
+            mensaje = 'Se agotó el tiempo de espera al obtener tu ubicación.'
+          }
+
+          reject(new Error(mensaje))
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      )
+    })
+  }
+
  const enviarSolicitudAyuda = async (datos: SolicitudAsistencia) => {
   try {
     setEnviandoAyuda(true)
     setErrorAyuda('')
 
-    const respuesta = await solicitarAyuda(datos)
+    const ubicacion = await obtenerUbicacionActual()
+
+    const payload: SolicitudAsistenciaPayload = {
+      ...datos,
+      ...ubicacion,
+    }
+
+    const respuesta = await solicitarAyuda(payload)
 
     setViaje((actual) =>
       actual ? { ...actual, ...respuesta.viaje } : actual
     )
 
     setModalAyuda(false)
-
   } catch (error) {
     setErrorAyuda(
       error instanceof Error

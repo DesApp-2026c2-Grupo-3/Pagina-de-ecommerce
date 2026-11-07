@@ -293,6 +293,14 @@ module.exports = {
           type: Sequelize.DATE,
           allowNull: true,
         },
+        latitudAsistencia: {
+          type: Sequelize.DECIMAL(10, 7),
+          allowNull: true,
+        },
+        longitudAsistencia: {
+          type: Sequelize.DECIMAL(10, 7),
+          allowNull: true,
+        },
         ...timestamps,
       });
 

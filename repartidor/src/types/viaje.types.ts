@@ -37,6 +37,8 @@ export interface ViajeActivo extends ViajeCreado {
   motivoAsistencia: string | null
   comentarioAsistencia: string | null
   fechaSolicitudAsistencia: string | null
+  latitudAsistencia: string | number | null
+  longitudAsistencia: string | number | null
   Pedidos: Pedido[]
 }
 
@@ -50,13 +52,21 @@ export interface SolicitudAsistencia {
   comentario?: string
 }
 
+// Datos que finalmente enviamos al backend
+export interface SolicitudAsistenciaPayload extends SolicitudAsistencia {
+  latitud: number
+  longitud: number
+}
+
 export interface RespuestaSolicitudAsistencia {
   mensaje: string
   viaje: {
     id: number
     estado: 'requiere asistencia'
-    motivoAsistencia: string
+    motivoAsistencia: Motivo
     comentarioAsistencia: string | null
     fechaSolicitudAsistencia: string
+    latitudAsistencia: string | number | null
+    longitudAsistencia: string | number | null
   }
 }
