@@ -466,6 +466,9 @@ const crearPedido = async (req, res) => {
                 cantidad: producto.cantidad,
                 precio: precioUnitario,
                 tamanioId: tamanioElegido ? tamanioElegido.tamanioId : null,
+                // Para los reportes de promociones: qué promo se usó y el precio sin descuento
+                promocionId: producto.promoId ? Number(producto.promoId) : null,
+                precioLista: producto.promoId ? precioLista : null,   
                 personalizaciones,
                 combo: elecciones.length > 0
                     ? {

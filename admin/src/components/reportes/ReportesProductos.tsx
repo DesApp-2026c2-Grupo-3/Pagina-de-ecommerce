@@ -23,6 +23,7 @@ import {
   type ProductoMenosVendido,
   type ProductoMayorFacturacion,
   type ProductoSinStock,
+  type PeriodoReporte,
 } from "../../types/reporte.types";
 
 import { obtenerSucursales } from "../../services/sucursalService";
@@ -31,12 +32,12 @@ import { type Sucursal } from "../../types/sucursal.types";
 import RankingAnimado, { type FilaRankingAnimado } from "./RankingAnimado";
 import TicketProducto, { type DatosTicket } from "./TicketProducto";
 import HeladeraMenosVendidos from "./HeladeraMenosVendidos";
-import Paginacion from "../../components/Paginacion";
 import TorresFacturacion, { type FilaFacturacion } from "./TorresFacturacion";
+import OrdenReposicion from "./OrdenReposicion";
+import BotonesPeriodo from "./BotonesPeriodo";
 
 const API_BASE = "http://localhost:3000";
 const LIMITE_PRODUCTOS = 5;
-const PRODUCTOS_POR_PAGINA = 5;
 
 /* =========================================================
    ESTILOS COMPARTIDOS
@@ -88,8 +89,9 @@ type EstadoReporte<T> = {
 };
 
 function useReporte<T>(
-  obtenerDatos: (sucursalId?: number) => Promise<T[]>,
+  obtenerDatos: (sucursalId?: number, ultimos?: PeriodoReporte) => Promise<T[]>,
   sucursalId?: number,
+  ultimos?: PeriodoReporte,
 ): EstadoReporte<T> {
   const [datos, setDatos] = useState<T[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -100,7 +102,7 @@ function useReporte<T>(
     setError("");
 
     try {
-      const resultado = await obtenerDatos(sucursalId);
+      const resultado = await obtenerDatos(sucursalId, ultimos);
       setDatos(resultado);
     } catch (err) {
       setError(
@@ -109,7 +111,7 @@ function useReporte<T>(
     } finally {
       setCargando(false);
     }
-  }, [obtenerDatos, sucursalId]);
+  }, [obtenerDatos, sucursalId, ultimos]);
 
   useEffect(() => {
     void cargar();
@@ -156,6 +158,7 @@ type TarjetaProps = {
   etiquetaValor: string;
   onReintentar: () => void;
   contenido?: ReactNode;
+  acciones?: ReactNode; // botones de período (en las tarjetas que los usan)
 };
 
 const colores = {
@@ -198,22 +201,26 @@ function TarjetaRanking({
   etiquetaValor,
   onReintentar,
   contenido,
+  acciones,
 }: TarjetaProps) {
   const estilo = colores[color];
 
   return (
     <section className={`min-w-0 overflow-hidden ${ESTILO_TARJETA}`}>
-      <header className="flex items-start gap-3 border-b border-gray-200 bg-gray-50/60 p-4 sm:p-5">
-        <div
+      <header className="flex flex-wrap items-start gap-3 border-b border-gray-200 bg-gray-50/60 p-4 sm:p-5">        
+      <div
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${estilo.icono}`}
         >
           <Icono size={22} />
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-56">
           <h2 className="font-bold text-gray-900">{titulo}</h2>
           <p className="mt-1 text-sm leading-5 text-gray-500">{descripcion}</p>
         </div>
+
+        {/* En celular los botones bajan a su propia línea */}
+        {acciones && <div className="w-full sm:w-auto">{acciones}</div>}
       </header>
 
       {cargando ? (
@@ -319,6 +326,8 @@ export default function ReportesProductos() {
   // Pestaña del submenú que se está viendo
   const [pestania, setPestania] = useState<PestaniaProductos>("mas");
 
+  // Período de los rankings (últimos 30 días al entrar)
+  const [periodo, setPeriodo] = useState<PeriodoReporte>(30);
   // Producto que se muestra en el ticket (null = el 1.º del ranking)
   const [productoTicketId, setProductoTicketId] = useState<number | string | null>(null);
 
@@ -354,22 +363,28 @@ export default function ReportesProductos() {
   const masVendidos = useReporte<ProductoMasVendido>(
     obtenerProductosMasVendidos,
     sucursalSeleccionada,
+    periodo,
   );
 
   const menosVendidos = useReporte<ProductoMenosVendido>(
     obtenerProductosMenosVendidos,
     sucursalSeleccionada,
+    periodo,
   );
 
   const mayorFacturacion = useReporte<ProductoMayorFacturacion>(
     obtenerProductosMayorFacturacion,
     sucursalSeleccionada,
+    periodo,
   );
 
   const sinStock = useReporte<ProductoSinStock>(
     obtenerProductosSinStock,
     sucursalSeleccionada,
   );
+
+  // Los mismos botones para los tres rankings
+  const botonesPeriodo = <BotonesPeriodo valor={periodo} onCambiar={setPeriodo} />;
 
   const actualizarTodo = async () => {
     await Promise.all([
@@ -509,9 +524,8 @@ export default function ReportesProductos() {
     }),
   );
 
-  /* ---------- Sin stock (con paginación) ---------- */
+    /* ---------- Sin stock ---------- */
 
-  const productosSinStock = sinStock.datos;
   const totalSinStock = sinStock.datos.length;
 
   const cargandoTodo =
@@ -519,24 +533,6 @@ export default function ReportesProductos() {
     menosVendidos.cargando ||
     mayorFacturacion.cargando ||
     sinStock.cargando;
-
-  const [paginaSinStock, setPaginaSinStock] = useState(1);
-
-  const totalPaginasSinStock = Math.ceil(
-    productosSinStock.length / PRODUCTOS_POR_PAGINA,
-  );
-
-  const productosSinStockPaginados = productosSinStock.slice(
-    (paginaSinStock - 1) * PRODUCTOS_POR_PAGINA,
-    paginaSinStock * PRODUCTOS_POR_PAGINA,
-  );
-
-  useEffect(() => {
-    setPaginaSinStock((pagina) =>
-      Math.min(pagina, Math.max(1, totalPaginasSinStock)),
-    );
-  }, [totalPaginasSinStock]);
-
   /* ---------- Vista ---------- */
 
   return (
@@ -657,6 +653,7 @@ export default function ReportesProductos() {
         {pestania === "mas" && (
           <TarjetaRanking
             titulo="Más vendidos"
+            acciones={botonesPeriodo}
             descripcion="Los productos con más unidades vendidas."
             icono={Award}
             color="orange"
@@ -699,6 +696,7 @@ export default function ReportesProductos() {
         {pestania === "menos" && (
           <TarjetaRanking
             titulo="Menos vendidos"
+            acciones={botonesPeriodo}
             descripcion="Los productos que se quedaron en el freezer. Tocá un cubito para descongelarlo."
             icono={Snowflake}
             color="sky"
@@ -726,6 +724,7 @@ export default function ReportesProductos() {
         {pestania === "facturacion" && (
           <TarjetaRanking
             titulo="Mayor facturación"
+            acciones={botonesPeriodo}
             descripcion="Lo que más plata deja. Tocá una torre para ver su comprobante."            
             icono={DollarSign}
             color="green"
@@ -750,114 +749,28 @@ export default function ReportesProductos() {
         )}
 
         {pestania === "stock" && (
-          <section className={`min-w-0 overflow-hidden ${ESTILO_TARJETA}`}>
-            <header className="flex items-start gap-3 border-b border-gray-200 bg-gray-50/60 p-4 sm:p-5">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-200">
-                <PackageX size={22} />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <h2 className="font-bold text-gray-900">Sin stock</h2>
-                <p className="mt-1 text-sm leading-5 text-gray-500">
-                  Productos que no se pueden preparar por falta de insumos.
-                </p>
-              </div>
-
-              {!sinStock.cargando && !sinStock.error && (
-                <span className="rounded-full bg-orange-50 px-3 py-1 text-sm font-bold text-orange-700 ring-1 ring-orange-200">
-                  {totalSinStock}
-                </span>
-              )}
-            </header>
-
-            {sinStock.cargando ? (
-              <div className="p-8 text-center text-sm text-gray-500">
-                Cargando productos...
-              </div>
-            ) : sinStock.error ? (
-              <div className="p-5">
-                <div
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-                >
-                  {sinStock.error}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void sinStock.cargar()}
-                  className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
-                >
-                  Reintentar
-                </button>
-              </div>
-            ) : productosSinStock.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <PackageX size={28} className="mx-auto text-green-500" />
-                <p className="mt-3 text-sm font-semibold text-gray-700">
-                  Todos los productos están disponibles.
-                </p>
-              </div>
-            ) : (
-              <div className="flex min-h-[380px] flex-col p-3 sm:p-4">
-                <div className="flex-1 divide-y divide-gray-100">
-                  {productosSinStockPaginados.map((producto) => {
-                    const urlImagen = obtenerUrlImagen(producto.imagen);
-
-                    return (
-                      <div
-                        key={`${producto.productoId}-${producto.sucursalId}`}
-                        className="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-gray-50"
-                      >
-                        {urlImagen ? (
-                          <img
-                            src={urlImagen}
-                            alt={producto.nombre}
-                            loading="lazy"
-                            className="h-11 w-11 shrink-0 rounded-lg border border-gray-200 object-cover"
-                            onError={(evento) => {
-                              evento.currentTarget.style.visibility = "hidden";
-                            }}
-                          />
-                        ) : (
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
-                            <PackageX size={19} />
-                          </div>
-                        )}
-
-                        <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-gray-800">
-                              {producto.nombre}
-                            </p>
-                            <p className="mt-1 truncate text-xs text-gray-500">
-                              {producto.sucursalNombre}
-                            </p>
-                          </div>
-
-                          <div className="shrink-0">
-                            <p className="mt-1 truncate text-orange-700">
-                              {producto.insumoLimitante
-                                ? `Falta: ${producto.insumoLimitante}`
-                                : "Sin disponibilidad"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="border-t border-gray-200 px-3 pb-4 pt-1 sm:px-4">
-              <Paginacion
-                paginaActual={paginaSinStock}
-                totalElementos={productosSinStock.length}
-                elementosPorPagina={PRODUCTOS_POR_PAGINA}
-                cambiarPagina={setPaginaSinStock}
-              />
-            </div>
-          </section>
+          <TarjetaRanking
+            titulo="Sin stock"
+            descripcion="Qué reponer primero: cada palote es un producto frenado en una sucursal. Tocá un renglón para ver el detalle y marcarlo como pedido."
+            icono={PackageX}
+            color="red"
+            filas={[]}
+            cargando={sinStock.cargando}
+            error={sinStock.error}
+            textoVacio="Todos los productos están disponibles."
+            etiquetaValor=""
+            onReintentar={() => void sinStock.cargar()}
+            contenido={
+              sinStock.datos.length > 0 ? (
+                <OrdenReposicion
+                  // La "key" limpia los tachados al cambiar de sucursal
+                  key={sucursalSeleccionada ?? "todas"}
+                  faltantes={sinStock.datos}
+                  contexto={nombreSucursal}
+                />
+              ) : undefined
+            }
+          />
         )}
       </div>
     </section>

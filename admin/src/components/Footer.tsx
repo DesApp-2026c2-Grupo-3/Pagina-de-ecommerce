@@ -8,8 +8,8 @@ export default function Footer() {
   const enlaces = enlacesDe(administrador)
 
   return (
-    <footer className="mt-auto bg-gray-900 text-gray-300">
-      <div className="mx-auto max-w-7xl px-8 py-8">
+    <footer className="mt-auto hidden bg-gray-900 text-gray-300 md:block">      
+    <div className="mx-auto max-w-7xl px-8 py-8">
         <div className="flex flex-col justify-between gap-6 lg:flex-row">
           <div>
             <h2 className="text-lg font-semibold text-white">Panel Administrativo</h2>

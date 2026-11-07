@@ -11,6 +11,9 @@ import {
 import ReportesProductos from "../../components/reportes/ReportesProductos";
 import ReportesPedidos from "../../components/reportes/ReportesPedidos";
 import "../../components/reportes/efectos/reportes.css";
+import ReportesClientes from "../../components/reportes/ReportesCliente";
+import ReportesSucursales from "../../components/reportes/ReportesSucursales";
+import ReportesPromociones from "../../components/reportes/ReportesPromociones";
 
 type SeccionReporte = "productos" | "sucursales" | "pedidos" | "clientes" | "promociones";
 
@@ -93,44 +96,21 @@ export default function Reportes() {
       )}
 
       {seccionActiva === "sucursales" && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <Store className="mx-auto text-gray-400" size={32} />
-          <h2 className="mt-3 font-semibold text-gray-900">
-            Reportes de sucursales
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Esta sección estará disponible cuando implementemos sus reportes.
-          </p>
-        </div>
+        <ReportesSucursales />
+      )}
+
+      {seccionActiva === "clientes" && (
+        <ReportesClientes />
       )}
 
       {seccionActiva === "pedidos" && (
         <ReportesPedidos />
       )}
 
-      {seccionActiva === "clientes" && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <ShoppingCart className="mx-auto text-gray-400" size={32} />
-          <h2 className="mt-3 font-semibold text-gray-900">
-            Reportes de ventas
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Esta sección estará disponible cuando implementemos sus reportes.
-          </p>
-        </div>
+      {seccionActiva === "promociones" && (
+        <ReportesPromociones />
       )}
 
-      {seccionActiva === "promociones" && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <ShoppingCart className="mx-auto text-gray-400" size={32} />
-          <h2 className="mt-3 font-semibold text-gray-900">
-            Reportes de ventas
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Esta sección estará disponible cuando implementemos sus reportes.
-          </p>
-        </div>
-      )}
     </section>
   );
 }

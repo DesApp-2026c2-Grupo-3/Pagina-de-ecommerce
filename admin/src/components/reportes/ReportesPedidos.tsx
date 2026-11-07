@@ -1,215 +1,212 @@
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   AlertCircle,
+  CalendarDays,
   ClipboardList,
+  Flame,
   RefreshCw,
+  ShoppingBag,
   Store,
-  Clock3
+  Trash2,
+  Bike,
 } from "lucide-react";
 
 import {
-  BarChart,
-  Bar,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
-import { obtenerPedidosPorEstado, obtenerPedidosPorDia, obtenerPedidosPorSucursal, obtenerCancelacionesPorDia, obtenerTiempoPromedioEntrega} from "../../services/reporteService";
+  obtenerCancelacionesPorDia,
+  obtenerPedidosPorDia,
+  obtenerPedidosPorEstado,
+  obtenerPedidosPorSucursal,
+  obtenerTiempoPromedioEntrega,
+} from "../../services/reporteService";
 import { obtenerSucursales } from "../../services/sucursalService";
-import type { PedidoPorEstado, PedidoPorDia, PedidoPorSucursal,CancelacionPorDia, TiempoPromedioEntrega } from "../../types/reporte.types";
+import { useAuth } from "../../context/AuthContext";
 import type { Sucursal } from "../../types/sucursal.types";
+import type { PeriodoReporte, TiempoPromedioEntrega } from "../../types/reporte.types";
+import CintaPedidos from "./CintaPedidos";
+import PlanchaPedidos from "./PlanchaPedidos";
+import CarreraSucursales from "./CarreraSucursales";
+import TachoCancelados from "./TachoCancelados";
+import BotonesPeriodo from "./BotonesPeriodo";
 
-function formatearEstado(estado: string): string {
-  return estado
-    .replace(/[_-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^./, (letra) => letra.toLocaleUpperCase("es-AR"));
-}
+/* =========================================================
+   ESTILOS COMPARTIDOS (los mismos que en Productos)
+   ========================================================= */
 
-function formatearFecha(fecha: string): string {
-  const fechaCorta = fecha.slice(0, 10);
-  const [, mes, dia] = fechaCorta.split("-");
+const ESTILO_TARJETA =
+  "rounded-2xl border border-gray-300/80 bg-white shadow-[0_2px_6px_rgba(17,24,39,0.08),0_16px_36px_rgba(17,24,39,0.10)]";
 
-  return `${dia}/${mes}`;
-}
+const ESTILO_CONTROL =
+  "min-h-11 rounded-xl border border-gray-300 bg-white shadow-[0_1px_3px_rgba(17,24,39,0.12)]";
 
-function completarDiasSinCancelaciones( datos: CancelacionPorDia[]): CancelacionPorDia[] {
-  const cantidades = new Map(
-    datos.map((dato) => [dato.fecha.slice(0, 10), dato.cantidad]),
-  );
+/* =========================================================
+   SUBMENÚ
+   ========================================================= */
 
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
+type PestaniaPedidos = "estados" | "dia" | "sucursal" | "cancelados";
 
-  const resultado: CancelacionPorDia[] = [];
+const PESTANIAS: {
+  id: PestaniaPedidos;
+  nombre: string;
+  icono: typeof ClipboardList;
+}[] = [
+  { id: "estados", nombre: "Estados", icono: ClipboardList },
+  { id: "dia", nombre: "Por día", icono: CalendarDays },
+  { id: "sucursal", nombre: "Por sucursal", icono: Store },
+  { id: "cancelados", nombre: "Cancelados", icono: Trash2 },
+];
 
-  for (let i = 29; i >= 0; i--) {
-    const fecha = new Date(hoy);
-    fecha.setDate(hoy.getDate() - i);
+/* =========================================================
+   CARGA DE DATOS
+   Un hook por reporte: datos, cargando, error y recargar.
+   Si cambia la sucursal elegida, vuelve a pedir los datos.
+   ========================================================= */
 
-    const anio = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-    const dia = String(fecha.getDate()).padStart(2, "0");
-    const fechaISO = `${anio}-${mes}-${dia}`;
+type EstadoDato<T> = {
+  datos: T;
+  cargando: boolean;
+  error: string;
+  cargar: () => Promise<void>;
+};
 
-    resultado.push({
-      fecha: fechaISO,
-      cantidad: cantidades.get(fechaISO) ?? 0,
-    });
-  }
-
-  return resultado;
-}
-
-export default function ReportesPedidos() {
-  const [pedidos, setPedidos] = useState<PedidoPorEstado[]>([]);
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-  const [sucursalSeleccionada, setSucursalSeleccionada] =
-    useState<number | undefined>(undefined);
-
+function useDato<T>(
+  obtenerDatos: (sucursalId?: number) => Promise<T>,
+  inicial: T,
+  sucursalId?: number,
+): EstadoDato<T> {
+  const [datos, setDatos] = useState<T>(inicial);
   const [cargando, setCargando] = useState(true);
-  const [cargandoSucursales, setCargandoSucursales] = useState(true);
   const [error, setError] = useState("");
-  const [errorSucursales, setErrorSucursales] = useState("");
 
-  const [pedidosPorDia, setPedidosPorDia] = useState<PedidoPorDia[]>([]);
-  const [cargandoPorDia, setCargandoPorDia] = useState(true);
-  const [errorPorDia, setErrorPorDia] = useState("");
-
-  const [pedidosPorSucursal, setPedidosPorSucursal] = useState<PedidoPorSucursal[]>([]);
-  const [cargandoPorSucursal, setCargandoPorSucursal] = useState(true);
-  const [errorPorSucursal, setErrorPorSucursal] = useState("");
-
-  const [cancelacionesPorDia, setCancelacionesPorDia] =
-  useState<CancelacionPorDia[]>([]);
-  const [cargandoCancelaciones, setCargandoCancelaciones] = useState(true);
-  const [errorCancelaciones, setErrorCancelaciones] = useState("");
-
-  const [tiempoEntrega, setTiempoEntrega] =
-  useState<TiempoPromedioEntrega | null>(null);
-  const [cargandoTiempoEntrega, setCargandoTiempoEntrega] = useState(true);
-  const [errorTiempoEntrega, setErrorTiempoEntrega] = useState("");
-
-  const cargarPedidos = useCallback(async () => {
+  const cargar = useCallback(async () => {
     setCargando(true);
     setError("");
 
     try {
-      const resultado = await obtenerPedidosPorEstado(sucursalSeleccionada);
-      setPedidos(resultado);
+      setDatos(await obtenerDatos(sucursalId));
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "No se pudieron cargar los pedidos.",
+        err instanceof Error ? err.message : "No se pudieron cargar los datos.",
       );
     } finally {
       setCargando(false);
     }
-  }, [sucursalSeleccionada]);
-
-  
-  const cargarPedidosPorDia = useCallback(async () => {
-    setCargandoPorDia(true);
-    setErrorPorDia("");
-
-    try {
-    const resultado = await obtenerPedidosPorDia(sucursalSeleccionada);
-    setPedidosPorDia(resultado);
-    } catch (err) {
-      setErrorPorDia(
-        err instanceof Error
-        ? err.message
-        : "No se pudieron cargar los pedidos por día.",
-    );
-    } finally {
-      setCargandoPorDia(false);
-    }
-  }, [sucursalSeleccionada]);
-
-  
-  const cargarPedidosPorSucursal = useCallback(async () => {
-    setCargandoPorSucursal(true);
-    setErrorPorSucursal("");
-
-    try {
-      const resultado = await obtenerPedidosPorSucursal();
-      setPedidosPorSucursal(resultado);
-    } catch (err) {
-      setErrorPorSucursal(
-        err instanceof Error
-         ? err.message
-         : "No se pudieron cargar los pedidos por sucursal.",
-      );
-    } finally {
-     setCargandoPorSucursal(false);
-    }
-  }, []);
-
-
-  const cargarCancelacionesPorDia = useCallback(async () => {
-    setCargandoCancelaciones(true);
-    setErrorCancelaciones("");
-
-    try {
-      const resultado = await obtenerCancelacionesPorDia(sucursalSeleccionada);
-      setCancelacionesPorDia(resultado);
-    } catch (err) {
-      setErrorCancelaciones(
-        err instanceof Error
-          ? err.message
-          : "No se pudieron cargar las cancelaciones por día.",
-      );
-    } finally {
-      setCargandoCancelaciones(false);
-    }
-  }, [sucursalSeleccionada]);
-
-  const cargarTiempoEntrega = useCallback(async () => {
-    setCargandoTiempoEntrega(true);
-    setErrorTiempoEntrega("");
-
-    try {
-      const resultado = await obtenerTiempoPromedioEntrega(
-        sucursalSeleccionada
-      );
-      setTiempoEntrega(resultado);
-    } catch (err) {
-      setErrorTiempoEntrega(
-        err instanceof Error
-          ? err.message
-          : "No se pudo cargar el tiempo promedio de entrega."
-      );
-    } finally {
-      setCargandoTiempoEntrega(false);
-    }
-  }, [sucursalSeleccionada]);
-
+  }, [obtenerDatos, sucursalId]);
 
   useEffect(() => {
-    void cargarPedidosPorSucursal();
-  }, [cargarPedidosPorSucursal]);
+    void cargar();
+  }, [cargar]);
 
-  useEffect(() => {
-    void cargarPedidos();
-  }, [cargarPedidos]);
+  return { datos, cargando, error, cargar };
+}
 
-  useEffect(() => {
-    void cargarPedidosPorDia();
-  }, [cargarPedidosPorDia]);
+/* =========================================================
+   TARJETA (encabezado + cargando / error / vacío / contenido)
+   ========================================================= */
 
-  useEffect(() => {
-    void cargarCancelacionesPorDia();
-  }, [cargarCancelacionesPorDia]);
+type TarjetaProps = {
+  titulo: string;
+  descripcion: string;
+  icono: typeof ClipboardList;
+  rojo?: boolean;
+  acciones?: ReactNode; // botones de período (en las tarjetas que los usan)
+  cargando: boolean;
+  error: string;
+  vacio: boolean;
+  textoVacio: string;
+  onReintentar: () => void;
+  children: ReactNode;
+};
 
-  useEffect(() => {
-    void cargarTiempoEntrega();
-  }, [cargarTiempoEntrega]);
+function TarjetaPedidos({
+  titulo,
+  descripcion,
+  icono: Icono,
+  rojo = false,
+  acciones,
+  cargando,
+  error,
+  vacio,
+  textoVacio,
+  onReintentar,
+  children,
+}: TarjetaProps) {
+  return (
+    <section className={`min-w-0 overflow-hidden ${ESTILO_TARJETA}`}>
+      <header className="flex flex-wrap items-start gap-3 border-b border-gray-200 bg-gray-50/60 p-4 sm:p-5">
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ${
+            rojo ? "bg-red-50 text-red-600 ring-red-200" : "bg-orange-50 text-orange-600 ring-orange-200"
+          }`}
+        >
+          <Icono size={22} />
+        </div>
+
+        <div className="min-w-0 flex-1 basis-56">
+          <h3 className="font-bold text-gray-900">{titulo}</h3>
+          <p className="mt-1 text-sm leading-5 text-gray-500">{descripcion}</p>
+        </div>
+
+        {/* En celular los botones bajan a su propia línea */}
+        {acciones && <div className="w-full sm:w-auto">{acciones}</div>}
+      </header>
+
+      {cargando ? (
+        <div className="space-y-4 p-5">
+          {[1, 2, 3].map((numero) => (
+            <div key={numero} className="h-12 animate-pulse rounded-xl bg-gray-100" />
+          ))}
+          <p className="text-center text-xs text-gray-400">Cargando reporte...</p>
+        </div>
+      ) : error ? (
+        <div className="p-5">
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          >
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <p>{error}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onReintentar}
+            className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : vacio ? (
+        <div className="flex flex-col items-center px-5 py-12 text-center">
+          <ShoppingBag size={30} className="text-gray-300" />
+          <p className="mt-3 text-sm font-medium text-gray-600">{textoVacio}</p>
+        </div>
+      ) : (
+        children
+      )}
+    </section>
+  );
+}
+
+/* =========================================================
+   COMPONENTE PRINCIPAL
+   ========================================================= */
+
+export default function ReportesPedidos() {
+  const { administrador } = useAuth();
+
+  const [pestania, setPestania] = useState<PestaniaPedidos>("estados");
+
+  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [cargandoSucursales, setCargandoSucursales] = useState(true);
+  const [errorSucursales, setErrorSucursales] = useState("");
+
+  // undefined significa que se seleccionaron todas las sucursales.
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<
+    number | undefined
+  >(undefined);
+
+  // Período de la carrera de motos (últimos 30 días al entrar)
+  const [periodoCarrera, setPeriodoCarrera] = useState<PeriodoReporte>(30);
 
   useEffect(() => {
     const cargarSucursales = async () => {
@@ -231,583 +228,220 @@ export default function ReportesPedidos() {
     void cargarSucursales();
   }, []);
 
-  const totalPedidos = pedidos.reduce(
+  const pedirPorSucursal = useCallback(
+    () => obtenerPedidosPorSucursal(periodoCarrera),
+    [periodoCarrera],
+  );
+
+  const porEstado = useDato(obtenerPedidosPorEstado, [], sucursalSeleccionada);
+  const porDia = useDato(obtenerPedidosPorDia, [], sucursalSeleccionada);
+  const porSucursal = useDato(pedirPorSucursal, []);
+  const cancelaciones = useDato(obtenerCancelacionesPorDia, [], sucursalSeleccionada);
+  const tiempoEntrega = useDato<TiempoPromedioEntrega | null>(
+    obtenerTiempoPromedioEntrega,
+    null,
+    sucursalSeleccionada,
+  );
+
+  const cargandoTodo =
+    porEstado.cargando ||
+    porDia.cargando ||
+    porSucursal.cargando ||
+    cancelaciones.cargando ||
+    tiempoEntrega.cargando;
+
+  const actualizarTodo = async () => {
+    await Promise.all([
+      porEstado.cargar(),
+      porDia.cargar(),
+      porSucursal.cargar(),
+      cancelaciones.cargar(),
+      tiempoEntrega.cargar(),
+    ]);
+  };
+
+  const totalPedidos = porEstado.datos.reduce(
     (total, pedido) => total + pedido.cantidad,
     0,
   );
 
   return (
     <section className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Título + filtro de sucursal + Actualizar, en una sola línea */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">
-            Estado de los pedidos
-          </h2>
+          <h2 className="text-xl font-bold text-gray-900">Rendimiento de pedidos</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Distribución de los pedidos según su estado actual.
+            Cómo se mueven los pedidos: estados, días, sucursales y cancelaciones.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {void cargarPedidos(); void cargarPedidosPorDia(); void cargarPedidosPorSucursal(); void cargarCancelacionesPorDia(), void cargarTiempoEntrega()}}
-          disabled={cargando || cargandoPorDia || cargandoPorSucursal || cargandoCancelaciones || cargandoTiempoEntrega }
-          className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
-        >
-          <RefreshCw
-            size={16}
-            className={ cargando || cargandoPorDia || cargandoPorSucursal || cargandoCancelaciones || cargandoTiempoEntrega ? "animate-spin" : ""}
-          />
-          {cargando || cargandoPorDia || cargandoPorSucursal || cargandoCancelaciones || cargandoTiempoEntrega ? "Actualizando..." : "Actualizar"}
-        </button>
-      </div>
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+          {administrador?.rol === "MASTER" && (
+            <>
+              <label
+                htmlFor="filtro-sucursal-pedidos"
+                className="flex items-center gap-1.5 text-sm font-semibold text-gray-700"
+              >
+                <Store size={17} className="text-orange-600" aria-hidden="true" />
+                <span className="sr-only sm:not-sr-only">Sucursal</span>
+              </label>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <label
-          htmlFor="filtro-sucursal-pedidos"
-          className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700"
-        >
-          <Store size={18} className="text-orange-600" />
-          Filtrar por sucursal
-        </label>
+              <select
+                id="filtro-sucursal-pedidos"
+                value={sucursalSeleccionada ?? ""}
+                onChange={(evento) => {
+                  const valor = evento.target.value;
+                  setSucursalSeleccionada(valor === "" ? undefined : Number(valor));
+                }}
+                disabled={cargandoSucursales}
+                className={`${ESTILO_CONTROL} min-w-0 flex-1 px-3 text-sm text-gray-800 outline-none transition lg:flex-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-gray-50`}
+              >
+                <option value="">
+                  {cargandoSucursales ? "Cargando..." : "Todas las sucursales"}
+                </option>
 
-        <select
-          id="filtro-sucursal-pedidos"
-          value={sucursalSeleccionada ?? ""}
-          onChange={(evento) => {
-            const valor = evento.target.value;
-            setSucursalSeleccionada(
-              valor === "" ? undefined : Number(valor),
-            );
-          }}
-          disabled={cargandoSucursales}
-          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-gray-50 sm:max-w-md"
-        >
-          <option value="">Todas las sucursales</option>
+                {sucursales.map((sucursal) => (
+                  <option key={sucursal.id} value={sucursal.id}>
+                    {sucursal.nombre}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
 
-          {sucursales.map((sucursal) => (
-            <option key={sucursal.id} value={sucursal.id}>
-              {sucursal.nombre}
-            </option>
-          ))}
-        </select>
-
-        {cargandoSucursales && (
-          <p className="mt-2 text-xs text-gray-500">
-            Cargando sucursales...
-          </p>
-        )}
-
-        {errorSucursales && (
-          <p role="alert" className="mt-2 text-sm text-red-600">
-            {errorSucursales}
-          </p>
-        )}
-      </div>
-
-
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <header className="flex items-center gap-3 border-b border-gray-100 p-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-          <Clock3 size={22} />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <h3 className="font-bold text-gray-900">
-            Tiempo promedio de entrega
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Tiempo desde la creación del pedido hasta su entrega.
-          </p>
-        </div>
-      </header>
-
-      {cargandoTiempoEntrega ? (
-        <div className="p-10 text-center text-sm text-gray-500">
-          Calculando tiempo promedio...
-        </div>
-        ) : errorTiempoEntrega ? (
-        <div className="p-5">
-          <div role="alert"
-          className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+          <button
+            type="button"
+            onClick={() => void actualizarTodo()}
+            disabled={cargandoTodo}
+            className={`${ESTILO_CONTROL} inline-flex items-center justify-center gap-2 px-4 text-sm font-semibold text-gray-700 transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60`}
           >
-            <AlertCircle size={18} className="shrink-0" />
-            <p>{errorTiempoEntrega}</p>
-          </div>
-
-          <button type="button" onClick={() => void cargarTiempoEntrega()}
-          className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
-          >
-            Reintentar
+            <RefreshCw size={16} className={cargandoTodo ? "animate-spin" : ""} />
+            {cargandoTodo ? "Actualizando..." : "Actualizar"}
           </button>
         </div>
-        ) : tiempoEntrega?.promedioMinutos == null ? (
-        <div className="p-8 text-center">
-          <Clock3 size={30} className="mx-auto text-gray-300" />
-          <p className="mt-3 text-sm font-semibold text-gray-700">
-            Todavía no hay entregas para calcular el promedio.
-          </p>
-        </div>
-        ) : (
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-500">
-              Promedio total de entrega
-            </p>
-
-            <p className="mt-1 text-4xl font-bold tracking-tight text-gray-900">
-              {tiempoEntrega.promedioMinutos >= 60 
-              ? `${Math.floor(tiempoEntrega.promedioMinutos / 60)} h ${Math.round(tiempoEntrega.promedioMinutos % 60)} min`
-              : `${tiempoEntrega.promedioMinutos.toLocaleString("es-AR", {
-                  maximumFractionDigits: 1,
-                })} min`}
-            </p>
-          </div>
-
-          <div className="rounded-xl bg-emerald-50 px-4 py-3">
-            <p className="text-sm text-emerald-700">
-              Pedidos entregados analizados
-            </p>
-            <p className="mt-1 text-2xl font-bold text-emerald-800">
-              {tiempoEntrega.cantidadPedidos.toLocaleString("es-AR")}
-            </p>
-          </div>
-        </div>
-        )
-      }
-    </section>
-
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <header className="flex items-center gap-3 border-b border-gray-100 p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-            <ClipboardList size={22} />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <h3 className="font-bold text-gray-900">
-              Pedidos por estado
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Cantidad de pedidos registrados en cada estado.
-            </p>
-          </div>
-
-          {!cargando && !error && (
-            <span className="shrink-0 rounded-full bg-orange-50 px-3 py-1 text-sm font-bold text-orange-700">
-              {totalPedidos.toLocaleString("es-AR")}
-            </span>
-          )}
-        </header>
-
-        {cargando ? (
-          <div className="space-y-5 p-5">
-            {[1, 2, 3].map((numero) => (
-              <div key={numero} className="animate-pulse space-y-2">
-                <div className="h-4 w-1/3 rounded bg-gray-100" />
-                <div className="h-3 rounded-full bg-gray-100" />
-              </div>
-            ))}
-            <p className="text-center text-xs text-gray-400">
-              Cargando reporte...
-            </p>
-          </div>
-        ) : error ? (
-          <div className="p-5">
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
-            >
-              <AlertCircle size={18} className="mt-0.5 shrink-0" />
-              <p>{error}</p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => void cargarPedidos()}
-              className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
-            >
-              Reintentar
-            </button>
-          </div>
-        ) : pedidos.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <ClipboardList
-              size={30}
-              className="mx-auto text-gray-300"
-            />
-            <p className="mt-3 text-sm font-semibold text-gray-700">
-              No hay pedidos para mostrar.
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Cuando se registren pedidos, sus estados aparecerán acá.
-            </p>
-          </div>
-        ) : (
-          
-            <div className="h-[320px] w-full sm:h-[380px]">
-  <ResponsiveContainer width="100%" height="100%">
-    <BarChart
-      data={pedidos.map((pedido) => ({
-        ...pedido,
-        nombre: formatearEstado(pedido.estado),
-      }))}
-      margin={{ top: 12, right: 12, left: 0, bottom: 8 }}
-    >
-      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-
-      <XAxis
-        dataKey="nombre"
-        tick={{ fontSize: 12 }}
-        interval={0}
-        angle={-15}
-        textAnchor="end"
-        height={55}
-      />
-
-      <YAxis
-        allowDecimals={false}
-        width={40}
-      />
-
-      <Tooltip
-        formatter={(valor) => [
-          Number(valor).toLocaleString("es-AR"),
-          "Pedidos",
-        ]}
-      />
-
-      <Bar
-        dataKey="cantidad"
-        name="Pedidos"
-        fill="#ea580c"
-        radius={[6, 6, 0, 0]}
-        maxBarSize={64}
-      />
-    </BarChart>
-  </ResponsiveContainer>
-</div>
-          
-        )}
-      </section>
-
-      
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-  <header className="flex items-center gap-3 border-b border-gray-100 p-5">
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-      <ClipboardList size={22} />
-    </div>
-
-    <div className="min-w-0 flex-1">
-      <h3 className="font-bold text-gray-900">
-        Pedidos por día
-      </h3>
-      <p className="mt-1 text-sm text-gray-500">
-        Evolución de la cantidad de pedidos registrados por fecha.
-      </p>
-    </div>
-
-    {!cargandoPorDia && !errorPorDia && (
-      <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
-        {pedidosPorDia.reduce(
-          (total, pedido) => total + pedido.cantidad,
-          0,
-        ).toLocaleString("es-AR")} pedidos
-      </span>
-    )}
-  </header>
-
-  {cargandoPorDia ? (
-    <div className="p-10 text-center text-sm text-gray-500">
-      Cargando pedidos por día...
-    </div>
-  ) : errorPorDia ? (
-    <div className="p-5">
-      <div
-        role="alert"
-        className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
-      >
-        <AlertCircle size={18} className="shrink-0" />
-        <p>{errorPorDia}</p>
       </div>
 
-      <button
-        type="button"
-        onClick={() => void cargarPedidosPorDia()}
-        className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
-      >
-        Reintentar
-      </button>
-    </div>
-  ) : pedidosPorDia.length === 0 ? (
-    <div className="px-5 py-12 text-center">
-      <ClipboardList size={30} className="mx-auto text-gray-300" />
-      <p className="mt-3 text-sm font-semibold text-gray-700">
-        No hay pedidos para mostrar.
-      </p>
-      <p className="mt-1 text-sm text-gray-500">
-        Cuando se registren pedidos, su evolución aparecerá acá.
-      </p>
-    </div>
-  ) : (
-    <div className="h-[320px] w-full p-3 sm:h-[380px] sm:p-5">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={pedidosPorDia.map((pedido) => ({
-            ...pedido,
-            fechaFormateada: formatearFecha(pedido.fecha),
-          }))}
-          margin={{ top: 12, right: 12, left: 0, bottom: 8 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-
-          <XAxis
-            dataKey="fechaFormateada"
-            tick={{ fontSize: 12 }}
-            minTickGap={20}
-          />
-
-          <YAxis
-            allowDecimals={false}
-            width={40}
-          />
-
-          <Tooltip
-            labelFormatter={(_, datos) => {
-              const fecha = datos?.[0]?.payload?.fecha;
-
-              return fecha
-                ? new Date(`${String(fecha).slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR")
-                : "Fecha";
-            }}
-            formatter={(valor) => [
-              Number(valor).toLocaleString("es-AR"),
-              "Pedidos",
-            ]}
-          />
-
-          <Bar
-            dataKey="cantidad"
-            name="Pedidos"
-            fill="#2563eb"
-            radius={[6, 6, 0, 0]}
-            maxBarSize={48}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  )}
-      </section>
-
-
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-  <header className="flex items-center gap-3 border-b border-gray-100 p-5">
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-      <Store size={22} />
-    </div>
-
-    <div className="min-w-0 flex-1">
-      <h3 className="font-bold text-gray-900">
-        Pedidos por sucursal
-      </h3>
-      <p className="mt-1 text-sm text-gray-500">
-        Comparación de la cantidad de pedidos recibidos por sucursal.
-      </p>
-    </div>
-
-    {!cargandoPorSucursal && !errorPorSucursal && (
-      <span className="shrink-0 rounded-full bg-purple-50 px-3 py-1 text-sm font-bold text-purple-700">
-        {pedidosPorSucursal.reduce(
-          (total, pedido) => total + pedido.cantidad,
-          0,
-        ).toLocaleString("es-AR")} pedidos
-      </span>
-    )}
-  </header>
-
-  {cargandoPorSucursal ? (
-    <div className="p-10 text-center text-sm text-gray-500">
-      Cargando pedidos por sucursal...
-    </div>
-  ) : errorPorSucursal ? (
-    <div className="p-5">
-      <div
-        role="alert"
-        className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
-      >
-        <AlertCircle size={18} className="shrink-0" />
-        <p>{errorPorSucursal}</p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => void cargarPedidosPorSucursal()}
-        className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
-      >
-        Reintentar
-      </button>
-    </div>
-  ) : pedidosPorSucursal.length === 0 ? (
-    <div className="px-5 py-12 text-center">
-      <Store size={30} className="mx-auto text-gray-300" />
-      <p className="mt-3 text-sm font-semibold text-gray-700">
-        No hay pedidos para mostrar.
-      </p>
-      <p className="mt-1 text-sm text-gray-500">
-        Cuando las sucursales reciban pedidos, aparecerán acá.
-      </p>
-    </div>
-  ) : (
-    <div className="h-[320px] w-full p-3 sm:h-[380px] sm:p-5">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={pedidosPorSucursal}
-          layout="vertical"
-          margin={{ top: 8, right: 20, left: 12, bottom: 8 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-
-          <XAxis
-            type="number"
-            allowDecimals={false}
-          />
-
-          <YAxis
-            type="category"
-            dataKey="nombre"
-            width={110}
-            tick={{ fontSize: 12 }}
-          />
-
-          <Tooltip
-            formatter={(valor) => [
-              Number(valor).toLocaleString("es-AR"),
-              "Pedidos",
-            ]}
-          />
-
-          <Bar
-            dataKey="cantidad"
-            name="Pedidos"
-            fill="#9333ea"
-            radius={[0, 6, 6, 0]}
-            maxBarSize={32}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  )}
-      </section>
-
-
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-  <header className="flex items-center gap-3 border-b border-gray-100 p-5">
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
-      <AlertCircle size={22} />
-    </div>
-
-    <div className="min-w-0 flex-1">
-      <h3 className="font-bold text-gray-900">
-        Cancelaciones por día
-      </h3>
-      <p className="mt-1 text-sm text-gray-500">
-        Evolución diaria de los pedidos cancelados durante los últimos 30 días.
-      </p>
-    </div>
-
-    {!cargandoCancelaciones && !errorCancelaciones && (
-      <span className="shrink-0 rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-700">
-        {cancelacionesPorDia
-          .reduce((total, item) => total + item.cantidad, 0)
-          .toLocaleString("es-AR")} cancelaciones
-      </span>
-    )}
-  </header>
-
-  {cargandoCancelaciones ? (
-    <div className="p-10 text-center text-sm text-gray-500">
-      Cargando cancelaciones...
-    </div>
-  ) : errorCancelaciones ? (
-    <div className="p-5">
-      <div
-        role="alert"
-        className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
-      >
-        <AlertCircle size={18} className="shrink-0" />
-        <p>{errorCancelaciones}</p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => void cargarCancelacionesPorDia()}
-        className="mt-3 text-sm font-semibold text-orange-700 hover:text-orange-800"
-      >
-        Reintentar
-      </button>
-    </div>
-  ) : (
-    <>
-      {cancelacionesPorDia.every((item) => item.cantidad === 0) && (
-        <p className="px-5 pt-4 text-sm text-gray-500">
-          No hubo cancelaciones registradas en los últimos 30 días.
+      {errorSucursales && (
+        <p role="alert" className="text-sm text-red-600">
+          {errorSucursales}
         </p>
       )}
 
-      <div className="h-[320px] w-full p-3 sm:h-[380px] sm:p-5">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={completarDiasSinCancelaciones(cancelacionesPorDia).map(
-              (item) => ({
-                ...item,
-                fechaFormateada: formatearFecha(item.fecha),
-              }),
-            )}
-            margin={{ top: 12, right: 12, left: 0, bottom: 8 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+      {/* Submenú: una tarjeta por vez (grilla 2x2 en celular, fila en pantallas anchas) */}
+      <div
+        role="tablist"
+        aria-label="Reportes de pedidos"
+        className="grid grid-cols-2 gap-1 rounded-2xl border border-gray-300 bg-gray-100 p-1.5 shadow-inner sm:inline-flex sm:flex-wrap"
+      >
+        {PESTANIAS.map(({ id, nombre, icono: Icono }) => {
+          const activa = pestania === id;
 
-            <XAxis
-              dataKey="fechaFormateada"
-              tick={{ fontSize: 12 }}
-              minTickGap={20}
-            />
-
-            <YAxis allowDecimals={false} width={40} />
-
-            <Tooltip
-              labelFormatter={(_, datos) => {
-                const fecha = datos?.[0]?.payload?.fecha;
-
-                return fecha
-                  ? new Date(
-                      `${String(fecha).slice(0, 10)}T12:00:00`,
-                    ).toLocaleDateString("es-AR")
-                  : "Fecha";
-              }}
-              formatter={(valor) => [
-                Number(valor).toLocaleString("es-AR"),
-                "Cancelaciones",
-              ]}
-            />
-
-            <Bar
-              dataKey="cantidad"
-              name="Cancelaciones"
-              fill="#dc2626"
-              radius={[5, 5, 0, 0]}
-              maxBarSize={32}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`pestania-pedidos-${id}`}
+              aria-selected={activa}
+              aria-controls="panel-pedidos"
+              onClick={() => setPestania(id)}
+              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-semibold transition sm:gap-2 sm:px-4 sm:text-sm ${
+                activa
+                  ? "bg-white text-orange-700 shadow-[0_2px_6px_rgba(17,24,39,0.15)] ring-1 ring-orange-300"
+                  : "text-gray-600 hover:bg-white/60 hover:text-orange-700"
+              }`}
+            >
+              <Icono size={17} className="shrink-0" />
+              <span className="truncate">{nombre}</span>
+            </button>
+          );
+        })}
       </div>
-    </>
-  )}
-      </section>
-    
-    </div>
 
-  </section>
+      {/* Panel de la pestaña activa. La "key" hace que las animaciones
+          de entrada se repitan cada vez que se cambia de pestaña. */}
+      <div
+        key={pestania}
+        id="panel-pedidos"
+        role="tabpanel"
+        aria-labelledby={`pestania-pedidos-${pestania}`}
+        className="rep-subir"
+      >
+        {pestania === "estados" && (
+          <TarjetaPedidos
+            titulo="La cinta de pedidos"
+            descripcion="En qué etapa está cada pedido y cuánto tardan en llegar. Tocá una estación."
+            icono={ShoppingBag}
+            cargando={porEstado.cargando || tiempoEntrega.cargando}
+            error={porEstado.error || tiempoEntrega.error}
+            vacio={totalPedidos === 0}
+            textoVacio="Todavía no hay pedidos para mostrar."
+            onReintentar={() => {
+              void porEstado.cargar();
+              void tiempoEntrega.cargar();
+            }}
+          >
+            <CintaPedidos pedidos={porEstado.datos} tiempo={tiempoEntrega.datos} />
+          </TarjetaPedidos>
+        )}
+
+        {pestania === "dia" && (
+          <TarjetaPedidos
+            titulo="La plancha"
+            descripcion="Cuántos pedidos hubo cada día. Cuanto más caliente la baldosa, más pedidos. Tocá un día."
+            icono={Flame}
+            cargando={porDia.cargando || cancelaciones.cargando}
+            error={porDia.error || cancelaciones.error}
+            vacio={porDia.datos.length === 0}
+            textoVacio="Todavía no hay pedidos para mostrar."
+            onReintentar={() => {
+              void porDia.cargar();
+              void cancelaciones.cargar();
+            }}
+          >
+            <PlanchaPedidos dias={porDia.datos} cancelaciones={cancelaciones.datos} />
+          </TarjetaPedidos>
+        )}
+
+        {pestania === "sucursal" && (
+          <TarjetaPedidos
+            titulo="La carrera de motos"
+            descripcion="Cuántos pedidos recibió cada sucursal. Tocá una moto."
+            icono={Bike}
+            acciones={<BotonesPeriodo valor={periodoCarrera} onCambiar={setPeriodoCarrera} />}
+            cargando={porSucursal.cargando}
+            error={porSucursal.error}
+            vacio={porSucursal.datos.length === 0}
+            textoVacio="No hay pedidos de las sucursales en este período."
+            onReintentar={() => void porSucursal.cargar()}
+          >
+            <CarreraSucursales
+              sucursales={porSucursal.datos}
+              sucursalSeleccionada={sucursalSeleccionada ?? administrador?.sucursal?.id}
+            />
+          </TarjetaPedidos>
+        )}
+
+        {pestania === "cancelados" && (
+          <TarjetaPedidos
+            titulo="El tacho de cancelados"
+            descripcion="Cuántos pedidos se cancelan y qué días pasó más. Tocá el tacho o un día."
+            icono={Trash2}
+            rojo
+            cargando={porEstado.cargando || cancelaciones.cargando}
+            error={porEstado.error || cancelaciones.error}
+            vacio={totalPedidos === 0}
+            textoVacio="Todavía no hay pedidos para mostrar."
+            onReintentar={() => {
+              void porEstado.cargar();
+              void cancelaciones.cargar();
+            }}
+          >
+            <TachoCancelados pedidos={porEstado.datos} cancelaciones={cancelaciones.datos} />
+          </TarjetaPedidos>
+        )}
+      </div>
+    </section>
   );
 }

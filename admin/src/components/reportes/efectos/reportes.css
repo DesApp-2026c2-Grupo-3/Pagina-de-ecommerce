@@ -549,6 +549,735 @@
 .rep-ticket-verde::before { top: -10px; }
 .rep-ticket-verde::after  { bottom: -10px; transform: rotate(180deg); }
 
+/* =========================================================
+   LA ORDEN DE REPOSICIÓN (Sin stock)
+   ========================================================= */
+
+
+/* ---------- 25. Hoja de anotador: renglones celestes y margen rojo ---------- */
+.rep-hoja {
+  position: relative;
+  background-color: #fffef8;
+  background-image:
+    linear-gradient(90deg, transparent 46px, #fca5a5 46px, #fca5a5 48px, transparent 48px),
+    repeating-linear-gradient(180deg, transparent 0, transparent 35px, #dbeafe 35px, #dbeafe 36px);
+  background-position: 0 0, 0 18px;
+}
+
+/* Letra manuscrita (la fuente Caveat se carga en admin/index.html) */
+.rep-manuscrita {
+  font-family: "Caveat", cursive;
+}
+
+/* El clip de arriba se mece apenas */
+@keyframes rep-clip {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(-2deg); }
+}
+
+.rep-clip {
+  transform-origin: 50% 0;
+  animation: rep-clip 4s ease-in-out infinite;
+}
+
+
+/* ---------- 26. Renglón: se corre y se resalta con fibrón al pasar el mouse ---------- */
+.rep-fila-stock {
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.rep-fila-stock:hover {
+  transform: translateX(4px);
+}
+
+.rep-resaltar {
+  background-image: linear-gradient(#fef08a, #fef08a);   /* yellow-200 */
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  background-size: 0 55%;
+  transition: background-size 0.35s ease-out;
+}
+
+.rep-fila-stock:hover .rep-resaltar {
+  background-size: 100% 55%;
+}
+
+
+/* ---------- 27. Tachón de birome, tilde y anotación "¡pedido!" ---------- */
+/* El trazo mide siempre 100 (pathLength="100"), sea corto o largo el nombre */
+@keyframes rep-tachar {
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.rep-tachon {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: rep-tachar 0.45s ease-out forwards;
+}
+
+@keyframes rep-tilde {
+  from { stroke-dashoffset: 30; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.rep-tilde {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: rep-tilde 0.3s ease-out 0.35s forwards;
+}
+
+@keyframes rep-anotar {
+  from { opacity: 0; transform: translateY(6px) rotate(-8deg) scale(0.7); }
+  to   { opacity: 1; transform: translateY(0) rotate(-8deg) scale(1); }
+}
+
+.rep-anotacion {
+  display: inline-block;
+  animation: rep-anotar 0.35s cubic-bezier(.2, .9, .3, 1.3) 0.45s both;
+}
+
+
+/* ---------- 28. Palotes de conteo que se dibujan solos ---------- */
+@keyframes rep-trazo {
+  from { stroke-dashoffset: 30; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.rep-palote {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: rep-trazo 0.16s ease-out forwards;
+}
+
+
+/* ---------- 29. Sello URGENTE que late ---------- */
+@keyframes rep-latido {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50%      { transform: rotate(-4deg) scale(1.08); }
+}
+
+.rep-urgente {
+  display: inline-block;
+  animation: rep-latido 1.1s ease-in-out infinite;
+}
+
+
+/* ---------- 30. Sello grande "¡Depósito completo!" ---------- */
+@keyframes rep-sello-grande {
+  0%   { transform: translate(-50%, -50%) scale(2.6) rotate(-20deg); opacity: 0; }
+  60%  { transform: translate(-50%, -50%) scale(0.92) rotate(-10deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(-10deg);    opacity: 1; }
+}
+
+.rep-sello-completo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  pointer-events: none;
+  animation: rep-sello-grande 0.55s cubic-bezier(.2, .8, .3, 1.2) both;
+}
+
+
+/* ---------- 31. Remito rosa ---------- */
+.rep-ticket-rosa {
+  position: relative;
+  background: #fff1f2;         /* rose-50 */
+}
+
+.rep-ticket-rosa::before,
+.rep-ticket-rosa::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: radial-gradient(circle at 8px 10px, #fff1f2 7px, transparent 7.5px)
+              0 0 / 16px 10px repeat-x;
+}
+
+.rep-ticket-rosa::before { top: -10px; }
+.rep-ticket-rosa::after  { bottom: -10px; transform: rotate(180deg); }
+
+
+/* ---------- Orden de reposición sin animaciones ----------
+   Sin animación, el tachón, el tilde y los palotes quedarían invisibles:
+   los mostramos ya dibujados. */
+@media (prefers-reduced-motion: reduce) {
+  .rep-tachon,
+  .rep-tilde,
+  .rep-palote {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* =========================================================
+   PEDIDOS
+   ========================================================= */
+
+/* ---------- 32. Cinta transportadora que avanza ---------- */
+@keyframes rep-cinta-avanza {
+  to { background-position: 28px 0; }
+}
+.rep-cinta {
+  background: repeating-linear-gradient(90deg, #4b5563 0 14px, #6b7280 14px 28px);
+  animation: rep-cinta-avanza 1s linear infinite;
+}
+/* En celular la cinta es vertical: las rayas van hacia abajo */
+@keyframes rep-cinta-baja {
+  to { background-position: 0 28px; }
+}
+@media (max-width: 639px) {
+  .rep-cinta {
+    background: repeating-linear-gradient(180deg, #4b5563 0 14px, #6b7280 14px 28px);
+    animation-name: rep-cinta-baja;
+  }
+}
+
+/* ---------- 33. Bolsitas que viajan por la cinta ----------
+   Las entregadas se levantan hacia "Entregado" con una tilde verde.
+   Las canceladas siguen hasta el final y caen dentro del tacho.
+   --fin-ok: a cuántos px del final de la cinta está la estación "Entregado". */
+@keyframes rep-bolsa-entregada {
+  0%   { left: 0; transform: none; opacity: 0; }
+  4%   { opacity: 1; }
+  78%  { left: calc(100% - var(--fin-ok, 61px)); transform: none; opacity: 1;
+         animation-timing-function: ease-in-out; }
+  93%  { left: calc(100% - var(--fin-ok, 61px)); transform: translateY(-100px) scale(0.6); opacity: 1; }
+  100% { left: calc(100% - var(--fin-ok, 61px)); transform: translateY(-110px) scale(0.5); opacity: 0; }
+}
+@keyframes rep-bolsa-cancelada {
+  0%   { left: 0; transform: none; opacity: 0; }
+  4%   { opacity: 1; }
+  86%  { left: calc(100% - 22px); transform: none; animation-timing-function: ease-in; }
+  100% { left: calc(100% + 44px); transform: translateY(96px) rotate(150deg); opacity: 1; }
+}
+@keyframes rep-tilde-entrega {
+  0%, 76%   { transform: scale(0.2); opacity: 0; }
+  83%       { transform: scale(1.25); opacity: 1; }
+  88%, 100% { transform: scale(1); opacity: 1; }
+}
+.rep-bolsa {
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: rep-bolsa-entregada 10s linear infinite;
+}
+.rep-bolsa-cancelada {
+  animation-name: rep-bolsa-cancelada;
+}
+.rep-tilde-entrega {
+  animation: rep-tilde-entrega 10s linear infinite;
+}
+
+/* Versión vertical (celular): bajan y se van hacia la derecha */
+@keyframes rep-bolsa-entregada-v {
+  0%   { top: 0; transform: none; opacity: 0; }
+  4%   { opacity: 1; }
+  78%  { top: calc(100% - var(--fin-ok, 61px)); transform: none; opacity: 1;
+         animation-timing-function: ease-in-out; }
+  93%  { top: calc(100% - var(--fin-ok, 61px)); transform: translateX(70px) scale(0.6); opacity: 1; }
+  100% { top: calc(100% - var(--fin-ok, 61px)); transform: translateX(78px) scale(0.5); opacity: 0; }
+}
+@keyframes rep-bolsa-cancelada-v {
+  0%   { top: 0; transform: none; opacity: 0; }
+  4%   { opacity: 1; }
+  86%  { top: calc(100% - 22px); transform: none; animation-timing-function: ease-in; }
+  100% { top: calc(100% + 60px); transform: rotate(150deg); opacity: 1; }
+}
+@media (max-width: 639px) {
+  .rep-bolsa           { animation-name: rep-bolsa-entregada-v; }
+  .rep-bolsa-cancelada { animation-name: rep-bolsa-cancelada-v; }
+}
+
+/* ---------- 34. Estaciones de la cinta ---------- */
+.rep-estacion {
+  transition: transform 0.2s;
+}
+.rep-estacion:hover {
+  transform: translateY(-5px);
+}
+@keyframes rep-anillo {
+  0%   { transform: scale(0.85); opacity: 0.9; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+.rep-anillo {
+  animation: rep-anillo 1.6s ease-out infinite;
+}
+
+/* ---------- 35. Agujas de los medidores (cronómetro y tasa) ----------
+   El SVG mide 200 de ancho y el eje de la aguja está en (100, 100). */
+.rep-aguja {
+  transform-origin: 100px 100px;
+  transition: transform 1.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ---------- 36. La plancha: baldosas que se calientan y largan vapor ---------- */
+@keyframes rep-calentar {
+  from { background-color: #f3f4f6; transform: scale(0.8); opacity: 0.3; }
+}
+.rep-baldosa {
+  position: relative;
+  animation: rep-calentar 0.45s ease-out both;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.rep-baldosa:hover {
+  z-index: 2;
+  transform: scale(1.12);
+  box-shadow: 0 6px 14px rgba(194, 65, 12, 0.3);
+}
+@keyframes rep-vapor {
+  0%   { transform: translateY(0) scaleX(1); opacity: 0; }
+  30%  { opacity: 0.85; }
+  100% { transform: translateY(-28px) scaleX(1.8); opacity: 0; }
+}
+.rep-vapor {
+  position: absolute;
+  top: -2px;
+  width: 6px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 4px rgba(156, 163, 175, 0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+.rep-baldosa:hover .rep-vapor {
+  animation: rep-vapor 1s ease-out infinite;
+}
+
+/* ---------- 37. La carrera de motos ---------- */
+.rep-moto {
+  position: absolute;
+  bottom: 2px;
+  transition: left 1.9s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+@keyframes rep-humo {
+  0%   { transform: translate(0, 0) scale(0.5); opacity: 0.8; }
+  100% { transform: translate(-24px, -10px) scale(1.5); opacity: 0; }
+}
+.rep-humo {
+  position: absolute;
+  left: -6px;
+  top: 20px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #d1d5db;
+  animation: rep-humo 0.7s ease-out infinite;
+}
+@keyframes rep-wheelie {
+  0%, 100% { transform: rotate(0); }
+  30%      { transform: rotate(-20deg); }
+  65%      { transform: rotate(-12deg); }
+}
+.rep-wheelie {
+  transform-origin: 15% 90%;
+  animation: rep-wheelie 0.9s ease-in-out;
+}
+@keyframes rep-bandera {
+  0%, 100% { transform: skewY(0); }
+  50%      { transform: skewY(-10deg); }
+}
+.rep-bandera {
+  background: repeating-conic-gradient(#111827 0 25%, #ffffff 0 50%) 0 0 / 7px 7px;
+  transform-origin: 0 50%;
+  animation: rep-bandera 0.6s ease-in-out infinite;
+}
+@keyframes rep-bip {
+  0%   { opacity: 0; transform: translateY(4px) scale(0.7); }
+  15%  { opacity: 1; transform: translateY(0) scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+.rep-bip {
+  animation: rep-bip 1.5s ease-out both;
+}
+
+/* ---------- 38. El tacho de cancelados ---------- */
+/* Cada bollito entra volando desde arriba (--sx: de qué lado viene, --rot: cómo queda) */
+@keyframes rep-tiro {
+  0%   { transform: translate(var(--sx), -170px) rotate(0); opacity: 0; }
+  12%  { opacity: 1; }
+  55%  { transform: translate(calc(var(--sx) * 0.35), -60px) rotate(220deg); }
+  82%  { transform: translate(0, 4px) rotate(var(--rot)); }
+  100% { transform: translate(0, 0) rotate(var(--rot)); opacity: 1; }
+}
+.rep-bollo {
+  position: absolute;
+  border-radius: 46% 54% 42% 58% / 55% 45% 55% 45%;
+  background: #ffffff;
+  box-shadow:
+    inset -3px -3px 0 rgba(0, 0, 0, 0.08),
+    inset 2px 2px 0 rgba(0, 0, 0, 0.05),
+    0 0 0 1px #d1d5db;
+  animation: rep-tiro 0.95s cubic-bezier(0.3, 0.6, 0.4, 1) both;
+}
+/* La tapa se levanta al pasar el mouse por el tacho */
+.rep-tapa {
+  transform-origin: 12% 100%;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.3);
+}
+.rep-tacho:hover .rep-tapa {
+  transform: rotate(-30deg) translateY(-4px);
+}
+@keyframes rep-sacudir-tacho {
+  0%, 100% { transform: rotate(0); }
+  25%      { transform: rotate(-5deg); }
+  75%      { transform: rotate(5deg); }
+}
+.rep-sacudir-tacho {
+  animation: rep-sacudir-tacho 0.35s ease-in-out 2;
+}
+.rep-dia-canc {
+  transition: transform 0.15s;
+}
+.rep-dia-canc:hover {
+  transform: translateY(-3px);
+}
+
+/* ---------- Pedidos sin animaciones ----------
+   Las bolsitas y el humo no tienen sentido quietos: los ocultamos.
+   Las agujas y las motos van directo a su lugar. */
+@media (prefers-reduced-motion: reduce) {
+  .rep-bolsa,
+  .rep-humo {
+    display: none;
+  }
+  .rep-aguja,
+  .rep-moto {
+    transition: none;
+  }
+}
+
+/* =========================================================
+   CLIENTES
+   ========================================================= */
+
+/* ---------- 39. Tarjeta de sellos ----------
+   Cada sello cae "estampado" con un giro distinto (--giro). */
+@keyframes rep-estampar {
+  0%   { transform: scale(1.9) rotate(-35deg); opacity: 0; }
+  60%  { transform: scale(0.9) rotate(var(--giro, 0deg)); opacity: 1; }
+  100% { transform: scale(1) rotate(var(--giro, 0deg)); opacity: 1; }
+}
+.rep-sello-cliente {
+  display: flex;
+  animation: rep-estampar 0.35s cubic-bezier(0.3, 0.7, 0.4, 1.3) both;
+}
+/* Sello dorado "Cliente del mes" que cae al final */
+@keyframes rep-sello-oro {
+  0%   { transform: scale(2.2) rotate(-30deg); opacity: 0; }
+  70%  { transform: scale(0.92) rotate(-12deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-12deg); opacity: 1; }
+}
+.rep-sello-oro {
+  animation: rep-sello-oro 0.5s cubic-bezier(0.3, 0.7, 0.4, 1.2) both;
+}
+.rep-fila-cliente {
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.rep-fila-cliente:hover {
+  transform: translateX(4px);
+}
+
+/* ---------- 40. Stickmen haciendo fila ----------
+   --demora: cuándo entra cada uno. --respiro: desfase del "respirar". */
+@keyframes rep-stick-entra {
+  0%   { transform: translateX(70px); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes rep-stick-respira {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1.5px); }
+}
+@keyframes rep-paso-a {
+  from { transform: rotate(18deg); }
+  to   { transform: rotate(-18deg); }
+}
+@keyframes rep-paso-b {
+  from { transform: rotate(-18deg); }
+  to   { transform: rotate(18deg); }
+}
+.rep-stick {
+  display: flex;
+  animation:
+    rep-stick-entra 1.1s cubic-bezier(0.3, 0.6, 0.4, 1) var(--demora, 0s) both,
+    rep-stick-respira 2.6s ease-in-out calc(var(--demora, 0s) + 1.2s + var(--respiro, 0s)) infinite;
+}
+.rep-pierna {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+/* Mientras entra, mueve las piernas */
+.rep-stick .rep-pierna-a {
+  animation: rep-paso-a 0.22s ease-in-out var(--demora, 0s) 5 alternate;
+}
+.rep-stick .rep-pierna-b {
+  animation: rep-paso-b 0.22s ease-in-out var(--demora, 0s) 5 alternate;
+}
+/* En el período en curso, el último sigue llegando una y otra vez */
+@keyframes rep-llegando {
+  0%        { transform: translateX(60px); opacity: 0; }
+  25%       { opacity: 1; }
+  70%, 100% { transform: none; opacity: 1; }
+}
+.rep-stick-llegando {
+  animation: rep-llegando 3s cubic-bezier(0.3, 0.6, 0.4, 1) var(--demora, 0s) infinite;
+}
+.rep-stick-llegando .rep-pierna-a {
+  animation: rep-paso-a 0.22s ease-in-out var(--demora, 0s) infinite alternate;
+}
+.rep-stick-llegando .rep-pierna-b {
+  animation: rep-paso-b 0.22s ease-in-out var(--demora, 0s) infinite alternate;
+}
+
+/* ---------- 41. El buzón: sobres apilados y carta ---------- */
+.rep-sobre {
+  perspective: 400px;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    margin 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.rep-sobre:hover {
+  filter: brightness(1.03);
+}
+/* La solapa se abre cuando el sobre está elegido */
+.rep-solapa {
+  transform-origin: 50% 0;
+  transition: transform 0.5s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+.rep-sobre-abierto .rep-solapa {
+  transform: rotateX(180deg);
+}
+@keyframes rep-carta-sube {
+  from { transform: translateY(28px) rotate(1deg); opacity: 0; }
+  to   { transform: rotate(-0.6deg); opacity: 1; }
+}
+.rep-carta {
+  transform: rotate(-0.6deg);
+  animation: rep-carta-sube 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ---------- Clientes sin animaciones ----------
+   Los sellos y los stickmen quedan en su lugar, sin moverse. */
+@media (prefers-reduced-motion: reduce) {
+  .rep-sobre,
+  .rep-solapa {
+    transition: none;
+  }
+}
+
+/* =========================================================
+   SUCURSALES
+   ========================================================= */
+
+/* ---------- 42. Los vasos de la meta ---------- */
+.rep-vaso {
+  transition: transform 0.2s;
+}
+.rep-vaso:hover {
+  transform: translateY(-5px);
+}
+/* La gaseosa sube desde 0 hasta su nivel */
+.rep-liquido {
+  transition: height 1.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes rep-burbuja {
+  0%   { transform: translateY(0); opacity: 0; }
+  20%  { opacity: 0.9; }
+  100% { transform: translateY(-120px); opacity: 0; }
+}
+.rep-burbuja {
+  position: absolute;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  animation: rep-burbuja 2.4s ease-in infinite;
+}
+/* Si superó la meta, la espuma rebalsa y caen gotas por afuera */
+@keyframes rep-espuma {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(1.05); }
+}
+.rep-espuma {
+  animation: rep-espuma 1.8s ease-in-out infinite;
+}
+@keyframes rep-gotear {
+  0%   { transform: translateY(0) scaleY(0.6); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translateY(120px) scaleY(1.2); opacity: 0; }
+}
+.rep-gota-espuma {
+  position: absolute;
+  top: 2px;
+  z-index: 3;
+  width: 8px;
+  height: 12px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: #fff7ed;
+  box-shadow: 0 0 0 1.5px #fed7aa;
+  animation: rep-gotear 2.2s ease-in infinite;
+}
+
+/* La tapa: si superó la meta, se levanta y asoma la espuma */
+.rep-tapa {
+  transform-origin: 12% 100%;
+  transition: transform 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 1.4s;
+}
+.rep-tapa-arriba {
+  transform: translateY(-7px) rotate(-8deg);
+}
+/* La superficie de la gaseosa se mueve como una ola */
+@keyframes rep-ola-vaso {
+  to { transform: translateX(-50%); }
+}
+.rep-ola-vaso {
+  animation: rep-ola-vaso 2.6s linear infinite;
+}
+/* Cubitos de hielo flotando */
+@keyframes rep-hielo {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50%      { transform: translateY(-3px) rotate(8deg); }
+}
+.rep-hielo {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 24%;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.95), inset -3px -3px 0 rgba(255, 255, 255, 0.3);
+  animation: rep-hielo 3.2s ease-in-out infinite;
+}
+/* Gotitas de condensación que resbalan por el vaso */
+@keyframes rep-condensa {
+  0%   { transform: translateY(0); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translateY(28px); opacity: 0; }
+}
+.rep-condensa {
+  position: absolute;
+  z-index: 3;
+  width: 4px;
+  height: 6px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(234, 88, 12, 0.3);
+  animation: rep-condensa 3.4s ease-in infinite;
+}
+
+/* ---------- 43. La bandeja: cada icono "se sirve" ---------- */
+@keyframes rep-servir {
+  0%   { transform: translateY(-16px) scale(0.4); opacity: 0; }
+  70%  { transform: translateY(1px) scale(1.12); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+.rep-servir {
+  display: flex;
+  animation: rep-servir 0.35s cubic-bezier(0.3, 0.7, 0.4, 1.3) both;
+}
+
+/* ---------- 44. El riel de comandas ----------
+   Cada comanda cae, se cuelga y queda apenas torcida (--giro). */
+@keyframes rep-colgar {
+  0%   { transform: translateY(-30px) rotate(0); opacity: 0; }
+  60%  { transform: translateY(0) rotate(calc(var(--giro, 0deg) * 2)); opacity: 1; }
+  100% { transform: rotate(var(--giro, 0deg)); opacity: 1; }
+}
+.rep-comanda {
+  display: block;
+  transform-origin: 50% 0;
+  animation: rep-colgar 0.5s cubic-bezier(0.3, 0.7, 0.4, 1.2) both;
+}
+.rep-comanda:hover {
+  animation: none;
+  transform: rotate(12deg);
+  transition: transform 0.2s;
+}
+/* La aguja del relojito da vueltas despacio */
+@keyframes rep-girar-aguja {
+  to { transform: rotate(360deg); }
+}
+.rep-aguja-reloj {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  animation: rep-girar-aguja 4s linear infinite;
+}
+
+/* ---------- Sucursales sin animaciones ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .rep-liquido,
+  .rep-tapa {
+    transition: none;
+  }
+  .rep-burbuja,
+  .rep-gota-espuma,
+  .rep-condensa {
+    display: none;
+  }
+}
+
+/* =========================================================
+   PROMOCIONES
+   ========================================================= */
+
+/* ---------- 45. Los cupones recortados ---------- */
+.rep-fila-cupon {
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.rep-fila-cupon:hover {
+  transform: translateX(4px);
+}
+/* Cada cuponcito cae recortado y queda apenas torcido (--giro) */
+@keyframes rep-recortar {
+  0%   { transform: translateY(-22px) rotate(-30deg); opacity: 0; }
+  70%  { transform: translateY(1px) rotate(calc(var(--giro, 0deg) * 1.5)); opacity: 1; }
+  100% { transform: rotate(var(--giro, 0deg)); opacity: 1; }
+}
+.rep-mini-cupon {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 15px;
+  border: 1.5px dashed #f59e0b;
+  border-radius: 3px;
+  background: #fef3c7;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  animation: rep-recortar 0.4s cubic-bezier(0.3, 0.7, 0.4, 1.3) both;
+}
+
+/* ---------- 46. La balanza ----------
+   La cruz se inclina con un rebote; los platillos giran al revés
+   para quedar siempre colgando derechos. */
+.rep-cruz {
+  transform-origin: 50% 50%;
+  transition: transform 1.4s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.rep-platillo {
+  transform-origin: 50% 0;
+  transition: transform 1.4s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+@keyframes rep-caer-plato {
+  0%   { transform: translateY(-40px); opacity: 0; }
+  70%  { transform: translateY(2px); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+.rep-bolsa-plato {
+  display: flex;
+  animation: rep-caer-plato 0.4s cubic-bezier(0.3, 0.7, 0.4, 1.2) both;
+}
+
+/* ---------- Promociones sin animaciones ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .rep-cruz,
+  .rep-platillo {
+    transition: none;
+  }
+}
+
 /* ---------- Accesibilidad ----------
    Si la persona desactivó las animaciones en su sistema,
    apagamos todos los efectos. */
