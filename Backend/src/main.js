@@ -9,7 +9,8 @@ const PORT = process.env.PORT || 3000;
 
 const origenesPermitidos = [
     'http://localhost:5173',
-    'http://localhost:5174'
+    'http://localhost:5174',
+    'http://localhost:5175'
 ];
 
 app.use(cors({
@@ -42,6 +43,11 @@ const usuarioRoutes = require('./routes/usuarioRoutes');
 const pedidoRoutes = require('./routes/pedidoRoutes');
 const direccionRoutes = require('./routes/direccionRoutes');
 const sucursalRoutes = require('./routes/sucursalRoutes');
+const repartidorRoutes = require('./routes/admin/repartidorRoutes');
+const authRepartidorRoutes = require('./routes/repartidor/authRepartidorRoutes');
+
+const pedidoRepartidorRoutes = require('./routes/repartidor/pedidoRepartidorRoutes');
+const viajeRepartidorRoutes = require('./routes/repartidor/viajeRepartidorRoutes');
 
 
 app.use('/admin/productos', adminProductoRoutes);
@@ -52,7 +58,10 @@ app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
 app.use('/admin/promociones', require('./routes/admin/promocionRoutes'));
 app.use('/admin/reportes', require('./routes/admin/reportesRoutes'));
+app.use('/admin/repartidores', repartidorRoutes);
+app.use('/admin/viajes', require('./routes/admin/viajeRoutes'));
 app.use('/admin', adminRoutes);
+
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
@@ -63,6 +72,9 @@ app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
 app.use('/promociones', require('./routes/promocionRoutes'));
 
+app.use('/repartidor', authRepartidorRoutes);
+app.use('/repartidor/pedidos', pedidoRepartidorRoutes);
+app.use('/repartidor/viajes', viajeRepartidorRoutes);
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
 async function iniciarServidor() {
