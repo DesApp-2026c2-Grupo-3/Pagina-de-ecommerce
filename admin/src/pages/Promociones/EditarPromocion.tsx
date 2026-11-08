@@ -29,6 +29,7 @@ export default function EditarPromocion() {
         <FormularioPromocion
           inicial={inicial}
           textoBoton="Guardar cambios"
+          idPropio={Number(id)}
           onCancelar={() => navigate('/admin/promociones')}
           onGuardar={async (datos) => {
             await actualizarPromocion(Number(id), aPedido(datos))
