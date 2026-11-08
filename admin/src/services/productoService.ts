@@ -60,10 +60,13 @@ export async function verStockProducto(id: number) {
   })
 }
 
-
-export async function obtenerProductosEliminados() {
-  return apiFetch(`${API}/eliminados`, {
-    mensajePorDefecto: 'Error al obtener los productos eliminados',
+// Inhabilitar (false) o volver a habilitar (true): el producto no se borra
+export async function cambiarDisponibilidad(id: number, disponible: boolean) {
+  return apiFetch(`${API}/${id}/disponibilidad`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ disponible }),
+    mensajePorDefecto: 'Error al cambiar la disponibilidad del producto',
   })
 }
 

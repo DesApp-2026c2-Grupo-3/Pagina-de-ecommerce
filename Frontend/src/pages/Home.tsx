@@ -9,6 +9,7 @@ import ContactSection from '../components/home/ContactSection'
 import TuSucursal from '../components/home/TuSucursal'
 import { useAuth } from '../context/AuthContext'
 import DestacadosRow from '../components/home/DestacadosRow'
+import OpinionesSection from '../components/home/OpinionesSection'
 
 function Home() {
   const { isAuthenticated } = useAuth()
@@ -21,6 +22,7 @@ function Home() {
       <PromoDestacadaBanner />
       <MasPedidosSection />
       <DestacadosRow />
+      <OpinionesSection />
       <ComoFuncionaSection />
       <TuSucursal />
       <ContactSection />

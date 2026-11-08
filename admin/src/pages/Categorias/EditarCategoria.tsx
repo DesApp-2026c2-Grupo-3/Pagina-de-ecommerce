@@ -2,22 +2,24 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "../../context/ToastContext";
 import { obtenerCategorias, actualizarCategoria } from "../../services/categoriaService";
+import CamposCategoria, {
+  desdeCategoria,
+  extrasAPedido,
+  extrasVacios,
+  type CategoriaOpcion,
+  type ExtrasCategoria,
+} from "../../components/CamposCategoria";
 
 export default function EditarCategoria() {
   const { id } = useParams();
   const { mostrarToast } = useToast();
   const navigate = useNavigate();
 
-  const categoriasGuardadas = JSON.parse(
-    localStorage.getItem("categorias") || "[]",
-  );
-
-  const categoria = categoriasGuardadas.find(
-    (categoria: { id: number }) => categoria.id === Number(id),
-  );
-
-  const [nombre, setNombre] = useState(categoria?.nombre || "");
+  const [nombre, setNombre] = useState("");
+  const [extras, setExtras] = useState<ExtrasCategoria>(extrasVacios);
+  const [categorias, setCategorias] = useState<CategoriaOpcion[]>([]);
   const [errorNombre, setErrorNombre] = useState("");
+  const [errorServidor, setErrorServidor] = useState("");
 
   const guardarCambios = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -34,12 +36,13 @@ export default function EditarCategoria() {
     }
     
     try {
-      await actualizarCategoria(Number(id), { nombre });
+      await actualizarCategoria(Number(id), { nombre, ...extrasAPedido(extras) });
 
       mostrarToast("Categoria modificada!");
       navigate("/admin/categorias");
     } catch (error) {
       console.error("Error al modificar categoria:", error);
+      setErrorServidor(error instanceof Error ? error.message : "No se pudo modificar la categoría.");
     }
   
   };
@@ -47,15 +50,14 @@ export default function EditarCategoria() {
   useEffect(() => {
   const cargarCategoria = async () => {
     try {
-      const categorias = await obtenerCategorias();
+      const lista: CategoriaOpcion[] = await obtenerCategorias();
+      setCategorias(lista);
 
-      const categoria = categorias.find(
-        (categoria: { id: number }) =>
-          categoria.id === Number(id)
-      );
+      const categoria = lista.find((c) => c.id === Number(id));
 
       if (categoria) {
         setNombre(categoria.nombre);
+        setExtras(desdeCategoria(categoria));
       }
     } catch (error) {
       console.error("Error al cargar categoria:", error);
@@ -76,10 +78,11 @@ export default function EditarCategoria() {
           <input
             type="text"
             value={nombre}
-            maxLength={15}
+            maxLength={20}
             onChange={(e) => {
               setNombre(e.target.value);
               setErrorNombre("");
+              setErrorServidor("");
             }}
             className="w-full border rounded px-3 py-2"
           />
@@ -87,6 +90,20 @@ export default function EditarCategoria() {
 
         {errorNombre && (
           <p className="text-red-600 text-sm m-1">{errorNombre}</p>
+        )}
+
+        <CamposCategoria
+          categorias={categorias}
+          idActual={Number(id)}
+          valor={extras}
+          onChange={(v) => {
+            setExtras(v);
+            setErrorServidor("");
+          }}
+        />
+
+        {errorServidor && (
+          <p role="alert" className="text-red-600 text-sm m-1">{errorServidor}</p>
         )}
 
         <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">

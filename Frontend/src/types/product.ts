@@ -81,4 +81,11 @@ export interface ProductoBackend {
 export interface Category {
   id: number
   nombre: string
+  /** null = categoría principal; si no, la categoría de la que cuelga (Café y Menú Café cuelgan de Cafetería) */
+  categoriaPadreId?: number | null
+  /** Orden en que se muestran (el backend ya las manda ordenadas) */
+  orden?: number
+  /** Ícono y color de la tarjeta del Home elegidos por el master (null = los que corresponden al nombre) */
+  icono?: string | null
+  fondo?: string | null
 }

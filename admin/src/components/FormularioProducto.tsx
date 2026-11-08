@@ -53,7 +53,11 @@ export interface DatosProducto {
 interface Opcion {
   id: number
   nombre: string
+  categoriaPadreId?: number | null
 }
+
+// Los productos van en categorías "hoja": una categoría principal con subcategorías (Cafetería) no tiene productos propios
+const sinCategoriasPadre = (lista: Opcion[]) => lista.filter((c) => !lista.some((o) => o.categoriaPadreId === c.id))
 
 type TipoProducto = 'simple' | 'tamanios' | 'combo'
 
@@ -456,7 +460,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                 className={campo}
               >
                 <option value="">Seleccionar categoría</option>
-                {categorias.map((c) => (
+                {sinCategoriasPadre(categorias).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre}
                   </option>
@@ -711,7 +715,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                   aria-label={`Categoría del lugar ${i + 1}`}
                 >
                   <option value="">Elegir categoría</option>
-                  {categorias.map((c) => (
+                  {sinCategoriasPadre(categorias).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}
                     </option>

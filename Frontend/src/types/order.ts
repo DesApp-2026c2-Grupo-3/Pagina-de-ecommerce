@@ -23,4 +23,6 @@ export interface Order {
   Sucursal:{id: number, nombre:string}
   observaciones?: string | null;
   historialDeTiemposPedidos?: { estado: string; fecha: string }[]
+  /** null si todavía no se calificó (lo manda el backend desde la Etapa 1) */
+  calificacion?: { id: number } | null
 }

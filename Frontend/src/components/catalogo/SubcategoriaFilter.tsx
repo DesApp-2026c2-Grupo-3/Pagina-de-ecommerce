@@ -12,7 +12,8 @@ const inactivo = 'bg-white text-brand-dark hover:bg-brand-sand'
 // Botones de subcategoría (Carne vacuna / Pollo / Veggie...). Bajan de línea en vez de deslizarse,
 // así en el celular se ven todos de una vez.
 function SubcategoriaFilter({ subgrupos, seleccionado, onSeleccionar }: Props) {
-  const opciones = [{ slug: null, nombre: 'Todo' }, ...subgrupos]
+  // "Todos" va siempre al final
+  const opciones = [...subgrupos, { slug: null, nombre: 'Todos' }]
   return (
     <div role="group" aria-label="Subcategorías" className="mt-4 flex flex-wrap gap-2">
       {opciones.map((s) => {

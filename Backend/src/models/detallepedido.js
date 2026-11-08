@@ -20,6 +20,12 @@ module.exports = (sequelize, DataTypes) => {
       DetallePedido.belongsTo(models.Tamanio, {
         foreignKey: 'tamanioId'
       });
+
+      // Promo con la que se pidió la línea (si tenía)
+      DetallePedido.belongsTo(models.Promocion, {
+        foreignKey: 'promocionId',
+        as: 'promocion'
+      });
   }
 }
   DetallePedido.init({
@@ -35,6 +41,11 @@ module.exports = (sequelize, DataTypes) => {
     // Tamaño elegido (regular, mediano, grande), si el producto tiene tamaños
     tamanioId: { type: DataTypes.INTEGER, allowNull: true },
 
+    
+    // Promo con la que se pidió (vacío si no tenía) y precio unitario sin descuento
+    promocionId: { type: DataTypes.INTEGER, allowNull: true },
+    precioLista: { type: DataTypes.DECIMAL, allowNull: true },
+    
     // Si es un combo: { elecciones: [{ grupoId, productoId, recargo }], recargo } con lo que eligió el cliente
     combo: { type: DataTypes.JSON, allowNull: true },
 
