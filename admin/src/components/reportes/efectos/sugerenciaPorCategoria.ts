@@ -36,7 +36,7 @@ export function sugerenciaPorCategoria(
   if (nombre.includes("nugget")) {
     return "Probá un \"agregá nuggets\" a mitad de precio con cualquier hamburguesa.";
   }
-  if (nombre.includes("menu cafe")) {
+  if (nombre.includes("menu cafe") || nombre.includes("desayuno")) {
     return "Sumalo de regalo en los desayunos durante una semana para que la gente lo pruebe.";
   }
   if (nombre === "cafe") {

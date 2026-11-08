@@ -46,3 +46,13 @@ export async function habilitarCategoria(id: number) {
     mensajePorDefecto: 'Error al habilitar la categoría',
   })
 }
+
+// Deja las categorías en el orden recibido (los ids, de la primera a la última)
+export async function ordenarCategorias(ids: number[]) {
+  return apiFetch(`${API}/orden`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+    mensajePorDefecto: 'Error al ordenar las categorías',
+  })
+}

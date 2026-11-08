@@ -1109,7 +1109,8 @@ const buscarProductosFavoritos = async (clientes) => {
     const detalles = await DetallePedido.findAll({
         attributes: ['pedidoId', 'productoId', 'cantidad'],
         where: { pedidoId: [...duenioDelPedido.keys()] },
-        include: [{ model: Producto, attributes: ['id', 'nombre'] }],
+        // paranoid: false → también los productos eliminados (borrado lógico): el historial no cambia
+        include: [{ model: Producto, attributes: ['id', 'nombre'], paranoid: false }],    
     });
 
     const unidadesPorCliente = new Map();

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Star } from 'lucide-react'
+import CalificarPedidoModal from '../calificaciones/CalificarPedidoModal'
 import type { Order } from '../../types/order'
 import { ESTILO_ESTADO, normalizarEstado } from '../../config/pedidoEstados'
 import { formatearFechaHora } from '../../utils/fechas'
@@ -7,10 +8,19 @@ import { formatearPrecio } from '../../utils/precio'
 import { diaYMes, resumenItems } from '../../utils/pedidos'
 import BotonRepetirPedido from '../BotonRepetirPedido'
 
+// Se puede calificar hasta 7 días después del pedido (la misma regla que el backend)
+const DIAS_PARA_CALIFICAR = 7
+const MS_DIA = 24 * 60 * 60 * 1000
 // Un pedido del historial: fecha al costado, resumen, total y acciones. "Detalle" despliega los productos.
 function PedidoCard({ pedido }: { pedido: Order }) {
   const [abierto, setAbierto] = useState(false)
   const estado = normalizarEstado(pedido.estado)
+  const [calificada, setCalificada] = useState(Boolean(pedido.calificacion))
+  const [calificando, setCalificando] = useState(false)
+  const puedeCalificar =
+    estado === 'Entregado' &&
+    !calificada &&
+    Date.now() - new Date(pedido.fecha).getTime() <= DIAS_PARA_CALIFICAR * MS_DIA
   const { dia, mes } = diaYMes(pedido.fecha)
 
   return (
@@ -47,6 +57,17 @@ function PedidoCard({ pedido }: { pedido: Order }) {
           Detalle
           <ChevronDown className={`h-4 w-4 transition-transform ${abierto ? 'rotate-180' : ''}`} />
         </button>
+                {puedeCalificar && (
+          <button
+            type="button"
+            onClick={() => setCalificando(true)}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-brand-mustard px-4 text-sm font-bold transition-transform hover:translate-y-0.5"
+          >
+            <Star className="h-4 w-4" />
+            Calificar
+          </button>
+        )}
+        {calificada && <span className="text-sm font-bold text-brand-muted">✓ Calificado</span>}
       </div>
 
       {abierto && (
@@ -75,6 +96,15 @@ function PedidoCard({ pedido }: { pedido: Order }) {
           )}
           </div>
         )}
+              {calificando && (
+        <CalificarPedidoModal
+          pedidoId={pedido.id}
+          fecha={pedido.fecha}
+          usuarioId={pedido.usuarioId}
+          onCalificado={() => setCalificada(true)}
+          onCerrar={() => setCalificando(false)}
+        />
+      )}
     </article>
   )
 }

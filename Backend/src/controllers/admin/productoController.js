@@ -22,8 +22,6 @@ async function borrarImagenSinUso(publicId) {
     if (enUso === 0) await borrarImagen(publicId);
 }
 
-const { Op } = require('sequelize');
-
 // Todo lo que compone un producto
 const INCLUIR_PARTES = [
     { model: RecetaInsumo, include: [{ model: Insumo, attributes: ['id', 'nombre', 'unidadMedida'] }] },
@@ -320,60 +318,32 @@ const verStockProducto = async (req, res) => {
     }
 };
 
-
-const restaurarProducto = async (req, res) => {
+// PATCH /admin/productos/:id/disponibilidad  { disponible: true | false }
+// Inhabilitar NO es borrar: el producto sigue en el admin y en la tienda (en gris, "No disponible"),
+// pero no se puede pedir. Se vuelve a habilitar con el mismo botón.
+const cambiarDisponibilidad = async (req, res) => {
     try {
-        // paranoid: false permite buscar también productos eliminados
-        const producto = await Producto.findByPk(req.params.id, {
-            paranoid: false,
-        });
+        const { disponible } = req.body ?? {};
+        if (typeof disponible !== 'boolean') {
+            return res.status(400).json({ mensaje: 'Indicá si el producto queda disponible (true o false)' });
+        }
 
+        const producto = await Producto.findByPk(req.params.id);
         if (!producto) {
-            return res.status(404).json({
-                mensaje: 'Producto no encontrado',
-            });
+            return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
 
-        if (!producto.deletedAt) {
-            return res.status(400).json({
-                mensaje: 'El producto ya está activo',
-            });
-        }
-
-        await producto.restore();
-
+        await producto.update({ disponible });
         return res.status(200).json({
-            mensaje: 'Producto restaurado con éxito',
+            mensaje: disponible ? 'Producto habilitado' : 'Producto inhabilitado',
+            id: producto.id,
+            disponible,
         });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({
-            mensaje: 'Error al restaurar el producto',
-        });
+        return res.status(500).json({ mensaje: 'Error al cambiar la disponibilidad del producto' });
     }
 };
-
-
-const obtenerProductosEliminados = async (req, res) => {
-    try {
-        const productos = await Producto.findAll({
-            paranoid: false,
-            where: {
-                deletedAt: { [Op.ne]: null },
-            },
-                include: INCLUIR_PARTES,
-                order: [['id', 'ASC']],
-        });
-
-        return res.json(productos.map(formatear));
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            mensaje: 'Error al obtener los productos eliminados',
-        });
-    }
-};
-
 
 module.exports = {
     obtenerProductos,
@@ -382,6 +352,5 @@ module.exports = {
     eliminarProducto,
     editarProductoPorId,
     verStockProducto,
-    restaurarProducto,
-    obtenerProductosEliminados,
+    cambiarDisponibilidad,
 };

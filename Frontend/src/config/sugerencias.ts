@@ -10,7 +10,7 @@ export const COMPLEMENTOS: Record<string, string[]> = {
   Nuggets: ['Hamburguesas', 'Bebidas'],
   Ensaladas: ['Bebidas', 'Postres'],
   Café: ['Postres'],
-  'Menú Café': ['Postres'],
+  'Desayunos y meriendas': ['Postres'],
   Postres: ['Café'],
   Bebidas: ['Hamburguesas', 'Papas Fritas'],
 }

@@ -10,6 +10,7 @@ const {
     DetallePedido,
     Producto,
     Usuario,
+    Calificacion,
     Direccion,
     Sucursal,
     RecetaInsumo,
@@ -136,6 +137,10 @@ const obtenerPedidosPorUsuario = async (req, res) => {
                 model: historialDeTiemposPedido,
                 as: 'historialDeTiemposPedidos',
                 attributes: ['estado', 'fecha'],
+            }, {
+                model: Calificacion,
+                as: 'calificacion',
+                attributes: ['id'],
             }],
             order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
         });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ProductCard from "../components/home/ProductCard";
 import { getCategories, getProducts } from "../services/productService";
 import type { Category, ProductoBackend } from "../types/product";
@@ -8,17 +8,8 @@ import SubcategoriaFilter from "../components/catalogo/SubcategoriaFilter";
 import Pagination from "../components/catalogo/Pagination";
 import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
 import CategoryIcon from "../components/icons/CategoryIcon";
-import { estiloCategoria } from "../config/categorias";
-import {
-  GRUPO_INICIAL,
-  GRUPOS_CATALOGO,
-  grupoDeCategoria,
-  subgrupoDeCategoria,
-  ubicarEnGrupo,
-  visibleEnMenu,
-  type GrupoCatalogo,
-  type SubgrupoCatalogo,
-} from "../config/gruposCatalogo";
+import { estiloDeCategoria } from "../config/categorias";
+import { armarGrupos, perteneceAlGrupo, ubicarCategoria } from "../config/gruposCatalogo";
 import { useZona } from "../context/ZonaContext";
 import { useSearchParams } from "react-router-dom";
 
@@ -29,37 +20,40 @@ const POR_PAGINA = 8;
 const disponiblesPrimero = (a: ProductoBackend, b: ProductoBackend) =>
   Number(b.disponible) - Number(a.disponible);
 
+// Ícono y color de una sección: los de su subcategoría o, si no tiene propios, los de su grupo
+function estiloDeSeccion(hija: Category, padre: Category) {
+  const propio = estiloDeCategoria(hija);
+  return propio.icono === "generico" ? estiloDeCategoria(padre) : propio;
+}
+
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // ?grupo=cafeteria&sub=pasteleria → ese grupo y esa subcategoría. Sin nada → Combos.
+  // ?grupo=hamburguesas&sub=hamburguesas-de-pollo → ese grupo y esa subcategoría. ?grupo=todos → todo el menú.
   // (?categoria=3, que usa el Home, se traduce a su grupo cuando llegan las categorías)
-  const [grupoId, setGrupoId] = useState<number | null>(() => {
+  // null = "Todos"; undefined = sin elegir: se abre el primer grupo (el que el admin puso primero)
+  const [grupoSlug, setGrupoSlug] = useState<string | null | undefined>(() => {
     const slug = searchParams.get("grupo");
     if (slug === "todos") return null;
-    return GRUPOS_CATALOGO.find((g) => g.slug === slug)?.id ?? GRUPO_INICIAL;
+    return slug ?? undefined;
   });
   const [subSlug, setSubSlug] = useState<string | null>(() => searchParams.get("sub"));
 
-  function elegirGrupo(id: number | null, sub: string | null = null) {
-    setGrupoId(id);
+  // El menú sale del árbol de categorías: las principales son los botones y sus hijas, el submenú
+  const grupos = useMemo(() => armarGrupos(categories), [categories]);
+
+  function elegirGrupo(slug: string | null, sub: string | null = null) {
+    setGrupoSlug(slug);
     setSubSlug(sub);
-    const slug = id === null ? "todos" : GRUPOS_CATALOGO.find((g) => g.id === id)?.slug;
-    const params: Record<string, string> = {};
-    if (slug) params.grupo = slug;
+    const params: Record<string, string> = { grupo: slug ?? "todos" };
     if (sub) params.sub = sub;
     setSearchParams(params, { replace: true });
   }
 
   function elegirSub(sub: string | null) {
-    setSubSlug(sub);
-    const slug = GRUPOS_CATALOGO.find((g) => g.id === grupoId)?.slug;
-    const params: Record<string, string> = {};
-    if (slug) params.grupo = slug;
-    if (sub) params.sub = sub;
-    setSearchParams(params, { replace: true });
+    elegirGrupo(grupo?.slug ?? null, sub);
   }
 
   const [search, setSearch] = useState("");
@@ -76,76 +70,77 @@ function Products() {
   }, [zona?.sucursalId]);
 
   useEffect(() => {
-    getCategories().then((cats) => {
-      setCategories(cats);
-      // Viene del Home con ?categoria=3: se abre el grupo que la contiene (y su botón, si tiene uno propio)
-      const categoriaId = Number(searchParams.get("categoria"));
-      const categoria = cats.find((c) => c.id === categoriaId);
-      const grupo = categoria && grupoDeCategoria(categoria.nombre);
-      if (categoria && grupo) {
-        elegirGrupo(grupo.id, subgrupoDeCategoria(grupo, categoria.nombre)?.slug ?? null);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    getCategories().then(setCategories);
   }, []);
+
+  // Viene del Home con ?categoria=3: se abre su grupo (y su subcategoría, si es una hija).
+  // El parámetro se guarda al abrir la página (después otros efectos reescriben la dirección y lo pierden)
+  // y se resuelve una sola vez, cuando ya llegaron las categorías.
+  const categoriaDelHome = useRef(searchParams.get("categoria"));
+  const categoriaDelHomeResuelta = useRef(false);
+  useEffect(() => {
+    if (categoriaDelHomeResuelta.current || grupos.length === 0) return;
+    categoriaDelHomeResuelta.current = true;
+    if (!categoriaDelHome.current) return;
+    const ubicacion = ubicarCategoria(grupos, Number(categoriaDelHome.current));
+    if (ubicacion) elegirGrupo(ubicacion.grupo.slug, ubicacion.subgrupo?.slug ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupos]);
 
   // Volver a la primera página si cambia cualquier filtro o la zona
   useEffect(() => {
     setPagina(1);
-  }, [grupoId, subSlug, busqueda, zona?.sucursalId]);
+  }, [grupoSlug, subSlug, busqueda, zona?.sucursalId]);
 
   useEffect(() => {
     const timer = setTimeout(() => setBusqueda(search), 250);
     return () => clearTimeout(timer);
   }, [search]);
 
-  const grupo: GrupoCatalogo | null = GRUPOS_CATALOGO.find((g) => g.id === grupoId) ?? null;
-  const sub: SubgrupoCatalogo | null = grupo?.subgrupos?.find((s) => s.slug === subSlug) ?? null;
+  const categoriasListas = categories.length > 0;
+  // Hasta tener las categorías no se muestra nada
+  const visibles = useMemo(() => (categoriasListas ? products : []), [products, categoriasListas]);
+
+  // Solo los grupos que tienen algún producto
+  const gruposVisibles = useMemo(
+    () => grupos.filter((g) => visibles.some((p) => perteneceAlGrupo(g, p))),
+    [grupos, visibles],
+  );
+
+  const grupo =
+    (grupoSlug === undefined ? gruposVisibles[0] : gruposVisibles.find((g) => g.slug === grupoSlug)) ?? null;
+  // Solo las subcategorías que tienen algún producto
+  const subgrupos = grupo ? grupo.subgrupos.filter((s) => visibles.some((p) => p.categoriaId === s.categoria.id)) : [];
+  const sub = subgrupos.find((s) => s.slug === subSlug) ?? null;
+
   const query = busqueda.trim().toLowerCase();
   // Buscando, se busca en TODO el menú: no importa el grupo ni el botón en el que estés parado
   const buscando = query !== "";
 
-  // Id de categoría del backend → nombre
-  const nombrePorId = useMemo(() => new Map(categories.map((c) => [c.id, c.nombre])), [categories]);
-  const categoriasListas = categories.length > 0;
-
-  // Lo que se ve en el menú (las salsas no: se ofrecen en el carrito)
-  const visibles = useMemo(
-    () =>
-      categoriasListas
-        ? products.filter((p) => visibleEnMenu(p.nombre, nombrePorId.get(p.categoriaId) ?? ""))
-        : [],
-    [products, nombrePorId, categoriasListas],
+  // Los productos del grupo elegido (en "Todos", todos)
+  const delGrupo = useMemo(
+    () => (grupo ? visibles.filter((p) => perteneceAlGrupo(grupo, p)) : visibles),
+    [visibles, grupo],
   );
-
-  // Cada producto con el subgrupo en el que cae dentro del grupo elegido
-  const delGrupo = useMemo(() => {
-    if (!grupo) return visibles.map((product) => ({ product, subgrupo: undefined as SubgrupoCatalogo | undefined }));
-    return visibles.flatMap((product) => {
-      const ubicacion = ubicarEnGrupo(grupo, product.nombre, nombrePorId.get(product.categoriaId) ?? "");
-      return ubicacion.pertenece ? [{ product, subgrupo: ubicacion.subgrupo }] : [];
-    });
-  }, [visibles, grupo, nombrePorId]);
 
   const filteredProducts = useMemo(() => {
     const lista = buscando
       ? visibles.filter((p) => p.nombre.toLowerCase().includes(query))
-      : delGrupo.filter((e) => !sub || e.subgrupo?.slug === sub.slug).map((e) => e.product);
+      : sub
+        ? delGrupo.filter((p) => p.categoriaId === sub.categoria.id)
+        : delGrupo;
     return [...lista].sort(disponiblesPrimero);
   }, [buscando, visibles, delGrupo, sub, query]);
 
-  // Los grupos con subcategorías muestran "Todo" en secciones (sin paginación), salvo que se esté buscando
-  const enSecciones = Boolean(grupo?.porSecciones && grupo.subgrupos && !sub && !buscando);
+  // Un grupo con submenú, en "Todos", se muestra dividido en secciones (una por subcategoría), sin paginación
+  const enSecciones = Boolean(grupo && subgrupos.length > 0 && !sub && !buscando);
   const secciones = enSecciones
-    ? grupo!.subgrupos!
-        .map((s) => ({
-          ...s,
-          productos: delGrupo
-            .filter((e) => e.subgrupo?.slug === s.slug)
-            .map((e) => e.product)
-            .sort(disponiblesPrimero),
-        }))
-        .filter((s) => s.productos.length > 0)
+    ? subgrupos.map((s) => ({
+        slug: s.slug,
+        nombre: s.categoria.nombre,
+        estilo: estiloDeSeccion(s.categoria, grupo!.categoria),
+        productos: delGrupo.filter((p) => p.categoriaId === s.categoria.id).sort(disponiblesPrimero),
+      }))
     : [];
 
   const totalPaginas = Math.ceil(filteredProducts.length / POR_PAGINA);
@@ -157,35 +152,21 @@ function Products() {
     window.scrollTo(0, 0);
   }
 
-  // Los grupos, con la forma que espera el filtro de chips
-  const gruposVisibles = useMemo(
-  () =>
-    GRUPOS_CATALOGO.filter((g) =>
-      visibles.some((product) => {
-        const categoria = nombrePorId.get(product.categoriaId) ?? "";
-        return ubicarEnGrupo(g, product.nombre, categoria).pertenece;
-      })
-    ),
-    [visibles, nombrePorId],
-  );
-
-  const opcionesFiltro = gruposVisibles.map((g) => ({
-    id: g.id,
-    nombre: g.nombre,
-  }));
-
+  // Si el grupo de la dirección no existe (o no tiene productos en la zona), se abre el primero
   useEffect(() => {
-    if (grupoId !== null && !gruposVisibles.some((g) => g.id === grupoId)) {
-      elegirGrupo(gruposVisibles[0]?.id ?? null);
+    // Hasta que no llegan los productos no se corrige nada (ni se toca la dirección)
+    if (visibles.length === 0) return;
+    if (grupoSlug && !gruposVisibles.some((g) => g.slug === grupoSlug)) {
+      elegirGrupo(gruposVisibles[0]?.slug ?? null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gruposVisibles, grupoId]);
+  }, [gruposVisibles, grupoSlug]);
 
   // Elegir un grupo con una búsqueda en curso la cierra y abre ese grupo
   function elegirGrupoDesdeChips(id: number | null) {
     setSearch("");
     setBusqueda("");
-    elegirGrupo(id);
+    elegirGrupo(gruposVisibles.find((g) => g.categoria.id === id)?.slug ?? null);
   }
 
   return (
@@ -228,15 +209,19 @@ function Products() {
         {/* Grupos: barra blanca montada sobre la banda. Con una búsqueda en curso ninguno queda marcado (-1) */}
         <div className="-mt-9">
           <CategoryFilter
-            categorias={opcionesFiltro}
-            seleccionada={buscando ? -1 : grupoId}
+            categorias={gruposVisibles.map((g) => g.categoria)}
+            seleccionada={buscando ? -1 : grupo?.categoria.id ?? null}
             onSeleccionar={elegirGrupoDesdeChips}
           />
         </div>
 
         {/* Subcategorías del grupo elegido */}
-        {!buscando && grupo?.subgrupos && (
-          <SubcategoriaFilter subgrupos={grupo.subgrupos} seleccionado={sub?.slug ?? null} onSeleccionar={elegirSub} />
+        {!buscando && subgrupos.length > 0 && (
+          <SubcategoriaFilter
+            subgrupos={subgrupos.map((s) => ({ slug: s.slug, nombre: s.categoria.nombre }))}
+            seleccionado={sub?.slug ?? null}
+            onSeleccionar={elegirSub}
+          />
         )}
 
         {buscando && (
@@ -272,9 +257,9 @@ function Products() {
           )
         ) : enSecciones ? (
           // ---------- Todo el grupo, en secciones: una por subcategoría ----------
-          <div key={`${grupoId}`} className="mt-10 flex flex-col gap-12">
+          <div key={grupo?.slug} className="mt-10 flex flex-col gap-12">
             {secciones.map((seccion) => {
-              const estilo = estiloCategoria(seccion.estilo);
+              const estilo = seccion.estilo;
               return (
                 <section key={seccion.slug} aria-labelledby={`seccion-${seccion.slug}`}>
                   <h2
@@ -297,11 +282,11 @@ function Products() {
             })}
           </div>
         ) : (
-          // ---------- Grilla con paginación: Hamburguesas, Combos, Todos, una subcategoría o una búsqueda ----------
+          // ---------- Grilla con paginación: un grupo sin submenú, una subcategoría, Todos o una búsqueda ----------
           <>
             {/* La key cambia con cada filtro o página: la grilla se vuelve a armar */}
             <div
-              key={`${grupoId}-${subSlug}-${busqueda}-${pagina}`}
+              key={`${grupo?.slug}-${subSlug}-${busqueda}-${pagina}`}
               className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
               {mostrados.map((product, i) => (

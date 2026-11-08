@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCategories } from '../../services/productService'
-import { estiloCategoria, type IconoCategoria } from '../../config/categorias'
-import { esCategoriaOculta, grupoDeCategoria } from '../../config/gruposCatalogo'
+import { estiloDeCategoria, type IconoCategoria } from '../../config/categorias'
 import CategoryIcon from '../icons/CategoryIcon'
 import FilaDeslizable from '../ui/FilaDeslizable'
 import type { Category } from '../../types/product'
@@ -17,24 +16,16 @@ interface Acceso {
   fondo: string
 }
 
-// Café y Menú Café se muestran como una sola tarjeta "Cafetería" que abre ese grupo del catálogo
-const GRUPO_UNIDO = 'cafeteria'
-
-function accesos(categorias: Category[]): Acceso[] {
-  const lista: Acceso[] = []
-  for (const categoria of categorias) {
-    // Las salsas no van en el menú (se ofrecen en el carrito)
-    if (esCategoriaOculta(categoria.nombre)) continue
-    const grupo = grupoDeCategoria(categoria.nombre)
-    if (grupo?.slug === GRUPO_UNIDO) {
-      if (!lista.some((a) => a.clave === GRUPO_UNIDO)) {
-        lista.push({ clave: GRUPO_UNIDO, nombre: grupo.nombre, to: `/catalogo?grupo=${GRUPO_UNIDO}`, icono: 'desayuno', fondo: 'bg-brand-mustard' })
-      }
-      continue
-    }
-    lista.push({ clave: String(categoria.id), nombre: categoria.nombre, to: `/catalogo?categoria=${categoria.id}`, ...estiloCategoria(categoria.nombre) })
-  }
-  return lista
+// Una tarjeta por categoría principal, en el orden que manda el backend. Las categorías hijas no tienen tarjeta propia.
+export function accesos(categorias: Category[]): Acceso[] {
+  return categorias
+    .filter((categoria) => categoria.categoriaPadreId == null)
+    .map((categoria) => ({
+      clave: String(categoria.id),
+      nombre: categoria.nombre,
+      to: `/catalogo?categoria=${categoria.id}`,
+      ...estiloDeCategoria(categoria),
+    }))
 }
 
 // "Elegí por antojo": acceso directo al catálogo filtrado por categoría

@@ -21,7 +21,7 @@ export function iconoPorCategoria(categoria: string | null | undefined): TipoIco
   if (nombre.includes("papa")) return "papas";
   if (nombre.includes("bebida") || nombre === "cafe") return "bebida";
   if (nombre.includes("nugget")) return "nugget";
-  if (nombre.includes("postre") || nombre.includes("menu cafe")) return "postre";
+  if (nombre.includes("postre") || nombre.includes("menu cafe") || nombre.includes("desayuno")) return "postre";
 
   // Hamburguesas, Combos y cualquier categoría nueva
   return "hamburguesa";
