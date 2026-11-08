@@ -32,6 +32,7 @@ import Repartidores from '../pages/Repartidores/Repartidores'
 import NuevoRepartidor from '../pages/Repartidores/NuevoRepartidor'
 import EditarRepartidor from '../pages/Repartidores/EditarRepartidor'
 import Viajes from '../pages/Viajes/Viajes'
+import Parametros from '../pages/Parametros/Parametros'
 
 export default function AppRoutes() {
   return (
@@ -70,6 +71,7 @@ export default function AppRoutes() {
 
           <Route path="/admin/insumos" element={<Insumos />} />
 
+          <Route path="/admin/parametros" element={<Parametros />} />
           <Route path="/admin/administradores" element={<Administradores />} />
           <Route path="/admin/administradores/nuevo" element={<NuevoAdministrador />} />
           <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />} />

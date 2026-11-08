@@ -3,7 +3,8 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useZona } from "../context/ZonaContext";
-import { createOrder, getHistorialPedidos } from "../services/orderService";
+import { cotizarEnvio, createOrder, getHistorialPedidos } from "../services/orderService";
+import { getParametros } from "../services/parametroService";
 import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
@@ -20,7 +21,7 @@ import { FORMAS_ENTREGA, FORMAS_PAGO, type FormaEntrega, type FormaPago } from "
 import { buscarSucursalCercana } from "../utils/sucursales";
 import { estadoSucursal } from "../utils/horario";
 import { distanciaKm } from "../utils/distancia";
-import type { Order } from "../types/order";
+import type { Cotizacion, Order } from "../types/order";
 import type { Address } from "../types/address";
 import type { Sucursal } from "../types/sucursal";
 import type { CartItem } from "../types/cart";
@@ -34,9 +35,8 @@ function formatearKm(km: number) {
 
 // Dos puntos a menos de 50 metros se consideran la misma dirección
 const MISMA_DIRECCION_KM = 0.05;
-
-// Igual que en el backend: no se puede tener más de 2 pedidos sin entregar ni cancelar
-const MAX_PEDIDOS_EN_CURSO = 2;
+// Hasta que llegan los parámetros del backend, el máximo de pedidos en curso es 2 (el valor inicial)
+const MAX_PEDIDOS_EN_CURSO_INICIAL = 2;
 const estaEnCurso = (o: Order) => !["entregado", "cancelado"].includes(o.estado.trim().toLowerCase());
 
 function Checkout() {
@@ -97,7 +97,9 @@ function Checkout() {
   const [error, setError] = useState("");
   const [avisoSucursal, setAvisoSucursal] = useState("");
   const [pedidosEnCurso, setPedidosEnCurso] = useState(0);
-
+  const [maxPedidosEnCurso, setMaxPedidosEnCurso] = useState(MAX_PEDIDOS_EN_CURSO_INICIAL);
+  // Envío y tiempo estimado (los calcula el backend). Se guarda con la clave "dirección|unidades" para la que se pidió
+  const [cotizacionGuardada, setCotizacionGuardada] = useState<{ clave: string; datos: Cotizacion } | null>(null);
   // La dirección elegida pasa a ser la zona: el Navbar y el checkout muestran siempre lo mismo
   function usarComoZona(d: Address) {
     if (d.latitud == null || d.longitud == null) return;
@@ -159,6 +161,31 @@ function Checkout() {
       .finally(() => setSucursalesLoading(false));
   }, []);
 
+       // El máximo de pedidos en curso se configura en el admin (Parámetros)
+     useEffect(() => {
+       getParametros()
+         .then((p) => setMaxPedidosEnCurso(p.maxPedidosEnCurso))
+         .catch(() => { /* queda el valor inicial; el backend igual lo controla al confirmar */ });
+     }, []);
+
+     // Cada vez que cambia la dirección (o la cantidad de productos), se pide el envío y el tiempo estimado
+     const unidades = lineas.reduce((suma, item) => suma + item.quantity, 0);
+     const claveCotizacion = `${direccionSeleccionada}|${unidades}`;
+     // Solo vale la cotización de la dirección y la cantidad actuales (si cambiaron, todavía no llegó la nueva)
+     const cotizacion = cotizacionGuardada?.clave === claveCotizacion ? cotizacionGuardada.datos : null;
+     useEffect(() => {
+       const elegida = direcciones.find((d) => d.id === direccionSeleccionada);
+       if (!user || !elegida || elegida.latitud == null || elegida.longitud == null) return;
+       const cercana = buscarSucursalCercana({ lat: Number(elegida.latitud), lng: Number(elegida.longitud) }, sucursales);
+       if (!cercana?.dentroDeZona || unidades === 0) return;
+
+       let cancelado = false;
+       cotizarEnvio(user.id, elegida.id, cercana.sucursal.id, unidades)
+         .then((datos) => { if (!cancelado) setCotizacionGuardada({ clave: `${elegida.id}|${unidades}`, datos }); })
+         .catch(() => { /* sin cotización se muestra "Elegí tu dirección"; el backend calcula el envío igual */ });
+       return () => { cancelado = true; };
+     }, [user, direcciones, direccionSeleccionada, sucursales, unidades]);
+
   // Cuenta los pedidos en curso del cliente para avisar antes de confirmar
   useEffect(() => {
     if (!user) return;
@@ -194,7 +221,7 @@ function Checkout() {
 
   // El pedido se armó con el stock de la sucursal de la zona: la dirección tiene que ser de esa sucursal
   const sucursalDistinta = Boolean(zona && masCercana && dentroDeZona && masCercana.sucursal.id !== zona.sucursalId);
-  const limiteAlcanzado = pedidosEnCurso >= MAX_PEDIDOS_EN_CURSO;
+  const limiteAlcanzado = pedidosEnCurso >= maxPedidosEnCurso  
   const puedeConfirmar = Boolean(
     direccion && masCercana && dentroDeZona && !sucursalDistinta && !sucursalCerrada && !limiteAlcanzado,
   );
@@ -544,6 +571,8 @@ function Checkout() {
           <ResumenPedido
             lineas={lineas}
             total={total}
+            costoEnvio={cotizacion?.costoEnvio ?? null}
+            demora={cotizacion ? String(cotizacion.minutosEstimados) : undefined}     
             onConfirmar={paso === 1 ? () => irAPaso(2) : handleConfirm}
             deshabilitado={paso === 1 ? !direccion || sucursalCerrada : loading || !puedeConfirmar}
             cargando={loading}
@@ -554,7 +583,7 @@ function Checkout() {
 
       <ModalConfirmarPedido
         abierto={preguntando}
-        total={total}
+        total={total + (cotizacion?.costoEnvio ?? 0)}        
         direccion={direccion ? `${direccion.alias} · ${direccion.calle} ${direccion.numero}` : ""}
         sucursal={masCercana?.sucursal.nombre ?? ""}
         formaPago={FORMAS_PAGO.find((f) => f.id === formaPago)?.titulo ?? ""}

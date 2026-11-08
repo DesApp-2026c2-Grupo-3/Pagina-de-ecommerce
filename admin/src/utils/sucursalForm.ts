@@ -16,7 +16,6 @@ export function sucursalVacia(): DatosSucursal {
     horario: horarioPorDefecto(),
     zonaHoraria: ZONA_HORARIA_POR_DEFECTO,
     ubicacion: { calle: '', numero: '', localidad: '', provincia: '', codigoPostal: '', latitud: null, longitud: null },
-    radioEntregaKm: '5',
   }
 }
 
@@ -38,7 +37,6 @@ export function desdeSucursal(s: Sucursal): DatosSucursal {
       latitud: s.latitud != null ? Number(s.latitud) : null,
       longitud: s.longitud != null ? Number(s.longitud) : null,
     },
-    radioEntregaKm: s.radioEntregaKm != null ? String(s.radioEntregaKm) : '5',
   }
 }
 
@@ -78,7 +76,6 @@ export function aPedido(d: DatosSucursal): PayloadSucursal {
     codigoPostal: d.ubicacion.codigoPostal,
     latitud: d.ubicacion.latitud,
     longitud: d.ubicacion.longitud,
-    radioEntregaKm: Number(d.radioEntregaKm),
   }
 }
 
@@ -100,11 +97,6 @@ export function validarPaso(n: number, d: DatosSucursal): string {
     if (!u.calle || !u.numero) return 'Buscá y elegí la dirección de la sucursal, con altura.'
     if (u.latitud === null || u.longitud === null) return 'Marcá la ubicación en el mapa.'
     if (!u.localidad || !u.provincia) return 'La dirección elegida no tiene localidad o provincia. Probá con otra búsqueda.'
-  }
-  if (n === 4) {
-    const radio = Number(d.radioEntregaKm)
-    if (!radio || radio <= 0) return 'El radio de entrega debe ser mayor a 0.'
-    if (radio > 30) return 'El radio de entrega no puede superar los 30 km.'
   }
   return ''
 }

@@ -132,6 +132,12 @@ export interface PedidosAtendidosSucursal {
   nombre: string
   entregados: number
   promedioMinutos: number | null
+  /** Pedidos con tiempo estimado (los hechos desde que existe el parámetro) */
+  conEstimado?: number
+  /** Real - estimado, en minutos (negativo = llegó antes). null si no hay pedidos con estimado */
+  demoraPromedioMinutos?: number | null
+  /** % de pedidos que llegaron dentro del tiempo prometido */
+  porcentajeATiempo?: number | null
 }
 
 /* ---------- Promociones ---------- */

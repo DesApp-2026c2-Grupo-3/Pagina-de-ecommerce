@@ -14,8 +14,7 @@ import {
 } from '../../services/insumoService'
 import Paginacion from '../../components/Paginacion'
 
-const formularioVacio = { nombre: '', precioComercial: '' }
-
+const formularioVacio = { nombre: '', precioComercial: '', stockMinimo: '' }
 const precioTexto = (insumo: Insumo) =>
   insumo.precioComercial != null && Number(insumo.precioComercial) > 0
     ? `$${Number(insumo.precioComercial).toLocaleString('es-AR')}`
@@ -79,6 +78,7 @@ export default function Insumos() {
     setForm({
       nombre: insumo.nombre,
       precioComercial: insumo.precioComercial != null ? String(insumo.precioComercial) : '',
+      stockMinimo: insumo.stockMinimo != null ? String(Number(insumo.stockMinimo)) : '',
     })
     setError('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -102,11 +102,17 @@ export default function Insumos() {
       return
     }
 
+    if (form.stockMinimo !== '' && Number(form.stockMinimo) < 0) {
+      setError('El stock mínimo no puede ser negativo.')
+       return
+    }
+
     // Por ahora, todos los insumos se miden en unidades
     const datos = {
       nombre: form.nombre.trim(),
       unidadMedida: 'unidad',
       precioComercial: form.precioComercial === '' ? null : Number(form.precioComercial),
+      stockMinimo: form.stockMinimo === '' ? null : Number(form.stockMinimo),
     }
 
     setGuardando(true)
@@ -245,6 +251,27 @@ const acciones = (insumo: Insumo) => (
               placeholder="Ej: 500 (vacío = sin cargo)"
             />
           </div>
+          
+          <div className="sm:col-span-2">
+              <label className="font-medium">Stock mínimo sugerido</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.stockMinimo}
+                onChange={(e) => {
+                  setForm({ ...form, stockMinimo: e.target.value })
+                  setError('')
+                }}
+                className="w-full rounded border p-2 sm:w-48"
+                placeholder="Ej: 20 (vacío = sin alerta)"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {editandoId
+                  ? 'Se usa para las sucursales que se creen de acá en adelante. Para cambiar el de una sucursal, andá a su Stock.'
+                  : 'Se copia como mínimo inicial a todas las sucursales. Después cada una lo puede ajustar en su Stock.'}
+              </p>
+            </div>
         </div>
 
         {error && <p className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}

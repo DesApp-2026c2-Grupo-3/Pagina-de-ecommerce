@@ -33,7 +33,8 @@ const crearInsumo = async (req, res) => {
 
         const sucursales = await Sucursal.findAll({ attributes: ['id'], transaction: t });
         await StockSucursal.bulkCreate(
-            sucursales.map((s) => ({ insumoId: insumo.id, sucursalId: s.id, cantidad: 0 })),
+            // El stock mínimo sugerido del insumo es el mínimo inicial de cada sucursal
+            sucursales.map((s) => ({ insumoId: insumo.id, sucursalId: s.id, cantidad: 0, stockMinimo: insumo.stockMinimo ?? null })),            
             { transaction: t }
         );
 

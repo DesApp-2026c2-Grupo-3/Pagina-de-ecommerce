@@ -26,7 +26,7 @@ import type {
 } from "../../types/reporte.types";
 import TarjetaSellos from "./TarjetaSellos";
 import FilaClientesNuevos from "./FilaClientesNuevos";
-import BuzonInactivos from "./buzonInactivos";
+import BuzonInactivos from "./BuzonInactivos";
 import BotonesPeriodo from "./BotonesPeriodo";
 
 /* =========================================================

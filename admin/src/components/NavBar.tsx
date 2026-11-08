@@ -9,7 +9,8 @@ import { LayoutDashboard, LogOut, ShoppingBag, Package,
   Star,
   ClipboardList,
   BookOpen,
-  Building2,} from 'lucide-react'
+  Building2,
+  Settings2,} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { cerrarSesionService } from '../services/authService'
 import { enlacesDe, type Enlace } from '../config/menu'
@@ -34,6 +35,7 @@ const iconosPorEnlace: Record<string, LucideIcon> = {
   Repartidores: Bike,
   Viajes: Route,
   'Datos de la sucursal': Store,
+  Parámetros: Settings2,
 }
 
 const iconosPorGrupo: Record<string, LucideIcon> = {

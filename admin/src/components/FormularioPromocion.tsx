@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { obtenerProductos } from '../services/productoService'
-import { DIAS, MAX_PROMOS_POR_DIA, TIPOS_PROMO } from '../config/promociones'
+import { DIAS, TIPOS_PROMO } from '../config/promociones'
 import type { PromocionAdmin, TipoPromo } from '../types/promocion.types'
 
 // ---------- Tipos del formulario (los números van como texto mientras se escriben) ----------
@@ -376,7 +376,7 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
         <section className={tarjeta}>
           <h2 className="mb-1 text-lg font-bold">¿Qué días vale?</h2>
           <p className="mb-3 text-sm text-gray-600">
-            Cada día puede tener hasta {MAX_PROMOS_POR_DIA} promos activas. Se pide solo esos días.
+            Cada día tiene un máximo de promos activas           
           </p>
           <div className="flex flex-wrap gap-2">
             {DIAS.map((d) => {

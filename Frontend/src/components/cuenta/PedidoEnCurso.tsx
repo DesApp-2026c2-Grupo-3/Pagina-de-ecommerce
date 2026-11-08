@@ -2,9 +2,12 @@ import type { Order } from '../../types/order'
 import { normalizarEstado } from '../../config/pedidoEstados'
 import { formatearFechaHora } from '../../utils/fechas'
 import { formatearPrecio } from '../../utils/precio'
-import { resumenItems } from '../../utils/pedidos'
+import { resumenItems, totalConEnvio } from '../../utils/pedidos'
 import SeguimientoPedido from './SeguimientoPedido'
-import { MessageSquareText } from 'lucide-react'
+import { MessageSquareText, Timer } from 'lucide-react'
+
+// "21:35"
+const hora = (fecha: string) => new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 
 // Tarjeta oscura destacada para un pedido que todavía no se entregó
 function PedidoEnCurso({ pedido }: { pedido: Order }) {
@@ -21,8 +24,19 @@ function PedidoEnCurso({ pedido }: { pedido: Order }) {
             Sucursal: {pedido.Sucursal?.nombre ?? 'No disponible'}
           </p>
         </div>
-        <p className="font-display text-3xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
+        <p className="font-display text-3xl font-extrabold">{formatearPrecio(totalConEnvio(pedido))}</p>
       </div>
+
+      {/* Hora estimada: la calcula el backend y se corre sola si alguna etapa se demora */}
+      {pedido.estimacion && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-white/10 px-5 py-3 font-bold">
+          <Timer className="h-6 w-6 shrink-0 text-brand-mustard" />
+          Llega aprox. a las {hora(pedido.estimacion.llegaAprox)}
+          <span className="text-sm font-semibold text-brand-cream/70">
+            {pedido.estimacion.demorado ? 'Viene un poco demorado' : `en unos ${pedido.estimacion.minutosRestantes} min`}
+          </span>
+        </p>
+      )}
 
       <SeguimientoPedido
         estado={pedido.estado}

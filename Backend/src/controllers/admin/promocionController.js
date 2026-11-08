@@ -1,6 +1,8 @@
 const { Op } = require('sequelize');
 const { Promocion, PromocionItem, Producto, sequelize } = require('../../models');
-const { NOMBRES_DIAS, MAX_PROMOS_POR_DIA } = require('../../config/promociones');
+const { NOMBRES_DIAS } = require('../../config/promociones');
+// Máximo de promos por día: se edita desde el admin (Parámetros)
+const { obtenerParametros } = require('../../utils/parametros');
 const { incluirItems, aPromoAdmin } = require('../../utils/promociones');
 
 // Las promociones las arma y modifica solo el Admin-Master (todas las rutas pasan por esMasterJwt).
@@ -50,12 +52,13 @@ async function validarReglas(datos, idActual, transaction) {
         return;
     }
 
+    const { maxPromosPorDia } = await obtenerParametros(transaction);
     for (const dia of datos.dias) {
         const delDia = otras.filter((p) => p.tipo === 'DIA' && (p.dias ?? []).includes(dia));
-        if (delDia.length >= MAX_PROMOS_POR_DIA) {
+        if (delDia.length >= maxPromosPorDia) {
             throw new ErrorPromocion(
                 409,
-                `El ${NOMBRES_DIAS[dia].toLowerCase()} ya tiene ${MAX_PROMOS_POR_DIA} promos activas. Deshabilitá o cambiá de día alguna antes de sumar otra.`
+                `El ${NOMBRES_DIAS[dia].toLowerCase()} ya tiene ${maxPromosPorDia} promos activas. Deshabilitá o cambiá de día alguna antes de sumar otra.`
             );
         }
     }

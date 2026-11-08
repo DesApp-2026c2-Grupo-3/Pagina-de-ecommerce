@@ -125,14 +125,8 @@ const sucursalSchema = Joi.object({
         'number.min': 'La ubicación debe estar dentro de Argentina',
         'number.max': 'La ubicación debe estar dentro de Argentina',
         'any.required': 'Marcá la ubicación en el mapa'
-    }),
-
-    radioEntregaKm: Joi.number().positive().max(30).precision(2).required().messages({
-        'number.base': 'El radio de entrega debe ser un número',
-        'number.positive': 'El radio de entrega debe ser mayor a 0',
-        'number.max': 'El radio de entrega no puede superar los 30 km',
-        'any.required': 'El radio de entrega es obligatorio'
     })
+    // El radio de entrega ya no es de cada sucursal: es uno solo, en Parámetros
 });
 
 module.exports = { sucursalSchema };

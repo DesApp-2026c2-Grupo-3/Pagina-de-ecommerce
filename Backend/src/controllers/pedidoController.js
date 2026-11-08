@@ -2,9 +2,9 @@ const { Op } = require('sequelize');
 const { precioMasBarato } = require('../utils/combo');
 const { vigenteHoy, aplicarDescuento } = require('../config/promociones');
 const { buscarPromo } = require('../utils/promociones');
-
-// Regla de negocio: pedidos en curso simultáneos por cliente
-const MAX_PEDIDOS_EN_CURSO = 2;
+// Parámetros del negocio (máximo de pedidos en curso, radio, envío, tiempos): se editan desde el admin
+const { obtenerParametros } = require('../utils/parametros');
+const { calcularEnvio, minutosEstimados, estimarLlegada } = require('../utils/entrega');
 const {
     Pedido,
     DetallePedido,
@@ -25,6 +25,21 @@ const {
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 const { estadoSucursal } = require('../utils/horarioSucursal');
+
+
+   // Distancia en km entre la dirección del cliente y la sucursal (null si a alguna le falta la ubicación)
+   function distanciaEntre(direccion, sucursal) {
+       if (direccion?.latitud == null || direccion?.longitud == null || sucursal?.latitud == null || sucursal?.longitud == null) {
+           return null;
+       }
+       return distanciaKm(
+           { lat: Number(direccion.latitud), lng: Number(direccion.longitud) },
+           { lat: Number(sucursal.latitud), lng: Number(sucursal.longitud) }
+       );
+   }
+
+   // Unidades del pedido (para el tiempo de preparación)
+   const contarUnidades = (lineas) => lineas.reduce((suma, l) => suma + Number(l.cantidad || 0), 0);
 
 // Regla de negocio: 1 porción extra por ingrediente (checkbox)
 const EXTRA_MAX_INCREMENTO = 1;
@@ -137,16 +152,35 @@ const obtenerPedidosPorUsuario = async (req, res) => {
                 model: historialDeTiemposPedido,
                 as: 'historialDeTiemposPedidos',
                 attributes: ['estado', 'fecha'],
-            }, {
-                model: Calificacion,
-                as: 'calificacion',
-                attributes: ['id'],
-            }],
-            order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
-        });
+               }, {
+                   model: Calificacion,
+                   as: 'calificacion',
+                   attributes: ['id'],
+               }, {
+                   // Solo la ubicación: para calcular la hora estimada de llegada
+                   model: Direccion,
+                   attributes: ['latitud', 'longitud'],
+               }],
+               order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+           });
 
+           // A cada pedido en curso se le agrega su hora estimada de llegada (se corrige sola si hay demoras)
+           const parametros = await obtenerParametros();
+           const respuesta = pedidos.map((pedido) => {
+               const datos = pedido.toJSON();
+               const distancia = distanciaEntre(pedido.Direccion, pedido.Sucursal);
+               datos.estimacion = distancia === null ? null : estimarLlegada({
+                   fecha: pedido.fecha,
+                   estado: pedido.estado,
+                   historial: datos.historialDeTiemposPedidos,
+                   unidades: contarUnidades(datos.DetallePedidos ?? []),
+                   distanciaKm: distancia,
+                   parametros,
+               });
+               return datos;
+           });
 
-        res.status(200).json(pedidos);
+           res.status(200).json(respuesta);
     } catch (error) {
         console.error('Algo salió mal', error.message);
         res.status(500).json({ mensaje: 'Error del servidor' });
@@ -225,6 +259,7 @@ const crearPedido = async (req, res) => {
 
     try {
         const { usuarioId, productos, direccionId, sucursalId, observaciones } = req.body;
+        const parametros = await obtenerParametros(t);
         const usuario = await Usuario.findByPk(usuarioId);
 
         if (!usuario) {
@@ -238,7 +273,7 @@ const crearPedido = async (req, res) => {
                 estado: { [Op.notIn]: ['Entregado', 'Cancelado', 'entregado', 'cancelado'] },
             },
         });
-        if (enCurso >= MAX_PEDIDOS_EN_CURSO) {
+           if (enCurso >= parametros.maxPedidosEnCurso) {            
             await t.rollback();
             return res.status(409).json({
                 mensaje: `Ya tenés ${enCurso} pedidos en curso. Esperá a que se entregue alguno para hacer otro.`
@@ -267,11 +302,9 @@ const crearPedido = async (req, res) => {
         if (direccion.latitud == null || direccion.longitud == null) {
             throw new ErrorPedido(400, 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.');
         }
-        const distancia = distanciaKm(
-            { lat: Number(direccion.latitud), lng: Number(direccion.longitud) },
-            { lat: Number(sucursal.latitud), lng: Number(sucursal.longitud) }
-        );
-        if (distancia > Number(sucursal.radioEntregaKm)) {
+           const distancia = distanciaEntre(direccion, sucursal);
+           // El radio es uno solo para todas las sucursales (Parámetros)
+           if (distancia > parametros.radioEntregaKm) {
             throw new ErrorPedido(400, `Tu dirección está fuera de la zona de entrega de ${sucursal.nombre}`);
         }
 
@@ -502,8 +535,13 @@ const crearPedido = async (req, res) => {
             }
         }
         
-        await nuevoPedido.update({ total: total }, { transaction: t });
-
+           // Envío y tiempo estimado: los calcula el servidor (no se confía en lo que manda la tienda).
+           // "total" sigue siendo solo productos; el envío va aparte.
+           await nuevoPedido.update({
+               total,
+               costoEnvio: calcularEnvio(distancia, parametros),
+               minutosEstimados: minutosEstimados(contarUnidades(productos), distancia, parametros),
+           }, { transaction: t });
         // Registro inicial de la línea de tiempo: nace en el estado actual del pedido
         await historialDeTiemposPedido.create({
             pedidoId: nuevoPedido.id,
@@ -531,4 +569,39 @@ const crearPedido = async (req, res) => {
 };
 
 
-module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };
+   // POST /pedido/cotizar  { usuarioId, direccionId, sucursalId, unidades }
+   // Antes de confirmar: cuánto sale el envío y en cuánto llega. No crea nada.
+   const cotizarEnvio = async (req, res) => {
+       try {
+           const { usuarioId, direccionId, sucursalId, unidades } = req.body ?? {};
+           const cantidad = Number(unidades);
+           if (!Number.isInteger(cantidad) || cantidad < 1) {
+               return res.status(400).json({ mensaje: 'La cantidad de productos no es válida' });
+           }
+
+           const direccion = await Direccion.findOne({ where: { id: direccionId, usuarioId } });
+           if (!direccion) return res.status(404).json({ mensaje: 'Dirección no encontrada' });
+
+           const sucursal = await Sucursal.findByPk(sucursalId);
+           if (!sucursal) return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
+
+           const distancia = distanciaEntre(direccion, sucursal);
+           if (distancia === null) {
+               return res.status(400).json({ mensaje: 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.' });
+           }
+
+           const parametros = await obtenerParametros();
+           return res.json({
+               distanciaKm: Math.round(distancia * 10) / 10,
+               dentroDelRadio: distancia <= parametros.radioEntregaKm,
+               radioEntregaKm: parametros.radioEntregaKm,
+               costoEnvio: calcularEnvio(distancia, parametros),
+               minutosEstimados: minutosEstimados(cantidad, distancia, parametros),
+           });
+       } catch (error) {
+           console.error('Error al cotizar el envío:', error.message);
+           return res.status(500).json({ mensaje: 'Error al calcular el envío' });
+       }
+   };
+
+   module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario, cotizarEnvio };

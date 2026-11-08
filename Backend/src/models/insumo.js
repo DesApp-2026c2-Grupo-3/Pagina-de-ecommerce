@@ -19,7 +19,9 @@ module.exports = (sequelize, DataTypes) => {
     nombre: { type: DataTypes.STRING, allowNull: false },    
     unidadMedida: { type: DataTypes.STRING, allowNull: false },
     precioComercial: { type: DataTypes.DECIMAL, allowNull: true },
-    activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true}
+    activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true},
+    // Stock mínimo sugerido: se copia como mínimo inicial a cada sucursal (después cada una lo ajusta)
+    stockMinimo: { type: DataTypes.DECIMAL, allowNull: true },  
   }, {
     sequelize,
     modelName: 'Insumo',

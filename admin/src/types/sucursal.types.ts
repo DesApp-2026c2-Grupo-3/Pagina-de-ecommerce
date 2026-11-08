@@ -56,7 +56,6 @@ export interface Sucursal {
   codigoPostal?: string | null;
   latitud?: number | string | null;
   longitud?: number | string | null;
-  radioEntregaKm?: number | string | null;
 }
 
 // Datos del formulario (todo string, como se maneja en los inputs)
@@ -66,7 +65,6 @@ export interface DatosSucursal {
   horario: HorarioSemana;
   zonaHoraria: string;
   ubicacion: UbicacionSucursal;
-  radioEntregaKm: string;
 }
 
 // Respuesta de crear/editar/cambiar estado
@@ -96,5 +94,4 @@ export interface PayloadSucursal {
   codigoPostal: string;
   latitud: number | null;
   longitud: number | null;
-  radioEntregaKm: number;
 }

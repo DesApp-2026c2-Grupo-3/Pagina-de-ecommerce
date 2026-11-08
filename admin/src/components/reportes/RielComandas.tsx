@@ -72,6 +72,16 @@ export default function RielComandas({ filas }: Props) {
         )
       : null;
 
+  /* % a tiempo general, pesado por los pedidos con tiempo estimado de cada sucursal */
+  const conEstimado = filas.reduce((suma, fila) => suma + (fila.conEstimado ?? 0), 0);
+  const aTiempoGeneral =
+    conEstimado > 0
+      ? Math.round(
+          filas.reduce((suma, fila) => suma + ((fila.porcentajeATiempo ?? 0) / 100) * (fila.conEstimado ?? 0), 0) /
+            conEstimado *
+            100,
+        )
+      : null;
   const masRapida =
     filas.length > 1 && conTiempo.length > 0
       ? Math.min(...conTiempo.map((fila) => fila.promedioMinutos ?? Infinity))
@@ -85,6 +95,11 @@ export default function RielComandas({ filas }: Props) {
         {promedioGeneral !== null && (
           <>
             {" "}· promedio general <strong>{promedioGeneral} min</strong>
+          </>
+        )}
+        {aTiempoGeneral !== null && (
+          <>
+            {" "}· <strong>{aTiempoGeneral}%</strong> a tiempo
           </>
         )}
       </p>
@@ -154,8 +169,9 @@ export default function RielComandas({ filas }: Props) {
               {formatearNumero(fila.entregados)}
             </strong>
 
-            {/* Relojito con el tiempo promedio */}
-            <span
+            {/* Relojito con el tiempo promedio y, debajo, la comparación con lo prometido */}
+            <span className="flex flex-col items-center gap-0.5">            
+              <span
               className={`relative flex items-center justify-center gap-1 rounded-full px-2 py-1 text-xs font-extrabold whitespace-nowrap ring-1 ${colorReloj(fila.promedioMinutos)}`}
               aria-label={
                 fila.promedioMinutos === null
@@ -174,13 +190,28 @@ export default function RielComandas({ filas }: Props) {
               </svg>
               {fila.promedioMinutos === null ? "—" : `${fila.promedioMinutos} min`}
             </span>
+                        {/* Comparación con lo prometido al cliente: rojo si en promedio llega tarde */}
+            {fila.demoraPromedioMinutos != null && (
+              <span
+                className={`text-[10px] font-bold whitespace-nowrap ${
+                  fila.demoraPromedioMinutos > 0 ? "text-red-600" : "text-green-700"
+                }`}
+                title={`${fila.porcentajeATiempo}% de los pedidos llegó a tiempo`}
+              >
+                {fila.demoraPromedioMinutos > 0
+                  ? `+${fila.demoraPromedioMinutos} min`
+                  : `${fila.porcentajeATiempo}% a tiempo`}
+              </span>
+            )}
+            </span>
           </div>
         );
       })}
 
       <p className="mt-2 text-xs text-gray-500">
         El reloj es el tiempo promedio de entrega: verde hasta 30 min, amarillo hasta 40, rojo
-        más de 40.{filas.length > 1 && " La corona es para la más rápida."}
+        más de 40.{filas.length > 1 && " La corona es para la más rápida."} Debajo: si en promedio
+        llega tarde respecto del tiempo prometido (en rojo, cuántos minutos) o qué % llegó a tiempo (en verde).
       </p>
     </div>
   );

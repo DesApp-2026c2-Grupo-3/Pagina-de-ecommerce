@@ -28,6 +28,9 @@ module.exports = (sequelize, DataTypes) => {
     sucursalId: { type: DataTypes.INTEGER, allowNull: true },
     observaciones: { type: DataTypes.TEXT, allowNull: true },
     viajeId: { type: DataTypes.INTEGER, allowNull: true},
+    // Envío cobrado (aparte de "total", que es solo productos) y tiempo de entrega prometido
+    costoEnvio: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
+    minutosEstimados: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     sequelize,
     modelName: 'Pedido',
