@@ -27,6 +27,10 @@ module.exports = (sequelize, DataTypes) => {
       Sucursal.hasMany(models.Pedido, {
        foreignKey: 'sucursalId'
       });
+
+      Sucursal.hasMany(models.Repartidor, {
+        foreignKey: 'sucursalId'
+      })
     }
   }
   Sucursal.init({

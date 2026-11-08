@@ -28,7 +28,8 @@ const esAdminJwt = async (req, res, next) => {
         req.usuario = {
             id: admin.id,
             nombre: admin.nombre,
-            rol: admin.rol
+            rol: admin.rol,
+            sucursalId: admin.sucursalId
         };
 
         return next();

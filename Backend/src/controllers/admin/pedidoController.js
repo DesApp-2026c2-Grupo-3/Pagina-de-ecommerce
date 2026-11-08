@@ -20,7 +20,8 @@ const HISTORIAL = { model: historialDeTiemposPedido, as: 'historialDeTiemposPedi
 // Flujo permitido: desde cada estado, a cuáles se puede pasar (en minúscula)
 const TRANSICIONES = {
     'pendiente': ['en proceso', 'cancelado'],
-    'en proceso': ['en camino', 'cancelado'],
+    'en proceso': ['listo para retirar', 'cancelado'],
+    'listo para retirar': ['en camino', 'cancelado'],
     'en camino': ['entregado', 'cancelado'],
 };
 // Un pedido en estos estados ya está cerrado: no se puede cambiar
