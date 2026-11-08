@@ -26,6 +26,8 @@ const {
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 const { estadoSucursal } = require('../utils/horarioSucursal');
+const { productosSuspendidos } = require('../utils/suspensiones');
+const { sucursalCerrada } = require('../utils/cierres');
 
 // Regla de negocio: 1 porción extra por ingrediente (checkbox)
 const EXTRA_MAX_INCREMENTO = 1;
@@ -75,7 +77,7 @@ async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, 
 
 // Valida lo que el cliente eligió para un grupo del combo y calcula su recargo y su consumo de stock.
 // El recargo es la diferencia contra la opción incluida en el precio del combo (grupo.productoIncluidoId).
-async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t }) {
+async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t, suspendidos }) {
     if (!tamanioId) {
         throw new ErrorPedido(400, `Elegí un tamaño válido para ${combo.nombre}`);
     }
@@ -90,6 +92,9 @@ async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t })
     }
     if (!elegido.disponible) {
         throw new ErrorPedido(400, `El producto ${elegido.nombre} no está disponible`);
+    }
+    if (suspendidos?.has(elegido.id)) {
+        throw new ErrorPedido(409, `${elegido.nombre} no está disponible por el momento en esta sucursal`);
     }
     if (elegido.categoriaId !== grupo.categoriaId) {
         throw new ErrorPedido(400, `${elegido.nombre} no es una opción válida de ${grupo.nombre} para ${combo.nombre}`);
@@ -261,6 +266,10 @@ const crearPedido = async (req, res) => {
         if (!estadoHorario.abierta) {
             throw new ErrorPedido(400, estadoHorario.motivo ?? 'La sucursal seleccionada se encuentra cerrada en este horario');
         }
+        // Cierre temporal por contingencia, decidido por el encargado (el motivo es interno: el cliente no lo ve)
+        if (await sucursalCerrada(sucursalId)) {
+            throw new ErrorPedido(409, 'La sucursal está cerrada temporalmente. Probá de nuevo más tarde');
+        }
         if (direccion.latitud == null || direccion.longitud == null) {
             throw new ErrorPedido(400, 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.');
         }
@@ -294,6 +303,9 @@ const crearPedido = async (req, res) => {
         let total = 0;
         // Subtotal de cada línea, para controlar la compra mínima de las promos
         const lineasCobradas = [];
+        // Productos suspendidos en esta sucursal (por el encargado o por el master)
+        const suspendidos = await productosSuspendidos(sucursalId, t);
+
         // Complementos (salsas): unidades pedidas de cada uno, y si el pedido tiene algo más que complementos
         const complementos = new Map();
         let hayProductoPrincipal = false;
@@ -320,6 +332,9 @@ const crearPedido = async (req, res) => {
 
             if (!productoBD.disponible) {
                 throw new ErrorPedido(400, `El producto ${productoBD.nombre} no está disponible`);
+            }
+            if (suspendidos.has(productoBD.id)) {
+                throw new ErrorPedido(409, `${productoBD.nombre} no está disponible por el momento en ${sucursal.nombre}`);
             }
 
             if (productoBD.categoria?.esComplemento) {
@@ -410,7 +425,8 @@ const crearPedido = async (req, res) => {
                         productoId: pedida.productoId,
                         tamanioId: producto.tamanioId,
                         combo: productoBD,
-                        t
+                        t,
+                        suspendidos,
                     }))
                 });
             }

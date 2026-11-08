@@ -19,7 +19,7 @@ const pendiente = {
   entregadoEn: '2026-10-30T19:00:00Z',
   total: 5400,
   sucursal: { id: 2, nombre: 'Hurlingham' },
-  productos: ['Fast Classic'],
+  items: [{ productoId: 7, nombre: 'Fast Classic', imagen: null }],
 }
 
 // Sin espera (retrasoMs=0) y con timers reales

@@ -18,7 +18,7 @@ import PedidoConfirmado from "../components/checkout/PedidoConfirmado";
 import OpcionesCheckout from "../components/checkout/OpcionesCheckout";
 import { FORMAS_ENTREGA, FORMAS_PAGO, type FormaEntrega, type FormaPago } from "../config/compra";
 import { buscarSucursalCercana } from "../utils/sucursales";
-import { estadoSucursal } from "../utils/horario";
+import { estadoDeSucursal } from "../utils/horario";
 import { distanciaKm } from "../utils/distancia";
 import type { Order } from "../types/order";
 import type { Address } from "../types/address";
@@ -186,7 +186,7 @@ function Checkout() {
   const masCercana = buscarSucursalCercana(coordsDireccion, sucursales);
   const dentroDeZona = masCercana?.dentroDeZona ?? false;
   const estadoPedido = masCercana
-    ? estadoSucursal(masCercana.sucursal.horario, masCercana.sucursal.zona_horaria)
+    ? estadoDeSucursal(masCercana.sucursal)
     : null;
   const sucursalCerrada = estadoPedido
     ? !estadoPedido.abierta
@@ -258,7 +258,7 @@ function Checkout() {
 
   async function enviarPedido() {
     if (!direccion || !masCercana) return;
-    const estado = estadoSucursal(masCercana.sucursal.horario, masCercana.sucursal.zona_horaria);
+    const estado = estadoDeSucursal(masCercana.sucursal);
     if (!estado.abierta) {
       setPreguntando(false);
       setError(`${estado.motivo ?? "La sucursal está cerrada"}. No se pueden generar pedidos por ahora.`);
@@ -298,7 +298,7 @@ function Checkout() {
   const iconoTarjeta = "grid h-12 w-12 shrink-0 place-items-center rounded-2xl";
   const linkAccion = "text-sm font-bold text-brand-dark underline-offset-4 hover:text-brand-red hover:underline";
   const botonChico =
-    "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-white px-4 text-sm font-bold transition-colors hover:bg-brand-dark hover:text-brand-cream";
+    "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-white px-4 text-sm font-bold transition-colors transition-all duration-200 hover:translate-y-0.5 hover:border-white hover:shadow-brand-red hover:bg-brand-dark hover:text-brand-cream";
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
@@ -314,7 +314,7 @@ function Checkout() {
       </PageHeader>
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start [&>*]:min-w-0">
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 my-4">
           {/* Volver: al carrito, o al producto si es una compra directa */}
           {paso === 2 ? (
             <button type="button" onClick={() => irAPaso(1)} className={`${botonChico} w-fit shadow-sticker`}>

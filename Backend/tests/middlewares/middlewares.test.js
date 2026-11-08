@@ -54,9 +54,9 @@ const casos = [
     {
         nombre: 'validarAdmin',
         middleware: validarAdmin,
-        valido: { nombre: 'Admin Central', email: 'Admin@Burger.com', password: 'Segura123', sucursalId: 1, },
-        verificarLimpio: (body) => expect(body.email).toBe('admin@burger.com'),
-        invalido: { nombre: 'Admin Central', email: 'admin@burger.com', password: 'debil' },
+        valido: { nombre: 'Admin Central', email: 'Admin@BurgerFast.com', password: 'Segura123', sucursalId: 1, },
+        verificarLimpio: (body) => expect(body.email).toBe('admin@burgerfast.com'),
+        invalido: { nombre: 'Admin Central', email: 'admin@burgerfast.com', password: 'debil' },
         mensaje: 'La contraseña debe tener al menos 8 caracteres',
     },
     {

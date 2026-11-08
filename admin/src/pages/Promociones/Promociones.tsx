@@ -290,6 +290,8 @@ export default function Promociones() {
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}
+        titulo="Confirmar eliminación"
+        textoConfirmar="Eliminar"
         mensaje={`¿Estás seguro de que querés eliminar la promoción "${aEliminar?.titulo ?? ''}"? Esta acción no se puede deshacer.`}
         onConfirmar={() => {
           if (aEliminar) eliminar(aEliminar)

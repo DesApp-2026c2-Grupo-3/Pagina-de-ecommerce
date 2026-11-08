@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Boxes, Plus, Power } from 'lucide-react'
+import { Pencil, Boxes, Plus, Power } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
+import CierresActivos from '../../components/CierresActivos'
 import MensajeVacio from '../../components/MensajeVacio'
 import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
-import { obtenerSucursales, cambiarEstadoSucursal } from '../../services/sucursalService'
+import {
+  obtenerSucursales,
+  cambiarEstadoSucursal,
+  cambiarPermisoHorarioSucursal,
+} from '../../services/sucursalService'
 import type { Sucursal } from '../../types/sucursal.types'
 import { formatearHorario } from '../../utils/horario'
 
@@ -26,6 +31,26 @@ function Estado({ activa }: { activa: boolean }) {
     <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Activa</span>
   ) : (
     <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Inactiva</span>
+  )
+}
+
+// Perilla del master: ¿los encargados de esta sucursal pueden editar el horario?
+// Encendida = pueden editarlo como el master. Apagada = lo ven en solo lectura.
+function PerillaHorario({ sucursal, onCambiar }: { sucursal: Sucursal; onCambiar: (s: Sucursal) => void }) {
+  const habilitada = sucursal.encargadoEditaHorario !== false
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2">
+      <input
+        type="checkbox"
+        role="switch"
+        checked={habilitada}
+        onChange={() => onCambiar(sucursal)}
+        aria-label={`Los encargados de ${sucursal.nombre} pueden editar el horario`}
+        className="peer sr-only"
+      />
+      <span className="relative h-6 w-11 shrink-0 rounded-full bg-gray-300 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition-transform after:content-[''] peer-checked:bg-green-500 peer-checked:after:translate-x-5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-orange-500" />
+      <span className="text-sm text-gray-600">{habilitada ? 'Pueden editar' : 'Solo lectura'}</span>
+    </label>
   )
 }
 
@@ -72,17 +97,31 @@ export default function Sucursales() {
     }
   }
 
+  async function cambiarPermisoHorario(sucursal: Sucursal) {
+    const habilitar = sucursal.encargadoEditaHorario === false
+    try {
+      await cambiarPermisoHorarioSucursal(sucursal.id, habilitar)
+      // Se conserva el resto de los datos (por ejemplo los administradores) y solo cambia la perilla
+      setSucursales((prev) => prev.map((s) => (s.id === sucursal.id ? { ...s, encargadoEditaHorario: habilitar } : s)))
+      mostrarToast(
+        habilitar ? 'Los encargados ya pueden editar el horario' : 'El horario quedó en solo lectura para los encargados',
+      )
+    } catch (error) {
+      mostrarToast(error instanceof Error ? error.message : 'No se pudo cambiar el permiso del horario')
+    }
+  }
+
   // Los tres botones, iguales en celular y escritorio
   const acciones = (s: Sucursal) => (
     <div className="flex shrink-0 gap-2">
       <button
         type="button"
         onClick={() => navigate(`/admin/sucursales/editar/${s.id}`)}
-        aria-label={`Ver detalles de ${s.nombre}`}
-        title="Ver detalles"
+        aria-label={`Editar ${s.nombre}`}
+        title="Editar"
         className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
       >
-        <Eye size={18} />
+        <Pencil size={18} />
       </button>
       <button
         type="button"
@@ -128,6 +167,8 @@ export default function Sucursales() {
         </button>
       </div>
 
+      <CierresActivos />
+
       <BarraFiltros>
         <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar sucursal..." />
         <SelectFiltro
@@ -158,6 +199,9 @@ export default function Sucursales() {
                     <ResumenHorario horario={s.horario} />
                   </div>
                   <div className="mt-2">
+                    <PerillaHorario sucursal={s} onCambiar={cambiarPermisoHorario} />
+                  </div>
+                  <div className="mt-2">
                     <Estado activa={s.activa} />
                   </div>
                 </div>
@@ -173,6 +217,7 @@ export default function Sucursales() {
                 <tr>
                   <th className="px-6 py-3 text-left">Nombre</th>
                   <th className="px-6 py-3 text-left">Horario</th>
+                  <th className="px-6 py-3 text-left">Encargados editan horario</th>
                   <th className="px-6 py-3 text-left">Estado</th>
                   <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
@@ -183,6 +228,9 @@ export default function Sucursales() {
                     <td className="px-6 py-4 font-medium">{s.nombre}</td>
                     <td className="px-6 py-4">
                       <ResumenHorario horario={s.horario} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <PerillaHorario sucursal={s} onCambiar={cambiarPermisoHorario} />
                     </td>
                     <td className="px-6 py-4">
                       <Estado activa={s.activa} />

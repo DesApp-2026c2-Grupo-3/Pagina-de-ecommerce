@@ -1,8 +1,9 @@
 jest.mock('../../src/models', () => ({
     Sucursal: { findAll: jest.fn() },
+    CierreSucursal: { findAll: jest.fn().mockResolvedValue([]) },
 }));
 
-const { Sucursal } = require('../../src/models');
+const { Sucursal, CierreSucursal } = require('../../src/models');
 const { obtenerSucursales } = require('../../src/controllers/sucursalController');
 
 function crearRes() {
@@ -28,7 +29,21 @@ describe('obtenerSucursales', () => {
         expect(Sucursal.findAll).toHaveBeenCalledWith(
             expect.objectContaining({ where: { activa: true }, order: [['nombre', 'ASC']] })
         );
-        expect(res.json).toHaveBeenCalledWith(sucursales);
+        expect(res.json).toHaveBeenCalledWith([{ id: 1, nombre: 'Centro', cierreTemporal: false }]);
+    });
+
+    test('marca como cerrada temporalmente a la sucursal con un cierre activo', async () => {
+        Sucursal.findAll.mockResolvedValue([{ id: 1, nombre: 'Centro' }, { id: 2, nombre: 'Morón' }]);
+        CierreSucursal.findAll.mockResolvedValue([{ sucursalId: 2 }]);
+        const res = crearRes();
+
+        await obtenerSucursales({}, res);
+
+        expect(CierreSucursal.findAll).toHaveBeenCalledWith(expect.objectContaining({ where: { reabiertoEn: null } }));
+        expect(res.json).toHaveBeenCalledWith([
+            { id: 1, nombre: 'Centro', cierreTemporal: false },
+            { id: 2, nombre: 'Morón', cierreTemporal: true },
+        ]);
     });
 
     test('no expone datos internos (es un endpoint público)', async () => {

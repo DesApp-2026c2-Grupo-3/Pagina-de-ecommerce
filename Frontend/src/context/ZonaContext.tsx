@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { getSucursales } from '../services/sucursalService'
 import { buscarSucursalCercana } from '../utils/sucursales'
-import { estadoSucursal, zonaHorariaDeSucursal } from '../utils/horario'
+import { estadoDeSucursal, zonaHorariaDeSucursal } from '../utils/horario'
 import type { Sucursal } from '../types/sucursal'
 import type { UbicacionElegida, Zona } from '../types/zona'
 
@@ -72,7 +72,7 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
     }
 
     const actualizar = (sucursal: Sucursal, actual: Zona) => {
-      const abierta = estadoSucursal(sucursal.horario, sucursal.zona_horaria).abierta
+      const abierta = estadoDeSucursal(sucursal).abierta
       const zonaHoraria = zonaHorariaDeSucursal(sucursal.zona_horaria)
       if (actual.sucursalAbierta === abierta && actual.sucursalZonaHoraria === zonaHoraria) return
 
@@ -100,7 +100,7 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
       sucursalId: cercana.sucursal.id,
       sucursalNombre: cercana.sucursal.nombre,
       distanciaKm: cercana.distancia,
-      sucursalAbierta: estadoSucursal(cercana.sucursal.horario, cercana.sucursal.zona_horaria).abierta,
+      sucursalAbierta: estadoDeSucursal(cercana.sucursal).abierta,
       sucursalZonaHoraria: zonaHorariaDeSucursal(cercana.sucursal.zona_horaria),
     }
     setZona(nueva)

@@ -85,7 +85,7 @@ describe('cargarAumento', () => {
         StockSucursal.findByPk.mockResolvedValue(stock);
         const res = crearRes();
 
-        await cargarAumento({ params: { id: '1' }, body: { cantidad: 10, adminId: 7 } }, res);
+        await cargarAumento({ params: { id: '1' }, body: { cantidad: 10 }, usuario: { id: 7 } }, res);
 
         expect(stock.update).toHaveBeenCalledWith({ cantidad: 50 }, { transaction: t });
         expect(MovimientoStock.create).toHaveBeenCalledWith(
@@ -100,7 +100,7 @@ describe('cargarAumento', () => {
         StockSucursal.findByPk.mockResolvedValue(registro(40));
         Admin.findByPk.mockResolvedValue(null);
 
-        await cargarAumento({ params: { id: '1' }, body: { cantidad: 10, adminId: 999 } }, crearRes());
+        await cargarAumento({ params: { id: '1' }, body: { cantidad: 10 }, usuario: { id: 999 } }, crearRes());
 
         expect(MovimientoStock.create).toHaveBeenCalledWith(expect.objectContaining({ adminId: null }), expect.anything());
     });

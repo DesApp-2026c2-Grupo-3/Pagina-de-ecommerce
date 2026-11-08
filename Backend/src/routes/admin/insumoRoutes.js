@@ -9,7 +9,7 @@ const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
 
 router.get('/', esAdminJwt, insumoController.obtenerInsumos);
 router.post('/nuevo', esMasterJwt, validarInsumo, insumoController.crearInsumo);
-router.patch('/editar/:id', esIdValido, validarInsumo, insumoController.editarInsumo);
+router.patch('/editar/:id', esMasterJwt, esIdValido, validarInsumo, insumoController.editarInsumo);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, insumoController.eliminarInsumo);
 router.patch('/:id/deshabilitar', esMasterJwt, esIdValido, insumoController.deshabilitarInsumo);
 router.patch('/:id/habilitar', esMasterJwt, esIdValido, insumoController.habilitarInsumo);

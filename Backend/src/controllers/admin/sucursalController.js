@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Sucursal, Admin, Insumo, StockSucursal, sequelize } = require('../../models');
+const { ROLES } = require('../../config/roles');
 
 // Los admins de cada sucursal, solo con los datos que necesita el panel
 const ADMINS = { model: Admin, attributes: ['id', 'nombre', 'email'] };
@@ -86,6 +87,9 @@ const editarSucursal = async (req, res) => {
             return res.status(400).json({ code: 'Ya existe una sucursal con ese nombre' });
         }
 
+        // El cupo de empleados lo define solo el master: si lo manda otro rol, se ignora
+        if (req.usuario?.rol !== ROLES.MASTER) delete req.body.maxEmpleados;
+
         await sucursal.update(req.body);
 
         res.status(200).json({ mensaje: 'Sucursal editada con éxito', sucursal });
@@ -122,10 +126,62 @@ const cambiarEstadoSucursal = async (req, res) => {
     }
 };
 
+// PATCH /admin/sucursales/horario/:id → cambia solo el horario semanal.
+// El master siempre puede; el encargado solo si el master habilitó la edición en su sucursal.
+const editarHorarioSucursal = async (req, res) => {
+    try {
+        const sucursal = await Sucursal.findByPk(req.params.id);
+
+        if (!sucursal) {
+            return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
+        }
+
+        if (req.usuario?.rol !== ROLES.MASTER && !sucursal.encargadoEditaHorario) {
+            return res.status(403).json({
+                mensaje: 'El administrador general no habilitó la edición del horario en tu sucursal',
+            });
+        }
+
+        await sucursal.update({ horario: req.body.horario });
+
+        res.status(200).json({ mensaje: 'Horario actualizado con éxito', sucursal });
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error al actualizar el horario' });
+    }
+};
+
+// PATCH /admin/sucursales/permiso-horario/:id → el master habilita o no a los encargados
+// de esa sucursal a editar el horario: { "encargadoEditaHorario": false }
+const cambiarPermisoHorario = async (req, res) => {
+    try {
+        const sucursal = await Sucursal.findByPk(req.params.id);
+
+        if (!sucursal) {
+            return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
+        }
+
+        const { encargadoEditaHorario } = req.body;
+        await sucursal.update({ encargadoEditaHorario });
+
+        res.status(200).json({
+            mensaje: encargadoEditaHorario
+                ? 'Los encargados ya pueden editar el horario'
+                : 'El horario quedó en solo lectura para los encargados',
+            sucursal,
+        });
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        res.status(500).json({ mensaje: 'Error al cambiar el permiso del horario' });
+    }
+};
+
 module.exports = {
     obtenerSucursales,
     obtenerSucursalPorId,
     crearSucursal,
     editarSucursal,
     cambiarEstadoSucursal,
+    editarHorarioSucursal,
+    cambiarPermisoHorario,
 };

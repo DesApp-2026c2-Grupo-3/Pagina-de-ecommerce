@@ -13,6 +13,8 @@ jest.mock('../../src/models', () => {
         Insumo: {},
         ProductoTamanio: {},
         StockSucursal: { findOne: jest.fn() },
+        CierreSucursal: { findOne: jest.fn().mockResolvedValue(null) },
+        SuspensionProducto: { findAll: jest.fn().mockResolvedValue([]) },
         MovimientoStock: { create: jest.fn() },
         historialDeTiemposPedido: { create: jest.fn(), findAll: jest.fn() },
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },

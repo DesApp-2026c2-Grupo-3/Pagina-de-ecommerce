@@ -5,16 +5,17 @@ interface Props {
 }
 
 const base =
-  'min-h-10 rounded-full border-2 border-brand-dark px-4 py-1.5 text-sm font-bold leading-tight transition-colors'
+  'min-h-8 text-xs px-3 py-1 rounded-full border-2 border-brand-dark font-bold leading-tight transition-colors sm:min-h-10 sm:px-4 sm:py-1.5 sm:text-sm'
 const activo = 'bg-brand-dark text-brand-cream'
 const inactivo = 'bg-white text-brand-dark hover:bg-brand-sand'
+
 
 // Botones de subcategoría (Carne vacuna / Pollo / Veggie...). Bajan de línea en vez de deslizarse,
 // así en el celular se ven todos de una vez.
 function SubcategoriaFilter({ subgrupos, seleccionado, onSeleccionar }: Props) {
   const opciones = [{ slug: null, nombre: 'Todo' }, ...subgrupos]
   return (
-    <div role="group" aria-label="Subcategorías" className="mt-4 flex flex-wrap gap-2">
+    <div role="group" aria-label="Subcategorías" className="mt-4 flex flex-wrap gap-1 md:gap-2">
       {opciones.map((s) => {
         const elegida = seleccionado === s.slug
         return (

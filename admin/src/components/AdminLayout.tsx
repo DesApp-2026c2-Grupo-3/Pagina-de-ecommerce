@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import NavBar from './NavBar'
 import Footer from './Footer'
+import BarraSuperior from './BarraSuperior'
 
 export default function AdminLayout() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -17,6 +18,7 @@ export default function AdminLayout() {
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
+          <BarraSuperior />
 
           <main className="flex-1">
             <Outlet />

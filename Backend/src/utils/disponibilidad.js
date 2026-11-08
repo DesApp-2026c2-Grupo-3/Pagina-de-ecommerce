@@ -26,9 +26,10 @@ function pasoExtra(cantidadBase) {
 // Un producto está disponible si:
 // 1. está activo (el "disponible" que maneja el admin), y
 // 2. la sucursal tiene stock de TODOS los insumos de su receta para preparar una unidad,
-//    multiplicados por el factor de stock del tamaño.
-function productoDisponible(producto, receta = [], stockPorInsumo = new Map(), factor = 1) {
-    if (!producto.disponible) return false;
+//    multiplicados por el factor de stock del tamaño, y
+// 3. no está suspendido en la sucursal (suspendidos: Set de ids de productos con una suspensión activa).
+function productoDisponible(producto, receta = [], stockPorInsumo = new Map(), factor = 1, suspendidos = new Set()) {
+    if (!producto.disponible || suspendidos.has(producto.id)) return false;
 
     return receta.every((item) => {
         const necesario = Number(item.cantidadBase) * factor;

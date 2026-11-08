@@ -14,30 +14,27 @@ function DestacadoCard({ destacado, link }: { destacado: Destacado; link: string
   const inv = destacado.invertido
 
   return (
-    <Link 
-      to={link} 
+    <Link
+      to={link}
       className="group relative mx-auto block w-full max-w-[260px] xs:max-w-[280px] lg:max-w-xs pb-6 pt-3 snap-center shrink-0 lg:shrink select-none"
     >
       <div
-        className={`relative grid aspect-square place-items-center rounded-[2.5rem] border-2 border-brand-dark transition-transform group-hover:rotate-0 ${
-          inv ? '-rotate-3' : 'rotate-3'
-        } ${FONDO_RECUADRO[destacado.acento]}`}
+        className={`relative grid aspect-square place-items-center rounded-[2.5rem] border-2 border-brand-dark transition-transform group-hover:rotate-0 ${inv ? '-rotate-3' : 'rotate-3'
+          } ${FONDO_RECUADRO[destacado.acento]}`}
       >
         <div className="absolute inset-[7%] rounded-full bg-black/15" />
         <img
           src={destacado.imagen}
           alt=""
           draggable="false"
-          className={`relative w-[85%] object-contain drop-shadow-2xl transition-transform group-hover:scale-105 ${
-            inv ? 'rotate-3' : '-rotate-3'
-          }`}
+          className={`relative w-[85%] object-contain drop-shadow-2xl transition-transform group-hover:scale-105 ${inv ? 'rotate-3' : '-rotate-3'
+            }`}
         />
       </div>
 
       <div
-        className={`absolute bottom-0 rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 text-brand-dark shadow-sticker pointer-events-none ${
-          inv ? '-right-2 rotate-6' : '-left-2 -rotate-6'
-        }`}
+        className={`absolute bottom-0 rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 text-brand-dark shadow-sticker pointer-events-none ${inv ? '-right-2 rotate-6' : '-left-2 -rotate-6'
+          }`}
       >
         <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{destacado.sticker.eyebrow}</p>
         <p className="font-display text-xl font-extrabold leading-tight">{destacado.sticker.titulo}</p>
@@ -45,9 +42,8 @@ function DestacadoCard({ destacado, link }: { destacado: Destacado; link: string
 
       {destacado.badge && (
         <div
-          className={`absolute top-0 grid h-20 w-20 place-items-center rounded-full border-[3px] border-brand-dark bg-brand-mustard p-2 text-center font-display text-sm font-extrabold leading-none text-brand-dark pointer-events-none ${
-            inv ? '-left-2 -rotate-12' : '-right-2 rotate-12'
-          }`}
+          className={`absolute top-0 grid h-20 w-20 place-items-center rounded-full border-[3px] border-brand-dark bg-brand-mustard p-2 text-center font-display text-sm font-extrabold leading-none text-brand-dark pointer-events-none ${inv ? '-left-2 -rotate-12' : '-right-2 rotate-12'
+            }`}
         >
           {destacado.badge}
         </div>
@@ -77,7 +73,7 @@ function DestacadosRow() {
   const verificarLimitesScroll = () => {
     if (!scrollRef.current) return
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
-    
+
     // Dejamos un margen de tolerancia de 5px para lidiar con decimales de zoom o pantallas fraccionadas
     setPuedeIrIzquierda(scrollLeft > 5)
     setPuedeIrDerecha(scrollLeft + clientWidth < scrollWidth - 5)
@@ -86,7 +82,7 @@ function DestacadosRow() {
   useEffect(() => {
     // Verificar al cargar por primera vez
     verificarLimitesScroll()
-    
+
     // Escuchar cambios de tamaño de ventana para recalcular las flechas
     window.addEventListener('resize', verificarLimitesScroll)
     return () => window.removeEventListener('resize', verificarLimitesScroll)
@@ -95,7 +91,7 @@ function DestacadosRow() {
   const handleScroll = (direccion: 'izq' | 'der') => {
     if (!scrollRef.current) return
     const { scrollLeft, clientWidth } = scrollRef.current
-    
+
     // En md avanzamos de a media pantalla (para pasar de a 1 tarjeta si se ven 2), en sm avanza completo
     const esTablet = window.innerWidth >= 640 && window.innerWidth < 1024
     const cantidadDesplazar = esTablet ? clientWidth / 2 : clientWidth
@@ -128,7 +124,7 @@ function DestacadosRow() {
 
   return (
     <section className="group/row relative px-0 lg:px-4 pb-16 overflow-hidden">
-      
+
       {/* Flecha Izquierda Condicional */}
       <button
         type="button"
@@ -156,18 +152,18 @@ function DestacadosRow() {
         - Escuchamos el evento `onScroll` para validar dinámicamente el estado de los extremos de las flechas.
         - gap-4 en mobile/tablet para darle un sutil aire en lugar de estar pegadas al 100%.
       */}
-      <div 
+      <div
         ref={scrollRef}
         onScroll={verificarLimitesScroll}
         onMouseDown={onMouseDown}
         onMouseLeave={onMouseLeaveOrUp}
         onMouseUp={onMouseLeaveOrUp}
         onMouseMove={onMouseMove}
-        className={`mx-auto flex flex-row lg:grid lg:grid-cols-3 max-w-7xl gap-4 lg:gap-12 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-          isDown 
-            ? 'cursor-grabbing select-none scroll-auto' 
+        // 🛠️ CAMBIO: px-8 en celulares para centrar la viñeta, sm:px-0 para limpiar los bordes en tablets y escritorio
+        className={`mx-auto flex flex-row lg:grid lg:grid-cols-3 max-w-7xl gap-4 lg:gap-12 overflow-x-auto pb-4 px-8 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${isDown
+            ? 'cursor-grabbing select-none scroll-auto'
             : 'cursor-grab lg:cursor-default snap-x snap-mandatory scroll-smooth'
-        }`}
+          }`}
       >
         {/* 
           Estructura de anchos dinámicos:
@@ -176,13 +172,15 @@ function DestacadosRow() {
           - lg:w-auto: En desktop vuelve a su comportamiento de grilla estándar.
         */}
         {DESTACADOS.map((d) => (
-          <div 
-            key={d.id} 
-            className="w-[calc(100vw-32px)] sm:w-[calc(50vw-24px)] lg:w-auto px-2 lg:px-0 shrink-0 lg:shrink flex justify-center snap-center"
+          <div
+            key={d.id}
+            // 🛠️ CAMBIO: w-[calc(100vw-4rem)] actúa en celulares. En sm: hereda tu cálculo original para meter 2 tarjetas.
+            className="w-[calc(100vw-4rem)] sm:w-[calc(50vw-24px)] lg:w-auto px-1 lg:px-0 shrink-0 lg:shrink flex justify-center snap-center"
           >
             <DestacadoCard destacado={d} link={linkDe(d)} />
           </div>
         ))}
+
       </div>
     </section>
   )

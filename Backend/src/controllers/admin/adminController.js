@@ -5,6 +5,9 @@ const jwt = require('jsonwebtoken');
 
 
 const { Admin, Sucursal } = require('../../models')
+const { ROLES } = require('../../config/roles');
+const { rolQueCrea, puedeGestionar } = require('../../utils/permisosAdmin');
+const { DOMINIO_PERSONAL, esEmailDePersonal } = require('../../utils/emailPersonal');
 
 // La sucursal se devuelve solo con los datos que necesita el panel
 const SUCURSAL = { model: Sucursal, attributes: ['id', 'nombre'] };
@@ -30,10 +33,38 @@ async function validarSucursal(sucursalId) {
 }
 
 
+// Cada sucursal tiene 2 encargados activos (regla fija) y los empleados que fije el master (maxEmpleados).
+// Devuelve el mensaje de error, o '' si hay lugar. excluirId: el admin que se está moviendo o reactivando.
+const MAX_ENCARGADOS_POR_SUCURSAL = 2;
+
+async function validarCupo(rol, sucursalId, excluirId = null) {
+    if (rol !== ROLES.ADMIN && rol !== ROLES.EMPLEADO) return '';
+
+    const where = { rol, sucursalId, activo: true };
+    if (excluirId) where.id = { [Op.ne]: excluirId };
+    const activos = await Admin.count({ where });
+
+    if (rol === ROLES.ADMIN && activos >= MAX_ENCARGADOS_POR_SUCURSAL) {
+        return `La sucursal ya tiene ${MAX_ENCARGADOS_POR_SUCURSAL} encargados activos`;
+    }
+    if (rol === ROLES.EMPLEADO) {
+        const sucursal = await Sucursal.findByPk(sucursalId);
+        const cupo = sucursal?.maxEmpleados ?? 0;
+        if (activos >= cupo) return `La sucursal ya alcanzó su cupo de ${cupo} empleados`;
+    }
+    return '';
+}
+
 const verAdmins = async (req, res) => {
     try {
+        // El master ve a todos los admins; el encargado, solo a los empleados de su sucursal
+        const actor = req.usuario;
+        const where = actor.rol === ROLES.ADMIN
+            ? { rol: ROLES.EMPLEADO, sucursalId: actor.sucursalId }
+            : { rol: { [Op.ne]: ROLES.MASTER } };
+
         const admins = await Admin.findAll({
-            where: { rol: { [Op.ne]: 'MASTER' } },
+            where,
             attributes: [
                 'id','nombre','email', 'rol', 'sucursalId','activo','createdAt'
             ],
@@ -57,7 +88,15 @@ const verAdmins = async (req, res) => {
 
 const crearAdmin = async (req, res) => {
     try {
-        const { nombre, email, password, sucursalId } = req.body
+        const { nombre, email, password } = req.body
+
+        // El master crea encargados (ADMIN); el encargado, empleados de SU sucursal
+        const actor = req.usuario;
+        const rol = rolQueCrea(actor);
+        if (!rol) {
+            return res.status(403).json({ mensaje: 'No tenés permiso para crear administradores' });
+        }
+        const sucursalId = actor.rol === ROLES.ADMIN ? actor.sucursalId : req.body.sucursalId;
 
         const nombreNormalizado = nombre.trim();
         const emailNormalizado = email.trim().toLowerCase();
@@ -65,6 +104,11 @@ const crearAdmin = async (req, res) => {
         const errorSucursal = await validarSucursal(sucursalId);
         if (errorSucursal) {
             return res.status(400).json({ code: errorSucursal })
+        }
+
+        const errorCupo = await validarCupo(rol, sucursalId);
+        if (errorCupo) {
+            return res.status(409).json({ mensaje: errorCupo, code: errorCupo })
         }
 
         const validarEmail = await Admin.findOne({ where: { email: emailNormalizado } })
@@ -79,7 +123,7 @@ const crearAdmin = async (req, res) => {
             nombre: nombreNormalizado,
             email: emailNormalizado,
             password: passwordEncriptada,
-            rol: 'ADMIN',
+            rol,
             sucursalId,
         })
 
@@ -163,6 +207,9 @@ const obtenerAdminPorId = async (req, res) => {
         if (!admin) {
             return res.status(404).json({ mensaje: 'Administrador no encontrado' });
         }
+        if (!puedeGestionar(req.usuario, admin)) {
+            return res.status(403).json({ mensaje: 'No podés gestionar a este administrador' });
+        }
 
         res.status(200).json(datosDe(admin));
     } catch (error) {
@@ -179,9 +226,18 @@ const actualizarAdmin = async (req, res) => {
             return res.status(404).json({ mensaje: 'Administrador no encontrado' });
         }
 
+        if (!puedeGestionar(req.usuario, admin)) {
+            return res.status(403).json({ mensaje: 'No podés gestionar a este administrador' });
+        }
+
         const { nombre, email, password, sucursalId } = req.body;
 
         const emailNormalizado = email?.trim().toLowerCase() ?? admin.email;
+
+        // El personal (encargados y empleados) usa mail laboral
+        if (admin.rol !== ROLES.MASTER && !esEmailDePersonal(emailNormalizado)) {
+            return res.status(400).json({ code: `El email del personal debe ser ${DOMINIO_PERSONAL}` });
+        }
 
         const adminConEseEmail = await Admin.findOne({ where: { email: emailNormalizado } });
         if (adminConEseEmail && adminConEseEmail.id !== admin.id) {
@@ -193,11 +249,18 @@ const actualizarAdmin = async (req, res) => {
             email: emailNormalizado,
         };
 
-        // El MASTER no tiene sucursal; a un ADMIN se le puede cambiar
-        if (sucursalId !== undefined && admin.rol !== 'MASTER') {
+        // El MASTER no tiene sucursal; solo el master puede mover a un admin de sucursal
+        if (sucursalId !== undefined && admin.rol !== ROLES.MASTER && req.usuario.rol === ROLES.MASTER) {
             const errorSucursal = await validarSucursal(sucursalId);
             if (errorSucursal) {
                 return res.status(400).json({ code: errorSucursal });
+            }
+            // Al mover a un admin activo de sucursal, la de destino tiene que tener lugar
+            if (admin.activo && Number(sucursalId) !== Number(admin.sucursalId)) {
+                const errorCupo = await validarCupo(admin.rol, sucursalId, admin.id);
+                if (errorCupo) {
+                    return res.status(409).json({ mensaje: errorCupo, code: errorCupo });
+                }
             }
             datosActualizados.sucursalId = sucursalId;
         }
@@ -227,6 +290,9 @@ const eliminarAdmin = async (req, res) => {
         }
         if (admin.rol == "MASTER") {
             return res.status(403).json({ mensaje: 'Error al intentar eliminar el administrador' });
+        }
+        if (!puedeGestionar(req.usuario, admin)) {
+            return res.status(403).json({ mensaje: 'No podés gestionar a este administrador' });
         }
 
         admin.activo = false;
@@ -258,11 +324,20 @@ const reactivarAdmin = async (req, res) => {
                 mensaje: 'Error al intentar reactivar el administrador'
             });
         }
+        if (!puedeGestionar(req.usuario, admin)) {
+            return res.status(403).json({ mensaje: 'No podés gestionar a este administrador' });
+        }
 
         if (admin.activo) {
             return res.status(400).json({
                 mensaje: 'El administrador ya está activo'
             });
+        }
+
+        // Al reactivar, la sucursal tiene que tener lugar para ese rol
+        const errorCupo = await validarCupo(admin.rol, admin.sucursalId, admin.id);
+        if (errorCupo) {
+            return res.status(409).json({ mensaje: errorCupo, code: errorCupo });
         }
 
         admin.activo = true;

@@ -94,7 +94,28 @@ const sucursalSchema = Joi.object({
         'number.positive': 'El radio de entrega debe ser mayor a 0',
         'number.max': 'El radio de entrega no puede superar los 30 km',
         'any.required': 'El radio de entrega es obligatorio'
+    }),
+
+    // Cupo de empleados activos de la sucursal (opcional; solo lo guarda el master)
+    maxEmpleados: Joi.number().integer().min(0).max(20).optional().messages({
+        'number.base': 'El cupo de empleados debe ser un número',
+        'number.integer': 'El cupo de empleados debe ser un número entero',
+        'number.min': 'El cupo de empleados no puede ser negativo',
+        'number.max': 'El cupo de empleados no puede superar los 20'
     })
 });
 
-module.exports = { sucursalSchema };
+// Solo el horario semanal: es lo único que puede cambiar un encargado (si el master lo habilitó)
+const horarioSucursalSchema = Joi.object({
+    horario: horarioSchema
+});
+
+// Perilla del master: ¿los encargados de la sucursal pueden editar el horario?
+const permisoHorarioSchema = Joi.object({
+    encargadoEditaHorario: Joi.boolean().strict().required().messages({
+        'boolean.base': 'Indicá si los encargados pueden editar el horario (true o false)',
+        'any.required': 'Indicá si los encargados pueden editar el horario'
+    })
+});
+
+module.exports = { sucursalSchema, horarioSucursalSchema, permisoHorarioSchema };

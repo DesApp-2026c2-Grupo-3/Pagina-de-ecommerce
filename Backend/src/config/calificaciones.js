@@ -9,6 +9,8 @@ const DIAS_PARA_CALIFICAR = 7;
 const HORAS_PARA_EDITAR = 24;
 // Máximo del comentario
 const MAX_COMENTARIO = 300;
+// Para entrar en "Los más valorados" un producto necesita al menos esta cantidad de calificaciones con estrellas
+const MIN_CALIFICACIONES_RANKING = 1;
 
 const MS_MINUTO = 60 * 1000;
 const MS_HORA = 60 * MS_MINUTO;
@@ -37,6 +39,7 @@ module.exports = {
     DIAS_PARA_CALIFICAR,
     HORAS_PARA_EDITAR,
     MAX_COMENTARIO,
+    MIN_CALIFICACIONES_RANKING,
     ventanaDeCalificacion,
     estadoDeLaVentana,
     sePuedeEditar,

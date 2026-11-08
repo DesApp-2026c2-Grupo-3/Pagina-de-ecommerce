@@ -26,7 +26,7 @@ beforeEach(() => {
 // Las consultas del resumen se hacen en orden: general, por sucursal, por producto, por semana
 function resumenConsultas({ porSucursal = [], porProducto = [], porSemana = [] } = {}) {
     sequelize.query
-        .mockResolvedValueOnce([{ total: 10, promedio: '3.60', p1: 1, p2: 2, p3: 1, p4: 3, p5: 3, conComentario: 4 }])
+        .mockResolvedValueOnce([{ total: 12, conPuntaje: 10, promedio: '3.60', p1: 1, p2: 2, p3: 1, p4: 3, p5: 3, conComentario: 4 }])
         .mockResolvedValueOnce(porSucursal)
         .mockResolvedValueOnce(porProducto)
         .mockResolvedValueOnce(porSemana);
@@ -44,7 +44,9 @@ describe('obtenerResumen', () => {
         await obtenerResumen(pedir(), res);
 
         const r = res.json.mock.calls[0][0];
-        expect(r.total).toBe(10);
+        expect(r.total).toBe(12);
+        // Los comentarios sin estrellas cuentan en el total pero no promedian
+        expect(r.conPuntaje).toBe(10);
         expect(r.promedio).toBe(3.6);
         expect(r.conComentario).toBe(4);
         expect(r.distribucion).toEqual({ 1: 1, 2: 2, 3: 1, 4: 3, 5: 3 });
@@ -54,9 +56,20 @@ describe('obtenerResumen', () => {
         expect(r.porSemana.map((s) => s.semana)).toEqual(['2026-10-19', '2026-10-26']);
     });
 
+    test('el desglose por producto cuenta solo estrellas y trae hasta 50 productos', async () => {
+        resumenConsultas();
+
+        await obtenerResumen(pedir(), crearRes());
+
+        const sqlProductos = sequelize.query.mock.calls[2][0];
+        expect(sqlProductos).toMatch(/COUNT\(c\.puntaje\)/);
+        expect(sqlProductos).toMatch(/HAVING COUNT\(c\.puntaje\) > 0/);
+        expect(sqlProductos).toMatch(/LIMIT 50/);
+    });
+
     test('sin calificaciones el promedio es null', async () => {
         sequelize.query
-            .mockResolvedValueOnce([{ total: 0, promedio: null, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, conComentario: 0 }])
+            .mockResolvedValueOnce([{ total: 0, conPuntaje: 0, promedio: null, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, conComentario: 0 }])
             .mockResolvedValue([]);
         const res = crearRes();
 
@@ -73,7 +86,7 @@ describe('obtenerResumen', () => {
 
         const [sql, opciones] = sequelize.query.mock.calls[0];
         expect(sql).toMatch(/c\."sucursalId" = :sucursalId/);
-        expect(sql).toMatch(/EXISTS \(SELECT 1 FROM "DetallePedidos"/);
+        expect(sql).toMatch(/c\."productoId" = :productoId/);
         expect(sql).toMatch(/c\.puntaje = :puntaje/);
         expect(sql).toMatch(/c\.comentario IS NOT NULL/);
         expect(opciones.replacements).toMatchObject({ sucursalId: 5, productoId: 3, puntaje: 4 });
@@ -84,7 +97,7 @@ describe('obtenerResumen', () => {
 
     test('con una sucursal elegida no compara sucursales, y con un producto elegido no arma el ranking de productos', async () => {
         sequelize.query
-            .mockResolvedValueOnce([{ total: 1, promedio: '5.00', p1: 0, p2: 0, p3: 0, p4: 0, p5: 1, conComentario: 0 }])
+            .mockResolvedValueOnce([{ total: 1, conPuntaje: 1, promedio: '5.00', p1: 0, p2: 0, p3: 0, p4: 0, p5: 1, conComentario: 0 }])
             .mockResolvedValue([]);
 
         await obtenerResumen(pedir({ sucursalId: '5', productoId: '3' }), crearRes());
@@ -140,10 +153,10 @@ describe('obtenerCalificaciones', () => {
     const fila = {
         id: 1, puntaje: 4, comentario: 'Rico', fecha: new Date('2026-10-30T20:00:00Z'), pedidoId: 12, sucursalId: 5,
         sucursalNombre: 'Hurlingham', clienteNombre: 'Ana', clienteApellido: 'Pérez',
-        pedidoTotal: '5400', pedidoFecha: new Date('2026-10-30T18:00:00Z'), productos: ['Fast Classic', 'Sprite'],
+        pedidoTotal: '5400', pedidoFecha: new Date('2026-10-30T18:00:00Z'), productoId: 3, productoNombre: 'Fast Classic',
     };
 
-    test('devuelve los datos crudos con el cliente, el pedido y la sucursal', async () => {
+    test('devuelve una fila por producto calificado, con el cliente, el pedido y la sucursal', async () => {
         sequelize.query.mockResolvedValueOnce([{ total: 1 }]).mockResolvedValueOnce([fila]);
         const res = crearRes();
 
@@ -161,7 +174,7 @@ describe('obtenerCalificaciones', () => {
                 cliente: { nombre: 'Ana', apellido: 'Pérez' },
                 pedido: { id: 12, total: 5400, fecha: fila.pedidoFecha },
                 sucursal: { id: 5, nombre: 'Hurlingham' },
-                productos: ['Fast Classic', 'Sprite'],
+                producto: { id: 3, nombre: 'Fast Classic' },
             }],
         });
     });
@@ -185,13 +198,22 @@ describe('obtenerCalificaciones', () => {
         expect(sequelize.query.mock.calls[1][1].replacements.sucursalId).toBe(5);
     });
 
-    test('filtra por producto sin duplicar calificaciones', async () => {
+    test('filtra por producto directamente (cada calificación es de un producto)', async () => {
         sequelize.query.mockResolvedValueOnce([{ total: 0 }]).mockResolvedValueOnce([]);
 
         await obtenerCalificaciones(pedir({ productoId: '3' }), crearRes());
 
-        // Se filtra con EXISTS (no con un JOIN), así un pedido con el producto en dos líneas aparece una vez
-        expect(sequelize.query.mock.calls[1][0]).toMatch(/EXISTS \(SELECT 1 FROM "DetallePedidos" dp/);
+        expect(sequelize.query.mock.calls[1][0]).toMatch(/c\."productoId" = :productoId/);
+        expect(sequelize.query.mock.calls[1][1].replacements.productoId).toBe(3);
+    });
+
+    test('una calificación solo con comentario llega con puntaje null', async () => {
+        sequelize.query.mockResolvedValueOnce([{ total: 1 }]).mockResolvedValueOnce([{ ...fila, puntaje: null }]);
+        const res = crearRes();
+
+        await obtenerCalificaciones(pedir(), res);
+
+        expect(res.json.mock.calls[0][0].calificaciones[0]).toMatchObject({ puntaje: null, comentario: 'Rico' });
     });
 
     test('un filtro inválido responde 400', async () => {

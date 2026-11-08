@@ -68,3 +68,17 @@ export const getMasPedidos = async (sucursalId?: number | null, limite = 4): Pro
   if (sucursalId) params.set('sucursalId', String(sucursalId))
   return httpClient<ProductoRanking[]>(`/productos/mas-pedidos?${params}`)
 }
+
+// Ranking real: productos con mejor promedio de estrellas (solo cuentan las calificaciones con estrellas).
+// Con sucursalId, solo las calificaciones de esa sucursal.
+export interface ProductoValorado {
+  productoId: number
+  promedio: number
+  cantidad: number
+}
+
+export const getMasValorados = async (sucursalId?: number | null, limite = 8): Promise<ProductoValorado[]> => {
+  const params = new URLSearchParams({ limite: String(limite) })
+  if (sucursalId) params.set('sucursalId', String(sucursalId))
+  return httpClient<ProductoValorado[]>(`/productos/mas-valorados?${params}`)
+}

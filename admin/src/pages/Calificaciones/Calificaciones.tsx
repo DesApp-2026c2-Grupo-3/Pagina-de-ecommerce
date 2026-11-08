@@ -21,6 +21,25 @@ const POR_PAGINA = 10
 
 type Periodo = 'todo' | '7' | '30' | '90' | 'personalizado'
 
+// Cómo se ordenan los productos del desglose
+type OrdenProductos = 'calificados' | 'mejores' | 'peores'
+
+const ORDENES_PRODUCTOS: { valor: OrdenProductos; etiqueta: string }[] = [
+  { valor: 'calificados', etiqueta: 'Más calificados' },
+  { valor: 'mejores', etiqueta: 'Mejor valorados' },
+  { valor: 'peores', etiqueta: 'Peor valorados' },
+]
+
+const PRODUCTOS_VISIBLES = 10
+
+// Ordena sin tocar la lista original; a igual promedio, el que tiene más calificaciones va primero
+function ordenarProductos(productos: PromedioDe[], orden: OrdenProductos) {
+  const copia = [...productos]
+  if (orden === 'calificados') return copia.sort((a, b) => b.total - a.total || (b.promedio ?? 0) - (a.promedio ?? 0))
+  const signo = orden === 'mejores' ? -1 : 1
+  return copia.sort((a, b) => signo * ((a.promedio ?? 0) - (b.promedio ?? 0)) || b.total - a.total)
+}
+
 const PERIODOS: { valor: Exclude<Periodo, 'personalizado'>; etiqueta: string }[] = [
   { valor: 'todo', etiqueta: 'Todo' },
   { valor: '7', etiqueta: '7 días' },
@@ -91,6 +110,7 @@ export default function Calificaciones() {
   const [filtros, setFiltros] = useState<FiltrosCalificaciones>(FILTROS_VACIOS)
   const [periodo, setPeriodo] = useState<Periodo>('todo')
   const [pagina, setPagina] = useState(1)
+  const [ordenProductos, setOrdenProductos] = useState<OrdenProductos>('calificados')
 
   const [opciones, setOpciones] = useState<OpcionesFiltros>({ sucursales: [], productos: [] })
   const [resumen, setResumen] = useState<ResumenCalificaciones | null>(null)
@@ -164,6 +184,10 @@ export default function Calificaciones() {
   const hayFiltros = JSON.stringify(filtros) !== JSON.stringify(FILTROS_VACIOS)
   const hayDatos = (resumen?.total ?? 0) > 0
   const maximoDistribucion = resumen ? Math.max(1, ...Object.values(resumen.distribucion)) : 1
+  const productosOrdenados = useMemo(
+    () => ordenarProductos(resumen?.porProducto ?? [], ordenProductos).slice(0, PRODUCTOS_VISIBLES),
+    [resumen, ordenProductos],
+  )
 
   return (
     <main className="p-8">
@@ -174,7 +198,7 @@ export default function Calificaciones() {
           {esMaster
             ? 'Las calificaciones de todas las sucursales.'
             : `Las calificaciones de tu sucursal${administrador?.sucursal ? `: ${administrador.sucursal.nombre}` : ''}.`}{' '}
-          Cada una corresponde a un pedido completo.
+          Cada una corresponde a un producto de un pedido: estrellas, comentario o las dos cosas.
         </p>
       </div>
 
@@ -291,11 +315,6 @@ export default function Calificaciones() {
           )}
         </div>
 
-        {filtros.productoId && (
-          <p className="mt-3 text-sm text-gray-600">
-            Se muestran los pedidos que incluyen ese producto: la calificación es del pedido completo, no solo del producto.
-          </p>
-        )}
       </section>
 
       {error && <p className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -320,7 +339,7 @@ export default function Calificaciones() {
                 <EstrellasPromedio valor={resumen.promedio} tamanio={30} />
               </div>
               <p className="mt-3 text-sm text-gray-600">
-                {resumen.total} {resumen.total === 1 ? 'calificación' : 'calificaciones'} · {resumen.conComentario} con comentario
+                {resumen.total} {resumen.total === 1 ? 'calificación' : 'calificaciones'} de productos · {resumen.conPuntaje} con estrellas · {resumen.conComentario} con comentario
               </p>
             </section>
 
@@ -339,7 +358,7 @@ export default function Calificaciones() {
                         />
                       </div>
                       <span className="w-20 shrink-0 text-right text-gray-600">
-                        {cantidad} ({Math.round((cantidad / resumen.total) * 100)}%)
+                        {cantidad} ({resumen.conPuntaje > 0 ? Math.round((cantidad / resumen.conPuntaje) * 100) : 0}%)
                       </span>
                     </li>
                   )
@@ -365,12 +384,25 @@ export default function Calificaciones() {
 
               {resumen.porProducto.length > 0 && (
                 <section className={tarjeta}>
-                  <h2 className="mb-1 font-bold">Productos con más calificaciones</h2>
+                  <h2 className="mb-1 font-bold">Productos</h2>
                   <p className="mb-2 text-xs text-gray-500">
-                    Promedio de los pedidos que los incluyen. Tocá uno para filtrar.
+                    Promedio de las estrellas de cada producto. Tocá uno para filtrar.
                   </p>
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {ORDENES_PRODUCTOS.map((o) => (
+                      <button
+                        key={o.valor}
+                        type="button"
+                        aria-pressed={ordenProductos === o.valor}
+                        onClick={() => setOrdenProductos(o.valor)}
+                        className={`${chip} ${ordenProductos === o.valor ? 'border-orange-400 bg-orange-50 text-orange-700' : 'hover:bg-gray-50'}`}
+                      >
+                        {o.etiqueta}
+                      </button>
+                    ))}
+                  </div>
                   <ul>
-                    {resumen.porProducto.map((p) => (
+                    {productosOrdenados.map((p) => (
                       <FilaPromedio key={p.id} item={p} onElegir={(id) => cambiar({ productoId: String(id) })} />
                     ))}
                   </ul>
@@ -410,8 +442,15 @@ export default function Calificaciones() {
                 <li key={c.id} className="rounded-lg border bg-white p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <EstrellasPromedio valor={c.puntaje} tamanio={18} />
-                      <span className="text-sm font-semibold">{c.puntaje}/5</span>
+                      <span className="text-base font-bold">{c.producto.nombre}</span>
+                      {c.puntaje === null ? (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">Sin estrellas</span>
+                      ) : (
+                        <>
+                          <EstrellasPromedio valor={c.puntaje} tamanio={18} />
+                          <span className="text-sm font-semibold">{c.puntaje}/5</span>
+                        </>
+                      )}
                     </div>
                     <span className="text-sm text-gray-500">{formatearFecha(c.fecha)}</span>
                   </div>
@@ -424,8 +463,6 @@ export default function Calificaciones() {
                     {c.pedido.total !== null && ` · $${c.pedido.total.toLocaleString('es-AR')}`}
                     {esMaster && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs">{c.sucursal.nombre}</span>}
                   </p>
-
-                  {c.productos.length > 0 && <p className="mt-1 text-xs text-gray-500">{c.productos.join(' · ')}</p>}
 
                   {c.comentario ? (
                     <p className="mt-3 flex gap-2 rounded bg-gray-50 p-3 text-sm italic text-gray-800">

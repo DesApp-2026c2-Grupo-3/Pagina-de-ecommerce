@@ -46,7 +46,7 @@ function CategoriasRow() {
       py-6: Reducimos a la mitad el aire superior e inferior en mobile.
       md:py-12: Recupera su espaciado original en desktop.
     */
-    <section className="bg-brand-cream px-4 py-6 md:py-12 text-brand-dark">
+    <section className="bg-brand-cream px-4 py-0 md:py-4 text-brand-dark">
       <div className="mx-auto max-w-7xl">
         
         {/* Cabecera compactada en mobile */}

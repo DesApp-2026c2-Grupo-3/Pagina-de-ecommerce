@@ -3,6 +3,8 @@ interface ConfirmarEliminacionProps {
   mensaje: string
   onConfirmar: () => void
   onCancelar: () => void
+  titulo?: string
+  textoConfirmar?: string
 }
 
 export default function ConfirmarEliminacion({
@@ -10,6 +12,8 @@ export default function ConfirmarEliminacion({
   mensaje,
   onConfirmar,
   onCancelar,
+  titulo = 'Confirmar baja',
+  textoConfirmar = 'Deshabilitar',
 }: ConfirmarEliminacionProps) {
 
   if (!abierto) {
@@ -23,7 +27,7 @@ export default function ConfirmarEliminacion({
       p-6 w-full max-w-md mx-4">
 
         <h2 className="text-xl font-bold mb-3">
-          Confirmar suspension
+          {titulo}
         </h2>
 
         <p className="text-gray-600 mb-6">
@@ -45,7 +49,7 @@ export default function ConfirmarEliminacion({
             className="bg-danger hover:bg-danger-hover
             border border-black text-white px-4 py-2 rounded-md"
           >
-            Suspender
+            {textoConfirmar}
           </button>
         </div>
 

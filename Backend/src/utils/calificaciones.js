@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Pedido, DetallePedido, Producto, Sucursal, Calificacion, historialDeTiemposPedido } = require('../models');
+const { Pedido, DetallePedido, Producto, Categoria, Sucursal, Calificacion, historialDeTiemposPedido } = require('../models');
 const { estadoDeLaVentana } = require('../config/calificaciones');
 
 // Los pedidos viejos pueden tener el estado en minúscula: se compara sin importar mayúsculas
@@ -15,9 +15,40 @@ async function entregadoEn(pedidoId) {
     return registro ? registro.fecha : null;
 }
 
+// Las salsas gratuitas (complementos de precio 0) no se califican
+const esSalsaGratuita = (detalle) =>
+    Boolean(detalle.Producto?.categoria?.esComplemento) && Number(detalle.precio) === 0;
+
+/**
+ * Los productos del pedido que el cliente puede calificar, uno por producto (aunque lo haya pedido en varias líneas)
+ * y en el orden en que están en el pedido: [{ productoId, nombre, imagen }]
+ */
+async function itemsCalificables(pedidoId) {
+    const detalle = await DetallePedido.findAll({
+        where: { pedidoId },
+        order: [['id', 'ASC']],
+        include: [{
+            model: Producto,
+            attributes: ['id', 'nombre', 'imagen'],
+            paranoid: false,
+            include: [{ model: Categoria, as: 'categoria', attributes: ['esComplemento'] }],
+        }],
+    });
+
+    const vistos = new Set();
+    const items = [];
+    for (const linea of detalle) {
+        const producto = linea.Producto;
+        if (!producto || vistos.has(producto.id) || esSalsaGratuita(linea)) continue;
+        vistos.add(producto.id);
+        items.push({ productoId: producto.id, nombre: producto.nombre, imagen: producto.imagen ?? null });
+    }
+    return items;
+}
+
 /**
  * La calificación que le toca ofrecer al cliente: su ÚLTIMO pedido, si está entregado, ya pasó el tiempo
- * mínimo, no venció el plazo y todavía no lo calificó. Si hizo un pedido nuevo, el anterior deja de ofrecerse.
+ * mínimo, no venció el plazo y todavía no lo calificó (y tiene algún producto calificable). Si hizo un pedido nuevo, el anterior deja de ofrecerse.
  * Devuelve null si no hay nada para calificar.
  */
 async function buscarPendiente(usuarioId, ahora = new Date()) {
@@ -34,10 +65,10 @@ async function buscarPendiente(usuarioId, ahora = new Date()) {
     const yaCalificado = await Calificacion.findOne({ where: { pedidoId: ultimo.id }, attributes: ['id'] });
     if (yaCalificado) return null;
 
-    const detalle = await DetallePedido.findAll({
-        where: { pedidoId: ultimo.id },
-        include: [{ model: Producto, attributes: ['id', 'nombre'], paranoid: false }],
-    });
+    // Un pedido que solo tiene salsas gratuitas no tiene nada para calificar
+    const items = await itemsCalificables(ultimo.id);
+    if (items.length === 0) return null;
+
     const sucursal = ultimo.sucursalId
         ? await Sucursal.findByPk(ultimo.sucursalId, { attributes: ['id', 'nombre'] })
         : null;
@@ -48,8 +79,8 @@ async function buscarPendiente(usuarioId, ahora = new Date()) {
         entregadoEn: entregado,
         total: Number(ultimo.total),
         sucursal: sucursal ? { id: sucursal.id, nombre: sucursal.nombre } : null,
-        productos: [...new Set(detalle.map((d) => d.Producto?.nombre).filter(Boolean))],
+        items,
     };
 }
 
-module.exports = { estaEntregado, entregadoEn, buscarPendiente };
+module.exports = { estaEntregado, entregadoEn, itemsCalificables, buscarPendiente };

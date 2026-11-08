@@ -1,9 +1,10 @@
-const { Sucursal } = require('../models');
+const { Sucursal, CierreSucursal } = require('../models');
 
 // GET /sucursales → sucursales activas (público: lo usa el mapa de Home)
 const obtenerSucursales = async (req, res) => {
     try {
-        const sucursales = await Sucursal.findAll({
+        const [sucursales, cierres] = await Promise.all([
+            Sucursal.findAll({
             where: { activa: true },
             attributes: [
                 'id',
@@ -21,9 +22,16 @@ const obtenerSucursales = async (req, res) => {
                 'radioEntregaKm',
             ],
             order: [['nombre', 'ASC']],
-        });
+            }),
+            // Cierres temporales activos: el cliente los ve como "cerrada temporalmente" (sin el motivo)
+            CierreSucursal.findAll({ where: { reabiertoEn: null }, attributes: ['sucursalId'] }),
+        ]);
+        const cerradas = new Set((cierres ?? []).map((c) => c.sucursalId));
 
-        res.json(sucursales);
+        res.json(sucursales.map((s) => ({
+            ...(typeof s.toJSON === 'function' ? s.toJSON() : s),
+            cierreTemporal: cerradas.has(s.id),
+        })));
     } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: 'Error al obtener las sucursales' });

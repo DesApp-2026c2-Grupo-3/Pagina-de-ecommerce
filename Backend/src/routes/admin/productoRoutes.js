@@ -5,6 +5,7 @@ const adminController = require('../../controllers/admin/productoController');
 const { validarProducto } = require('../../middleware/validarProducto');
 const { esIdValido } = require('../../middleware/esIdValido');
 const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
+const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
 const { subirImagen } = require('../../middleware/admin/subirImagen');
 const imagenController = require('../../controllers/admin/imagenProductoController');
 
@@ -17,7 +18,8 @@ router.get('/:id', esIdValido, adminController.obtenerProductoPorId);
 router.post('/nuevo', esMasterJwt, validarProducto, adminController.crearProducto);
 router.patch('/editar/:id', esMasterJwt, validarProducto, esIdValido, adminController.editarProductoPorId);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminarProducto);
-router.get('/:id/stock', esMasterJwt, esIdValido, adminController.verStockProducto);
+// El master ve el stock de todas las sucursales; el encargado, el de la suya
+router.get('/:id/stock', esAdminJwt, esIdValido, adminController.verStockProducto);
 router.patch('/restaurar/:id', esMasterJwt, esIdValido, adminController.restaurarProducto);
 
 

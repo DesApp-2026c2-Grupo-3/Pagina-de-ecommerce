@@ -144,58 +144,68 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
     );
   }
 
-  if (guardada) {
+    if (guardada) {
     return (
       <div className={contenedor}>
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1 self-center">
-            <p className={CLASE_LABEL}>Notas para la cocina</p>
-            <p
-              className={`mt-1 text-sm ${verCompleta ? "break-words" : "truncate"}`}
-              title={verCompleta ? undefined : guardada}
-            >
-              {verCompleta ? guardada : <p className="min-h-3"> <span className="inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                <svg className="h-3.5 w-3.5 text-gray-450" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                </svg>
-                Nota oculta
-              </span> </p>}
-            </p>
+        {/* items-center centra de forma impecable los elementos en pantallas compactas */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="min-w-0 flex-1">
+            <p className={`${CLASE_LABEL} text-xs sm:text-sm`}>Notas para la cocina</p>
+            
+            {/* 🛠️ SOLUCIÓN: Eliminamos el <p> duplicado interno y dejamos un div contenedor limpio */}
+            <div className={`mt-1 text-sm ${verCompleta ? "break-words" : "truncate"}`}>
+              {verCompleta ? (
+                <span className="text-xs sm:text-sm text-brand-dark font-medium">{guardada}</span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                  <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                  </svg>
+                  Nota oculta
+                </span>
+              )}
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setVerCompleta((v) => !v)}
-            aria-label={verCompleta ? "Ocultar la nota completa" : "Ver la nota completa"}
-            aria-pressed={verCompleta}
-            title={verCompleta ? "Ocultar la nota completa" : "Ver la nota completa"}
-            className={`${BOTON_ICONO} text-green-600 border hover:bg-green-50 transition-colors`}
-          >
-            {verCompleta ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-          <button
-            type="button"
-            ref={botonRef}
-            onClick={abrir}
-            aria-label="Editar la nota para la cocina"
-            title="Editar nota"
-            className={`${BOTON_ICONO} text-blue-600 border hover:bg-blue-50 transition-colors`}
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={quitar}
-            aria-label="Quitar la nota para la cocina"
-            title="Quitar nota"
-            className={`${BOTON_ICONO} text-red-600 `}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {/* 🛠️ BOTONES ULTRA COMPACTOS: Reducimos de h-11 a h-8 en mobile, recuperando h-11 en sm: */}
+          <div className="flex flex-row items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setVerCompleta((v) => !v)}
+              aria-label={verCompleta ? "Ocultar la nota completa" : "Ver la nota completa"}
+              aria-pressed={verCompleta}
+              title={verCompleta ? "Ocultar la nota completa" : "Ver la nota completa"}
+              className={`${BOTON_ICONO} !h-8 !w-8 sm:!h-11 sm:!w-11 text-green-600 border hover:bg-green-50 transition-colors`}
+            >
+              {verCompleta ? <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+            </button>
+            
+            <button
+              type="button"
+              ref={botonRef}
+              onClick={abrir}
+              aria-label="Editar la nota para la cocina"
+              title="Editar nota"
+              className={`${BOTON_ICONO} !h-8 !w-8 sm:!h-11 sm:!w-11 text-blue-600 border hover:bg-blue-50 transition-colors`}
+            >
+              <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
+            
+            <button
+              type="button"
+              onClick={quitar}
+              aria-label="Quitar la nota para la cocina"
+              title="Quitar nota"
+              className={`${BOTON_ICONO} !h-8 !w-8 sm:!h-11 sm:!w-11 text-red-600 border hover:bg-red-50 transition-colors`}
+            >
+              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
+          </div>
         </div>
       </div>
     );
   }
+
 
   return (
     <button

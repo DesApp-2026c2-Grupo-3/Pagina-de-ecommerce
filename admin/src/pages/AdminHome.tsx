@@ -17,7 +17,7 @@ export default function AdminHome() {
         <h1 className="text-3xl font-bold">Hola, {administrador?.nombre}</h1>
         <p className="text-gray-600">
           {esMaster
-            ? 'Administración general: catálogo, sucursales y administradores.'
+            ? 'Administración general: catálogo, promociones, sucursales y personal.'
             : `Administración de ${administrador?.sucursal?.nombre ?? 'tu sucursal'}.`}
         </p>
       </div>
@@ -39,7 +39,7 @@ export default function AdminHome() {
               <Store /> Sucursales y stock
             </Link>
             <Link to="/admin/administradores" className={accesoClase}>
-              <Users /> Administradores
+              <Users /> Personal
             </Link>
           </>
         ) : sucursalId ? (
@@ -47,7 +47,7 @@ export default function AdminHome() {
             <Link to={`/admin/sucursales/${sucursalId}/stock`} className={accesoClase}>
               <Boxes /> Stock de mi sucursal
             </Link>
-            <Link to={`/admin/sucursales/editar/${sucursalId}`} className={accesoClase}>
+            <Link to="/admin/mi-sucursal" className={accesoClase}>
               <Store /> Datos de mi sucursal
             </Link>
             <Link to="/admin/pedidos" className={accesoClase}>

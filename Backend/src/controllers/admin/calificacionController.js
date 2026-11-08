@@ -2,7 +2,7 @@ const { QueryTypes } = require('sequelize');
 const { Admin, sequelize } = require('../../models');
 
 // Las calificaciones llegan al admin-master (todas las sucursales) y al admin de sucursal (solo la suya).
-// Cada calificación es de un PEDIDO: filtrar por producto muestra las calificaciones de los pedidos que lo incluyen.
+// Cada calificación es de un PRODUCTO de un pedido (estrellas y/o comentario): filtrar por producto muestra las de ese producto.
 
 const POR_PAGINA_MAXIMO = 50;
 const POR_PAGINA = 10;
@@ -65,7 +65,7 @@ function armarWhere(filtros) {
         replacements.sucursalId = filtros.sucursalId;
     }
     if (filtros.productoId !== undefined) {
-        condiciones.push('EXISTS (SELECT 1 FROM "DetallePedidos" dp WHERE dp."pedidoId" = c."pedidoId" AND dp."productoId" = :productoId)');
+        condiciones.push('c."productoId" = :productoId');
         replacements.productoId = filtros.productoId;
     }
     if (filtros.puntaje !== undefined) {
@@ -91,7 +91,8 @@ function armarWhere(filtros) {
 const consultar = (sql, replacements) => sequelize.query(sql, { replacements, type: QueryTypes.SELECT });
 const aNumero = (valor) => (valor === null || valor === undefined ? null : Number(valor));
 
-// GET /admin/calificaciones/resumen → promedio, distribución por estrellas, y los desgloses por sucursal, producto y semana
+// GET /admin/calificaciones/resumen → promedio, distribución por estrellas, y los desgloses por sucursal, producto y semana.
+// Los promedios y la distribución cuentan solo las calificaciones con estrellas (un comentario suelto no promedia).
 const obtenerResumen = async (req, res) => {
     try {
         const { filtros, error } = await leerFiltros(req);
@@ -101,6 +102,7 @@ const obtenerResumen = async (req, res) => {
 
         const [general] = await consultar(
             `SELECT COUNT(*)::int AS total,
+                    COUNT(c.puntaje)::int AS "conPuntaje",
                     ROUND(AVG(c.puntaje)::numeric, 2) AS promedio,
                     COUNT(*) FILTER (WHERE c.puntaje = 1)::int AS p1,
                     COUNT(*) FILTER (WHERE c.puntaje = 2)::int AS p2,
@@ -115,7 +117,7 @@ const obtenerResumen = async (req, res) => {
         // Solo tiene sentido comparar sucursales si no hay una elegida (el admin de sucursal no las compara)
         const porSucursal = filtros.sucursalId === undefined
             ? await consultar(
-                `SELECT c."sucursalId" AS id, s.nombre, COUNT(*)::int AS total, ROUND(AVG(c.puntaje)::numeric, 2) AS promedio
+                `SELECT c."sucursalId" AS id, s.nombre, COUNT(c.puntaje)::int AS total, ROUND(AVG(c.puntaje)::numeric, 2) AS promedio
                  FROM "Calificaciones" c LEFT JOIN "Sucursals" s ON s.id = c."sucursalId"
                  ${where}
                  GROUP BY c."sucursalId", s.nombre
@@ -124,25 +126,24 @@ const obtenerResumen = async (req, res) => {
             )
             : [];
 
-        // Un pedido con el mismo producto en dos líneas cuenta una sola vez (DISTINCT)
+        // Hasta 50 productos con estrellas: el panel los ordena por más calificados, mejor o peor valorados
         const porProducto = filtros.productoId === undefined
             ? await consultar(
-                `SELECT x."productoId" AS id, p.nombre, COUNT(*)::int AS total, ROUND(AVG(x.puntaje)::numeric, 2) AS promedio
-                 FROM (SELECT DISTINCT c.id, c.puntaje, d."productoId"
-                       FROM "Calificaciones" c JOIN "DetallePedidos" d ON d."pedidoId" = c."pedidoId"
-                       ${where}) x
-                 JOIN "Productos" p ON p.id = x."productoId"
-                 JOIN "Categoria" cat ON cat.id = p."categoriaId" AND cat."esComplemento" = false
-                 GROUP BY x."productoId", p.nombre
+                `SELECT c."productoId" AS id, p.nombre, COUNT(c.puntaje)::int AS total, ROUND(AVG(c.puntaje)::numeric, 2) AS promedio
+                 FROM "Calificaciones" c
+                 JOIN "Productos" p ON p.id = c."productoId"
+                 ${where}
+                 GROUP BY c."productoId", p.nombre
+                 HAVING COUNT(c.puntaje) > 0
                  ORDER BY total DESC, promedio DESC
-                 LIMIT 10`,
+                 LIMIT 50`,
                 replacements
             )
             : [];
 
         const semanas = await consultar(
             `SELECT to_char(date_trunc('week', c."createdAt" AT TIME ZONE 'America/Argentina/Buenos_Aires'), 'YYYY-MM-DD') AS semana,
-                    COUNT(*)::int AS total, ROUND(AVG(c.puntaje)::numeric, 2) AS promedio
+                    COUNT(c.puntaje)::int AS total, ROUND(AVG(c.puntaje)::numeric, 2) AS promedio
              FROM "Calificaciones" c ${where}
              GROUP BY 1
              ORDER BY 1 DESC
@@ -153,6 +154,7 @@ const obtenerResumen = async (req, res) => {
         return res.json({
             total: general.total,
             promedio: aNumero(general.promedio),
+            conPuntaje: general.conPuntaje,
             conComentario: general.conComentario,
             distribucion: { 1: general.p1, 2: general.p2, 3: general.p3, 4: general.p4, 5: general.p5 },
             porSucursal: porSucursal.map((s) => ({ id: s.id, nombre: s.nombre ?? 'Sin sucursal', total: s.total, promedio: aNumero(s.promedio) })),
@@ -166,7 +168,7 @@ const obtenerResumen = async (req, res) => {
     }
 };
 
-// GET /admin/calificaciones?pagina=1&limite=10 + los mismos filtros → datos crudos, de la más nueva a la más vieja
+// GET /admin/calificaciones?pagina=1&limite=10 + los mismos filtros → una fila por producto calificado, de la más nueva a la más vieja
 const obtenerCalificaciones = async (req, res) => {
     try {
         const { filtros, error } = await leerFiltros(req);
@@ -181,12 +183,11 @@ const obtenerCalificaciones = async (req, res) => {
 
         const filas = await consultar(
             `SELECT c.id, c.puntaje, c.comentario, c."createdAt" AS fecha, c."pedidoId", c."sucursalId",
+                    c."productoId", pr.nombre AS "productoNombre",
                     s.nombre AS "sucursalNombre", u.nombre AS "clienteNombre", u.apellido AS "clienteApellido",
-                    pe.total AS "pedidoTotal", pe.fecha AS "pedidoFecha",
-                    COALESCE((SELECT array_agg(DISTINCT pr.nombre)
-                              FROM "DetallePedidos" dd JOIN "Productos" pr ON pr.id = dd."productoId"
-                              WHERE dd."pedidoId" = c."pedidoId"), '{}') AS productos
+                    pe.total AS "pedidoTotal", pe.fecha AS "pedidoFecha"
              FROM "Calificaciones" c
+             JOIN "Productos" pr ON pr.id = c."productoId"
              JOIN "Pedidos" pe ON pe.id = c."pedidoId"
              JOIN "Usuarios" u ON u.id = c."usuarioId"
              LEFT JOIN "Sucursals" s ON s.id = c."sucursalId"
@@ -208,7 +209,7 @@ const obtenerCalificaciones = async (req, res) => {
                 cliente: { nombre: f.clienteNombre, apellido: f.clienteApellido },
                 pedido: { id: f.pedidoId, total: aNumero(f.pedidoTotal), fecha: f.pedidoFecha },
                 sucursal: { id: f.sucursalId, nombre: f.sucursalNombre ?? 'Sin sucursal' },
-                productos: f.productos ?? [],
+                producto: { id: f.productoId, nombre: f.productoNombre },
             })),
         });
     } catch (error) {
@@ -218,7 +219,7 @@ const obtenerCalificaciones = async (req, res) => {
 };
 
 // GET /admin/calificaciones/filtros → lo que se puede elegir en los filtros:
-// las sucursales (solo el master las elige) y los productos que aparecen en pedidos calificados
+// las sucursales (solo el master las elige) y los productos que ya tienen calificaciones
 const obtenerFiltros = async (req, res) => {
     try {
         const admin = await Admin.findByPk(req.usuario.id);
@@ -233,9 +234,7 @@ const obtenerFiltros = async (req, res) => {
         const productos = await consultar(
             `SELECT DISTINCT p.id, p.nombre
              FROM "Calificaciones" c
-             JOIN "DetallePedidos" d ON d."pedidoId" = c."pedidoId"
-             JOIN "Productos" p ON p.id = d."productoId"
-             JOIN "Categoria" cat ON cat.id = p."categoriaId" AND cat."esComplemento" = false
+             JOIN "Productos" p ON p.id = c."productoId"
              ${deSucursal ? 'WHERE c."sucursalId" = :sucursalId' : ''}
              ORDER BY p.nombre`,
             deSucursal ? { sucursalId: Number(admin.sucursalId) } : {}

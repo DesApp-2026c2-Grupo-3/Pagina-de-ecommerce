@@ -36,8 +36,9 @@ function crearRes() {
     return res;
 }
 
-const adminDeSucursal = { id: 7, sucursalId: 2 };
-const adminMaster = { id: 1, sucursalId: null };
+const adminDeSucursal = { id: 7, rol: 'EMPLEADO', sucursalId: 2 };
+const adminEncargado = { id: 9, rol: 'ADMIN', sucursalId: 2 };
+const adminMaster = { id: 1, rol: 'MASTER', sucursalId: null };
 const sucursal = { id: 2, nombre: 'Morón' };
 
 function pedidoDeLaBase(datos = {}) {
@@ -223,6 +224,21 @@ describe('cambiarEstadoPedidoPorId', () => {
         expect(res.status).toHaveBeenCalledWith(401);
     });
 
+    test.each([
+        ['el encargado', adminEncargado],
+        ['el master', adminMaster],
+    ])('%s no puede cambiar el estado de un pedido (responde 403)', async (_quien, admin) => {
+        Admin.findByPk.mockResolvedValue(admin);
+        Pedido.findByPk.mockResolvedValue(pedidoDeLaBase());
+        const res = crearRes();
+
+        await cambiarEstadoPedidoPorId(req('En proceso'), res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(Pedido.findByPk).not.toHaveBeenCalled();
+        expect(t.commit).not.toHaveBeenCalled();
+    });
+
     test('responde 404 si el pedido no existe', async () => {
         Pedido.findByPk.mockResolvedValue(null);
         const res = crearRes();
@@ -287,6 +303,7 @@ describe('cambiarEstadoPedidoPorId', () => {
                 pedidoId: 100,
                 estadoAnterior: 'Pendiente',
                 estado: 'En proceso',
+                adminId: 7,
                 fecha: expect.any(Date),
             }),
             { transaction: t }

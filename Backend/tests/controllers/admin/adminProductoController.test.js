@@ -305,4 +305,36 @@ describe('verStockProducto', () => {
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
+
+    test('el encargado recibe solo el stock de su sucursal', async () => {
+        Producto.findByPk.mockResolvedValue(completo);
+        Sucursal.findAll.mockResolvedValue([{ id: 2, nombre: 'Morón' }]);
+        StockSucursal.findAll.mockResolvedValue([]);
+        const res = crearRes();
+
+        await verStockProducto({ params: { id: '1' }, usuario: { id: 7, rol: 'ADMIN', sucursalId: 2 } }, res);
+
+        expect(Sucursal.findAll).toHaveBeenCalledWith(expect.objectContaining({ where: { activa: true, id: 2 } }));
+        expect(res.json.mock.calls[0][0].sucursales).toHaveLength(1);
+    });
+
+    test('el master recibe el stock de todas las sucursales activas', async () => {
+        Producto.findByPk.mockResolvedValue(completo);
+        Sucursal.findAll.mockResolvedValue([{ id: 1, nombre: 'Centro' }, { id: 2, nombre: 'Morón' }]);
+        StockSucursal.findAll.mockResolvedValue([]);
+        const res = crearRes();
+
+        await verStockProducto({ params: { id: '1' }, usuario: { id: 1, rol: 'MASTER', sucursalId: null } }, res);
+
+        expect(Sucursal.findAll).toHaveBeenCalledWith(expect.objectContaining({ where: { activa: true } }));
+    });
+
+    test('un encargado sin sucursal asignada no puede ver el stock (403)', async () => {
+        Producto.findByPk.mockResolvedValue(completo);
+        const res = crearRes();
+
+        await verStockProducto({ params: { id: '1' }, usuario: { id: 7, rol: 'ADMIN', sucursalId: null } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+    });
 });

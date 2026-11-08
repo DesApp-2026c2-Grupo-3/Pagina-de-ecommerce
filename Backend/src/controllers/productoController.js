@@ -16,6 +16,7 @@ const {
     factorMinimo,
     pasoExtra,
 } = require('../utils/disponibilidad');
+const { productosSuspendidos } = require('../utils/suspensiones');
 
 function mapIngredientes(producto) {
     const receta = producto.RecetaInsumos || [];
@@ -125,9 +126,10 @@ const obtenerProductos = async (req, res) => {
         if (!sucursalId) return res.json(productos);
 
         // Dos consultas en total, no una por producto
-        const [recetas, stock] = await Promise.all([
+        const [recetas, stock, suspendidos] = await Promise.all([
             RecetaInsumo.findAll({ attributes: ['productoId', 'insumoId', 'cantidadBase'] }),
             StockSucursal.findAll({ where: { sucursalId }, attributes: ['insumoId', 'cantidad'] }),
+            productosSuspendidos(sucursalId),
         ]);
 
         const recetasPorProducto = agruparPorProducto(recetas);
@@ -136,7 +138,7 @@ const obtenerProductos = async (req, res) => {
         // Primero, cada producto por su propia receta
         const porReceta = new Map(productos.map((p) => [
             p.id,
-            productoDisponible(p, recetasPorProducto.get(p.id), stockPorInsumo, factorDe(p)),
+            productoDisponible(p, recetasPorProducto.get(p.id), stockPorInsumo, factorDe(p), suspendidos),
         ]));
 
         // Un combo, además, necesita al menos una opción disponible en cada lugar obligatorio
@@ -192,10 +194,11 @@ const obtenerProductoPorId = async (req, res) => {
             attributes: ['insumoId', 'cantidad'],
         });
         const stockPorInsumo = stockComoMapa(stock);
+        const suspendidos = await productosSuspendidos(sucursalId);
 
         res.json({
             ...datosProducto,
-            disponible: productoDisponible(datosProducto, ingredientes, stockPorInsumo, factorDe(datosProducto)),
+            disponible: productoDisponible(datosProducto, ingredientes, stockPorInsumo, factorDe(datosProducto), suspendidos),
             ingredientes: ingredientes.map((ing) => {
                 const hay = stockPorInsumo.get(ing.insumoId) ?? 0;
                 return {

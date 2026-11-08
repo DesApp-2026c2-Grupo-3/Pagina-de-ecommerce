@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import type { ComponentProps } from 'react'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ProductCard from '../../components/home/ProductCard'
@@ -18,10 +19,10 @@ function producto(datos: Partial<ProductoBackend> = {}): ProductoBackend {
 }
 
 // La tarjeta es un link, así que necesita un router alrededor, como en la app
-function renderizar(p: ProductoBackend) {
+function renderizar(p: ProductoBackend, extra: Partial<ComponentProps<typeof ProductCard>> = {}) {
   return render(
     <MemoryRouter>
-      <ProductCard product={p} />
+      <ProductCard product={p} {...extra} />
     </MemoryRouter>,
   )
 }
@@ -33,6 +34,26 @@ describe('ProductCard', () => {
     expect(screen.getByRole('heading', { name: 'Clásica' })).toBeInTheDocument()
     expect(screen.getByText('Carne, queso y lechuga')).toBeInTheDocument()
     expect(screen.getByText('$5.000')).toBeInTheDocument()
+  })
+
+  describe('descripción', () => {
+    test('por defecto se ve en todas las pantallas', () => {
+      renderizar(producto())
+
+      expect(screen.getByText('Carne, queso y lechuga')).not.toHaveClass('max-md:hidden')
+    })
+
+    test('con descripcionDesde=\"md\" se oculta en celular y se ve desde tablet', () => {
+      renderizar(producto(), { descripcionDesde: 'md' })
+
+      expect(screen.getByText('Carne, queso y lechuga')).toHaveClass('max-md:hidden')
+    })
+
+    test('con mostrarDescripcion=false no se dibuja', () => {
+      renderizar(producto(), { mostrarDescripcion: false })
+
+      expect(screen.queryByText('Carne, queso y lechuga')).not.toBeInTheDocument()
+    })
   })
 
   test('lleva al detalle del producto', () => {

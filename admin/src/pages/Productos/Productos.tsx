@@ -182,15 +182,24 @@ useEffect(() => {
           <h1 className="text-3xl font-bold">Productos</h1>
           <p className="mt-2 text-gray-600">Gestioná los productos de la tienda.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/admin/productos/nuevo')}
-          aria-label="Nuevo producto"
-          title="Nuevo producto"
-          className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
-        >
-          <Plus size={22} />
-        </button>
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/disponibilidad')}
+            className="rounded border bg-white px-4 py-3 font-medium hover:bg-gray-100"
+          >
+            Disponibilidad por sucursal
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/productos/nuevo')}
+            aria-label="Nuevo producto"
+            title="Nuevo producto"
+            className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
+          >
+            <Plus size={22} />
+          </button>
+        </div>
       </div>
 
       <div className="mb-5 flex gap-2">

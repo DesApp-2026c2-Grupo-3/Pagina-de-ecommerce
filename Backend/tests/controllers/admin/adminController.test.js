@@ -8,7 +8,7 @@ jest.mock('jsonwebtoken', () => ({
 }));
 
 jest.mock('../../../src/models', () => ({
-    Admin: { findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
+    Admin: { findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), create: jest.fn(), count: jest.fn() },
     Sucursal: { findByPk: jest.fn() },
 }));
 
@@ -27,6 +27,9 @@ const {
     reactivarAdmin,
 } = require('../../../src/controllers/admin/adminController');
 
+// Quien ejecuta las acciones de gestión de administradores
+const MASTER = { id: 1, rol: 'MASTER', sucursalId: null };
+
 function crearRes() {
     const res = {};
     res.status = jest.fn().mockReturnValue(res);
@@ -40,7 +43,7 @@ function adminDeLaBase(datos = {}) {
     return {
         id: 3,
         nombre: 'Ana',
-        email: 'ana@burger.com',
+        email: 'ana@burgerfast.com',
         rol: 'ADMIN',
         sucursalId: 2,
         activo: true,
@@ -55,11 +58,14 @@ function adminDeLaBase(datos = {}) {
 }
 
 function bodyAdmin(datos = {}) {
-    return { nombre: 'Ana', email: 'ana@burger.com', password: 'Segura123', sucursalId: 2, ...datos };
+    return { nombre: 'Ana', email: 'ana@burgerfast.com', password: 'Segura123', sucursalId: 2, ...datos };
 }
 
 beforeEach(() => {
     jest.clearAllMocks();
+    // Por defecto la sucursal tiene lugar para más personal
+    Admin.count.mockResolvedValue(0);
+    Sucursal.findByPk.mockResolvedValue({ id: 2, activa: true, maxEmpleados: 3 });
     jest.spyOn(console, 'error').mockImplementation(() => {});
     process.env.NODE_ENV = 'test';
     process.env.SECRET_JWT_TOKEN = 'secreto-test';
@@ -70,7 +76,7 @@ describe('verAdmins', () => {
         Admin.findAll.mockResolvedValue([adminDeLaBase()]);
         const res = crearRes();
 
-        await verAdmins({}, res);
+        await verAdmins({ usuario: MASTER }, res);
 
         expect(Admin.findAll).toHaveBeenCalledWith(expect.objectContaining({
             where: { rol: { [Op.ne]: 'MASTER' } },
@@ -81,7 +87,7 @@ describe('verAdmins', () => {
         expect(admins[0]).toMatchObject({
             id: 3,
             nombre: 'Ana',
-            email: 'ana@burger.com',
+            email: 'ana@burgerfast.com',
             rol: 'ADMIN',
             sucursalId: 2,
             activo: true,
@@ -94,7 +100,7 @@ describe('verAdmins', () => {
         Admin.findAll.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await verAdmins({}, res);
+        await verAdmins({ usuario: MASTER }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error del servidor' });
@@ -105,7 +111,7 @@ describe('crearAdmin', () => {
     test('exige la sucursal a gestionar', async () => {
         const res = crearRes();
 
-        await crearAdmin({ body: bodyAdmin({ sucursalId: null }) }, res);
+        await crearAdmin({ usuario: MASTER, body: bodyAdmin({ sucursalId: null }) }, res);
 
         expect(Sucursal.findByPk).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(400);
@@ -116,7 +122,7 @@ describe('crearAdmin', () => {
         Sucursal.findByPk.mockResolvedValue({ id: 2, activa: false });
         const res = crearRes();
 
-        await crearAdmin({ body: bodyAdmin() }, res);
+        await crearAdmin({ usuario: MASTER, body: bodyAdmin() }, res);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({ code: 'La sucursal elegida no existe o está inactiva' });
@@ -127,7 +133,7 @@ describe('crearAdmin', () => {
         Admin.findOne.mockResolvedValue({ id: 9 });
         const res = crearRes();
 
-        await crearAdmin({ body: bodyAdmin() }, res);
+        await crearAdmin({ usuario: MASTER, body: bodyAdmin() }, res);
 
         expect(bcrypt.hash).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(409);
@@ -138,18 +144,19 @@ describe('crearAdmin', () => {
         Sucursal.findByPk.mockResolvedValue({ id: 2, activa: true });
         Admin.findOne.mockResolvedValue(null);
         bcrypt.hash.mockResolvedValue('hash-seguro');
-        const creado = adminDeLaBase({ id: 8, nombre: 'Ana', email: 'ana@burger.com' });
+        const creado = adminDeLaBase({ id: 8, nombre: 'Ana', email: 'ana@burgerfast.com' });
         Admin.create.mockResolvedValue(creado);
         const res = crearRes();
 
         await crearAdmin({
-            body: bodyAdmin({ nombre: '  Ana  ', email: ' ANA@Burger.com ', sucursalId: 2 }),
+            usuario: MASTER,
+            body: bodyAdmin({ nombre: '  Ana  ', email: ' ANA@BurgerFast.com ', sucursalId: 2 }),
         }, res);
 
         expect(bcrypt.hash).toHaveBeenCalledWith('Segura123', 10);
         expect(Admin.create).toHaveBeenCalledWith({
             nombre: 'Ana',
-            email: 'ana@burger.com',
+            email: 'ana@burgerfast.com',
             password: 'hash-seguro',
             rol: 'ADMIN',
             sucursalId: 2,
@@ -163,7 +170,7 @@ describe('crearAdmin', () => {
         Sucursal.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await crearAdmin({ body: bodyAdmin() }, res);
+        await crearAdmin({ usuario: MASTER, body: bodyAdmin() }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error del servidor' });
@@ -171,7 +178,7 @@ describe('crearAdmin', () => {
 });
 
 describe('login', () => {
-    const body = { email: ' ANA@Burger.com ', password: 'Segura123' };
+    const body = { email: ' ANA@BurgerFast.com ', password: 'Segura123' };
 
     test('responde 401 si el email no existe', async () => {
         Admin.findOne.mockResolvedValue(null);
@@ -180,7 +187,7 @@ describe('login', () => {
         await login({ body }, res);
 
         expect(Admin.findOne).toHaveBeenCalledWith(expect.objectContaining({
-            where: { email: 'ana@burger.com' },
+            where: { email: 'ana@burgerfast.com' },
         }));
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ code: 'email-password-incorrectos' });
@@ -290,7 +297,7 @@ describe('obtenerAdminPorId', () => {
         Admin.findByPk.mockResolvedValue(adminDeLaBase());
         const res = crearRes();
 
-        await obtenerAdminPorId({ params: { id: '3' } }, res);
+        await obtenerAdminPorId({ usuario: MASTER, params: { id: '3' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json.mock.calls[0][0]).toMatchObject({
@@ -304,7 +311,7 @@ describe('obtenerAdminPorId', () => {
         Admin.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await obtenerAdminPorId({ params: { id: '99' } }, res);
+        await obtenerAdminPorId({ usuario: MASTER, params: { id: '99' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Administrador no encontrado' });
@@ -314,7 +321,7 @@ describe('obtenerAdminPorId', () => {
         Admin.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await obtenerAdminPorId({ params: { id: '3' } }, res);
+        await obtenerAdminPorId({ usuario: MASTER, params: { id: '3' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
@@ -325,7 +332,7 @@ describe('actualizarAdmin', () => {
         Admin.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await actualizarAdmin({ params: { id: '99' }, body: {} }, res);
+        await actualizarAdmin({ usuario: MASTER, params: { id: '99' }, body: {} }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -336,8 +343,9 @@ describe('actualizarAdmin', () => {
         const res = crearRes();
 
         await actualizarAdmin({
+            usuario: MASTER,
             params: { id: '3' },
-            body: { email: 'otro@burger.com' },
+            body: { email: 'otro@burgerfast.com' },
         }, res);
 
         expect(res.status).toHaveBeenCalledWith(409);
@@ -352,13 +360,14 @@ describe('actualizarAdmin', () => {
         const res = crearRes();
 
         await actualizarAdmin({
+            usuario: MASTER,
             params: { id: '3' },
-            body: { nombre: '  Ana María  ', email: ' ANA@Burger.com ', sucursalId: 2 },
+            body: { nombre: '  Ana María  ', email: ' ANA@BurgerFast.com ', sucursalId: 2 },
         }, res);
 
         expect(admin.update).toHaveBeenCalledWith({
             nombre: 'Ana María',
-            email: 'ana@burger.com',
+            email: 'ana@burgerfast.com',
             sucursalId: 2,
         });
         expect(admin.reload).toHaveBeenCalledWith({ include: expect.anything() });
@@ -371,6 +380,7 @@ describe('actualizarAdmin', () => {
         Admin.findOne.mockResolvedValue(null);
 
         await actualizarAdmin({
+            usuario: MASTER,
             params: { id: '3' },
             body: { sucursalId: 99 },
         }, crearRes());
@@ -386,6 +396,7 @@ describe('actualizarAdmin', () => {
         const res = crearRes();
 
         await actualizarAdmin({
+            usuario: MASTER,
             params: { id: '3' },
             body: { sucursalId: 99 },
         }, res);
@@ -401,6 +412,7 @@ describe('actualizarAdmin', () => {
         bcrypt.hash.mockResolvedValue('hash-nuevo');
 
         await actualizarAdmin({
+            usuario: MASTER,
             params: { id: '3' },
             body: { password: 'Nueva123' },
         }, crearRes());
@@ -413,7 +425,7 @@ describe('actualizarAdmin', () => {
         Admin.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await actualizarAdmin({ params: { id: '3' }, body: {} }, res);
+        await actualizarAdmin({ usuario: MASTER, params: { id: '3' }, body: {} }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
@@ -424,7 +436,7 @@ describe('eliminarAdmin', () => {
         Admin.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await eliminarAdmin({ params: { id: '99' } }, res);
+        await eliminarAdmin({ usuario: MASTER, params: { id: '99' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -433,7 +445,7 @@ describe('eliminarAdmin', () => {
         Admin.findByPk.mockResolvedValue(adminDeLaBase({ rol: 'MASTER' }));
         const res = crearRes();
 
-        await eliminarAdmin({ params: { id: '1' } }, res);
+        await eliminarAdmin({ usuario: MASTER, params: { id: '1' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(403);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error al intentar eliminar el administrador' });
@@ -444,7 +456,7 @@ describe('eliminarAdmin', () => {
         Admin.findByPk.mockResolvedValue(admin);
         const res = crearRes();
 
-        await eliminarAdmin({ params: { id: '3' } }, res);
+        await eliminarAdmin({ usuario: MASTER, params: { id: '3' } }, res);
 
         expect(admin.activo).toBe(false);
         expect(admin.save).toHaveBeenCalled();
@@ -458,7 +470,7 @@ describe('eliminarAdmin', () => {
         Admin.findByPk.mockResolvedValue(admin);
         const res = crearRes();
 
-        await eliminarAdmin({ params: { id: '3' } }, res);
+        await eliminarAdmin({ usuario: MASTER, params: { id: '3' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error al eliminar el Administrador' });
@@ -470,7 +482,7 @@ describe('reactivarAdmin', () => {
         Admin.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await reactivarAdmin({ params: { id: '99' } }, res);
+        await reactivarAdmin({ usuario: MASTER, params: { id: '99' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -479,7 +491,7 @@ describe('reactivarAdmin', () => {
         Admin.findByPk.mockResolvedValue(adminDeLaBase({ rol: 'MASTER', activo: false }));
         const res = crearRes();
 
-        await reactivarAdmin({ params: { id: '1' } }, res);
+        await reactivarAdmin({ usuario: MASTER, params: { id: '1' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(403);
     });
@@ -488,7 +500,7 @@ describe('reactivarAdmin', () => {
         Admin.findByPk.mockResolvedValue(adminDeLaBase({ activo: true }));
         const res = crearRes();
 
-        await reactivarAdmin({ params: { id: '3' } }, res);
+        await reactivarAdmin({ usuario: MASTER, params: { id: '3' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'El administrador ya está activo' });
@@ -499,7 +511,7 @@ describe('reactivarAdmin', () => {
         Admin.findByPk.mockResolvedValue(admin);
         const res = crearRes();
 
-        await reactivarAdmin({ params: { id: '3' } }, res);
+        await reactivarAdmin({ usuario: MASTER, params: { id: '3' } }, res);
 
         expect(admin.activo).toBe(true);
         expect(admin.save).toHaveBeenCalled();
@@ -513,7 +525,7 @@ describe('reactivarAdmin', () => {
         Admin.findByPk.mockResolvedValue(admin);
         const res = crearRes();
 
-        await reactivarAdmin({ params: { id: '3' } }, res);
+        await reactivarAdmin({ usuario: MASTER, params: { id: '3' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error al reactivar el administrador' });

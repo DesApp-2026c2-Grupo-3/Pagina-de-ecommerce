@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useToast } from '../../context/ToastContext'
+import { useAuth } from '../../context/AuthContext'
 import {
   obtenerAdministradorPorId,
   actualizarAdministrador
@@ -11,6 +12,9 @@ export default function EditarAdministrador() {
   const { id } = useParams()
   const { mostrarToast } = useToast()
   const navigate = useNavigate()
+  const { administrador: actor } = useAuth()
+  // Solo el master puede mover a un administrador de sucursal
+  const esMaster = actor?.rol === 'MASTER'
 
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
@@ -43,7 +47,12 @@ export default function EditarAdministrador() {
       hayErrores = true
     }
 
-    if (sucursalId === '') {
+    if (email.includes('@') && !email.trim().toLowerCase().endsWith('@burgerfast.com')) {
+      setErrorEmail('El email del personal debe ser @burgerfast.com.')
+      hayErrores = true
+    }
+
+    if (esMaster && sucursalId === '') {
       setErrorSucursal('Seleccioná una sucursal.')
       hayErrores = true
     }
@@ -78,7 +87,7 @@ export default function EditarAdministrador() {
     const administradorActualizado = {
       nombre,
       email,
-      sucursalId: Number(sucursalId),
+      ...(esMaster && { sucursalId: Number(sucursalId) }),
       ...(password !== '' && { password })
     }
 
@@ -108,7 +117,8 @@ export default function EditarAdministrador() {
           Number(id)
         )
 
-        const datosSucursales = await obtenerSucursales()
+        // La lista de sucursales es solo para el master
+        const datosSucursales = esMaster ? await obtenerSucursales() : []
 
         setNombre(administrador.nombre)
         setEmail(administrador.email)
@@ -125,12 +135,12 @@ export default function EditarAdministrador() {
     }
 
     cargarDatos()
-  }, [id])
+  }, [id, esMaster])
 
   return (
     <main className="p-8">
       <h1 className="text-3xl font-bold mb-6">
-        Editar administrador
+        {esMaster ? 'Editar administrador' : 'Editar empleado'}
       </h1>
 
       <form
@@ -182,6 +192,8 @@ export default function EditarAdministrador() {
           </p>
         )}
 
+        {esMaster && (
+        <>
         <div className="mb-4">
           <label className="block mb-2 font-medium">
             Sucursal
@@ -216,6 +228,8 @@ export default function EditarAdministrador() {
           <p className="text-red-600 text-sm m-1">
             {errorSucursal}
           </p>
+        )}
+        </>
         )}
 
         <div className="mb-4">

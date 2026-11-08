@@ -12,6 +12,7 @@ const {
     sequelize,
 } = require('../../models');
 const { factorMinimo } = require('../../utils/disponibilidad');
+const { ROLES } = require('../../config/roles');
 const { borrarImagen } = require('../../utils/imagenesCloudinary');
 
 // Borra de Cloudinary una imagen que ya no usa ningún producto (tampoco los eliminados,
@@ -262,6 +263,7 @@ const eliminarProducto = async (req, res) => {
     }
 };
 // GET /admin/productos/:id/stock → por sucursal, cuántas unidades se pueden preparar con el stock actual
+// (el encargado recibe solo la suya)
 const verStockProducto = async (req, res) => {
     try {
         const producto = await buscarCompleto(req.params.id);
@@ -269,9 +271,15 @@ const verStockProducto = async (req, res) => {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
 
+        // El master ve el stock de todas las sucursales; el encargado, solo el de la suya
+        const esEncargado = req.usuario?.rol === ROLES.ADMIN;
+        if (esEncargado && !req.usuario.sucursalId) {
+            return res.status(403).json({ mensaje: 'No tenés una sucursal asignada' });
+        }
+
         const datos = formatear(producto);
         const sucursales = await Sucursal.findAll({
-            where: { activa: true },
+            where: esEncargado ? { activa: true, id: req.usuario.sucursalId } : { activa: true },
             attributes: ['id', 'nombre'],
             order: [['nombre', 'ASC']],
         });

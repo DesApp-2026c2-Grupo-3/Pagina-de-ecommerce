@@ -8,6 +8,7 @@ jest.mock('../../src/models', () => ({
     Insumo: {},
     ComboGrupo: {},
     StockSucursal: { findAll: jest.fn() },
+    SuspensionProducto: { findAll: jest.fn() },
     Sucursal: { findByPk: jest.fn() },
 }));
 
@@ -19,6 +20,7 @@ const {
     Pedido,
     Producto,
     StockSucursal,
+    SuspensionProducto,
     Sucursal,
 } = require('../../src/models');
 const { precioMasBarato } = require('../../src/utils/combo');
@@ -72,6 +74,7 @@ beforeEach(() => {
     Pedido.findByPk.mockResolvedValue(crearPedido());
     Sucursal.findByPk.mockResolvedValue(null);
     StockSucursal.findAll.mockResolvedValue([]);
+    SuspensionProducto.findAll.mockResolvedValue([]);
     precioMasBarato.mockResolvedValue(null);
     setProductos([producto()]);
 });
@@ -445,6 +448,25 @@ describe('repetirPedido', () => {
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('No hay stock en tu sucursal');
+    });
+
+    test('un producto suspendido en la sucursal se informa como no disponible', async () => {
+        SuspensionProducto.findAll.mockResolvedValue([{ productoId: 1 }]);
+        const res = crearRes();
+
+        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1', sucursalId: '3' } }, res);
+
+        const respuesta = res.json.mock.calls[0][0];
+        expect(respuesta.disponibles).toEqual([]);
+        expect(respuesta.noDisponibles[0].motivo).toBe('No está disponible por el momento');
+    });
+
+    test('sin sucursal elegida no consulta las suspensiones', async () => {
+        const res = crearRes();
+
+        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+
+        expect(SuspensionProducto.findAll).not.toHaveBeenCalled();
     });
 
     test('no consulta stock si la sucursal está inactiva', async () => {

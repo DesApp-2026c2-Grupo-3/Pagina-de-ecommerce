@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
+import { useAuth } from '../../context/AuthContext'
 import { crearAdministrador } from '../../services/administradorService'
 import { obtenerSucursales } from '../../services/sucursalService'
 
@@ -18,6 +19,9 @@ export default function NuevoAdministrador() {
 
   const { mostrarToast } = useToast();
   const navigate = useNavigate()
+  const { administrador } = useAuth()
+  // El master crea encargados y elige su sucursal; el encargado crea empleados de la suya
+  const esMaster = administrador?.rol === 'MASTER'
 
   const guardarAdministrador = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -36,6 +40,11 @@ export default function NuevoAdministrador() {
 
     if (email.trim() !== '' && !email.includes('@')) {
       setErrorEmail('Ingresá un email válido.')
+      hayErrores = true
+    }
+
+    if (email.includes('@') && !email.trim().toLowerCase().endsWith('@burgerfast.com')) {
+      setErrorEmail('El email del personal debe ser @burgerfast.com.')
       hayErrores = true
     }
 
@@ -59,7 +68,7 @@ export default function NuevoAdministrador() {
       hayErrores = true
     }
 
-    if (sucursalId === '') {
+    if (esMaster && sucursalId === '') {
       setErrorSucursal('Seleccioná una sucursal.')
       hayErrores = true
     }
@@ -72,13 +81,14 @@ export default function NuevoAdministrador() {
       nombre,
       email,
       password,
-      sucursalId: Number(sucursalId),
+      // El encargado siempre crea empleados de su propia sucursal
+      sucursalId: esMaster ? Number(sucursalId) : administrador?.sucursalId,
     }
     
     try {
       await crearAdministrador(nuevoAdministrador)
 
-      mostrarToast('Administrador creado!')
+      mostrarToast(esMaster ? 'Encargado creado!' : 'Empleado creado!')
       navigate('/admin/administradores')
     } catch (error) {
       console.error('Error al crear administrador:', error)
@@ -98,13 +108,14 @@ export default function NuevoAdministrador() {
     }
   }
 
-  cargarSucursales()
-}, [])
+  // Solo el master elige sucursal (la lista de sucursales es solo para él)
+  if (esMaster) cargarSucursales()
+}, [esMaster])
 
   return (
     <main className="p-8">
       <h1 className="text-3xl font-bold mb-6">
-        Nuevo administrador
+        {esMaster ? 'Nuevo encargado' : 'Nuevo empleado'}
       </h1>
 
       <form
@@ -119,7 +130,7 @@ export default function NuevoAdministrador() {
           <input
             type="text"
             value={nombre}
-            maxLength={30}
+            maxLength={40}
             onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
             className="w-full border rounded px-3 py-2"
           />
@@ -151,6 +162,8 @@ export default function NuevoAdministrador() {
         )}
 
 
+        {esMaster && (
+        <>
         <div className="mb-4">
           <label className="block mb-2 font-medium">
             Sucursal
@@ -179,6 +192,14 @@ export default function NuevoAdministrador() {
         {errorSucursal && (
           <p className="text-red-600 text-sm m-1">
             {errorSucursal}
+          </p>
+        )}
+        </>
+        )}
+
+        {!esMaster && (
+          <p className="mb-4 text-gray-600">
+            Se crea en tu sucursal{administrador?.sucursal ? `: ${administrador.sucursal.nombre}` : ''}.
           </p>
         )}
 
@@ -217,7 +238,7 @@ export default function NuevoAdministrador() {
           type="submit"
           className="bg-action hover:bg-action-hover
            border border-orange-300 text-white px-4 py-2 rounded transition-colors">
-            Crear administrador
+            {esMaster ? 'Crear encargado' : 'Crear empleado'}
           </button>
         </div>
       </form>

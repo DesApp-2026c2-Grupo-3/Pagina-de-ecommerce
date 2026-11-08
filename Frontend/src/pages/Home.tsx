@@ -5,6 +5,7 @@ import CategoriasRow from '../components/home/CategoriasRow'
 import PromoDestacadaBanner from '../components/home/PromoDestacadaBanner'
 import ComoFuncionaSection from '../components/home/ComoFuncionaSection'
 import MasPedidosSection from '../components/home/MasPedidosSection'
+import MasValoradosSection from '../components/home/MasValoradosSection'
 import ContactSection from '../components/home/ContactSection'
 import TuSucursal from '../components/home/TuSucursal'
 import { useAuth } from '../context/AuthContext'
@@ -20,6 +21,7 @@ function Home() {
       <CategoriasRow />
       <PromoDestacadaBanner />
       <MasPedidosSection />
+      <MasValoradosSection />
       <DestacadosRow />
       <ComoFuncionaSection />
       <TuSucursal />

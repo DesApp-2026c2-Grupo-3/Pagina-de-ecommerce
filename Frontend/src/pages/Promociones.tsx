@@ -144,10 +144,12 @@ function Promociones() {
               type="button"
               onClick={() => pedir(promos.regalo!, false)}
               disabled={cargando}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-dark px-5 font-bold text-brand-cream transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-dark px-4 font-bold text-brand-cream transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
-              Sumalas ya <ArrowRight className="h-4 w-4" />
+              <span className="hidden sm:inline">Sumalas ya</span>
+              <ArrowRight className="h-4 w-4" />
             </button>
+
           </div>
         </div>
 

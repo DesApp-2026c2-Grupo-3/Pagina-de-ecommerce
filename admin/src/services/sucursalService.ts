@@ -1,4 +1,5 @@
 import type {
+  HorarioSemana,
   PayloadSucursal,
   RespuestaSucursal,
   Sucursal,
@@ -51,5 +52,31 @@ export async function cambiarEstadoSucursal(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ activa }),
     mensajePorDefecto: 'Error al cambiar el estado de la sucursal',
+  })
+}
+
+// Cambia solo el horario: lo puede el master, o el encargado si el master lo habilitó
+export async function actualizarHorarioSucursal(
+  id: number,
+  horario: HorarioSemana,
+): Promise<RespuestaSucursal> {
+  return apiFetch(`${API}/horario/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ horario }),
+    mensajePorDefecto: 'Error al guardar el horario',
+  })
+}
+
+// Perilla del master: habilita o no a los encargados de la sucursal a editar el horario
+export async function cambiarPermisoHorarioSucursal(
+  id: number,
+  encargadoEditaHorario: boolean,
+): Promise<RespuestaSucursal> {
+  return apiFetch(`${API}/permiso-horario/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ encargadoEditaHorario }),
+    mensajePorDefecto: 'Error al cambiar el permiso del horario',
   })
 }

@@ -12,6 +12,7 @@ const {
 } = require('../models');
 const { productoDisponible, stockComoMapa, pasoExtra } = require('../utils/disponibilidad');
 const { precioMasBarato } = require('../utils/combo');
+const { productosSuspendidos } = require('../utils/suspensiones');
 // Igual que en crearPedido y en el front
 const EXTRA_MAX_INCREMENTO = 1;
 
@@ -166,10 +167,17 @@ const repetirPedido = async (req, res) => {
             }
         }
 
+        // Un producto suspendido en la sucursal se trata como no disponible
+        const suspendidos = sucursalId ? await productosSuspendidos(sucursalId) : new Set();
+
         // Cada producto se busca una sola vez, aunque aparezca en varias líneas o combos
         const cache = new Map();
         const obtener = async (id) => {
-            if (!cache.has(id)) cache.set(id, await cargarProducto(id));
+            if (!cache.has(id)) {
+                const producto = await cargarProducto(id);
+                if (producto && suspendidos.has(producto.id)) producto.disponible = false;
+                cache.set(id, producto);
+            }
             return cache.get(id);
         };
 

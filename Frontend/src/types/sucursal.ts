@@ -31,4 +31,6 @@ export interface Sucursal {
   latitud: number
   longitud: number
   radioEntregaKm: number
+  // Cierre temporal por contingencia que decide el encargado (el motivo no se muestra al cliente)
+  cierreTemporal?: boolean
 }

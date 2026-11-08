@@ -47,23 +47,21 @@ function UltimoPedidoCard() {
 
   return (
     <section className="relative z-10 -mt-6 sm:-mt-8 md:-mt-12 px-4 pb-6 md:pb-10">
-      <div className="mx-auto flex flex-col gap-2 md:gap-3 rounded-[1.75rem] border-2 border-brand-dark bg-white p-3 md:p-6 shadow-sticker max-w-7xl">
+      <div className="mx-auto flex flex-col gap-2 md:gap-3 rounded-[1.75rem] border-2 border-brand-dark bg-white p-3 sm:p-4 md:p-6 shadow-sticker max-w-7xl">
         
         {/* Fila Principal */}
-        <div className="flex flex-row items-center justify-between gap-2 md:gap-6 w-full">
+        <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 md:gap-6 w-full">
           
           {/* Lado Izquierdo: Ícono + Textos */}
           <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
-            <span className="hidden md:grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-cream">
-              <ReceiptText className="h-7 w-7 text-brand-red" />
+            {/* Ícono de informes restaurado y escalado: visible de 640px en adelante */}
+            <span className="hidden sm:grid h-9 w-9 md:h-14 md:w-14 shrink-0 place-items-center rounded-xl md:rounded-2xl bg-brand-cream">
+              <ReceiptText className="h-4.5 w-4.5 md:h-7 md:w-7 text-brand-red" />
             </span>
 
             <div className="min-w-0 flex-1">
-              {/* 
-                Quitamos el 'truncate' y dejamos que el texto fluya libremente 
-                hacia abajo si el espacio horizontal no alcanza en 360px.
-              */}
-              <p className="block md:hidden text-[10px] font-bold uppercase tracking-wider text-brand-muted leading-normal">
+              {/* Mantenemos la etiqueta en una sola línea compacta pero subimos el tamaño en sm */}
+              <p className="block md:hidden text-[10px] sm:text-xs font-bold uppercase tracking-wider text-brand-muted leading-normal">
                 Tu último pedido · {formatearFecha(pedido.fecha)}
               </p>
 
@@ -74,21 +72,22 @@ function UltimoPedidoCard() {
                 {formatearFecha(pedido.fecha)}
               </p>
               
-              <p className="mt-0.5 md:mt-0 font-display text-xs sm:text-xs sm:max-[860px]:text-sm md:text-2xl font-extrabold leading-tight text-brand-dark truncate md:whitespace-normal">
+              {/* Productos: Ajustados de text-xs a sm:text-sm/sm:text-base para que gane fuerza visual */}
+              <p className="mt-0.5 md:mt-0 font-display text-xs sm:text-sm md:text-2xl font-extrabold leading-tight text-brand-dark truncate md:whitespace-normal">
                 {resumirProductos(pedido)}
               </p>
             </div>
           </div>
 
           {/* Lado Derecho: Precio + Botón */}
-          <div className="flex flex-row items-center gap-2 sm:gap-3 md:gap-6 shrink-0">
-            {/* Precio */}
+          <div className="flex flex-row items-center gap-2 sm:gap-4 md:gap-6 shrink-0">
+            {/* Precio: Subido levemente de text-base a sm:text-lg sin romper el layout */}
             <span className="font-display text-base sm:text-lg md:text-3xl font-extrabold text-brand-dark whitespace-nowrap">
               {formatearPrecio(Number(pedido.total))}
             </span>
 
-            {/* Botón */}
-            <div className="text-xs md:text-base max-w-[125px] sm:max-w-[155px] md:max-w-none [&_button]:!font-bold [&_button]:whitespace-nowrap [&_button]:min-h-0 md:[&_button]:min-h-12 [&_button]:py-2 md:[&_button]:py-3 [&_button]:px-3 md:[&_button]:px-6">
+            {/* Botón: Se mantiene compacto pero hereda el comportamiento dinámico "Repetir" en sm */}
+            <div className="text-xs sm:text-sm md:text-base max-w-[125px] sm:max-w-none [&_button]:!font-bold [&_button]:whitespace-nowrap [&_button]:min-h-0 md:[&_button]:min-h-12 [&_button]:py-2 md:[&_button]:py-3 [&_button]:px-3 md:[&_button]:px-6">
               <BotonRepetirPedido 
                 pedido={pedido} 
                 variante="oscuro" 

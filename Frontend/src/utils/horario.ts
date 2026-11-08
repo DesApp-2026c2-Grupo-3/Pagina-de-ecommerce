@@ -147,6 +147,18 @@ function mismoHorario(a: HorarioDia, b: HorarioDia) {
   return a.abierto === b.abierto && a.apertura === b.apertura && a.cierre === b.cierre
 }
 
+// Estado de una sucursal: el cierre temporal del encargado pesa más que su horario semanal.
+// Sin cierre temporal, la app decide sola si está abierta según el día y el rango de horarios.
+export function estadoDeSucursal(
+  sucursal: { horario: unknown; zona_horaria?: string | null; cierreTemporal?: boolean },
+  ahora = new Date(),
+): EstadoSucursal {
+  if (sucursal.cierreTemporal) {
+    return { abierta: false, motivo: 'La sucursal está cerrada temporalmente' }
+  }
+  return estadoSucursal(sucursal.horario, sucursal.zona_horaria, ahora)
+}
+
 export function formatearHorario(valor: unknown): string {
   if (typeof valor === 'string') return valor.trim() || '—'
   if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return '—'

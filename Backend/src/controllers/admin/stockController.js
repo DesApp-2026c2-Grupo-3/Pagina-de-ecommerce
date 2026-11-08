@@ -86,7 +86,7 @@ const cargarAumento = async (req, res) => {
             cantidad: req.body.cantidad,
             cantidadAnterior: anterior,
             cantidadNueva: nueva,
-            adminId: await adminValido(req.body.adminId, t),
+            adminId: await adminValido(req.usuario?.id, t),
         }, { transaction: t });
 
         await t.commit();
@@ -138,7 +138,7 @@ const registrarBaja = async (req, res) => {
             cantidadNueva: nueva,
             motivo,
             detalle: detalle || null,
-            adminId: await adminValido(req.body.adminId, t),
+            adminId: await adminValido(req.usuario?.id, t),
         }, { transaction: t });
 
         await t.commit();

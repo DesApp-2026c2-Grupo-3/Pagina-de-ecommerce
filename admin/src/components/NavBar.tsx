@@ -4,6 +4,7 @@ import { LayoutDashboard, LogOut, ShoppingBag, Package,
    Store, ChartNoAxesCombined, ChevronLeft, ChevronRight,Users, Wheat, Tags, Hamburger, type LucideIcon,
    Percent,
    Star,
+   ClipboardList,
    UtensilsCrossed,} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { cerrarSesionService } from '../services/authService'
@@ -27,8 +28,11 @@ const iconosPorEnlace: Record<string, LucideIcon> = {
   Categorías: Tags,
   Menú: UtensilsCrossed,
   Promociones: Percent,
-  Administradores: Users,
-  Stock: Package,
+  Personal: Users,
+  Empleados: Users,
+  'Mi sucursal': Store,
+  Partes: ClipboardList,
+  Stock: Wheat,
 }
 
 

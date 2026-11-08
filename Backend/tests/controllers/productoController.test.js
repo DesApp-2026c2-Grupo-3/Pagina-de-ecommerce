@@ -6,6 +6,7 @@ jest.mock('../../src/models', () => ({
     Tamanio: {},
     ComboGrupo: {},
     StockSucursal: { findAll: jest.fn() },
+    SuspensionProducto: { findAll: jest.fn().mockResolvedValue([]) },
     Sucursal: { findByPk: jest.fn() },
 }));
 

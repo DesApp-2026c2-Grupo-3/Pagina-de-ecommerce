@@ -4,6 +4,7 @@ import EditorHorario from './EditorHorario'
 import type { DatosSucursal, DiaSemana, HorarioDia } from '../types/sucursal.types'
 import { aplicarDiaATodos, formatearHorario, opcionesZonaHoraria } from '../utils/horario'
 import { validarPaso } from '../utils/sucursalForm'
+import { useAuth } from '../context/AuthContext'
 
 const PASOS = ['Datos', 'Horario', 'Ubicación', 'Entrega']
 
@@ -18,6 +19,9 @@ interface Props {
 
 export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onCancelar }: Props) {
   const [datos, setDatos] = useState<DatosSucursal>(inicial)
+  const { administrador } = useAuth()
+  // El cupo de empleados lo define solo el master
+  const esMaster = administrador?.rol === 'MASTER'
   const [paso, setPaso] = useState(1)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -213,6 +217,24 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
                 Los clientes a más de esta distancia (en línea recta) no pueden pedirle a esta sucursal.
               </p>
             </div>
+
+            {esMaster && (
+              <div>
+                <label className="font-medium">Cupo de empleados</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  step="1"
+                  value={datos.maxEmpleados}
+                  onChange={(e) => cambiar('maxEmpleados', e.target.value)}
+                  className={`${campo} sm:w-40`}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Cantidad máxima de empleados activos de esta sucursal. Cada sucursal tiene siempre 2 encargados.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </section>

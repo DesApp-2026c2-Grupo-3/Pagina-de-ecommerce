@@ -18,10 +18,14 @@ import NotFound from '../pages/NotFound'
 import Sucursales from '../pages/Sucursales/Sucursales'
 import NuevaSucursal from '../pages/Sucursales/NuevaSucursal'
 import EditarSucursal from '../pages/Sucursales/EditarSucursal'
+import MiSucursal from '../pages/Sucursales/MiSucursal'
+import MiPerfil from '../pages/Perfil/MiPerfil'
+import Partes from '../pages/Partes/Partes'
+import Disponibilidad from '../pages/Disponibilidad/Disponibilidad'
 import Stock from '../pages/Stock/Stock'
 import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
-import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
+import { SoloGestion, SoloMaster, SoloPersonalDeSucursal, SoloSuSucursal } from '../components/PermisoRol'
 import Reportes from '../pages/Reportes/Reportes'
 import Calificaciones from '../pages/Calificaciones/Calificaciones'
 import Menu from '../pages/Menu/Menu'
@@ -42,14 +46,35 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/admin" element={<Reportes />} />
-        <Route path="/admin/reportes" element={<Reportes />} />
+        {/* Pedidos: los ven los tres roles; el estado solo lo cambia el empleado */}
         <Route path="/admin/pedidos" element={<Pedidos />} />
-        <Route path="/admin/calificaciones" element={<Calificaciones />} />
-        <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
-        <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
-        <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />
-        <Route path="/admin/reportes/productos-sin-stock" element={<ProductosSinStock />} />
+        <Route path="/admin/perfil" element={<MiPerfil />} />
+
+        {/* Encargado y empleado: los partes de su sucursal */}
+        <Route element={<SoloPersonalDeSucursal />}>
+          <Route path="/admin/partes" element={<Partes />} />
+        </Route>
+
+        {/* Master y encargado (el empleado va directo a Pedidos) */}
+        <Route element={<SoloGestion />}>
+          <Route path="/admin" element={<Reportes />} />
+          <Route path="/admin/reportes" element={<Reportes />} />
+          <Route path="/admin/calificaciones" element={<Calificaciones />} />
+          <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
+          <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
+          <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />
+          <Route path="/admin/reportes/productos-sin-stock" element={<ProductosSinStock />} />
+
+          <Route path="/admin/administradores" element={<Administradores />} />
+          <Route path="/admin/administradores/nuevo" element={<NuevoAdministrador />} />
+          <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />} />
+
+          {/* Datos de la sucursal del encargado: solo lectura (el horario, según la perilla) */}
+          <Route path="/admin/mi-sucursal" element={<MiSucursal />} />
+
+          {/* Disponibilidad de productos por sucursal: el master elige sucursal, el encargado ve la suya */}
+          <Route path="/admin/disponibilidad" element={<Disponibilidad />} />
+        </Route>
 
         {/* Solo el master */}
         <Route element={<SoloMaster />}>
@@ -68,17 +93,13 @@ export default function AppRoutes() {
 
           <Route path="/admin/insumos" element={<Insumos />} />
 
-          <Route path="/admin/administradores" element={<Administradores />} />
-          <Route path="/admin/administradores/nuevo" element={<NuevoAdministrador />} />
-          <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />} />
-
           <Route path="/admin/sucursales" element={<Sucursales />} />
           <Route path="/admin/sucursales/nueva" element={<NuevaSucursal />} />
+          <Route path="/admin/sucursales/editar/:id" element={<EditarSucursal />} />
         </Route>
 
-        {/* El master, o el admin de esa sucursal */}
+        {/* Stock: el master, o el encargado de esa sucursal */}
         <Route element={<SoloSuSucursal />}>
-          <Route path="/admin/sucursales/editar/:id" element={<EditarSucursal />} />
           <Route path="/admin/sucursales/:id/stock" element={<Stock />} />
         </Route>
       </Route>

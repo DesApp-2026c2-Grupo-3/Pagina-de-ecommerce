@@ -19,10 +19,19 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
       { to: '/admin/categorias', label: 'Categorías' },
       { to: '/admin/menu', label: 'Menú' },
       { to: '/admin/sucursales', label: 'Sucursales' },
-      { to: '/admin/administradores', label: 'Administradores' },
+      { to: '/admin/administradores', label: 'Personal' },
     ]
   }
 
+  // El empleado solo trabaja con los pedidos de su sucursal
+  if (administrador?.rol === 'EMPLEADO') {
+    return [
+      { to: '/admin/pedidos', label: 'Pedidos' },
+      { to: '/admin/partes', label: 'Partes' },
+    ]
+  }
+
+  // Encargado de sucursal
   const id = administrador?.sucursalId
   return [
     { to: '/admin', label: 'Reportes', end: true },
@@ -30,8 +39,11 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
       ? [
           { to: '/admin/pedidos', label: 'Pedidos' },
           { to: '/admin/calificaciones', label: 'Calificaciones' },
+          { to: '/admin/disponibilidad', label: 'Productos' },
+          { to: '/admin/partes', label: 'Partes' },
           { to: `/admin/sucursales/${id}/stock`, label: 'Stock' },
-          { to: `/admin/sucursales/editar/${id}`, label: 'Mi sucursal' },
+          { to: '/admin/mi-sucursal', label: 'Mi sucursal' },
+          { to: '/admin/administradores', label: 'Empleados' },
         ]
       : []),
   ]
