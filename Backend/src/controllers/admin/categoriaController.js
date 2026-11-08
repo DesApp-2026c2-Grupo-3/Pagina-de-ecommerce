@@ -1,5 +1,5 @@
 const { literal } = require('sequelize');
-const { Categoria, Producto, ComboGrupo, sequelize } = require("../../models");
+const { Categoria, Producto, ComboGrupo } = require("../../models");
 
 // Por el orden que defina el master (a igual orden, la más vieja primero)
 const ORDEN_CATEGORIAS = [['orden', 'ASC'], ['id', 'ASC']];
@@ -269,39 +269,8 @@ const obtenerCategoriasCliente = async (req, res) => {
     }
 };
 
-// PATCH /admin/categorias/orden  { ids: [3, 1, 2] } → deja las categorías en ese orden (10, 20, 30...)
-const ordenarCategorias = async (req, res) => {
-    try {
-        const { ids } = req.body ?? {};
-        const validos = Array.isArray(ids)
-            && ids.length > 0
-            && ids.every((id) => Number.isInteger(id) && id > 0)
-            && new Set(ids).size === ids.length;
-        if (!validos) {
-            return res.status(400).json({ mensaje: 'Mandá la lista de categorías, sin repetir, en el orden deseado' });
-        }
-
-        const existentes = await Categoria.findAll({ where: { id: ids }, attributes: ['id'] });
-        if (existentes.length !== ids.length) {
-            return res.status(404).json({ mensaje: 'Alguna de las categorías no existe' });
-        }
-
-        await sequelize.transaction(async (transaction) => {
-            for (const [indice, id] of ids.entries()) {
-                await Categoria.update({ orden: (indice + 1) * PASO_ORDEN }, { where: { id }, transaction });
-            }
-        });
-
-        return res.status(200).json({ mensaje: 'Orden actualizado' });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ mensaje: 'Error al ordenar las categorías' });
-    }
-};
-
 module.exports = {
     obtenerCategorias,
-    ordenarCategorias,
     crearCategoria,
     eliminarCategorias,
     editarCategoriaPorId,

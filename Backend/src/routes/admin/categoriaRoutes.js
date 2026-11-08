@@ -10,7 +10,6 @@ const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
 
 router.get('/', esAdminJwt, categoriaController.obtenerCategorias);
 router.post('/nueva', esMasterJwt, validarCategoria, categoriaController.crearCategoria);
-router.patch('/orden', esMasterJwt, categoriaController.ordenarCategorias);
 router.patch('/editar/:id', esMasterJwt, validarCategoria, esIdValido, categoriaController.editarCategoriaPorId);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, categoriaController.eliminarCategorias);
 router.patch('/:id/deshabilitar', esMasterJwt, esIdValido, categoriaController.deshabilitarCategoria);
