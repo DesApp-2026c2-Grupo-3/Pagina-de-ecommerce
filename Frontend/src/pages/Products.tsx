@@ -26,6 +26,13 @@ function estiloDeSeccion(hija: Category, padre: Category) {
   return propio.icono === "generico" ? estiloDeCategoria(padre) : propio;
 }
 
+
+// En el submenú, "Hamburguesas Carne" dentro de Hamburguesas se muestra "Carne": se saca el nombre del padre
+function nombreCorto(hija: string, padre: string) {
+  const resto = hija.replace(new RegExp(`^${padre}\\s+(de\\s+)?`, "i"), "").trim();
+  return resto ? resto.charAt(0).toUpperCase() + resto.slice(1) : hija;
+}
+
 function Products() {
   const [products, setProducts] = useState<ProductoBackend[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -137,7 +144,7 @@ function Products() {
   const secciones = enSecciones
     ? subgrupos.map((s) => ({
         slug: s.slug,
-        nombre: s.categoria.nombre,
+        nombre: nombreCorto(s.categoria.nombre, grupo!.categoria.nombre),        
         estilo: estiloDeSeccion(s.categoria, grupo!.categoria),
         productos: delGrupo.filter((p) => p.categoriaId === s.categoria.id).sort(disponiblesPrimero),
       }))
@@ -218,7 +225,7 @@ function Products() {
         {/* Subcategorías del grupo elegido */}
         {!buscando && subgrupos.length > 0 && (
           <SubcategoriaFilter
-            subgrupos={subgrupos.map((s) => ({ slug: s.slug, nombre: s.categoria.nombre }))}
+            subgrupos={subgrupos.map((s) => ({ slug: s.slug, nombre: nombreCorto(s.categoria.nombre, grupo?.categoria.nombre ?? "") }))}            
             seleccionado={sub?.slug ?? null}
             onSeleccionar={elegirSub}
           />

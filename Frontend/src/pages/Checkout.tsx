@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useZona } from "../context/ZonaContext";
@@ -58,23 +58,6 @@ function Checkout() {
 
   // Al ir a direcciones y volver, la compra directa viaja con la navegación
   const volverAlCheckout = { from: "/checkout", compraDirecta, observaciones };
-
-  // Sub-pasos del checkout: 1 = Entrega, 2 = Pago.
-  // El paso va en la URL (?paso=pago) para que el botón "atrás" del navegador vuelva a Entrega
-  const [searchParams] = useSearchParams();
-  const paso: 1 | 2 = searchParams.get("paso") === "pago" ? 2 : 1;
-  function irAPaso(n: 1 | 2) {
-    setError("");
-    window.scrollTo(0, 0);
-    if (n === 2) {
-      // Se conserva el state (compra directa, observaciones) al cambiar de paso
-      navigate("/checkout?paso=pago", { state: location.state });
-    } else if ((window.history.state?.idx ?? 0) > 0) {
-      navigate(-1); // vuelve a Entrega sin duplicar el historial
-    } else {
-      navigate("/checkout", { state: location.state, replace: true });
-    }
-  }
 
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
@@ -337,17 +320,13 @@ function Checkout() {
             : "Revisá todo antes de mandarlo a la cocina."
         }
       >
-        <PasosCompra actual={paso} onIrA={(i) => i === 1 && irAPaso(1)} />
-      </PageHeader>
+        <PasosCompra actual={1} />      
+        </PageHeader>
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-5">
           {/* Volver: al carrito, o al producto si es una compra directa */}
-          {paso === 2 ? (
-            <button type="button" onClick={() => irAPaso(1)} className={`${botonChico} w-fit shadow-sticker`}>
-              <ArrowLeft className="h-4 w-4" /> Volver a la entrega
-            </button>
-          ) : compraDirecta ? (
+          {compraDirecta ? (
             <button type="button" onClick={() => navigate(-1)} className={`${botonChico} w-fit shadow-sticker`}>
               <ArrowLeft className="h-4 w-4" /> Volver al producto
             </button>
@@ -371,7 +350,6 @@ function Checkout() {
             />
           )}
 
-          {paso === 1 && (<>
           {/* ---------- Cómo lo recibís (pendiente de backend) ---------- */}
           <SeccionCheckout titulo="¿Cómo lo recibís?">
             <OpcionesCheckout nombre="Cómo lo recibís" opciones={FORMAS_ENTREGA} elegida={formaEntrega} onElegir={setFormaEntrega} />
@@ -495,9 +473,6 @@ function Checkout() {
               </div>
             )}
           </SeccionCheckout>
-          </>)}
-
-          {paso === 2 && (<>
           {/* ---------- Sucursal ---------- */}
           <SeccionCheckout titulo="Sucursal que lo prepara">
             {sucursalesLoading ? (
@@ -560,8 +535,6 @@ function Checkout() {
           <SeccionCheckout titulo="Forma de pago">
             <OpcionesCheckout nombre="Forma de pago" opciones={FORMAS_PAGO} elegida={formaPago} onElegir={setFormaPago} />
           </SeccionCheckout>
-          </>)}
-
         </div>
 
         {/* Arriba de "Tu pedido" van los avisos y errores, así se ven antes que el botón */}
@@ -573,10 +546,10 @@ function Checkout() {
             total={total}
             costoEnvio={cotizacion?.costoEnvio ?? null}
             demora={cotizacion ? String(cotizacion.minutosEstimados) : undefined}     
-            onConfirmar={paso === 1 ? () => irAPaso(2) : handleConfirm}
-            deshabilitado={paso === 1 ? !direccion || sucursalCerrada : loading || !puedeConfirmar}
+            onConfirmar={handleConfirm}
+            deshabilitado={loading || !puedeConfirmar}
             cargando={loading}
-            textoBoton={paso === 1 ? "Continuar" : "Confirmar pedido"}
+            textoBoton="Confirmar pedido"
           />
         </div>
       </div>

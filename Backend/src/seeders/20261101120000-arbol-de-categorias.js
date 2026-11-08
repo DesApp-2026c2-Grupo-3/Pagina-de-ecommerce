@@ -4,12 +4,15 @@
 // hijas, el submenú. Cada producto queda en UNA categoría final (una que no tiene hijas).
 // "Todos" no se guarda: el front lo agrega siempre al final.
 //
-//   Combos          → Combos de carne · Combos de pollo · Combos veganos
-//   Hamburguesas    → Hamburguesas de carne · Hamburguesas de pollo · Hamburguesas veganas
+//   Combos          → Combos Carne · Combos Pollo · Combos Vegetariano
+//   Hamburguesas    → Hamburguesas Carne · Hamburguesas Pollo · Hamburguesas Vegetariano
 //   Para acompañar  → Papas Fritas · Nuggets · Ensaladas
 //   Bebidas         (sin submenú)
 //   Cafetería       → Café · Desayunos y meriendas (antes "Menú Café")
 //   Postres         (sin submenú, y sin tamaños)
+//
+// Los nombres de categoría son únicos, por eso las hijas llevan el nombre del padre adelante.
+// La tienda lo saca al mostrar el submenú: se ve "Carne · Pollo · Vegetariano".
 //
 // También saca las salsas: sus productos quedan con borrado lógico (los pedidos viejos los siguen
 // mostrando) y la categoría, deshabilitada.
@@ -18,8 +21,8 @@
 
 // El orden de la lista es el orden de los botones. `icono` es el de la tarjeta del inicio.
 const ARBOL = [
-  { nombre: 'Combos', icono: 'combo', hijas: ['Combos de carne', 'Combos de pollo', 'Combos veganos'] },
-  { nombre: 'Hamburguesas', icono: 'hamburguesa', hijas: ['Hamburguesas de carne', 'Hamburguesas de pollo', 'Hamburguesas veganas'] },
+  { nombre: 'Combos', icono: 'combo', hijas: ['Combos Carne', 'Combos Pollo', 'Combos Vegetariano'] },
+  { nombre: 'Hamburguesas', icono: 'hamburguesa', hijas: ['Hamburguesas Carne', 'Hamburguesas Pollo', 'Hamburguesas Vegetariano'] },
   { nombre: 'Para acompañar', icono: 'papas', hijas: ['Papas Fritas', 'Nuggets', 'Ensaladas'] },
   { nombre: 'Bebidas', icono: 'bebida', hijas: [] },
   { nombre: 'Cafetería', icono: 'cafe', hijas: ['Café', 'Desayunos y meriendas'] },
@@ -32,10 +35,10 @@ const RENOMBRAR = { 'Menú Café': 'Desayunos y meriendas' };
 // Productos que no van a la primera hija. El resto de los productos de Combos y de Hamburguesas
 // va a la primera hija (la de carne).
 const PRODUCTOS_A_MOVER = {
-  'Combos de pollo': ['Combo Crispy Crack', 'Combo Crispy Ranch'],
-  'Combos veganos': ['Combo Seed Vicious'],
-  'Hamburguesas de pollo': ['Crispy Crack', 'Crispy Ranch'],
-  'Hamburguesas veganas': ['Seed Vicious'],
+  'Combos Pollo': ['Combo Crispy Crack', 'Combo Crispy Ranch'],
+  'Combos Vegetariano': ['Combo Seed Vicious'],
+  'Hamburguesas Pollo': ['Crispy Crack', 'Crispy Ranch'],
+  'Hamburguesas Vegetariano': ['Seed Vicious'],
 };
 
 module.exports = {

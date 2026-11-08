@@ -336,7 +336,7 @@ const obtenerProductosSinStock = async (req, res) => {
 
        const productos = await Producto.findAll({
         where: { disponible: true },
-        attributes: ['id', 'nombre', 'imagen', 'categoriaId'],
+        attributes: ['id', 'nombre', 'imagen', 'categoriaId', 'productoPrincipalId'],        
         order: [['nombre', 'ASC']],
         });
 
@@ -471,7 +471,7 @@ for (const sucursal of sucursales) {
 
         // La receta propia del combo consume stock con factor 1.
         const recetaCombo = (
-            recetasPorProducto.get(combo.id) ?? []
+            recetasPorProducto.get(combo.productoPrincipalId ?? combo.id) ?? []        
         ).filter((item) => Number(item.cantidadBase) > 0);
 
         const ingredienteFaltante = recetaCombo.find((item) => {

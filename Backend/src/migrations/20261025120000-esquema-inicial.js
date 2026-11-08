@@ -413,7 +413,7 @@ module.exports = {
   async down(queryInterface) {
     // Orden inverso al de creación, por las claves foráneas
     const tablas = [
-      'MovimientoStocks', 'historialDeTiemposPedido', 'DetallePedidos', 'Pedidos', 'Viajes', 'Repartidores',
+      'MovimientoStocks', 'historialDeTiemposPedido', 'DetallePedidos', 'Pedidos', 'Viajes', 'Repartidors',      
       'StockSucursals', 'RecetaInsumos', 'Insumos',
       'ComboGrupos', 'ProductoTamanios', 'Tamanios', 'Productos', 'Categoria',
       'Direccions', 'TokensRecuperacion', 'Admins', 'Usuarios', 'Sucursals',

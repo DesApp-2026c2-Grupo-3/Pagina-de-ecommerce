@@ -8,7 +8,6 @@ import MensajeVacio from '../../components/MensajeVacio'
 import { deshabilitarCategoria, habilitarCategoria, obtenerCategorias } from '../../services/categoriaService';
 import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categoriaService'
 import SeccionDesplegable from '../../components/SeccionDesplegable'
-import InicioCategorias from '../../components/inicio/InicioCategorias'
 import type { CategoriaAdmin } from '../../types/categoria.types'
 
 interface Categoria {
@@ -143,11 +142,6 @@ export default function Categorias() {
         <Plus size={22} />
       </button>
     </div>
-
-    <InicioCategorias
-      categorias={categorias}
-      onGuardado={async () => setCategorias(await obtenerCategorias())}
-    />
 
     <SeccionDesplegable
       id="categorias-lista"

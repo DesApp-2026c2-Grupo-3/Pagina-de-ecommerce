@@ -32,9 +32,9 @@ function AvisoCierreSucursal({
       aria-describedby={tooltipId}
       className={`group relative ${
         mostrarEnMobile ? 'flex' : 'hidden md:flex'
-      } flex-wrap items-center gap-2 rounded-xl border-2 border-brand-dark bg-white px-3 py-2 text-brand-dark shadow-[3px_3px_0_var(--color-brand-red)] sm:flex-nowrap ${className}`}
-    >
-      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-mustard text-brand-dark">
+      } flex-wrap items-center gap-2 rounded-xl border-2 border-brand-dark bg-brand-red px-3 py-2 text-white shadow-[3px_3px_0_var(--color-brand-dark)] sm:flex-nowrap ${className}`}    
+      >
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-brand-red">        
         <CircleAlert className="h-4 w-4" strokeWidth={2.6} />
       </span>
       <p className="min-w-0 flex-1 truncate text-sm font-bold leading-tight">
@@ -43,8 +43,8 @@ function AvisoCierreSucursal({
       <button
         type="button"
         onClick={accion}
-        className="ml-auto shrink-0 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-bold text-brand-cream transition-transform hover:translate-y-0.5 sm:ml-0"
-      >
+        className="ml-auto shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-brand-red transition-transform hover:translate-y-0.5 sm:ml-0"      
+        >
         {textoAccion}
       </button>
       <span

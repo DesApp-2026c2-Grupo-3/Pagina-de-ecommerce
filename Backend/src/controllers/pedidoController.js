@@ -352,6 +352,19 @@ const crearPedido = async (req, res) => {
                 throw new ErrorPedido(400, `El producto ${productoBD.nombre} no está disponible`);
             }
 
+            
+            // Un combo usa la receta de su producto principal: tiene que existir y estar disponible
+            let idReceta = productoBD.id;
+            if (productoBD.productoPrincipalId) {
+                const principal = await Producto.findByPk(productoBD.productoPrincipalId, {
+                    attributes: ['id', 'disponible'],
+                    transaction: t,
+                });
+                if (!principal?.disponible) {
+                    throw new ErrorPedido(400, `${productoBD.nombre} no está disponible por el momento`);
+                }
+                idReceta = principal.id;
+            }
             // Si el producto tiene tamaños, el precio base es el del tamaño elegido
             const tamanios = productoBD.tamanios ?? [];
             let precioBase = Number(productoBD.precio);
@@ -376,7 +389,7 @@ const crearPedido = async (req, res) => {
             );
 
             const receta = await RecetaInsumo.findAll({
-                where: { productoId: producto.productoId },
+                where: { productoId: idReceta },                
                 include: [Insumo],
                 transaction: t
             });

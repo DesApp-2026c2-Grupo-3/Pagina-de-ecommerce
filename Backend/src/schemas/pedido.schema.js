@@ -15,9 +15,9 @@ const pedidoSchema = Joi.object({
         'any.required': 'Tenés que seleccionar una sucursal'
     }),
 
-    observaciones: Joi.string().max(500).allow('', null).optional().messages({
+    observaciones: Joi.string().max(100).allow('', null).optional().messages({
         'string.base': 'Las observaciones deben ser un texto',
-        'string.max': 'Las observaciones no pueden superar los 500 caracteres'
+        'string.max': 'Las observaciones no pueden superar los 100 caracteres'
     }),
 
         productos: Joi.array().items(
