@@ -81,6 +81,7 @@ const obtenerProductosMasVendidos = async (req, res) => {
                             model: Categoria,
                             as: 'categoria',
                             attributes: ['nombre'],
+                            paranoid: false, // también las categorías eliminadas
                             required: false, // si un producto no tiene categoría, igual aparece
                         },
                     ],
@@ -161,6 +162,7 @@ const obtenerProductosMenosVendidos = async (req, res) => {
                     model: Categoria,
                     as: 'categoria',
                     attributes: ['nombre'],
+                    paranoid: false, // también las categorías eliminadas
                     required: false,
                 },
                 {
@@ -266,6 +268,7 @@ const obtenerProductosMayorFacturacion = async (req, res) => {
                             model: Categoria,
                             as: 'categoria',
                             attributes: ['nombre'],
+                            paranoid: false, // también las categorías eliminadas
                             required: false,
                         },
                     ],
@@ -357,6 +360,8 @@ const obtenerProductosSinStock = async (req, res) => {
 
         const insumos = await Insumo.findAll({
     attributes: ['id', 'nombre'],
+    // También los eliminados (borrado lógico): las recetas viejas los siguen nombrando
+    paranoid: false,
 });
 
 const nombreInsumo = new Map(
@@ -1441,8 +1446,8 @@ const obtenerProductosPorSucursal = async (req, res) => {
                     paranoid: false,
                     required: true,
                     include: [
-                        { model: Categoria, as: 'categoria', attributes: ['nombre'], required: false },
-                    ],
+                          { model: Categoria, as: 'categoria', attributes: ['nombre'], paranoid: false, required: false },                    
+                        ],
                 },
             ],
         });
@@ -1602,6 +1607,8 @@ const buscarLineasConPromo = (sucursalId, fecha = null) => {
                 model: Promocion,
                 as: 'promocion',
                 attributes: ['id', 'titulo', 'destacado', 'tipo', 'activo'],
+                // También las eliminadas (borrado lógico): sus ventas siguen contando
+                paranoid: false,
                 required: true,
             },
         ],

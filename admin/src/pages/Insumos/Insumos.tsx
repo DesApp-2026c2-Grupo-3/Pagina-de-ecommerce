@@ -177,7 +177,7 @@ const acciones = (insumo: Insumo) => (
       type="button"
       onClick={() => cambiarEstado(insumo)}
       aria-label={`${insumo.activo ? 'Deshabilitar' : 'Habilitar'} ${insumo.nombre}`}
-      title={insumo.activo ? 'Deshabilitar insumo' : 'Habilitar insumo'}
+      title={insumo.activo ? 'Deshabilitar (no se repone; se usa hasta agotar stock)' : 'Habilitar insumo'}      
       className={`rounded border p-2 ${
         insumo.activo
           ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
@@ -383,7 +383,9 @@ const acciones = (insumo: Insumo) => (
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}
-        mensaje={`¿Seguro que querés eliminar ${aEliminar?.nombre ?? 'este insumo'}?`}
+        titulo="Eliminar insumo"
+        textoConfirmar="Eliminar"
+        mensaje={`¿Eliminar ${aEliminar?.nombre ?? 'este insumo'}? Deja de verse en este panel y en el stock de las sucursales, y no se puede deshacer. El historial de movimientos lo sigue mostrando. Si solo querés dejar de reponerlo, usá "Deshabilitar": se sigue usando hasta agotar el stock.`}        
         onConfirmar={confirmarEliminacion}
         onCancelar={() => setAEliminar(null)}
       />

@@ -220,9 +220,9 @@ const eliminarPromocion = async (req, res) => {
         if (!promocion) {
             return res.status(404).json({ mensaje: 'Promoción no encontrada' });
         }
-
+        // Borrado lógico (el modelo es paranoid): la fila queda, con deletedAt
         await promocion.destroy();
-        return res.status(200).json({ mensaje: 'Promoción eliminada con éxito' });
+        return res.status(200).json({ mensaje: 'Promoción eliminada. Los pedidos y reportes anteriores la conservan.' });
     } catch (error) {
         return responderError(res, error, 'Error al eliminar la promoción');
     }

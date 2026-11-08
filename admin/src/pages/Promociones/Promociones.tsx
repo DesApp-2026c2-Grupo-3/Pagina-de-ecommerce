@@ -290,7 +290,9 @@ export default function Promociones() {
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}
-        mensaje={`¿Estás seguro de que querés eliminar la promoción "${aEliminar?.titulo ?? ''}"? Esta acción no se puede deshacer.`}
+        titulo="Eliminar promoción"
+        textoConfirmar="Eliminar"
+        mensaje={`¿Eliminar la promoción "${aEliminar?.titulo ?? ''}"? Deja de verse en la tienda y en este panel, y no se puede deshacer. Los pedidos y reportes anteriores la siguen mostrando. Si solo querés pausarla, usá "Deshabilitar".`}
         onConfirmar={() => {
           if (aEliminar) eliminar(aEliminar)
           setAEliminar(null)

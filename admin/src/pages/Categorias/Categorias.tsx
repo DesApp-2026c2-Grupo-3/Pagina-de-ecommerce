@@ -255,7 +255,9 @@ export default function Categorias() {
 
     <ConfirmarEliminacion
     abierto={categoriaAEliminar !== null}
-    mensaje="¿Estás seguro de que querés eliminar esta categoria?"
+    titulo="Eliminar categoría"
+    textoConfirmar="Eliminar"
+    mensaje={'¿Eliminar esta categoría? Deja de verse en la tienda y en este panel, y no se puede deshacer. Solo se puede si no tiene productos ni subcategorías. Los pedidos y reportes anteriores la siguen mostrando. Si solo querés ocultarla un tiempo, usá "Deshabilitar".'}    
     onConfirmar={() => {
       if (categoriaAEliminar !== null) {
         eliminarCategoria(categoriaAEliminar)

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Insumo, Sucursal, StockSucursal, RecetaInsumo, sequelize } = require('../../models');
+const { Insumo, Sucursal, StockSucursal, RecetaInsumo, Producto, sequelize } = require('../../models');
 
 // ¿Ya hay otro insumo con ese nombre? (sin distinguir mayúsculas)
 async function nombreEnUso(nombre, idPropio = null) {
@@ -83,21 +83,22 @@ const eliminarInsumo = async (req, res) => {
         return res.status(404).json({ mensaje: 'Insumo no encontrado' });
     }
 
-    const enRecetas = await RecetaInsumo.count({ where: { insumoId: insumo.id } });
+    // Solo cuentan las recetas de productos NO eliminados: un producto eliminado ya no consume nada
+    const enRecetas = await RecetaInsumo.count({
+        where: { insumoId: insumo.id },
+        include: [{ model: Producto, attributes: [], required: true }],
+    });
     if (enRecetas > 0) {
         return res.status(409).json({
-            mensaje: `No se puede eliminar: ${insumo.nombre} se usa en ${enRecetas} ${enRecetas === 1 ? 'producto' : 'productos'}. Quitalo de esas recetas primero.`
+            mensaje: `No se puede eliminar: ${insumo.nombre} se usa en ${enRecetas} ${enRecetas === 1 ? 'producto' : 'productos'}. Quitalo de esas recetas primero (o deshabilitalo para usarlo hasta agotar stock).`
         });
     }
 
-    const t = await sequelize.transaction();
     try {
-        await StockSucursal.destroy({ where: { insumoId: insumo.id }, transaction: t });
-        await insumo.destroy({ transaction: t });
-        await t.commit();
-        res.json({ mensaje: 'Insumo eliminado con éxito' });
+        // Borrado lógico (el modelo es paranoid): el stock y los movimientos quedan para el historial
+        await insumo.destroy();
+        res.json({ mensaje: 'Insumo eliminado. El historial de stock lo conserva.' });
     } catch (error) {
-        await t.rollback();
         console.error(error);
         res.status(500).json({ mensaje: 'Error al eliminar el insumo' });
     }

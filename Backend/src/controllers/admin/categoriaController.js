@@ -1,5 +1,5 @@
 const { literal } = require('sequelize');
-const { Categoria, Producto, sequelize } = require("../../models");
+const { Categoria, Producto, ComboGrupo, sequelize } = require("../../models");
 
 // Por el orden que defina el master (a igual orden, la más vieja primero)
 const ORDEN_CATEGORIAS = [['orden', 'ASC'], ['id', 'ASC']];
@@ -134,15 +134,35 @@ const eliminarCategorias = async (req, res) => {
             return res.status(404).json({ mensaje: 'Categoria no encontrada' });
         }
 
+        // Las consultas ya ignoran lo eliminado: solo cuentan subcategorías y productos vigentes
         if (await Categoria.count({ where: { categoriaPadreId: categoria.id } }) > 0) {
             return res.status(400).json({
                 mensaje: 'La categoría tiene subcategorías: eliminalas o movelas antes'
             });
         }
 
+        const productos = await Producto.count({ where: { categoriaId: categoria.id } });
+        if (productos > 0) {
+            return res.status(409).json({
+                mensaje: `La categoría tiene ${productos} ${productos === 1 ? 'producto' : 'productos'}: pasalos a otra categoría antes (o deshabilitala para ocultarla de la tienda).`
+            });
+        }
+
+        // Un combo vigente que ofrece opciones de esta categoría (ej: "Una bebida" sale de Bebidas)
+        const enCombos = await ComboGrupo.count({
+            where: { categoriaId: categoria.id },
+            include: [{ model: Producto, as: 'combo', attributes: [], required: true }],
+        });
+        if (enCombos > 0) {
+            return res.status(409).json({
+                mensaje: 'Algún combo ofrece opciones de esta categoría: cambialo en el combo antes de eliminarla.'
+            });
+        }
+
+        // Borrado lógico (el modelo es paranoid): la fila queda, con deletedAt
         await categoria.destroy();
 
-        return res.status(200).json({ mensaje: "Categoria eliminada con éxito" });
+        return res.status(200).json({ mensaje: 'Categoría eliminada. Los pedidos y reportes anteriores la conservan.' });
 
     } catch (error) {
         console.error(error);
