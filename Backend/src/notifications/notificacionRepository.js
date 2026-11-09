@@ -8,10 +8,13 @@ const {
   Admin,
   Usuario,
 } = require('../models');
+const { codificarCursor, decodificarCursor } = require('./cursor');
+const { TIPOS } = require('./events');
 
 const DESTINATARIO_CLIENTE = 'cliente';
 const DESTINATARIO_ADMIN = 'admin';
 const LIMITE_POR_DEFECTO = 50;
+const TIPOS_SIN_ADMIN = new Set([TIPOS.PEDIDO_ESTADO_CAMBIADO]);
 
 function idsUnicos(valor) {
   if (!Array.isArray(valor)) return [];
@@ -28,6 +31,41 @@ function normalizarDestinatario({ destinatarioTipo, destinatarioId, tipo, id } =
     destinatarioTipo: destinatarioTipo ?? tipo,
     destinatarioId: Number(destinatarioId ?? id),
   };
+}
+
+function destinosSinAdministradores(tipo, destinos = {}) {
+  if (!TIPOS_SIN_ADMIN.has(tipo) || typeof destinos !== 'object' || destinos === null) {
+    return destinos;
+  }
+
+  const limpios = { ...destinos };
+  delete limpios.administradores;
+  delete limpios.administradoresSucursal;
+
+  if (Array.isArray(limpios.roles)) {
+    const roles = limpios.roles.filter((rol) => rol !== 'admin');
+    if (roles.length > 0) {
+      limpios.roles = roles;
+    } else {
+      delete limpios.roles;
+    }
+  }
+
+  return limpios;
+}
+
+function filtroTipos(opciones = {}) {
+  if (Array.isArray(opciones.tipos)) {
+    const tipos = [...new Set(opciones.tipos.filter((tipo) => typeof tipo === 'string'))];
+    return { [Op.in]: tipos };
+  }
+
+  if (Array.isArray(opciones.excluirTipos)) {
+    const tipos = [...new Set(opciones.excluirTipos.filter((tipo) => typeof tipo === 'string'))];
+    return { [Op.notIn]: tipos };
+  }
+
+  return null;
 }
 
 function normalizarPaginacion(limite, offset) {
@@ -111,16 +149,18 @@ async function resolverDestinatarios(destinos = {}, transaction) {
 }
 
 async function guardar({ tipo, datos, destinos = {}, version = 1, ocurridoEn = new Date() } = {}) {
+  const destinosPersistidos = destinosSinAdministradores(tipo, destinos);
+
   return sequelize.transaction(async (transaction) => {
     const notificacion = await Notificacion.create({
       tipo,
       datos,
-      destinos,
+      destinos: destinosPersistidos,
       version,
       ocurridoEn,
     }, { transaction });
 
-    const destinatarios = await resolverDestinatarios(destinos, transaction);
+    const destinatarios = await resolverDestinatarios(destinosPersistidos, transaction);
 
     if (destinatarios.length > 0) {
       await NotificacionDestinatario.bulkCreate(
@@ -149,13 +189,17 @@ async function listar(opciones = {}) {
     opciones.offset
   );
 
+  const include = {
+    model: Notificacion,
+    as: 'notificacion',
+    required: true,
+  };
+  const tipos = filtroTipos(opciones);
+  if (tipos) include.where = { tipo: tipos };
+
   const filas = await NotificacionDestinatario.findAll({
     where,
-    include: [{
-      model: Notificacion,
-      as: 'notificacion',
-      required: true,
-    }],
+    include: [include],
     order: [
       [{ model: Notificacion, as: 'notificacion' }, 'ocurridoEn', 'DESC'],
       ['id', 'DESC'],
@@ -165,6 +209,80 @@ async function listar(opciones = {}) {
   });
 
   return filas.map((fila) => aNotificacionDto(fila.notificacion, fila));
+}
+
+async function listarPagina(opciones = {}) {
+  const { destinatarioTipo, destinatarioId } = normalizarDestinatario(opciones);
+  const where = { destinatarioTipo, destinatarioId };
+
+  if (typeof opciones.leida === 'boolean') {
+    where.leida = opciones.leida;
+  }
+
+  const { limit } = normalizarPaginacion(opciones.limite ?? opciones.limit, 0);
+  const tamanoPagina = Math.min(limit, 100);
+  const cursor = opciones.cursor ? decodificarCursor(opciones.cursor) : null;
+
+  if (opciones.cursor && !cursor) {
+    const error = new Error('CURSOR_INVALIDO');
+    error.code = 'CURSOR_INVALIDO';
+    throw error;
+  }
+
+  const include = {
+    model: Notificacion,
+    as: 'notificacion',
+    required: true,
+  };
+  const tipos = filtroTipos(opciones);
+  const cursorWhere = cursor
+    ? {
+      [Op.or]: [
+        { ocurridoEn: { [Op.lt]: cursor.ocurridoEn } },
+        {
+          ocurridoEn: cursor.ocurridoEn,
+          id: { [Op.lt]: cursor.id },
+        },
+      ],
+    }
+    : null;
+
+  if (tipos && cursorWhere) {
+    include.where = {
+      [Op.and]: [
+        { tipo: tipos },
+        cursorWhere,
+      ],
+    };
+  } else if (tipos) {
+    include.where = { tipo: tipos };
+  } else if (cursorWhere) {
+    include.where = cursorWhere;
+  }
+
+  const filas = await NotificacionDestinatario.findAll({
+    where,
+    include: [include],
+    order: [
+      [{ model: Notificacion, as: 'notificacion' }, 'ocurridoEn', 'DESC'],
+      [{ model: Notificacion, as: 'notificacion' }, 'id', 'DESC'],
+    ],
+    limit: tamanoPagina + 1,
+  });
+
+  const hayMas = filas.length > tamanoPagina;
+  const filasPagina = filas.slice(0, tamanoPagina);
+  const ultima = filasPagina[filasPagina.length - 1];
+
+  return {
+    items: filasPagina.map((fila) => aNotificacionDto(fila.notificacion, fila)),
+    siguienteCursor: hayMas && ultima
+      ? codificarCursor({
+        ocurridoEn: ultima.notificacion.ocurridoEn,
+        id: ultima.notificacion.id,
+      })
+      : null,
+  };
 }
 
 async function marcarLeidas(opciones = {}) {
@@ -186,9 +304,11 @@ async function marcarLeidas(opciones = {}) {
     where.notificacionId = { [Op.in]: notificacionIds };
   }
 
+  const leidaEn = opciones.leidaEn instanceof Date ? opciones.leidaEn : new Date();
+
   const [cantidad] = await NotificacionDestinatario.update({
     leida: true,
-    leidaEn: new Date(),
+    leidaEn,
   }, { where });
 
   return cantidad;
@@ -196,19 +316,31 @@ async function marcarLeidas(opciones = {}) {
 
 async function contarNoLeidas(opciones = {}) {
   const { destinatarioTipo, destinatarioId } = normalizarDestinatario(opciones);
-
-  return NotificacionDestinatario.count({
+  const tipos = filtroTipos(opciones);
+  const consulta = {
     where: {
       destinatarioTipo,
       destinatarioId,
       leida: false,
     },
-  });
+  };
+
+  if (tipos) {
+    consulta.include = [{
+      model: Notificacion,
+      as: 'notificacion',
+      required: true,
+      where: { tipo: tipos },
+    }];
+  }
+
+  return NotificacionDestinatario.count(consulta);
 }
 
 module.exports = {
   guardar,
   listar,
+  listarPagina,
   marcarLeidas,
   contarNoLeidas,
 };

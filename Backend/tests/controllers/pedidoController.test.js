@@ -10,7 +10,7 @@ jest.mock('../../src/models', () => {
         Sucursal: { findByPk: jest.fn() },
         RecetaInsumo: { findAll: jest.fn() },
         ComboGrupo: { findAll: jest.fn() },
-        Insumo: {},
+        Insumo: { findAll: jest.fn() },
         ProductoTamanio: {},
         StockSucursal: { findOne: jest.fn() },
         MovimientoStock: { create: jest.fn() },
@@ -20,7 +20,16 @@ jest.mock('../../src/models', () => {
     };
 });
 
+jest.mock('../../src/notifications/handlers/stockHandlers', () => ({
+    notificarStockBajo: jest.fn(),
+}));
+jest.mock('../../src/notifications/adminRefresco', () => ({
+    emitirRefrescoAdmin: jest.fn(),
+}));
+
 const models = require('../../src/models');
+const { notificarStockBajo } = require('../../src/notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../../src/notifications/adminRefresco');
 const {
     crearPedido,
     obtenerPedidos,
@@ -41,9 +50,10 @@ function crearRes() {
 }
 
 // Un registro de stock falso que se actualiza de verdad cuando el controlador lo descuenta
-function crearStock(cantidad) {
+function crearStock(cantidad, stockMinimo = null) {
     const stock = {
         cantidad,
+        stockMinimo,
         update: jest.fn(({ cantidad: nueva }) => {
             stock.cantidad = nueva;
         }),
@@ -106,7 +116,41 @@ describe('crearPedido', () => {
             );
             expect(pedidoCreado.update).toHaveBeenCalledWith({ total: 11000 }, expect.anything());
             expect(t.commit).toHaveBeenCalled();
+            expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+                dominio: 'stock',
+                accion: 'actualizado',
+                sucursalId: 2,
+                recursos: { pedidoId: 100 },
+            });
+            expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+                dominio: 'pedidos',
+                accion: 'creado',
+                sucursalId: 2,
+                recursos: { pedidoId: 100 },
+            });
+            expect(emitirRefrescoAdmin).toHaveBeenCalledTimes(2);
+            expect(emitirRefrescoAdmin.mock.invocationCallOrder[0])
+                .toBeLessThan(emitirRefrescoAdmin.mock.invocationCallOrder[1]);
             expect(res.status).toHaveBeenCalledWith(201);
+        });
+
+        test('emite el refresco de pedidos después del commit', async () => {
+            emitirRefrescoAdmin.mockImplementation(() => {
+                expect(t.commit).toHaveBeenCalled();
+                return Promise.resolve(true);
+            });
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), crearRes());
+        });
+
+        test('un refresco no emitido no revierte el pedido', async () => {
+            emitirRefrescoAdmin.mockResolvedValue(false);
+            const res = crearRes();
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
+
+            expect(res.status).toHaveBeenCalledWith(201);
+            expect(t.rollback).not.toHaveBeenCalled();
         });
 
         test('descuenta el stock según la personalización', async () => {
@@ -119,6 +163,30 @@ describe('crearPedido', () => {
             expect(stocks[1].cantidad).toBe(48);
             expect(stocks[2].cantidad).toBe(50);
             expect(stocks[3].cantidad).toBe(46);
+        });
+
+        test('notifica stock bajo solo cuando la venta cruza el mínimo', async () => {
+            stocks[1] = crearStock(50, 48);
+            models.Insumo.findAll.mockResolvedValue([{ id: 1, nombre: 'Pan' }]);
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 2 }]), crearRes());
+
+            expect(notificarStockBajo).toHaveBeenCalledWith({
+                sucursalId: 2,
+                insumoId: 1,
+                cantidad: 48,
+                stockMinimo: 48,
+                sucursalNombre: 'Morón',
+                insumoNombre: 'Pan',
+            });
+        });
+
+        test('no repite la alerta si el stock ya estaba bajo el mínimo', async () => {
+            stocks[1] = crearStock(48, 48);
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), crearRes());
+
+            expect(notificarStockBajo).not.toHaveBeenCalled();
         });
 
         test('registra cada descuento como venta del pedido en el historial de stock', async () => {
@@ -326,6 +394,7 @@ describe('crearPedido', () => {
         await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
 
         expect(t.rollback).toHaveBeenCalled();
+        expect(emitirRefrescoAdmin).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
     });
 });

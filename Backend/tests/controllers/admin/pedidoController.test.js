@@ -17,9 +17,13 @@ jest.mock('../../../src/models', () => {
 jest.mock('../../../src/utils/stockPedido', () => ({
     devolverStockPedido: jest.fn(),
 }));
+jest.mock('../../../src/notifications/adminRefresco', () => ({
+    emitirRefrescoAdmin: jest.fn(),
+}));
 
 const models = require('../../../src/models');
 const { devolverStockPedido } = require('../../../src/utils/stockPedido');
+const { emitirRefrescoAdmin } = require('../../../src/notifications/adminRefresco');
 const {
     obtenerPedidosPorSucursal,
     obtenerPedidoPorId,
@@ -305,6 +309,21 @@ describe('cambiarEstadoPedidoPorId', () => {
 
         expect(devolverStockPedido).toHaveBeenCalledWith(100, { transaction: t, adminId: 7 });
         expect(t.commit).toHaveBeenCalled();
+    });
+
+    test('al devolver stock al cancelar avisa a la sucursal para refrescar', async () => {
+        const pedido = pedidoDeLaBase({ estado: 'Pendiente' });
+        Pedido.findByPk.mockResolvedValue(pedido);
+        devolverStockPedido.mockResolvedValue(2);
+
+        await cambiarEstadoPedidoPorId(req('Cancelado'), crearRes());
+
+        expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: 2,
+            recursos: { pedidoId: 100 },
+        });
     });
 
     test('al cancelar desde En proceso no devuelve el stock automáticamente', async () => {

@@ -5,11 +5,20 @@ jest.mock('../../../src/models', () => {
         Insumo: { findByPk: jest.fn() },
         MovimientoStock: { create: jest.fn(), findAll: jest.fn() },
         Admin: { findByPk: jest.fn() },
+        Sucursal: { findByPk: jest.fn() },
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },
         __t: t,
     };
 });
+jest.mock('../../../src/notifications/handlers/stockHandlers', () => ({
+    notificarStockBajo: jest.fn(),
+}));
+jest.mock('../../../src/notifications/adminRefresco', () => ({
+    emitirRefrescoAdmin: jest.fn(),
+}));
 
+const { notificarStockBajo } = require('../../../src/notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../../../src/notifications/adminRefresco');
 const models = require('../../../src/models');
 const {
     obtenerStockPorSucursal,
@@ -19,7 +28,7 @@ const {
     obtenerMovimientos,
 } = require('../../../src/controllers/admin/stockController');
 
-const { StockSucursal, Insumo, MovimientoStock, Admin } = models;
+const { StockSucursal, Insumo, MovimientoStock, Admin, Sucursal } = models;
 const t = models.__t;
 
 function crearRes() {
@@ -40,7 +49,13 @@ const fila = (id, nombre, cantidad, stockMinimo) => ({
 });
 
 // Un registro de stock que se puede actualizar
-const registro = (cantidad) => ({ sucursalId: 2, insumoId: 1, cantidad: String(cantidad), update: jest.fn() });
+const registro = (cantidad, stockMinimo = null) => ({
+    sucursalId: 2,
+    insumoId: 1,
+    cantidad: String(cantidad),
+    stockMinimo: stockMinimo == null ? null : String(stockMinimo),
+    update: jest.fn(),
+});
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -48,6 +63,7 @@ beforeEach(() => {
     Admin.findByPk.mockResolvedValue({ id: 7 });
     // cargarAumento solo suma stock a insumos activos
     Insumo.findByPk.mockResolvedValue({ id: 1, nombre: 'Pan', activo: true });
+    Sucursal.findByPk.mockResolvedValue({ id: 2, nombre: 'Centro' });
 });
 
 describe('obtenerStockPorSucursal', () => {
@@ -93,6 +109,12 @@ describe('cargarAumento', () => {
             { transaction: t }
         );
         expect(t.commit).toHaveBeenCalled();
+        expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: 2,
+            recursos: { insumoId: 1 },
+        });
         expect(res.status).toHaveBeenCalledWith(200);
     });
 
@@ -142,6 +164,47 @@ describe('registrarBaja', () => {
         expect(res.status).toHaveBeenCalledWith(200);
     });
 
+    test('notifica stock bajo solo cuando la baja cruza el mínimo', async () => {
+        const stock = registro(20, 10);
+        StockSucursal.findByPk.mockResolvedValue(stock);
+
+        await registrarBaja(
+            { params: { id: '1' }, body: { cantidad: 10, motivo: 'merma' } },
+            crearRes()
+        );
+
+        expect(notificarStockBajo).toHaveBeenCalledWith({
+            sucursalId: 2,
+            sucursalNombre: 'Centro',
+            insumoId: 1,
+            insumoNombre: 'Pan',
+            cantidad: 10,
+            stockMinimo: 10,
+        });
+    });
+
+    test('no notifica si el stock ya estaba en el mínimo o por debajo', async () => {
+        StockSucursal.findByPk.mockResolvedValue(registro(10, 10));
+
+        await registrarBaja(
+            { params: { id: '1' }, body: { cantidad: 1, motivo: 'merma' } },
+            crearRes()
+        );
+
+        expect(notificarStockBajo).not.toHaveBeenCalled();
+    });
+
+    test('no notifica si el insumo no tiene mínimo definido', async () => {
+        StockSucursal.findByPk.mockResolvedValue(registro(5, null));
+
+        await registrarBaja(
+            { params: { id: '1' }, body: { cantidad: 5, motivo: 'merma' } },
+            crearRes()
+        );
+
+        expect(notificarStockBajo).not.toHaveBeenCalled();
+    });
+
     test('no deja bajar más de lo que hay (el stock nunca queda negativo)', async () => {
         const stock = registro(20);
         StockSucursal.findByPk.mockResolvedValue(stock);
@@ -177,14 +240,21 @@ describe('registrarBaja', () => {
 });
 
 describe('definirMinimo', () => {
-    test('guarda el valor de alerta', async () => {
-        const stock = { update: jest.fn() };
+    test('guarda el valor de alerta sin emitir stock bajo', async () => {
+        const stock = { sucursalId: 2, insumoId: 1, cantidad: '5', update: jest.fn() };
         StockSucursal.findByPk.mockResolvedValue(stock);
         const res = crearRes();
 
         await definirMinimo({ params: { id: '1' }, body: { stockMinimo: 10 } }, res);
 
         expect(stock.update).toHaveBeenCalledWith({ stockMinimo: 10 });
+        expect(notificarStockBajo).not.toHaveBeenCalled();
+        expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: 2,
+            recursos: { insumoId: 1 },
+        });
         expect(res.status).toHaveBeenCalledWith(200);
     });
 

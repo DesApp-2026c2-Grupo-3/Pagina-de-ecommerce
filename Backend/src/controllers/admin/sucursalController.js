@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Sucursal, Admin, Insumo, StockSucursal, sequelize } = require('../../models');
+const { notificarSucursalCerrada } = require('../../notifications/handlers/sucursalHandlers');
 
 // Los admins de cada sucursal, solo con los datos que necesita el panel
 const ADMINS = { model: Admin, attributes: ['id', 'nombre', 'email'] };
@@ -110,7 +111,15 @@ const cambiarEstadoSucursal = async (req, res) => {
             return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
         }
 
+        const estabaActiva = sucursal.activa;
         await sucursal.update({ activa });
+
+        if (estabaActiva && !activa) {
+            await notificarSucursalCerrada({
+                sucursalId: sucursal.id,
+                sucursalNombre: sucursal.nombre,
+            });
+        }
 
         res.status(200).json({
             mensaje: activa ? 'Sucursal activada' : 'Sucursal desactivada',

@@ -1,6 +1,29 @@
-const { StockSucursal, Insumo, MovimientoStock, Admin, sequelize } = require('../../models');
+const { StockSucursal, Insumo, MovimientoStock, Admin, Sucursal, sequelize } = require('../../models');
+const { notificarStockBajo } = require('../../notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../../notifications/adminRefresco');
+const { cruzaMinimo, normalizarMinimo } = require('../../utils/stockMinimo');
 
 const redondear = (n) => Math.round(n * 1000) / 1000;
+
+async function notificarBajoMinimo({ sucursalId, insumoId, cantidad, stockMinimo }) {
+    try {
+        const [sucursal, insumo] = await Promise.all([
+            Sucursal.findByPk(sucursalId, { attributes: ['id', 'nombre'] }),
+            Insumo.findByPk(insumoId, { attributes: ['id', 'nombre'] }),
+        ]);
+
+        await notificarStockBajo({
+            sucursalId,
+            sucursalNombre: sucursal?.nombre ?? '',
+            insumoId,
+            insumoNombre: insumo?.nombre ?? '',
+            cantidad,
+            stockMinimo,
+        });
+    } catch (error) {
+        console.error('No se pudo publicar la alerta de stock:', error.message);
+    }
+}
 
 // Solo se registra el admin si existe (así un id viejo no rompe el movimiento)
 async function adminValido(adminId, transaction) {
@@ -90,6 +113,14 @@ const cargarAumento = async (req, res) => {
         }, { transaction: t });
 
         await t.commit();
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: stock.sucursalId,
+            recursos: { insumoId: stock.insumoId },
+        });
+
         return res.status(200).json({ mensaje: 'Stock actualizado con éxito', stock });
     } catch (error) {
         await t.rollback();
@@ -113,6 +144,7 @@ const registrarBaja = async (req, res) => {
         }
 
         const anterior = Number(stock.cantidad);
+        const minimo = normalizarMinimo(stock.stockMinimo);
         const { cantidad, motivo, detalle } = req.body;
 
         // El stock nunca queda negativo
@@ -142,6 +174,23 @@ const registrarBaja = async (req, res) => {
         }, { transaction: t });
 
         await t.commit();
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: stock.sucursalId,
+            recursos: { insumoId: stock.insumoId },
+        });
+
+        if (cruzaMinimo(anterior, nueva, minimo)) {
+            await notificarBajoMinimo({
+                sucursalId: stock.sucursalId,
+                insumoId: stock.insumoId,
+                cantidad: nueva,
+                stockMinimo: minimo,
+            });
+        }
+
         return res.status(200).json({ mensaje: 'Baja registrada con éxito', stock });
     } catch (error) {
         await t.rollback();
@@ -191,6 +240,14 @@ const definirMinimo = async (req, res) => {
         }
 
         await stock.update({ stockMinimo: req.body.stockMinimo });
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: stock.sucursalId,
+            recursos: { insumoId: stock.insumoId },
+        });
+
         return res.status(200).json({ mensaje: 'Mínimo actualizado', stock });
     } catch (error) {
         console.error('Algo salió mal', error.message);

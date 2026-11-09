@@ -56,6 +56,7 @@ app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
+app.use('/notificaciones', require('./routes/notificacionRoutes'));
 app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));

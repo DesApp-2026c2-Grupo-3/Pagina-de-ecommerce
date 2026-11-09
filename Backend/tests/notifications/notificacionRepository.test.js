@@ -47,9 +47,9 @@ describe('guardar', () => {
 
     Notificacion.create.mockResolvedValue({
       id: '9',
-      tipo: 'pedido.estado_cambiado',
+      tipo: 'pedido.creado',
       version: 1,
-      datos: { pedidoId: 45, estado: 'en proceso' },
+      datos: { pedidoId: 45, estado: 'pendiente' },
       destinos,
       ocurridoEn: FECHA,
     });
@@ -57,15 +57,15 @@ describe('guardar', () => {
     NotificacionDestinatario.bulkCreate.mockResolvedValue([]);
 
     const resultado = await notificacionRepository.guardar({
-      tipo: 'pedido.estado_cambiado',
-      datos: { pedidoId: 45, estado: 'en proceso' },
+      tipo: 'pedido.creado',
+      datos: { pedidoId: 45, estado: 'pendiente' },
       destinos,
       ocurridoEn: FECHA,
     });
 
     expect(Notificacion.create).toHaveBeenCalledWith({
-      tipo: 'pedido.estado_cambiado',
-      datos: { pedidoId: 45, estado: 'en proceso' },
+      tipo: 'pedido.creado',
+      datos: { pedidoId: 45, estado: 'pendiente' },
       destinos,
       version: 1,
       ocurridoEn: FECHA,
@@ -87,13 +87,46 @@ describe('guardar', () => {
 
     expect(resultado).toEqual({
       id: 9,
-      tipo: 'pedido.estado_cambiado',
+      tipo: 'pedido.creado',
       version: 1,
       ocurridoEn: FECHA.toISOString(),
-      datos: { pedidoId: 45, estado: 'en proceso' },
+      datos: { pedidoId: 45, estado: 'pendiente' },
       destinos,
     });
     expect(Usuario.findAll).not.toHaveBeenCalled();
+  });
+
+  test('no persiste ni resuelve administradores para cambios de estado', async () => {
+    Notificacion.create.mockResolvedValue({
+      id: '13',
+      tipo: 'pedido.estado_cambiado',
+      version: 1,
+      datos: { pedidoId: 45, estado: 'en proceso' },
+      destinos: { clientes: [8], pedidos: [45] },
+      ocurridoEn: FECHA,
+    });
+    NotificacionDestinatario.bulkCreate.mockResolvedValue([]);
+
+    await notificacionRepository.guardar({
+      tipo: 'pedido.estado_cambiado',
+      datos: { pedidoId: 45, estado: 'en proceso' },
+      destinos: {
+        clientes: [8],
+        administradores: [3],
+        administradoresSucursal: [2],
+        pedidos: [45],
+        roles: ['admin'],
+      },
+      ocurridoEn: FECHA,
+    });
+
+    expect(Notificacion.create).toHaveBeenCalledWith(expect.objectContaining({
+      destinos: { clientes: [8], pedidos: [45] },
+    }), { transaction: 'tx' });
+    expect(Admin.findAll).not.toHaveBeenCalled();
+    expect(NotificacionDestinatario.bulkCreate).toHaveBeenCalledWith([
+      { destinatarioTipo: 'cliente', destinatarioId: 8, notificacionId: '13' },
+    ], { transaction: 'tx' });
   });
 
   test('resuelve clientes de una sucursal y deduplica destinatarios', async () => {
@@ -215,6 +248,22 @@ describe('listar', () => {
       offset: 0,
     }));
   });
+
+  test('filtra por los tipos permitidos del destinatario', async () => {
+    NotificacionDestinatario.findAll.mockResolvedValue([]);
+
+    await notificacionRepository.listar({
+      destinatarioTipo: 'admin',
+      destinatarioId: 3,
+      tipos: ['pedido.creado', 'stock.bajo'],
+    });
+
+    expect(NotificacionDestinatario.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      include: [expect.objectContaining({
+        where: { tipo: { [Op.in]: ['pedido.creado', 'stock.bajo'] } },
+      })],
+    }));
+  });
 });
 
 describe('marcarLeidas', () => {
@@ -288,5 +337,26 @@ describe('contarNoLeidas', () => {
       },
     });
     expect(cantidad).toBe(4);
+  });
+
+  test('cuenta solo los tipos permitidos cuando se indican', async () => {
+    NotificacionDestinatario.count.mockResolvedValue(1);
+
+    await notificacionRepository.contarNoLeidas({
+      tipo: 'admin',
+      id: 3,
+      tipos: ['pedido.creado'],
+    });
+
+    expect(NotificacionDestinatario.count).toHaveBeenCalledWith({
+      where: {
+        destinatarioTipo: 'admin',
+        destinatarioId: 3,
+        leida: false,
+      },
+      include: [expect.objectContaining({
+        where: { tipo: { [Op.in]: ['pedido.creado'] } },
+      })],
+    });
   });
 });

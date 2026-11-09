@@ -1,5 +1,7 @@
 const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, historialDeTiemposPedido, sequelize } = require('../../models');
 const { devolverStockPedido } = require('../../utils/stockPedido');
+const { notificarEstadoPedido } = require('../../notifications/handlers/pedidoHandlers');
+const { emitirRefrescoAdmin } = require('../../notifications/adminRefresco');
 
 // Qué se trae de cada parte del pedido (nunca la contraseña del cliente).
 // paranoid: false → los productos eliminados (borrado lógico) se siguen viendo en los pedidos viejos
@@ -139,8 +141,9 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
         // El cambio de estado y su registro en la línea de tiempo van juntos
         // (igual que la eventual devolución de stock): o se hacen todos, o ninguno
         const t = await sequelize.transaction();
+        const estadoPrevio = pedido.estado;
+        let stockDevuelto = false;
         try {
-            const estadoPrevio = pedido.estado;
             await pedido.update({ estado }, { transaction: t });
             await historialDeTiemposPedido.create({
                 pedidoId: pedido.id,
@@ -151,13 +154,27 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
             // Solo se devuelve el stock si se cancela desde Pendiente (sin preparación iniciada).
             // Desde En proceso / En camino no hay devolución automática: queda para manejo manual.
             if (mismoEstado(estado, 'cancelado') && mismoEstado(estadoPrevio, 'pendiente')) {
-                await devolverStockPedido(pedido.id, { transaction: t, adminId: admin.id });
+                stockDevuelto = (await devolverStockPedido(
+                    pedido.id,
+                    { transaction: t, adminId: admin.id }
+                )) > 0;
             }
             await t.commit();
         } catch (error) {
             await t.rollback();
             throw error;
         }
+
+        if (stockDevuelto) {
+            await emitirRefrescoAdmin({
+                dominio: 'stock',
+                accion: 'actualizado',
+                sucursalId: pedido.sucursalId,
+                recursos: { pedidoId: pedido.id },
+            });
+        }
+
+        await notificarEstadoPedido(pedido, estadoPrevio);
 
         res.status(200).json(pedido);
     } catch (error) {

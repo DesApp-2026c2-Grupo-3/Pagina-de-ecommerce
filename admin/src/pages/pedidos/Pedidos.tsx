@@ -1,38 +1,24 @@
-import { useEffect, useState } from "react";
-import { Eye, Lock } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import MensajeVacio from "../../components/MensajeVacio";
 import Paginacion from "../../components/Paginacion";
 import { BarraFiltros, Buscador, SelectFiltro } from "../../components/Filtros";
 import DetallePedidoModal from "../../components/DetallePedidoModal";
+import PedidoCard from "../../components/pedidos/PedidoCard";
 import { useToast } from "../../context/ToastContext";
 import { obtenerSucursales } from "../../services/sucursalService";
 import {
   actualizarEstadoPedido,
   obtenerPedidosPorSucursal,
 } from "../../services/pedidoService";
-import {
-  esEstadoFinal,
-  esRetornoAPendienteProhibido,
-  puedePasarA,
-} from "../../utils/pedidoEstado";
+import { esEstadoFinal, puedePasarA } from "../../utils/pedidoEstado";
 import type { Etapa, PedidoFila, SucursalOpcion } from "../../types/pedido.types";
 import { ETAPAS } from "../../types/pedido.types";
 import { useAuth } from "../../context/AuthContext";
+import { usePedidosEnTiempoReal } from "../../hooks/usePedidosEnTiempoReal";
+import { usePedidoDeepLink } from "../../hooks/usePedidoDeepLink";
+import { ordenarPedidosPorFechaDesc } from "../../utils/pedidos/ordenPedidos";
 
 const POR_PAGINA = 8;
-
-// Colores de cada etapa (badge)
-const coloresEtapa: Record<Etapa, string> = {
-  Pendiente: "bg-amber-100 text-amber-700",
-  "En proceso": "bg-blue-100 text-blue-700",
-  "En camino": "bg-purple-100 text-purple-700",
-  Entregado: "bg-green-100 text-green-700",
-  Cancelado: "bg-red-100 text-red-700",
-};
-
-function esEtapa(valor: string): valor is Etapa {
-  return (ETAPAS as readonly string[]).includes(valor);
-}
 
 // Pedidos creados antes de la validación traen estados como "pendiente" (minúscula):
 // se llevan a la forma canónica para que el badge, el filtro y el selector coincidan
@@ -41,37 +27,6 @@ function normalizarEtapa(valor: string): string {
     (etapa) => etapa.toLowerCase() === (valor ?? "").toLowerCase(),
   );
   return coincidencia ?? valor;
-}
-
-function Etapa({ estado }: { estado: string }) {
-  const color = esEtapa(estado)
-    ? coloresEtapa[estado]
-    : "bg-gray-200 text-gray-600";
-  return (
-    <span
-      className={`inline-flex items-center whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold ${color}`}
-    >
-      {estado}
-    </span>
-  );
-}
-
-function formatearFechaHora(valor: string) {
-  return new Date(valor).toLocaleString("es-AR", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
-
-function resumenProductos(pedido: PedidoFila) {
-  const detalles = pedido.DetallePedidos ?? [];
-  const primeros = detalles
-    .slice(0, 3)
-    .map((d) => `${d.cantidad}× ${d.Producto?.nombre ?? "producto"}`);
-  const resto = detalles.length - Math.min(detalles.length, 3);
-  if (resto > 0) primeros.push(`+${resto} más`);
-  return primeros.join(" · ") || "Sin productos";
 }
 
 // La red vive en services/pedidoService; acá solo se normaliza la etapa
@@ -84,77 +39,16 @@ async function traerPedidos(sucursalId: number): Promise<PedidoFila[]> {
   }));
 }
 
-// Selector de etapa dentro del pedido (radio buttons accesibles, sin modales).
-// Pendiente se deshabilita si el pedido ya la abandonó (regla espejo del backend).
-function SelectorEtapa({
-  pedidoId,
-  valor,
-  estadoActual,
-  bloqueado,
-  onChange,
-}: {
-  pedidoId: number;
-  valor: string | undefined;
-  estadoActual: string;
-  bloqueado: boolean;
-  onChange: (etapa: Etapa) => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label={`Elegir etapa del pedido ${pedidoId}`}
-      className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-    >
-      {ETAPAS.map((etapa) => {
-        const activa = valor === etapa;
-        const retornoProhibido = esRetornoAPendienteProhibido(
-          estadoActual,
-          etapa,
-        );
-        const deshabilitada = bloqueado || retornoProhibido;
-        return (
-          <label
-            key={etapa}
-            title={
-              retornoProhibido
-                ? "Un pedido que salió de Pendiente no puede volver a Pendiente"
-                : undefined
-            }
-            className={`flex min-h-[38px] cursor-pointer select-none items-center justify-center rounded-md border px-3 py-1.5 text-center text-xs font-medium transition-colors sm:text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2 ${
-              activa
-                ? "border-orange-300 bg-action text-white"
-                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-            } ${deshabilitada ? "cursor-not-allowed opacity-50 hover:bg-white" : ""}`}
-          >
-            <input
-              type="radio"
-              name={`etapa-${pedidoId}`}
-              value={etapa}
-              checked={activa}
-              disabled={deshabilitada}
-              onChange={() => onChange(etapa)}
-              className="peer sr-only"
-            />
-            {etapa}
-          </label>
-        );
-      })}
-    </div>
-  );
-}
-
-const botonAceptar =
-  "rounded border border-orange-300 bg-action px-4 py-2 font-semibold text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40";
-
 export default function Pedidos() {
   const { mostrarToast } = useToast();
   const { administrador } = useAuth();
   const esMaster = administrador?.rol === "MASTER";
+  const deepLink = usePedidoDeepLink();
 
   // El admin de sucursal ve la suya; el master elige cuál ver
   const [sucursales, setSucursales] = useState<SucursalOpcion[]>([]);
-  const [sucursalId, setSucursalId] = useState<number | null>(
-    administrador?.sucursalId ?? null,
+  const [sucursalId, setSucursalId] = useState<number | null>(() =>
+    esMaster ? deepLink.sucursalId : (administrador?.sucursalId ?? null),
   );
 
   const [pedidos, setPedidos] = useState<PedidoFila[]>([]);
@@ -172,10 +66,35 @@ export default function Pedidos() {
   // Pedido abierto en el detalle
   const [detalleId, setDetalleId] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (!esMaster || deepLink.sucursalId === null) return;
+    setSucursalId(deepLink.sucursalId);
+  }, [esMaster, deepLink.sucursalId]);
+
+  useEffect(() => {
+    if (deepLink.pedidoId !== null) setDetalleId(deepLink.pedidoId);
+  }, [deepLink.pedidoId]);
+
+  const cerrarDetalle = () => {
+    setDetalleId(null);
+    deepLink.limpiarPedido();
+  };
+
   // Filtros
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
+
+  // Pedidos que llegaron por realtime y todavía no están visibles
+  const [pedidosNuevos, setPedidosNuevos] = useState<number[]>([]);
+  const [pedidoResaltadoId, setPedidoResaltadoId] = useState<number | null>(null);
+
+  const sucursalIdRef = useRef<number | null>(sucursalId);
+  const solicitudRef = useRef(0);
+
+  useEffect(() => {
+    sucursalIdRef.current = sucursalId;
+  }, [sucursalId]);
 
   // El master trae todas las sucursales y arranca con la primera
   useEffect(() => {
@@ -194,15 +113,22 @@ export default function Pedidos() {
 
   useEffect(() => {
     if (sucursalId === null) return;
-    let cancelado = false;
+
+    const solicitud = ++solicitudRef.current;
     setCargando(true);
     setErrorCarga("");
     setSeleccion({});
     setErrorFila({});
+    setPedidosNuevos([]);
+    setPedidoResaltadoId(null);
+
     traerPedidos(sucursalId)
-      .then((lista) => !cancelado && setPedidos(lista))
+      .then((lista) => {
+        if (solicitud !== solicitudRef.current) return;
+        setPedidos(ordenarPedidosPorFechaDesc(lista));
+      })
       .catch((error) => {
-        if (cancelado) return;
+        if (solicitud !== solicitudRef.current) return;
         setPedidos([]);
         setErrorCarga(
           error instanceof Error
@@ -210,15 +136,65 @@ export default function Pedidos() {
             : "Error al cargar los pedidos",
         );
       })
-      .finally(() => !cancelado && setCargando(false));
-    return () => {
-      cancelado = true;
-    };
+      .finally(() => {
+        if (solicitud === solicitudRef.current) setCargando(false);
+      });
   }, [sucursalId]);
+
+  const recargarPedidos = useCallback(async () => {
+    const objetivo = sucursalIdRef.current;
+    if (objetivo === null) return;
+
+    const solicitud = ++solicitudRef.current;
+
+    try {
+      const lista = await traerPedidos(objetivo);
+      if (
+        solicitud !== solicitudRef.current ||
+        sucursalIdRef.current !== objetivo
+      ) {
+        return;
+      }
+      setPedidos(ordenarPedidosPorFechaDesc(lista));
+      setErrorCarga("");
+    } catch (error) {
+      if (solicitud !== solicitudRef.current) return;
+      setErrorCarga(
+        error instanceof Error
+          ? error.message
+          : "Error al actualizar los pedidos",
+      );
+    }
+  }, []);
+
+  usePedidosEnTiempoReal({
+    sucursalId,
+    pausado: guardando !== null || cargando,
+    onRefrescar: async (eventos) => {
+      await recargarPedidos();
+
+      const ids = eventos
+        .map((evento) => evento.recursos?.pedidoId)
+        .filter((id): id is number => typeof id === "number");
+
+      if (ids.length === 0) return;
+
+      setPedidosNuevos(ids);
+      setPedidoResaltadoId(ids[ids.length - 1]);
+    },
+  });
+
+  useEffect(() => {
+    if (pedidoResaltadoId === null) return;
+
+    const timer = window.setTimeout(() => setPedidoResaltadoId(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [pedidoResaltadoId]);
 
   // Al cambiar un filtro, se vuelve a la primera página
   const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
     cambiar(valor);
+    setPedidosNuevos([]);
     setPaginaActual(1);
   };
 
@@ -244,13 +220,12 @@ export default function Pedidos() {
     paginaActual * POR_PAGINA,
   );
   const hayFiltros = busqueda !== "" || filtroEstado !== "todos";
+  const idsVisibles = new Set(pagina.map((pedido) => pedido.id));
+  const nuevosNoVisibles = pedidosNuevos.filter((id) => !idsVisibles.has(id));
 
   const nombreSucursal = esMaster
     ? sucursales.find((s) => s.id === sucursalId)?.nombre
     : administrador?.sucursal?.nombre;
-
-  const etapaActual = (pedido: PedidoFila) =>
-    seleccion[pedido.id] ?? pedido.estado;
 
   // Inhabilitado: sin selección, igual a la actual, guardando, cerrado
   // o retorno a Pendiente (bloqueado por el backend)
@@ -292,55 +267,6 @@ export default function Pedidos() {
       setGuardando(null);
     }
   }
-
-  const controles = (pedido: PedidoFila) => {
-    const cerrado = esEstadoFinal(pedido.estado);
-    const error = errorFila[pedido.id];
-
-    return (
-      <>
-        <SelectorEtapa
-          pedidoId={pedido.id}
-          valor={etapaActual(pedido)}
-          estadoActual={pedido.estado}
-          bloqueado={cerrado || guardando === pedido.id}
-          onChange={(etapa) =>
-            setSeleccion((prev) => ({ ...prev, [pedido.id]: etapa }))
-          }
-        />
-        {error && (
-          <p
-            role="alert"
-            className="rounded border border-red-300 bg-red-50 p-2 text-sm text-red-700"
-          >
-            {error}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => aceptar(pedido)}
-            disabled={!puedeAceptar(pedido)}
-            className={botonAceptar}
-          >
-            {guardando === pedido.id ? "Guardando..." : "Aceptar"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setDetalleId(pedido.id)}
-            className="inline-flex items-center gap-1 rounded border px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            <Eye size={16} /> Ver detalle
-          </button>
-          {cerrado && (
-            <span className="inline-flex items-center gap-1 text-sm text-gray-500">
-              <Lock size={14} /> {pedido.estado} · solo lectura
-            </span>
-          )}
-        </div>
-      </>
-    );
-  };
 
   return (
     <main className="w-full max-w-full overflow-hidden p-8">
@@ -402,6 +328,33 @@ export default function Pedidos() {
             </div>
           )}
 
+          {nuevosNoVisibles.length > 0 && (
+            <div
+              role="status"
+              className="mb-4 flex flex-wrap items-center gap-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+            >
+              <span className="min-w-0 flex-1">
+                {nuevosNoVisibles.length === 1
+                  ? `Llegó el pedido #${nuevosNoVisibles[0]}.`
+                  : `Llegaron ${nuevosNoVisibles.length} pedidos nuevos.`}
+              </span>
+              <button
+                type="button"
+                onClick={() => setDetalleId(nuevosNoVisibles[nuevosNoVisibles.length - 1])}
+                className="rounded border border-amber-400 bg-white px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                Ver pedido
+              </button>
+              <button
+                type="button"
+                onClick={() => setPedidosNuevos([])}
+                className="rounded px-2 py-1.5 font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                Descartar
+              </button>
+            </div>
+          )}
+
           {cargando ? (
             <p className="text-gray-600">Cargando pedidos...</p>
           ) : pagina.length === 0 ? (
@@ -418,46 +371,24 @@ export default function Pedidos() {
             <>
               {/* Tarjetas de pedidos: 1 columna en móvil, 2 en md/lg */}
               <ul className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-                {pagina.map((pedido) => {
-                  const cliente = pedido.Usuario 
-                  ? [pedido.Usuario.nombre, pedido.Usuario.apellido]
-                  .filter((parte) => parte?.trim()).join(" ")
-                  : "Cliente no disponible";
-                  return (
-                    <li
-                      key={pedido.id}
-                      className="flex w-full flex-col overflow-hidden rounded-lg border bg-white p-4"
-                    >
-                      {/* Header: ID, fecha/hora y badge del estado actual */}
-                      <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold">Pedido #{pedido.id}</p>
-                          <p className="text-xs text-gray-500">
-                            {formatearFechaHora(pedido.fecha)}
-                          </p>
-                        </div>
-                        <Etapa estado={pedido.estado} />
-                      </div>
-
-                      {/* Body: cliente, productos y total */}
-                      <div className="flex flex-col gap-1 border-b py-3 text-sm text-gray-600">
-                        <p className="font-medium text-gray-800">{cliente}</p>
-                        <p>{resumenProductos(pedido)}</p>
-                        <p>
-                          Total:{" "}
-                          <span className="font-semibold text-gray-800">
-                            ${Number(pedido.total).toLocaleString("es-AR")}
-                          </span>
-                        </p>
-                      </div>
-
-                      {/* Footer/Acciones: selector de etapas, confirmación y detalle */}
-                      <div className="mt-auto flex flex-col gap-2 pt-3">
-                        {controles(pedido)}
-                      </div>
-                    </li>
-                  );
-                })}
+                {pagina.map((pedido) => (
+                  <PedidoCard
+                    key={pedido.id}
+                    pedido={pedido}
+                    etapaSeleccionada={seleccion[pedido.id]}
+                    guardando={guardando === pedido.id}
+                    error={errorFila[pedido.id]}
+                    puedeAceptar={puedeAceptar(pedido)}
+                    resaltado={pedido.id === pedidoResaltadoId}
+                    onSeleccionarEtapa={(etapa) =>
+                      setSeleccion((prev) => ({ ...prev, [pedido.id]: etapa }))
+                    }
+                    onAceptar={() => {
+                      void aceptar(pedido);
+                    }}
+                    onVerDetalle={() => setDetalleId(pedido.id)}
+                  />
+                ))}
               </ul>
 
               <Paginacion
@@ -471,10 +402,7 @@ export default function Pedidos() {
         </>
       )}
 
-      <DetallePedidoModal
-        pedidoId={detalleId}
-        onClose={() => setDetalleId(null)}
-      />
+      <DetallePedidoModal pedidoId={detalleId} onClose={cerrarDetalle} />
     </main>
   );
 }

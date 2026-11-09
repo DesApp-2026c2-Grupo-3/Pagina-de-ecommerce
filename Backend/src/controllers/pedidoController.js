@@ -24,6 +24,10 @@ const {
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 const { estadoSucursal } = require('../utils/horarioSucursal');
+const { notificarPedidoCreado } = require('../notifications/handlers/pedidoHandlers');
+const { notificarStockBajo } = require('../notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../notifications/adminRefresco');
+const { cruzaMinimo, normalizarMinimo } = require('../utils/stockMinimo');
 
 // Regla de negocio: 1 porción extra por ingrediente (checkbox)
 const EXTRA_MAX_INCREMENTO = 1;
@@ -40,7 +44,7 @@ const redondear = (n) => Math.round(n * 1000) / 1000;
 
 // Descuenta stock de un insumo en la sucursal, con lock de fila dentro de la transacción,
 // y lo registra en el historial como venta del pedido
-async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, pedidoId, t }) {
+async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, pedidoId, t, stockBajos }) {
     if (cantidad <= 0) return;
 
     const stock = await StockSucursal.findOne({
@@ -69,6 +73,45 @@ async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, 
         cantidadNueva: nueva,
         pedidoId,
     }, { transaction: t });
+
+    const minimo = normalizarMinimo(stock.stockMinimo);
+
+    if (stockBajos instanceof Map && minimo !== null && nueva <= minimo) {
+        const clave = `${sucursalId}:${insumoId}`;
+        const existente = stockBajos.get(clave);
+
+        if (existente) {
+            existente.cantidad = nueva;
+        } else if (cruzaMinimo(anterior, nueva, minimo)) {
+            stockBajos.set(clave, {
+                sucursalId: Number(sucursalId),
+                insumoId: Number(insumoId),
+                cantidad: nueva,
+                stockMinimo: minimo,
+            });
+        }
+    }
+}
+
+async function notificarStockBajoDeVentas(stockBajos, sucursalNombre) {
+    const eventos = [...stockBajos.values()];
+    if (eventos.length === 0) return;
+
+    try {
+        const insumos = await Insumo.findAll({
+            where: { id: { [Op.in]: eventos.map((evento) => evento.insumoId) } },
+            attributes: ['id', 'nombre'],
+        });
+        const nombres = new Map(insumos.map((insumo) => [Number(insumo.id), insumo.nombre]));
+
+        await Promise.all(eventos.map((evento) => notificarStockBajo({
+            ...evento,
+            sucursalNombre,
+            insumoNombre: nombres.get(evento.insumoId) ?? '',
+        })));
+    } catch (error) {
+        console.error('No se pudieron publicar las alertas de stock:', error.message);
+    }
 }
 
 // Valida lo que el cliente eligió para un grupo del combo y calcula su recargo y su consumo de stock.
@@ -292,6 +335,7 @@ const crearPedido = async (req, res) => {
         let total = 0;
         // Subtotal de cada línea, para controlar la compra mínima de las promos
         const lineasCobradas = [];
+        const stockBajos = new Map();
         // Recorrer los productos recibidos
         for (const [indice, producto] of productos.entries()) {
 
@@ -429,7 +473,8 @@ const crearPedido = async (req, res) => {
                     sucursalId,
                     nombreProducto: productoBD.nombre,
                     pedidoId: nuevoPedido.id,
-                    t
+                    t,
+                    stockBajos
                 });
             }
 
@@ -444,7 +489,8 @@ const crearPedido = async (req, res) => {
                         sucursalId,
                         nombreProducto: elegido.nombre,
                         pedidoId: nuevoPedido.id,
-                        t
+                        t,
+                        stockBajos
                     });
                 }
             }
@@ -505,6 +551,21 @@ const crearPedido = async (req, res) => {
         }, { transaction: t });
 
         await t.commit();
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: sucursal.id,
+            recursos: { pedidoId: nuevoPedido.id },
+        });
+        await emitirRefrescoAdmin({
+            dominio: 'pedidos',
+            accion: 'creado',
+            sucursalId: sucursal.id,
+            recursos: { pedidoId: nuevoPedido.id },
+        });
+        await notificarPedidoCreado(nuevoPedido);
+        await notificarStockBajoDeVentas(stockBajos, sucursal.nombre);
 
         return res.status(201).json(nuevoPedido)
 
