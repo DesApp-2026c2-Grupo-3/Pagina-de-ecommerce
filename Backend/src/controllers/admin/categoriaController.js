@@ -1,5 +1,5 @@
 const { literal } = require('sequelize');
-const { Categoria, Producto, sequelize } = require("../../models");
+const { Categoria, Producto, ComboGrupo } = require("../../models");
 
 // Por el orden que defina el master (a igual orden, la más vieja primero)
 const ORDEN_CATEGORIAS = [['orden', 'ASC'], ['id', 'ASC']];
@@ -134,15 +134,35 @@ const eliminarCategorias = async (req, res) => {
             return res.status(404).json({ mensaje: 'Categoria no encontrada' });
         }
 
+        // Las consultas ya ignoran lo eliminado: solo cuentan subcategorías y productos vigentes
         if (await Categoria.count({ where: { categoriaPadreId: categoria.id } }) > 0) {
             return res.status(400).json({
                 mensaje: 'La categoría tiene subcategorías: eliminalas o movelas antes'
             });
         }
 
+        const productos = await Producto.count({ where: { categoriaId: categoria.id } });
+        if (productos > 0) {
+            return res.status(409).json({
+                mensaje: `La categoría tiene ${productos} ${productos === 1 ? 'producto' : 'productos'}: pasalos a otra categoría antes (o deshabilitala para ocultarla de la tienda).`
+            });
+        }
+
+        // Un combo vigente que ofrece opciones de esta categoría (ej: "Una bebida" sale de Bebidas)
+        const enCombos = await ComboGrupo.count({
+            where: { categoriaId: categoria.id },
+            include: [{ model: Producto, as: 'combo', attributes: [], required: true }],
+        });
+        if (enCombos > 0) {
+            return res.status(409).json({
+                mensaje: 'Algún combo ofrece opciones de esta categoría: cambialo en el combo antes de eliminarla.'
+            });
+        }
+
+        // Borrado lógico (el modelo es paranoid): la fila queda, con deletedAt
         await categoria.destroy();
 
-        return res.status(200).json({ mensaje: "Categoria eliminada con éxito" });
+        return res.status(200).json({ mensaje: 'Categoría eliminada. Los pedidos y reportes anteriores la conservan.' });
 
     } catch (error) {
         console.error(error);
@@ -249,39 +269,8 @@ const obtenerCategoriasCliente = async (req, res) => {
     }
 };
 
-// PATCH /admin/categorias/orden  { ids: [3, 1, 2] } → deja las categorías en ese orden (10, 20, 30...)
-const ordenarCategorias = async (req, res) => {
-    try {
-        const { ids } = req.body ?? {};
-        const validos = Array.isArray(ids)
-            && ids.length > 0
-            && ids.every((id) => Number.isInteger(id) && id > 0)
-            && new Set(ids).size === ids.length;
-        if (!validos) {
-            return res.status(400).json({ mensaje: 'Mandá la lista de categorías, sin repetir, en el orden deseado' });
-        }
-
-        const existentes = await Categoria.findAll({ where: { id: ids }, attributes: ['id'] });
-        if (existentes.length !== ids.length) {
-            return res.status(404).json({ mensaje: 'Alguna de las categorías no existe' });
-        }
-
-        await sequelize.transaction(async (transaction) => {
-            for (const [indice, id] of ids.entries()) {
-                await Categoria.update({ orden: (indice + 1) * PASO_ORDEN }, { where: { id }, transaction });
-            }
-        });
-
-        return res.status(200).json({ mensaje: 'Orden actualizado' });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ mensaje: 'Error al ordenar las categorías' });
-    }
-};
-
 module.exports = {
     obtenerCategorias,
-    ordenarCategorias,
     crearCategoria,
     eliminarCategorias,
     editarCategoriaPorId,

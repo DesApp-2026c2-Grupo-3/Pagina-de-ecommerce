@@ -24,6 +24,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
       { to: '/admin/sucursales', label: 'Sucursales', grupo: 'Organización' },
       { to: '/admin/administradores', label: 'Administradores', grupo: 'Organización' },
       { to: '/admin/repartidores', label: 'Repartidores', grupo: 'Organización' },
+      { to: '/admin/parametros', label: 'Parámetros', grupo: 'Organización' },
     ]
   }
 

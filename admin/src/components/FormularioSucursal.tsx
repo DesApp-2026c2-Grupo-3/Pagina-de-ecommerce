@@ -3,7 +3,6 @@ import AddressPicker from './AddressPicker'
 import EditorHorario from './EditorHorario'
 import { DIAS_SEMANA, type DatosSucursal, type DiaSemana, type HorarioDia } from '../types/sucursal.types'
 import {
-  aplicarDiaATodos,
   conflictosEntreDias,
   formatearHorario,
   opcionesZonaHoraria,
@@ -12,8 +11,7 @@ import {
 } from '../utils/horario'
 import { validarPaso } from '../utils/sucursalForm'
 
-const PASOS = ['Datos', 'Horario', 'Ubicación', 'Entrega']
-
+const PASOS = ['Datos', 'Horario', 'Ubicación', 'Confirmar']
 const campo = 'w-full rounded border p-2'
 
 interface Props {
@@ -150,7 +148,6 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
             <EditorHorario
               horario={datos.horario}
               onCambiarDia={cambiarDia}
-              onAplicarATodos={() => cambiar('horario', aplicarDiaATodos(datos.horario, 'lunes'))}
             />
 
             {errorEntreDias && (
@@ -210,22 +207,6 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
                   Cambiar horario
                 </button>
               </div>
-            </div>
-
-            <div>
-              <label className="font-medium">Radio de entrega (km)</label>
-              <input
-                type="number"
-                min="0.5"
-                max="30"
-                step="0.5"
-                value={datos.radioEntregaKm}
-                onChange={(e) => cambiar('radioEntregaKm', e.target.value)}
-                className={`${campo} sm:w-40`}
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Los clientes a más de esta distancia (en línea recta) no pueden pedirle a esta sucursal.
-              </p>
             </div>
           </div>
         )}

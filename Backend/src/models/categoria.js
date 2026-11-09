@@ -21,10 +21,10 @@ module.exports = (sequelize, DataTypes) => {
     
   }
   Categoria.init({
+    // Único entre las categorías no eliminadas (lo controla un índice de la migración categorias-borrado-logico)
     nombre: {
       type: DataTypes.STRING,
-      allowNull: false,
-      unique: true
+      allowNull: false
     },
     activo: {
     type: DataTypes.BOOLEAN,
@@ -54,6 +54,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Categoria',
+    // Borrado lógico: destroy() completa deletedAt. Los reportes la buscan con paranoid: false.
+    paranoid: true,
   });
   return Categoria;
 };

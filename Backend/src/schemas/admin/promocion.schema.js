@@ -105,8 +105,13 @@ const promocionSchema = Joi.object({
             return helpers.message('El producto de la semana no lleva máximo por pedido ni compra mínima');
         }
     }
-    if (promo.tipo === 'REGALO' && promo.items.some((i) => i.descuento !== 1)) {
-        return helpers.message('En el regalo de la semana todos los productos van sin cargo (descuento del 100 %)');
+    if (promo.tipo === 'REGALO') {
+        if (promo.items.length !== 1 || promo.items[0].cantidad !== 1) {
+            return helpers.message('El regalo de la semana es un solo producto, de a una unidad');
+        }
+        if (promo.items[0].descuento !== 1) {
+            return helpers.message('El regalo de la semana va sin cargo (descuento del 100 %)');
+        }
     }
 
     return promo;

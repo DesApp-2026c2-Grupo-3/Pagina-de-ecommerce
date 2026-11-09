@@ -3,6 +3,7 @@ import { PartyPopper } from 'lucide-react'
 import PageHeader from '../ui/PageHeader'
 import PasosCompra from '../cart/PasosCompra'
 import { formatearPrecio } from '../../utils/precio'
+import { totalConEnvio } from '../../utils/pedidos'
 import type { Order } from '../../types/order'
 
 interface Props {
@@ -16,8 +17,8 @@ function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       <PageHeader titulo="¡Listo!">
-        <PasosCompra actual={3} />
-      </PageHeader>
+        <PasosCompra actual={2} />      
+        </PageHeader>
 
       <div className="mx-auto -mt-12 max-w-md px-4 pb-16">
         <div className="flex flex-col items-center gap-4 rounded-[2rem] border-2 border-brand-dark bg-white p-8 text-center shadow-sticker">
@@ -28,8 +29,10 @@ function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
           <p className="text-brand-muted">
             Tu pedido <span className="font-bold text-brand-red">#{pedido.id}</span> ya está en la cocina.
           </p>
-          <p className="font-display text-3xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
-
+          <p className="font-display text-3xl font-extrabold">{formatearPrecio(totalConEnvio(pedido))}</p>
+            {pedido.minutosEstimados != null && (
+              <p className="font-bold">Llega en unos {pedido.minutosEstimados} minutos</p>
+            )}
           {pedido.observaciones?.trim() && (
             <div className="w-full rounded-2xl border-2 border-brand-dark/15 bg-brand-cream p-4 text-left">
               <p className="font-bold">Observaciones del pedido</p>

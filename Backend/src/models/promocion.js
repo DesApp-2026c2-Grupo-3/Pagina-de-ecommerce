@@ -27,7 +27,9 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'Promocion',
     tableName: 'Promociones',
+    // Borrado lógico: destroy() completa deletedAt y las consultas normales ya no la traen.
+    // Los pedidos y reportes viejos la buscan con paranoid: false.
+    paranoid: true,
   });
-
   return Promocion;
 };

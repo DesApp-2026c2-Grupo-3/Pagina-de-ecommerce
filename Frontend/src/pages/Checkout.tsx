@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useZona } from "../context/ZonaContext";
-import { createOrder, getHistorialPedidos } from "../services/orderService";
+import { cotizarEnvio, createOrder, getHistorialPedidos } from "../services/orderService";
+import { getParametros } from "../services/parametroService";
 import { getDirecciones } from "../services/addressService";
 import { getSucursales } from "../services/sucursalService";
 import ErrorAlert from "../components/ErrorAlert";
-import { ArrowLeft, House, Pencil, Store } from "lucide-react";
+import { ArrowLeft, ChevronDown, House, Pencil, Store } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import PasosCompra from "../components/cart/PasosCompra";
 import SeccionCheckout from "../components/checkout/SeccionCheckout";
@@ -17,10 +18,11 @@ import ResumenPedido from "../components/checkout/ResumenPedido";
 import PedidoConfirmado from "../components/checkout/PedidoConfirmado";
 import OpcionesCheckout from "../components/checkout/OpcionesCheckout";
 import { FORMAS_ENTREGA, FORMAS_PAGO, type FormaEntrega, type FormaPago } from "../config/compra";
-import { buscarSucursalCercana } from "../utils/sucursales";
+import { buscarSucursalCercana, sucursalParaEntrega } from "../utils/sucursales";
+import ElegirSucursal from "../components/sucursal/ElegirSucursal";
 import { estadoSucursal } from "../utils/horario";
 import { distanciaKm } from "../utils/distancia";
-import type { Order } from "../types/order";
+import type { Cotizacion, Order } from "../types/order";
 import type { Address } from "../types/address";
 import type { Sucursal } from "../types/sucursal";
 import type { CartItem } from "../types/cart";
@@ -35,14 +37,14 @@ function formatearKm(km: number) {
 // Dos puntos a menos de 50 metros se consideran la misma dirección
 const MISMA_DIRECCION_KM = 0.05;
 
-// Igual que en el backend: no se puede tener más de 2 pedidos sin entregar ni cancelar
-const MAX_PEDIDOS_EN_CURSO = 2;
+// Hasta que llegan los parámetros del backend, el máximo de pedidos en curso es 2 (el valor inicial)
+const MAX_PEDIDOS_EN_CURSO_INICIAL = 2;
 const estaEnCurso = (o: Order) => !["entregado", "cancelado"].includes(o.estado.trim().toLowerCase());
 
 function Checkout() {
   const { user, isAuthenticated } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
-  const { zona, elegirUbicacion } = useZona();
+  const { zona, elegirUbicacion, opcionesSucursal } = useZona();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -59,29 +61,13 @@ function Checkout() {
   // Al ir a direcciones y volver, la compra directa viaja con la navegación
   const volverAlCheckout = { from: "/checkout", compraDirecta, observaciones };
 
-  // Sub-pasos del checkout: 1 = Entrega, 2 = Pago.
-  // El paso va en la URL (?paso=pago) para que el botón "atrás" del navegador vuelva a Entrega
-  const [searchParams] = useSearchParams();
-  const paso: 1 | 2 = searchParams.get("paso") === "pago" ? 2 : 1;
-  function irAPaso(n: 1 | 2) {
-    setError("");
-    window.scrollTo(0, 0);
-    if (n === 2) {
-      // Se conserva el state (compra directa, observaciones) al cambiar de paso
-      navigate("/checkout?paso=pago", { state: location.state });
-    } else if ((window.history.state?.idx ?? 0) > 0) {
-      navigate(-1); // vuelve a Entrega sin duplicar el historial
-    } else {
-      navigate("/checkout", { state: location.state, replace: true });
-    }
-  }
-
   const [loading, setLoading] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
 
   const [direcciones, setDirecciones] = useState<Address[]>([]);
   const [direccionesLoading, setDireccionesLoading] = useState(true);
   const [direccionSeleccionada, setDireccionSeleccionada] = useState<number | null>(null);
+  // true = está desplegada la lista de las otras direcciones
   const [eligiendoDireccion, setEligiendoDireccion] = useState(false);
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
@@ -97,6 +83,9 @@ function Checkout() {
   const [error, setError] = useState("");
   const [avisoSucursal, setAvisoSucursal] = useState("");
   const [pedidosEnCurso, setPedidosEnCurso] = useState(0);
+  const [maxPedidosEnCurso, setMaxPedidosEnCurso] = useState(MAX_PEDIDOS_EN_CURSO_INICIAL);
+  // Envío y tiempo estimado (los calcula el backend). Se guarda con la clave "dirección|unidades|sucursal" para la que se pidió
+  const [cotizacionGuardada, setCotizacionGuardada] = useState<{ clave: string; datos: Cotizacion } | null>(null);
 
   // La dirección elegida pasa a ser la zona: el Navbar y el checkout muestran siempre lo mismo
   function usarComoZona(d: Address) {
@@ -159,6 +148,31 @@ function Checkout() {
       .finally(() => setSucursalesLoading(false));
   }, []);
 
+  // El máximo de pedidos en curso se configura en el admin (Parámetros)
+  useEffect(() => {
+    getParametros()
+      .then((p) => setMaxPedidosEnCurso(p.maxPedidosEnCurso))
+      .catch(() => { /* queda el valor inicial; el backend igual lo controla al confirmar */ });
+  }, []);
+
+  // Cada vez que cambia la dirección, la cantidad de productos o la sucursal, se pide el envío y el tiempo estimado
+  const unidades = lineas.reduce((suma, item) => suma + item.quantity, 0);
+  const claveCotizacion = `${direccionSeleccionada}|${unidades}|${zona?.sucursalId}`;
+  // Solo vale la cotización de la dirección, la cantidad y la sucursal actuales (si cambiaron, todavía no llegó la nueva)
+  const cotizacion = cotizacionGuardada?.clave === claveCotizacion ? cotizacionGuardada.datos : null;
+  useEffect(() => {
+    const elegida = direcciones.find((d) => d.id === direccionSeleccionada);
+    if (!user || !elegida || elegida.latitud == null || elegida.longitud == null) return;
+    const cercana = sucursalParaEntrega({ lat: Number(elegida.latitud), lng: Number(elegida.longitud) }, sucursales, zona?.sucursalId);
+    if (!cercana?.dentroDeZona || unidades === 0) return;
+
+    let cancelado = false;
+    cotizarEnvio(user.id, elegida.id, cercana.sucursal.id, unidades)
+      .then((datos) => { if (!cancelado) setCotizacionGuardada({ clave: `${elegida.id}|${unidades}|${zona?.sucursalId}`, datos }); })
+      .catch(() => { /* sin cotización se muestra "Elegí tu dirección"; el backend calcula el envío igual */ });
+    return () => { cancelado = true; };
+  }, [user, direcciones, direccionSeleccionada, sucursales, unidades, zona?.sucursalId]);
+
   // Cuenta los pedidos en curso del cliente para avisar antes de confirmar
   useEffect(() => {
     if (!user) return;
@@ -176,14 +190,15 @@ function Checkout() {
     return <Navigate to="/carrito" replace />;
   }
 
-  // ---------- Sucursal más cercana a la dirección elegida ----------
+  // ---------- Sucursal que prepara el pedido para la dirección elegida ----------
   const direccion = direcciones.find((d) => d.id === direccionSeleccionada);
   const coordsDireccion =
     direccion && direccion.latitud != null && direccion.longitud != null
       ? { lat: Number(direccion.latitud), lng: Number(direccion.longitud) }
       : null;
 
-  const masCercana = buscarSucursalCercana(coordsDireccion, sucursales);
+  // La que prepara el pedido: la elegida en la zona si llega a esta dirección; si no, la más cercana
+  const masCercana = sucursalParaEntrega(coordsDireccion, sucursales, zona?.sucursalId);
   const dentroDeZona = masCercana?.dentroDeZona ?? false;
   const estadoPedido = masCercana
     ? estadoSucursal(masCercana.sucursal.horario, masCercana.sucursal.zona_horaria)
@@ -192,9 +207,9 @@ function Checkout() {
     ? !estadoPedido.abierta
     : Boolean(zona && zona.sucursalAbierta === false);
 
-  // El pedido se armó con el stock de la sucursal de la zona: la dirección tiene que ser de esa sucursal
+  // El pedido se armó con el stock de la sucursal de la zona: esa sucursal tiene que llegar a la dirección
   const sucursalDistinta = Boolean(zona && masCercana && dentroDeZona && masCercana.sucursal.id !== zona.sucursalId);
-  const limiteAlcanzado = pedidosEnCurso >= MAX_PEDIDOS_EN_CURSO;
+  const limiteAlcanzado = pedidosEnCurso >= maxPedidosEnCurso;
   const puedeConfirmar = Boolean(
     direccion && masCercana && dentroDeZona && !sucursalDistinta && !sucursalCerrada && !limiteAlcanzado,
   );
@@ -310,17 +325,13 @@ function Checkout() {
             : "Revisá todo antes de mandarlo a la cocina."
         }
       >
-        <PasosCompra actual={paso} onIrA={(i) => i === 1 && irAPaso(1)} />
+        <PasosCompra actual={1} />
       </PageHeader>
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-5">
           {/* Volver: al carrito, o al producto si es una compra directa */}
-          {paso === 2 ? (
-            <button type="button" onClick={() => irAPaso(1)} className={`${botonChico} w-fit shadow-sticker`}>
-              <ArrowLeft className="h-4 w-4" /> Volver a la entrega
-            </button>
-          ) : compraDirecta ? (
+          {compraDirecta ? (
             <button type="button" onClick={() => navigate(-1)} className={`${botonChico} w-fit shadow-sticker`}>
               <ArrowLeft className="h-4 w-4" /> Volver al producto
             </button>
@@ -344,7 +355,6 @@ function Checkout() {
             />
           )}
 
-          {paso === 1 && (<>
           {/* ---------- Cómo lo recibís (pendiente de backend) ---------- */}
           <SeccionCheckout titulo="¿Cómo lo recibís?">
             <OpcionesCheckout nombre="Cómo lo recibís" opciones={FORMAS_ENTREGA} elegida={formaEntrega} onElegir={setFormaEntrega} />
@@ -394,84 +404,99 @@ function Checkout() {
                   </Link>
                 </div>
               )
-            ) : !eligiendoDireccion && direccion ? (
-              // La dirección elegida. "Cambiar" abre la lista (ahí también se edita o se agrega una)
-              <div className={tarjetaElegida}>
-                <span className={`${iconoTarjeta} bg-brand-mustard`}>
-                  <House className="h-6 w-6" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-lg font-extrabold">{direccion.alias}</p>
-                  <p className="text-brand-muted">
-                    {direccion.calle} {direccion.numero} · {direccion.localidad}
-                  </p>
-                  {direccion.piso && <p className="text-sm text-brand-muted">Timbre / depto: {direccion.piso}</p>}
-                </div>
-                <button type="button" onClick={() => setEligiendoDireccion(true)} className={botonChico}>
-                  Cambiar
-                </button>
-              </div>
             ) : (
-              // Lista para elegir otra dirección
-              <div className="flex flex-col gap-2">
-                {direcciones.map((d) => {
-                  const elegida = direccionSeleccionada === d.id;
-                  return (
-                    <label
-                      key={d.id}
-                      className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-colors ${
-                        elegida ? "border-brand-dark bg-white" : "border-brand-dark/15 bg-white hover:border-brand-dark/40"
-                      }`}
+              // La dirección elegida a la vista; "Cambiar" despliega las otras (y ahí se edita o se agrega una)
+              <div className="rounded-[1.75rem] border-2 border-brand-dark bg-white">
+                {direccion && (
+                  <div className="flex items-center gap-4 px-5 py-4">
+                    <span className={`${iconoTarjeta} bg-brand-mustard`}>
+                      <House className="h-6 w-6" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-extrabold">{direccion.alias}</p>
+                      <p className="text-brand-muted">
+                        {direccion.calle} {direccion.numero} · {direccion.localidad}
+                      </p>
+                      {direccion.piso && <p className="text-sm text-brand-muted">Timbre / depto: {direccion.piso}</p>}
+                    </div>
+                    <Link
+                      to="/direcciones"
+                      state={{ ...volverAlCheckout, editarId: direccion.id }}
+                      aria-label={`Editar ${direccion.alias}`}
+                      title="Editar"
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-brand-muted transition-colors hover:bg-brand-cream hover:text-brand-dark"
                     >
-                      <input
-                        type="radio"
-                        name="direccion"
-                        className="mt-1 h-4 w-4 accent-brand-red"
-                        checked={elegida}
-                        onChange={() => {
-                          setDireccionSeleccionada(d.id);
-                          setEligiendoDireccion(false);
-                          setError("");
-                          usarComoZona(d);
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-bold">{d.alias}</span>
-                          {d.predeterminada && (
-                            <span className="rounded-full bg-brand-mustard px-2 py-0.5 text-xs font-extrabold">Predeterminada</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-brand-muted">
-                          {d.calle} {d.numero} — {d.localidad}
-                        </p>
-                      </div>
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setEligiendoDireccion((valor) => !valor)}
+                      aria-expanded={eligiendoDireccion}
+                      className={botonChico}
+                    >
+                      Cambiar
+                      <ChevronDown className={`h-4 w-4 transition-transform ${eligiendoDireccion ? "rotate-180" : ""}`} />
+                    </button>
+                  </div>
+                )}
+
+                {(eligiendoDireccion || !direccion) && (
+                  <ul className={direccion ? "border-t-2 border-dashed border-brand-sand" : ""}>
+                    {direcciones
+                      .filter((d) => d.id !== direccionSeleccionada)
+                      .map((d) => (
+                        <li key={d.id} className="flex items-center gap-2 pr-3 transition-colors hover:bg-brand-cream">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDireccionSeleccionada(d.id);
+                              setEligiendoDireccion(false);
+                              setError("");
+                              usarComoZona(d);
+                            }}
+                            className="flex min-w-0 flex-1 items-center gap-3 px-5 py-3 text-left"
+                          >
+                            <House className="h-5 w-5 shrink-0 text-brand-muted" />
+                            <span className="min-w-0 flex-1">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="font-bold">{d.alias}</span>
+                                {d.predeterminada && (
+                                  <span className="rounded-full bg-brand-mustard px-2 py-0.5 text-xs font-extrabold">Predeterminada</span>
+                                )}
+                              </span>
+                              <span className="block text-sm text-brand-muted">
+                                {d.calle} {d.numero} — {d.localidad}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-sm font-bold text-brand-red">Elegir</span>
+                          </button>
+                          <Link
+                            to="/direcciones"
+                            state={{ ...volverAlCheckout, editarId: d.id }}
+                            aria-label={`Editar ${d.alias}`}
+                            title="Editar"
+                            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-brand-muted transition-colors hover:bg-white hover:text-brand-dark"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </li>
+                      ))}
+                    <li className="border-t-2 border-dashed border-brand-sand">
                       <Link
                         to="/direcciones"
-                        state={{ ...volverAlCheckout, editarId: d.id }}
-                        aria-label={`Editar ${d.alias}`}
-                        title="Editar"
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-brand-muted transition-colors hover:bg-brand-cream hover:text-brand-dark"
+                        state={{ ...volverAlCheckout, abrirNueva: true }}
+                        className="block px-5 py-3 text-center text-sm font-bold transition-colors hover:bg-brand-cream"
                       >
-                        <Pencil className="h-4 w-4" />
+                        + Agregar dirección
                       </Link>
-                    </label>
-                  );
-                })}
-                <Link
-                  to="/direcciones"
-                  state={{ ...volverAlCheckout, abrirNueva: true }}
-                  className="rounded-2xl border-2 border-dashed border-brand-dark/30 p-4 text-center text-sm font-bold transition-colors hover:border-brand-dark"
-                >
-                  + Agregar dirección
-                </Link>
+                    </li>
+                  </ul>
+                )}
               </div>
             )}
           </SeccionCheckout>
-          </>)}
 
-          {paso === 2 && (<>
-          {/* ---------- Sucursal ---------- */}
+          {/* ---------- Sucursal (si llegan varias, se elige) ---------- */}
           <SeccionCheckout titulo="Sucursal que lo prepara">
             {sucursalesLoading ? (
               <p className="text-sm text-brand-muted">Buscando la sucursal...</p>
@@ -511,6 +536,8 @@ function Checkout() {
                   Pedir desde {masCercana.sucursal.nombre}
                 </button>
               </Aviso>
+            ) : opcionesSucursal.length > 1 ? (
+              <ElegirSucursal />
             ) : (
               <div className={tarjetaElegida}>
                 <span className={`${iconoTarjeta} bg-brand-red text-white`}>
@@ -533,8 +560,6 @@ function Checkout() {
           <SeccionCheckout titulo="Forma de pago">
             <OpcionesCheckout nombre="Forma de pago" opciones={FORMAS_PAGO} elegida={formaPago} onElegir={setFormaPago} />
           </SeccionCheckout>
-          </>)}
-
         </div>
 
         {/* Arriba de "Tu pedido" van los avisos y errores, así se ven antes que el botón */}
@@ -544,17 +569,19 @@ function Checkout() {
           <ResumenPedido
             lineas={lineas}
             total={total}
-            onConfirmar={paso === 1 ? () => irAPaso(2) : handleConfirm}
-            deshabilitado={paso === 1 ? !direccion || sucursalCerrada : loading || !puedeConfirmar}
+            costoEnvio={cotizacion?.costoEnvio ?? null}
+            demora={cotizacion ? String(cotizacion.minutosEstimados) : undefined}
+            onConfirmar={handleConfirm}
+            deshabilitado={loading || !puedeConfirmar}
             cargando={loading}
-            textoBoton={paso === 1 ? "Continuar" : "Confirmar pedido"}
+            textoBoton="Confirmar pedido"
           />
         </div>
       </div>
 
       <ModalConfirmarPedido
         abierto={preguntando}
-        total={total}
+        total={total + (cotizacion?.costoEnvio ?? 0)}
         direccion={direccion ? `${direccion.alias} · ${direccion.calle} ${direccion.numero}` : ""}
         sucursal={masCercana?.sucursal.nombre ?? ""}
         formaPago={FORMAS_PAGO.find((f) => f.id === formaPago)?.titulo ?? ""}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Moon, Plus, Trash2 } from "lucide-react";
 import {
   DIAS_SEMANA,
@@ -149,6 +150,8 @@ function FilaTurno({
 
 export default function EditorHorario({ horario, onCambiarDia }: Props) {
   const conflictos = conflictosEntreDias(horario);
+    // Solo se muestra la tarjeta del día elegido en la barra de arriba
+  const [diaActivo, setDiaActivo] = useState<DiaSemana>(DIAS_SEMANA[0]);
 
   function cambiarTurno(
     dia: DiaSemana,
@@ -211,8 +214,45 @@ export default function EditorHorario({ horario, onCambiarDia }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {DIAS_SEMANA.map((dia) => {
+     <div className="flex flex-col gap-4">
+      <div
+        role="tablist"
+        aria-label="Día a editar"
+        className="grid grid-cols-7 gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1"
+      >
+        {DIAS_SEMANA.map((dia) => {
+          const activo = dia === diaActivo;
+          const conProblema =
+            !!validarDia(dia, horario[dia]) ||
+            conflictos.some((c) => c.dia === dia || c.siguiente === dia);
+          const colorPunto = conProblema
+            ? "bg-red-500"
+            : horario[dia].abierto
+              ? "bg-green-500"
+              : "bg-gray-300";
+
+          return (
+            <button
+              key={dia}
+              type="button"
+              role="tab"
+              aria-selected={activo}
+              onClick={() => setDiaActivo(dia)}
+              title={ETIQUETA_DIA[dia]}
+              className={`flex flex-col items-center gap-1 rounded-lg py-2 text-xs font-semibold transition ${
+                activo
+                  ? "bg-white text-action shadow-sm ring-1 ring-orange-300"
+                  : "text-gray-600 hover:bg-white/60"
+              }`}
+            >
+              {ETIQUETA_DIA[dia].slice(0, 3)}
+              <span className={`h-1.5 w-1.5 rounded-full ${colorPunto}`} aria-hidden="true" />
+            </button>
+          );
+        })}
+      </div>
+
+      {DIAS_SEMANA.filter((dia) => dia === diaActivo).map((dia) => {
         const config = horario[dia];
         const error = validarDia(dia, config);
         const primerTurno = config.turnos[0];

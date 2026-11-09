@@ -1,13 +1,10 @@
 const { Op } = require('sequelize');
 const { Pedido, Calificacion, Usuario } = require('../models');
-const { dentroDelPlazo, DIAS_PARA_CALIFICAR } = require('../config/calificaciones');
-
-// Cuántas calificaciones se muestran en el inicio
-const CANTIDAD_EN_INICIO = 6;
-
+const { dentroDelPlazo } = require('../config/calificaciones');
+// Días para calificar y opiniones del inicio: se editan desde el admin (Parámetros)
+const { obtenerParametros } = require('../utils/parametros');
 // Los pedidos viejos pueden tener el estado en minúscula: se compara sin importar mayúsculas
 const estaEntregado = (pedido) => String(pedido.estado).toLowerCase() === 'entregado';
-
 // POST /calificaciones → califica un pedido entregado (una sola vez por pedido).
 // Queda PENDIENTE hasta que un admin la apruebe.
 const crearCalificacion = async (req, res) => {
@@ -22,8 +19,9 @@ const crearCalificacion = async (req, res) => {
         if (!estaEntregado(pedido)) {
             return res.status(400).json({ mensaje: 'Solo podés calificar pedidos que ya recibiste' });
         }
-        if (!dentroDelPlazo(pedido.fecha)) {
-            return res.status(400).json({ mensaje: `El plazo para calificar este pedido venció (${DIAS_PARA_CALIFICAR} días)` });
+        const { diasParaCalificar } = await obtenerParametros();
+        if (!dentroDelPlazo(pedido.fecha, diasParaCalificar)) {
+            return res.status(400).json({ mensaje: `El plazo para calificar este pedido venció (${diasParaCalificar} días)` });
         }
 
         try {
@@ -53,11 +51,12 @@ const crearCalificacion = async (req, res) => {
 // Solo el nombre del cliente: el apellido nunca sale del servidor.
 const obtenerRecientes = async (req, res) => {
     try {
+        const { opinionesEnInicio } = await obtenerParametros();
         const calificaciones = await Calificacion.findAll({
             where: { estado: 'APROBADA', comentario: { [Op.ne]: null } },
             include: [{ model: Usuario, as: 'usuario', attributes: ['nombre'] }],
             order: [['createdAt', 'DESC']],
-            limit: CANTIDAD_EN_INICIO,
+            limit: opinionesEnInicio,
         });
 
         return res.json(calificaciones.map((c) => ({

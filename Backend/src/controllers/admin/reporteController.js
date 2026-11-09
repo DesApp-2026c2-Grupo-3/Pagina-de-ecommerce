@@ -81,6 +81,7 @@ const obtenerProductosMasVendidos = async (req, res) => {
                             model: Categoria,
                             as: 'categoria',
                             attributes: ['nombre'],
+                            paranoid: false, // también las categorías eliminadas
                             required: false, // si un producto no tiene categoría, igual aparece
                         },
                     ],
@@ -161,6 +162,7 @@ const obtenerProductosMenosVendidos = async (req, res) => {
                     model: Categoria,
                     as: 'categoria',
                     attributes: ['nombre'],
+                    paranoid: false, // también las categorías eliminadas
                     required: false,
                 },
                 {
@@ -266,6 +268,7 @@ const obtenerProductosMayorFacturacion = async (req, res) => {
                             model: Categoria,
                             as: 'categoria',
                             attributes: ['nombre'],
+                            paranoid: false, // también las categorías eliminadas
                             required: false,
                         },
                     ],
@@ -333,7 +336,7 @@ const obtenerProductosSinStock = async (req, res) => {
 
        const productos = await Producto.findAll({
         where: { disponible: true },
-        attributes: ['id', 'nombre', 'imagen', 'categoriaId'],
+        attributes: ['id', 'nombre', 'imagen', 'categoriaId', 'productoPrincipalId'],        
         order: [['nombre', 'ASC']],
         });
 
@@ -357,6 +360,8 @@ const obtenerProductosSinStock = async (req, res) => {
 
         const insumos = await Insumo.findAll({
     attributes: ['id', 'nombre'],
+    // También los eliminados (borrado lógico): las recetas viejas los siguen nombrando
+    paranoid: false,
 });
 
 const nombreInsumo = new Map(
@@ -466,7 +471,7 @@ for (const sucursal of sucursales) {
 
         // La receta propia del combo consume stock con factor 1.
         const recetaCombo = (
-            recetasPorProducto.get(combo.id) ?? []
+            recetasPorProducto.get(combo.productoPrincipalId ?? combo.id) ?? []        
         ).filter((item) => Number(item.cantidadBase) > 0);
 
         const ingredienteFaltante = recetaCombo.find((item) => {
@@ -1441,8 +1446,8 @@ const obtenerProductosPorSucursal = async (req, res) => {
                     paranoid: false,
                     required: true,
                     include: [
-                        { model: Categoria, as: 'categoria', attributes: ['nombre'], required: false },
-                    ],
+                          { model: Categoria, as: 'categoria', attributes: ['nombre'], paranoid: false, required: false },                    
+                        ],
                 },
             ],
         });
@@ -1525,7 +1530,8 @@ const obtenerPedidosAtendidosPorSucursal = async (req, res) => {
             include: [
                 {
                     model: Pedido,
-                    attributes: ['id', 'fecha', 'sucursalId'],
+                    // minutosEstimados: lo que se le prometió al cliente (para medir la demora)
+                    attributes: ['id', 'fecha', 'sucursalId', 'minutosEstimados'],                    
                     required: true,
                     where: wherePedido,
                     include: [
@@ -1548,6 +1554,8 @@ const obtenerPedidosAtendidosPorSucursal = async (req, res) => {
                     nombre: sucursal.nombre,
                     entregados: 0,
                     minutos: [],
+                    // Solo los pedidos con tiempo estimado (los hechos desde que existe el parámetro)
+                    demoras: [],
                 });
             }
 
@@ -1555,7 +1563,11 @@ const obtenerPedidosAtendidosPorSucursal = async (req, res) => {
             fila.entregados += 1;
 
             const minutos = (new Date(entrega.fecha) - new Date(pedido.fecha)) / 60000;
-            if (Number.isFinite(minutos) && minutos >= 0) fila.minutos.push(minutos);
+            if (Number.isFinite(minutos) && minutos >= 0) {
+                fila.minutos.push(minutos);
+                // Demora = real - estimado (negativa si llegó antes de lo prometido)
+                if (pedido.minutosEstimados != null) fila.demoras.push(minutos - pedido.minutosEstimados);
+            }        
         });
 
         return res.json(
@@ -1566,6 +1578,14 @@ const obtenerPedidosAtendidosPorSucursal = async (req, res) => {
                     entregados: fila.entregados,
                     promedioMinutos: fila.minutos.length > 0
                         ? Math.round(fila.minutos.reduce((suma, m) => suma + m, 0) / fila.minutos.length)
+                        : null,
+                    // Comparación con lo estimado (null si todavía no hay pedidos con tiempo estimado)
+                    conEstimado: fila.demoras.length,
+                    demoraPromedioMinutos: fila.demoras.length > 0
+                        ? Math.round(fila.demoras.reduce((suma, d) => suma + d, 0) / fila.demoras.length)
+                        : null,
+                    porcentajeATiempo: fila.demoras.length > 0
+                        ? Math.round((fila.demoras.filter((d) => d <= 0).length / fila.demoras.length) * 100)
                         : null,
                 }))
                 .sort((a, b) => b.entregados - a.entregados),
@@ -1602,6 +1622,8 @@ const buscarLineasConPromo = (sucursalId, fecha = null) => {
                 model: Promocion,
                 as: 'promocion',
                 attributes: ['id', 'titulo', 'destacado', 'tipo', 'activo'],
+                // También las eliminadas (borrado lógico): sus ventas siguen contando
+                paranoid: false,
                 required: true,
             },
         ],

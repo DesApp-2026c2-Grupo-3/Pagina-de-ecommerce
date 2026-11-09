@@ -1,26 +1,33 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getParametros } from '../../services/parametroService'
 import { ChevronDown, Star } from 'lucide-react'
 import CalificarPedidoModal from '../calificaciones/CalificarPedidoModal'
 import type { Order } from '../../types/order'
 import { ESTILO_ESTADO, normalizarEstado } from '../../config/pedidoEstados'
 import { formatearFechaHora } from '../../utils/fechas'
 import { formatearPrecio } from '../../utils/precio'
-import { diaYMes, resumenItems } from '../../utils/pedidos'
+import { diaYMes, resumenItems, totalConEnvio } from '../../utils/pedidos'
 import BotonRepetirPedido from '../BotonRepetirPedido'
 
-// Se puede calificar hasta 7 días después del pedido (la misma regla que el backend)
-const DIAS_PARA_CALIFICAR = 7
 const MS_DIA = 24 * 60 * 60 * 1000
 // Un pedido del historial: fecha al costado, resumen, total y acciones. "Detalle" despliega los productos.
 function PedidoCard({ pedido }: { pedido: Order }) {
   const [abierto, setAbierto] = useState(false)
   const estado = normalizarEstado(pedido.estado)
   const [calificada, setCalificada] = useState(Boolean(pedido.calificacion))
-  const [calificando, setCalificando] = useState(false)
-  const puedeCalificar =
-    estado === 'Entregado' &&
-    !calificada &&
-    Date.now() - new Date(pedido.fecha).getTime() <= DIAS_PARA_CALIFICAR * MS_DIA
+     const [calificando, setCalificando] = useState(false)
+     // Días para calificar: se configuran en el admin (Parámetros). Mientras llegan, no se muestra el botón.
+     const [diasParaCalificar, setDiasParaCalificar] = useState<number | null>(null)
+     useEffect(() => {
+       getParametros()
+         .then((p) => setDiasParaCalificar(p.diasParaCalificar))
+         .catch(() => setDiasParaCalificar(null))
+     }, [])
+     const puedeCalificar =
+       estado === 'Entregado' &&
+       !calificada &&
+       diasParaCalificar !== null &&
+       Date.now() - new Date(pedido.fecha).getTime() <= diasParaCalificar * MS_DIA
   const { dia, mes } = diaYMes(pedido.fecha)
 
   return (
@@ -43,7 +50,7 @@ function PedidoCard({ pedido }: { pedido: Order }) {
             </p>
         </div>
 
-        <p className="font-display text-2xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
+        <p className="font-display text-2xl font-extrabold">{formatearPrecio(totalConEnvio(pedido))}</p>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-brand-sand pt-4">
@@ -86,6 +93,12 @@ function PedidoCard({ pedido }: { pedido: Order }) {
             ))}
           </ul>
 
+             {Number(pedido.costoEnvio ?? 0) > 0 && (
+               <p className="flex items-center justify-between gap-3 border-t-2 border-dashed border-brand-sand pt-3 text-sm">
+                 <span>Envío</span>
+                 <span className="font-bold text-brand-muted">{formatearPrecio(Number(pedido.costoEnvio))}</span>
+               </p>
+             )}
           {pedido.observaciones?.trim() && (
             <div className="border-t-2 border-dashed border-brand-sand pt-3">
               <p className="font-bold">Observaciones del pedido</p>

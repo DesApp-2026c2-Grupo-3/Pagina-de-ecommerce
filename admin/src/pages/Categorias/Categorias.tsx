@@ -8,7 +8,6 @@ import MensajeVacio from '../../components/MensajeVacio'
 import { deshabilitarCategoria, habilitarCategoria, obtenerCategorias } from '../../services/categoriaService';
 import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categoriaService'
 import SeccionDesplegable from '../../components/SeccionDesplegable'
-import InicioCategorias from '../../components/inicio/InicioCategorias'
 import type { CategoriaAdmin } from '../../types/categoria.types'
 
 interface Categoria {
@@ -144,11 +143,6 @@ export default function Categorias() {
       </button>
     </div>
 
-    <InicioCategorias
-      categorias={categorias}
-      onGuardado={async () => setCategorias(await obtenerCategorias())}
-    />
-
     <SeccionDesplegable
       id="categorias-lista"
       titulo="Todas las categorías"
@@ -255,7 +249,9 @@ export default function Categorias() {
 
     <ConfirmarEliminacion
     abierto={categoriaAEliminar !== null}
-    mensaje="¿Estás seguro de que querés eliminar esta categoria?"
+    titulo="Eliminar categoría"
+    textoConfirmar="Eliminar"
+    mensaje={'¿Eliminar esta categoría? Deja de verse en la tienda y en este panel, y no se puede deshacer. Solo se puede si no tiene productos ni subcategorías. Los pedidos y reportes anteriores la siguen mostrando. Si solo querés ocultarla un tiempo, usá "Deshabilitar".'}    
     onConfirmar={() => {
       if (categoriaAEliminar !== null) {
         eliminarCategoria(categoriaAEliminar)

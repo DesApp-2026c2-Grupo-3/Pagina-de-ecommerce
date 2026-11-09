@@ -46,7 +46,6 @@ module.exports = (sequelize, DataTypes) => {
     latitud: { type: DataTypes.FLOAT, allowNull: false },
     longitud: { type: DataTypes.FLOAT, allowNull: false },
     codigoPostal: { type: DataTypes.STRING, allowNull: true },
-    radioEntregaKm: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 5 },
     activa: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   }, {
     sequelize,

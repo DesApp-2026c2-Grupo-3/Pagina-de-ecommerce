@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { AlertCircle, RefreshCw, Scale, Scissors, Store, TicketPercent } from "lucide-react";
+import { AlertCircle, ClipboardList, CupSoda, RefreshCw, Store, UtensilsCrossed } from "lucide-react";
 
 import {
-  obtenerImpactoPromociones,
-  obtenerPromocionesMasUtilizadas,
+  obtenerPedidosAtendidosPorSucursal,
+  obtenerProductosPorSucursal,
+  obtenerVentasPorSucursal,
 } from "../../services/reporteService";
-import { obtenerSucursales } from "../../services/sucursalService";
-import { useAuth } from "../../context/AuthContext";
-import type { Sucursal } from "../../types/sucursal.types";
 import type {
-  ImpactoPromociones,
+  MesVentas,
+  PedidosAtendidosSucursal,
   PeriodoReporte,
-  PromocionMasUtilizada,
+  ProductosDeSucursal,
+  VentasPorSucursal,
 } from "../../types/reporte.types";
-import CuponesPromo from "./CuponesPromo";
-import BalanzaPromo from "./BalanzaPromo";
+import VasosMeta from "./VasosMeta";
+import BandejaSucursal from "./BandejaSucursal";
+import RielComandas from "./RielComandas";
 import BotonesPeriodo from "./BotonesPeriodo";
 
 /* =========================================================
@@ -31,21 +32,31 @@ const ESTILO_CONTROL =
    SUBMENÚ
    ========================================================= */
 
-type PestaniaPromociones = "utilizadas" | "impacto";
+type PestaniaSucursales = "ventas" | "productos" | "atendidos";
 
 const PESTANIAS: {
-  id: PestaniaPromociones;
+  id: PestaniaSucursales;
   nombre: string;
   icono: typeof Store;
 }[] = [
-  { id: "utilizadas", nombre: "Más utilizadas", icono: Scissors },
-  { id: "impacto", nombre: "Impacto en ventas", icono: Scale },
+  { id: "ventas", nombre: "Ventas", icono: CupSoda },
+  { id: "productos", nombre: "Productos", icono: UtensilsCrossed },
+  { id: "atendidos", nombre: "Pedidos atendidos", icono: ClipboardList },
 ];
+
+/* Nombre del mes actual o del anterior ("octubre", "noviembre") */
+function nombreDeMes(desplazamiento: number) {
+  const hoy = new Date();
+  return new Date(hoy.getFullYear(), hoy.getMonth() + desplazamiento, 15).toLocaleDateString(
+    "es-AR",
+    { month: "long" },
+  );
+}
+
+const conMayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
 /* =========================================================
    CARGA DE DATOS
-   Recibe la función que pide los datos (armada con useCallback):
-   cada vez que cambia (otra sucursal, otro período…) vuelve a pedirlos.
    ========================================================= */
 
 function useDato<T>(obtenerDatos: () => Promise<T>, inicial: T) {
@@ -76,6 +87,50 @@ function useDato<T>(obtenerDatos: () => Promise<T>, inicial: T) {
 }
 
 /* =========================================================
+   SELECTOR CHICO
+   ========================================================= */
+
+function Selector<T extends string>({
+  etiqueta,
+  opciones,
+  valor,
+  onCambiar,
+}: {
+  etiqueta: string;
+  opciones: { valor: T; nombre: string }[];
+  valor: T;
+  onCambiar: (valor: T) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={etiqueta}
+      className="flex gap-1 rounded-xl bg-gray-100 p-1 ring-1 ring-gray-300"
+    >
+      {opciones.map((opcion) => {
+        const activa = opcion.valor === valor;
+
+        return (
+          <button
+            key={opcion.valor}
+            type="button"
+            aria-pressed={activa}
+            onClick={() => onCambiar(opcion.valor)}
+            className={`min-h-9 rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap transition ${
+              activa
+                ? "bg-white text-orange-700 shadow-[0_1px_4px_rgba(17,24,39,0.15)]"
+                : "text-gray-600 hover:text-orange-700"
+            }`}
+          >
+            {opcion.nombre}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* =========================================================
    TARJETA (encabezado + cargando / error / vacío / contenido)
    ========================================================= */
 
@@ -92,7 +147,7 @@ type TarjetaProps = {
   children: ReactNode;
 };
 
-function TarjetaPromociones({
+function TarjetaSucursales({
   titulo,
   descripcion,
   icono: Icono,
@@ -116,7 +171,7 @@ function TarjetaPromociones({
           <p className="mt-1 text-sm leading-5 text-gray-500">{descripcion}</p>
         </div>
 
-        {/* En celular los botones bajan a su propia línea */}
+        {/* En celular el selector baja a su propia línea */}
         {acciones && <div className="w-full sm:w-auto">{acciones}</div>}
       </header>
 
@@ -147,7 +202,7 @@ function TarjetaPromociones({
         </div>
       ) : vacio ? (
         <div className="flex flex-col items-center px-5 py-12 text-center">
-          <TicketPercent size={30} className="text-gray-300" />
+          <Store size={30} className="text-gray-300" />
           <p className="mt-3 text-sm font-medium text-gray-600">{textoVacio}</p>
         </div>
       ) : (
@@ -159,131 +214,76 @@ function TarjetaPromociones({
 
 /* =========================================================
    COMPONENTE PRINCIPAL
+   No tiene filtro de sucursal: esta sección compara las
+   sucursales entre sí. El admin de sucursal recibe solo la suya.
    ========================================================= */
 
-export default function ReportesPromociones() {
-  const { administrador } = useAuth();
+export default function ReportesSucursales() {
+  const [pestania, setPestania] = useState<PestaniaSucursales>("ventas");
+  const [mes, setMes] = useState<MesVentas>("anterior");
 
-  const [pestania, setPestania] = useState<PestaniaPromociones>("utilizadas");
+  // Período de la bandeja (últimos 30 días al entrar)
+  const [periodoBandeja, setPeriodoBandeja] = useState<PeriodoReporte>(30);
 
-  // Período de los cupones (últimos 30 días al entrar)
-  const [periodoCupones, setPeriodoCupones] = useState<PeriodoReporte>(30);
+  /* Nombres de los meses para el selector (se calculan una sola vez) */
+  const [meses] = useState(() => ({
+    anterior: nombreDeMes(-1),
+    actual: nombreDeMes(0),
+  }));
 
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-  const [cargandoSucursales, setCargandoSucursales] = useState(true);
-  const [errorSucursales, setErrorSucursales] = useState("");
+  const opcionesMes: { valor: MesVentas; nombre: string }[] = [
+    { valor: "anterior", nombre: conMayuscula(meses.anterior) },
+    { valor: "actual", nombre: `${conMayuscula(meses.actual)} (en curso)` },
+  ];
 
-  // undefined significa que se seleccionaron todas las sucursales.
-  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<
-    number | undefined
-  >(undefined);
-
-  useEffect(() => {
-    const cargarSucursales = async () => {
-      try {
-        setErrorSucursales("");
-        const resultado = await obtenerSucursales();
-        setSucursales(resultado.filter((sucursal) => sucursal.activa));
-      } catch (err) {
-        setErrorSucursales(
-          err instanceof Error
-            ? err.message
-            : "No se pudieron cargar las sucursales.",
-        );
-      } finally {
-        setCargandoSucursales(false);
-      }
-    };
-
-    void cargarSucursales();
-  }, []);
-
-  const pedirUtilizadas = useCallback(
-    () => obtenerPromocionesMasUtilizadas(sucursalSeleccionada, periodoCupones),
-    [sucursalSeleccionada, periodoCupones],
-  );
-  const pedirImpacto = useCallback(
-    () => obtenerImpactoPromociones(sucursalSeleccionada),
-    [sucursalSeleccionada],
+  const pedirVentas = useCallback(() => obtenerVentasPorSucursal(mes), [mes]);
+  const pedirProductos = useCallback(
+    () => obtenerProductosPorSucursal(periodoBandeja),
+    [periodoBandeja],
   );
 
-  const utilizadas = useDato<PromocionMasUtilizada[]>(pedirUtilizadas, []);
-  const impacto = useDato<ImpactoPromociones | null>(pedirImpacto, null);
+  const ventas = useDato<VentasPorSucursal | null>(pedirVentas, null);
+  const productos = useDato<ProductosDeSucursal[]>(pedirProductos, []);
+  const atendidos = useDato<PedidosAtendidosSucursal[]>(obtenerPedidosAtendidosPorSucursal, []);
 
-  const cargandoTodo = utilizadas.cargando || impacto.cargando;
+  const cargandoTodo = ventas.cargando || productos.cargando || atendidos.cargando;
 
   const actualizarTodo = async () => {
-    await Promise.all([utilizadas.cargar(), impacto.cargar()]);
+    await Promise.all([ventas.cargar(), productos.cargar(), atendidos.cargar()]);
   };
+
+  const descripcionVentas =
+    mes === "anterior"
+      ? `La meta de ${meses.anterior} era superar lo vendido el mes anterior. Si la pasó, el vaso rebalsa. Tocá un vaso.`
+      : `La meta es vender lo mismo que en ${meses.anterior}. El vaso se llena con lo que lleva vendido en ${meses.actual}. Tocá un vaso.`;
 
   return (
     <section className="space-y-5">
-      {/* Título + filtro de sucursal + Actualizar, en una sola línea */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      {/* Título + Actualizar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Rendimiento de promociones</h2>
+          <h2 className="text-xl font-bold text-gray-900">Rendimiento de sucursales</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Qué promos se usan más y si de verdad mueven las ventas.
+            Cuánto vende cada una, qué sale más y cómo atiende los pedidos.
           </p>
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
-          {administrador?.rol === "MASTER" && (
-            <>
-              <label
-                htmlFor="filtro-sucursal-promociones"
-                className="flex items-center gap-1.5 text-sm font-semibold text-gray-700"
-              >
-                <Store size={17} className="text-orange-600" aria-hidden="true" />
-                <span className="sr-only sm:not-sr-only">Sucursal</span>
-              </label>
-
-              <select
-                id="filtro-sucursal-promociones"
-                value={sucursalSeleccionada ?? ""}
-                onChange={(evento) => {
-                  const valor = evento.target.value;
-                  setSucursalSeleccionada(valor === "" ? undefined : Number(valor));
-                }}
-                disabled={cargandoSucursales}
-                className={`${ESTILO_CONTROL} min-w-0 flex-1 px-3 text-sm text-gray-800 outline-none transition lg:flex-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:bg-gray-50`}
-              >
-                <option value="">
-                  {cargandoSucursales ? "Cargando..." : "Todas las sucursales"}
-                </option>
-
-                {sucursales.map((sucursal) => (
-                  <option key={sucursal.id} value={sucursal.id}>
-                    {sucursal.nombre}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          <button
-            type="button"
-            onClick={() => void actualizarTodo()}
-            disabled={cargandoTodo}
-            className={`${ESTILO_CONTROL} inline-flex items-center justify-center gap-2 px-4 text-sm font-semibold text-gray-700 transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60`}
-          >
-            <RefreshCw size={16} className={cargandoTodo ? "animate-spin" : ""} />
-            {cargandoTodo ? "Actualizando..." : "Actualizar"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => void actualizarTodo()}
+          disabled={cargandoTodo}
+          className={`${ESTILO_CONTROL} inline-flex items-center justify-center gap-2 self-start px-4 text-sm font-semibold text-gray-700 transition hover:border-orange-300 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto`}
+        >
+          <RefreshCw size={16} className={cargandoTodo ? "animate-spin" : ""} />
+          {cargandoTodo ? "Actualizando..." : "Actualizar"}
+        </button>
       </div>
 
-      {errorSucursales && (
-        <p role="alert" className="text-sm text-red-600">
-          {errorSucursales}
-        </p>
-      )}
-
-      {/* Submenú: 2 pestañas (en celular, a lo ancho y sin íconos) */}
+      {/* Submenú: 3 pestañas (en celular, a lo ancho y sin íconos) */}
       <div
         role="tablist"
-        aria-label="Reportes de promociones"
-        className="grid grid-cols-2 gap-1 rounded-2xl border border-gray-300 bg-gray-100 p-1.5 shadow-inner sm:inline-flex"
+        aria-label="Reportes de sucursales"
+        className="grid grid-cols-3 gap-1 rounded-2xl border border-gray-300 bg-gray-100 p-1.5 shadow-inner sm:inline-flex"
       >
         {PESTANIAS.map(({ id, nombre, icono: Icono }) => {
           const activa = pestania === id;
@@ -293,18 +293,18 @@ export default function ReportesPromociones() {
               key={id}
               type="button"
               role="tab"
-              id={`pestania-promociones-${id}`}
+              id={`pestania-sucursales-${id}`}
               aria-selected={activa}
-              aria-controls="panel-promociones"
+              aria-controls="panel-sucursales"
               onClick={() => setPestania(id)}
-              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-semibold transition sm:gap-2 sm:px-4 sm:text-sm ${
+              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-semibold leading-tight transition sm:gap-2 sm:px-4 sm:text-sm ${
                 activa
                   ? "bg-white text-orange-700 shadow-[0_2px_6px_rgba(17,24,39,0.15)] ring-1 ring-orange-300"
                   : "text-gray-600 hover:bg-white/60 hover:text-orange-700"
               }`}
             >
               <Icono size={17} className="hidden shrink-0 sm:block" />
-              <span className="truncate">{nombre}</span>
+              <span className="text-center">{nombre}</span>
             </button>
           );
         })}
@@ -313,40 +313,58 @@ export default function ReportesPromociones() {
       {/* Panel de la pestaña activa. La "key" repite la animación de entrada. */}
       <div
         key={pestania}
-        id="panel-promociones"
+        id="panel-sucursales"
         role="tabpanel"
-        aria-labelledby={`pestania-promociones-${pestania}`}
+        aria-labelledby={`pestania-sucursales-${pestania}`}
         className="rep-subir"
       >
-        {pestania === "utilizadas" && (
-          <TarjetaPromociones
-            titulo="Los cupones recortados"
-            descripcion="Cuántas veces se usó cada promo en pedidos entregados. Tocá una para ver su detalle."
-            icono={Scissors}
-            acciones={<BotonesPeriodo valor={periodoCupones} onCambiar={setPeriodoCupones} />}
-            cargando={utilizadas.cargando}
-            error={utilizadas.error}
-            vacio={utilizadas.datos.length === 0}
-            textoVacio="No hay pedidos entregados con promo en este período. Desde la migración, cada pedido con promo queda registrado."
-            onReintentar={() => void utilizadas.cargar()}
+        {pestania === "ventas" && (
+          <TarjetaSucursales
+            titulo="Los vasos de la meta"
+            descripcion={descripcionVentas}
+            icono={CupSoda}
+            acciones={
+              <Selector etiqueta="Qué mes mirar" opciones={opcionesMes} valor={mes} onCambiar={setMes} />
+            }
+            cargando={ventas.cargando}
+            error={ventas.error}
+            vacio={!ventas.datos || ventas.datos.sucursales.length === 0}
+            textoVacio="Todavía no hay ventas entregadas para comparar."
+            onReintentar={() => void ventas.cargar()}
           >
-            <CuponesPromo promos={utilizadas.datos} />
-          </TarjetaPromociones>
+            {ventas.datos && <VasosMeta key={mes} datos={ventas.datos} />}
+          </TarjetaSucursales>
         )}
 
-        {pestania === "impacto" && (
-          <TarjetaPromociones
-            titulo="La balanza"
-            descripcion="El ticket promedio de los pedidos con promo contra los que no usaron ninguna. Pesa más el que gasta más."
-            icono={Scale}
-            cargando={impacto.cargando}
-            error={impacto.error}
-            vacio={!impacto.datos || impacto.datos.pedidosConPromo === 0}
-            textoVacio="Todavía no hay pedidos entregados con promo para comparar."
-            onReintentar={() => void impacto.cargar()}
+        {pestania === "productos" && (
+          <TarjetaSucursales
+            titulo="La bandeja de cada sucursal"
+            descripcion="Los 5 productos que más se venden en cada sucursal. Elegí una para servir su bandeja."
+            icono={UtensilsCrossed}
+            acciones={<BotonesPeriodo valor={periodoBandeja} onCambiar={setPeriodoBandeja} />}
+            cargando={productos.cargando}
+            error={productos.error}
+            vacio={productos.datos.length === 0}
+            textoVacio="No hay productos vendidos en este período."
+            onReintentar={() => void productos.cargar()}
           >
-            {impacto.datos && <BalanzaPromo datos={impacto.datos} />}
-          </TarjetaPromociones>
+            <BandejaSucursal sucursales={productos.datos} />
+          </TarjetaSucursales>
+        )}
+
+        {pestania === "atendidos" && (
+          <TarjetaSucursales
+            titulo="El riel de comandas"
+            descripcion="Cuántos pedidos entregó cada sucursal en los últimos 30 días y cuánto tardó en promedio."
+            icono={ClipboardList}
+            cargando={atendidos.cargando}
+            error={atendidos.error}
+            vacio={atendidos.datos.length === 0}
+            textoVacio="No hubo pedidos entregados en los últimos 30 días."
+            onReintentar={() => void atendidos.cargar()}
+          >
+            <RielComandas filas={atendidos.datos} />
+          </TarjetaSucursales>
         )}
       </div>
     </section>

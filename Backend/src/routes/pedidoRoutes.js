@@ -7,6 +7,8 @@ const { esIdValido } = require('../middleware/esIdValido');
 
 router.get('/', pedidoController.obtenerPedidos);
 router.post('/', validarPedido, pedidoController.crearPedido);
+// Antes de confirmar: costo de envío y tiempo estimado
+router.post('/cotizar', pedidoController.cotizarEnvio);
 router.get('/:id', pedidoController.obtenerPedidoId);
 router.get('/usuario/:usuarioId', pedidoController.obtenerPedidosPorUsuario);
 router.get('/:id/repetir', esIdValido, repetirPedido);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { login as loginService, register as registerService } from '../services/authService'
 import type { LoginCredentials, RegisterData, User } from '../types/user'
 
@@ -21,6 +21,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return savedUser ? JSON.parse(savedUser) : null
   })
 
+  // Si la base se recreó, el usuario guardado puede no existir más: se cierra la sesión.
+  // Solo se cierra con un 404; si el backend no responde, la sesión queda como está.
+  useEffect(() => {
+    if (!user) return
+    fetch(`${import.meta.env.VITE_API_URL}/usuario/${user.id}`)
+      .then((respuesta) => {
+        if (respuesta.status === 404) {
+          setUser(null)
+          localStorage.removeItem('user')
+        }
+      })
+      .catch(() => { /* sin conexión: no se toca la sesión */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [loading, setLoading] = useState(false)
 
