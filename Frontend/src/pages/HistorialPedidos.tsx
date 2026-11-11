@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ShoppingBag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useRealtime } from '../context/realtime/RealtimeContext'
 import { getHistorialPedidos } from '../services/orderService'
 import type { Order } from '../types/order'
 import { FILTROS_PEDIDO, estaEnCurso, type FiltroPedido } from '../config/pedidoEstados'
+import {
+  aplicarEventoPedido,
+  leerEventoPedido,
+} from '../utils/notificaciones/eventoPedido'
 import AccountLayout from '../components/cuenta/AccountLayout'
 import PedidoEnCurso from '../components/cuenta/PedidoEnCurso'
 import PedidoCard from '../components/cuenta/PedidoCard'
@@ -12,21 +17,48 @@ import ErrorAlert from '../components/ErrorAlert'
 
 function HistorialPedidos() {
   const { user } = useAuth()
+  const { suscribir } = useRealtime()
   const [pedidos, setPedidos] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filtro, setFiltro] = useState<FiltroPedido>('todos')
 
-  useEffect(() => {
-    if (!user) return
+  const cargarPedidos = useCallback(() => {
+    if (!user) return Promise.resolve()
 
-    getHistorialPedidos(user.id)
-      .then(setPedidos)
+    return getHistorialPedidos(user.id)
+      .then((historial) => {
+        setPedidos(historial)
+        setError('')
+      })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Error al cargar el historial')
       })
-      .finally(() => setLoading(false))
   }, [user])
+
+  useEffect(() => {
+    void cargarPedidos().finally(() => setLoading(false))
+  }, [cargarPedidos])
+
+  useEffect(() => {
+    if (!user) return
+
+    return suscribir((evento) => {
+      if (evento.tipo !== 'notificacion') return
+
+      const eventoPedido = leerEventoPedido(evento.payload, user.id)
+      if (!eventoPedido) return
+
+      if (eventoPedido.tipo === 'pedido.creado') {
+        void cargarPedidos()
+        return
+      }
+
+      setPedidos((actuales) =>
+        actuales.map((pedido) => aplicarEventoPedido(pedido, eventoPedido)),
+      )
+    })
+  }, [cargarPedidos, suscribir, user])
 
   const enCurso = pedidos.filter((p) => estaEnCurso(p.estado))
   const aplica = FILTROS_PEDIDO.find((f) => f.id === filtro)!.aplica

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import CuentaNav from './CuentaNav'
@@ -15,8 +15,17 @@ interface Props {
 // Estructura común de las páginas de "Mi cuenta": banda con el usuario, menú lateral (escritorio) y contenido
 function AccountLayout({ titulo, subtitulo, cargando = false, children }: Props) {
   const { user, isAuthenticated } = useAuth()
+  const { pathname, search } = useLocation()
 
-  if (!isAuthenticated || !user) return <Navigate to="/login" replace />
+  if (!isAuthenticated || !user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${pathname}${search}` }}
+      />
+    )
+  }
 
   const nombreCompleto = [user.name, user.apellido].filter(Boolean).join(' ')
 

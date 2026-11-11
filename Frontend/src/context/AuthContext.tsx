@@ -1,9 +1,25 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
 import { login as loginService, register as registerService } from '../services/authService'
+import { suscribirSesionExpirada } from '../services/httpClient'
 import type { LoginCredentials, RegisterData, User } from '../types/user'
+import {
+  guardarSesion,
+  leerSesion,
+  limpiarSesion,
+} from '../utils/sesion'
+import { desconectarSocketCliente } from '../realtime/socketClient'
+import { limpiarBusRealtime } from '../realtime/realtimeBus'
 
 interface AuthContextType {
   user: User | null
+  token: string | null
   isAuthenticated: boolean
   loading: boolean
   login: (credentials: LoginCredentials) => Promise<void>
@@ -15,44 +31,69 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('user')
-
-    return savedUser ? JSON.parse(savedUser) : null
-  })
-
-
+  const [sesionInicial] = useState(leerSesion)
+  const [user, setUserState] = useState<User | null>(
+    sesionInicial?.user ?? null,
+  )
+  const [token, setToken] = useState<string | null>(
+    sesionInicial?.token ?? null,
+  )
   const [loading, setLoading] = useState(false)
 
   const login = async (credentials: LoginCredentials) => {
     setLoading(true)
     try {
-      const loggedUser = await loginService(credentials)
-      setUser(loggedUser)
-      localStorage.setItem('user', JSON.stringify(loggedUser))
+      const sesion = await loginService(credentials)
+
+      desconectarSocketCliente()
+      limpiarBusRealtime()
+      guardarSesion(sesion)
+      setUserState(sesion.user)
+      setToken(sesion.token)
     } finally {
       setLoading(false)
     }
   }
 
-// Registrarse ya no inicia sesión: el usuario va al login
-const register = async (data: RegisterData): Promise<string> => {
-  setLoading(true)
-  try {
-    return await registerService(data)
-  } finally {
-    setLoading(false)
+  const register = async (data: RegisterData): Promise<string> => {
+    setLoading(true)
+    try {
+      return await registerService(data)
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
-const logout = () => {
-  setUser(null)
-  localStorage.removeItem('user')
-}
+  const logout = useCallback(() => {
+    desconectarSocketCliente()
+    limpiarBusRealtime()
+    limpiarSesion()
+    setUserState(null)
+    setToken(null)
+  }, [])
+
+  useEffect(() => suscribirSesionExpirada(logout), [logout])
+
+  const setUser = (nuevoUsuario: User) => {
+    setUserState(nuevoUsuario)
+
+    if (token) {
+      guardarSesion({ user: nuevoUsuario, token })
+    }
+  }
 
   return (
     <AuthContext.Provider
-  value={{ user, isAuthenticated: !!user, loading, login, register, logout, setUser }}
+      value={{
+        user,
+        token,
+        isAuthenticated: user !== null && token !== null,
+        loading,
+        login,
+        register,
+        logout,
+        setUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

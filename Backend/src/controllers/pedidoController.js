@@ -213,6 +213,39 @@ const obtenerPedidoId = async (req, res) => {
     };
 };
 
+const obtenerPedidoClienteId = async (req, res) => {
+    try {
+        const pedido = await Pedido.findOne({
+            where: {
+                id: req.params.id,
+                usuarioId: req.identidad.id,
+            },
+            include: [{
+                model: DetallePedido,
+                include: [{ model: Producto, paranoid: false }],
+            }, {
+                model: Sucursal,
+            }, {
+                model: historialDeTiemposPedido,
+                as: 'historialDeTiemposPedidos',
+                attributes: ['estado', 'fecha'],
+            }],
+            order: [[{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+        });
+
+        if (!pedido) {
+            return res.status(404).json({
+                mensaje: 'Pedido no encontrado',
+            });
+        }
+
+        return res.status(200).json(pedido);
+    } catch (error) {
+        console.error('No se pudo obtener el pedido del cliente:', error.message);
+        return res.status(500).json({ mensaje: 'Error al obtener el pedido' });
+    }
+};
+
 // Valida las líneas con promoId y devuelve Map(índice de línea -> descuento).
 // Reglas: la promo existe y vale hoy; cada producto pertenece a la promo; todos sus productos vienen,
 // en la misma proporción (la promo se pide k veces completa) y sin pasar el máximo por pedido.
@@ -584,4 +617,10 @@ const crearPedido = async (req, res) => {
 };
 
 
-module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };
+module.exports = {
+    obtenerPedidos,
+    obtenerPedidoId,
+    obtenerPedidoClienteId,
+    crearPedido,
+    obtenerPedidosPorUsuario,
+};

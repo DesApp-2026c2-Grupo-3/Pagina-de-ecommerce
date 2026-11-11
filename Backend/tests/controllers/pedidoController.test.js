@@ -2,7 +2,7 @@
 jest.mock('../../src/models', () => {
     const t = { commit: jest.fn(), rollback: jest.fn(), LOCK: { UPDATE: 'UPDATE' } };
     return {
-        Pedido: { create: jest.fn(), findAll: jest.fn(), findByPk: jest.fn(), count: jest.fn().mockResolvedValue(0) },
+        Pedido: { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), count: jest.fn().mockResolvedValue(0) },
         DetallePedido: { create: jest.fn() },
         Producto: { findByPk: jest.fn() },
         Usuario: { findByPk: jest.fn() },
@@ -35,6 +35,7 @@ const {
     obtenerPedidos,
     obtenerPedidosPorUsuario,
     obtenerPedidoId,
+    obtenerPedidoClienteId,
 } = require('../../src/controllers/pedidoController');
 
 const {
@@ -467,11 +468,68 @@ describe('obtenerPedidoId', () => {
     });
 
     test('responde 500 si falla la base de datos', async () => {
-        Pedido.findByPk.mockRejectedValue(new Error('Base caída'));
+        Pedido.findByPk.mockRejectedValue(new Error('Base ca��da'));
         const res = crearRes();
 
         await obtenerPedidoId({ params: { id: '7' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('obtenerPedidoClienteId', () => {
+    test('devuelve solo el pedido del cliente autenticado con su historial', async () => {
+        const pedido = { id: 7, usuarioId: 1 };
+        Pedido.findOne.mockResolvedValue(pedido);
+        const res = crearRes();
+
+        await obtenerPedidoClienteId(
+            { params: { id: '7' }, identidad: { tipo: 'cliente', id: 1 } },
+            res,
+        );
+
+        expect(Pedido.findOne).toHaveBeenCalledWith(expect.objectContaining({
+            where: { id: '7', usuarioId: 1 },
+            include: expect.arrayContaining([
+                expect.objectContaining({ model: expect.anything() }),
+            ]),
+            order: [[
+                { model: expect.anything(), as: 'historialDeTiemposPedidos' },
+                'fecha',
+                'ASC',
+            ]],
+        }));
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(pedido);
+    });
+
+    test('responde 404 si el pedido no existe o es de otro usuario', async () => {
+        Pedido.findOne.mockResolvedValue(null);
+        const res = crearRes();
+
+        await obtenerPedidoClienteId(
+            { params: { id: '7' }, identidad: { tipo: 'cliente', id: 1 } },
+            res,
+        );
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith({
+            mensaje: 'Pedido no encontrado',
+        });
+    });
+
+    test('responde 500 si falla la base de datos', async () => {
+        Pedido.findOne.mockRejectedValue(new Error('Base ca��da'));
+        const res = crearRes();
+
+        await obtenerPedidoClienteId(
+            { params: { id: '7' }, identidad: { tipo: 'cliente', id: 1 } },
+            res,
+        );
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({
+            mensaje: 'Error al obtener el pedido',
+        });
     });
 });

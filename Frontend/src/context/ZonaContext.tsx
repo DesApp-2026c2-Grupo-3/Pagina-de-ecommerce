@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { getSucursales } from '../services/sucursalService'
 import { buscarSucursalCercana } from '../utils/sucursales'
 import { estadoSucursal, zonaHorariaDeSucursal } from '../utils/horario'
@@ -16,6 +24,8 @@ interface ZonaContextType {
   elegirUbicacion: (ubicacion: UbicacionElegida) => string
   // Borra la zona (por ejemplo, al cerrar sesión)
   limpiarZona: () => void
+  refrescarSucursales: () => void
+  marcarSucursalCerrada: (sucursalId: number) => void
 }
 
 const ZonaContext = createContext<ZonaContextType | undefined>(undefined)
@@ -52,11 +62,29 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
   const [zona, setZona] = useState<Zona | null>(() => leerZonaGuardada())
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [selectorAbierto, setSelectorAbierto] = useState(false)
+  const [versionSucursales, setVersionSucursales] = useState(0)
+  const cierresManualesRef = useRef(new Set<number>())
 
   useEffect(() => {
     getSucursales()
       .then(setSucursales)
       .catch(() => setSucursales([]))
+  }, [versionSucursales])
+
+  const refrescarSucursales = useCallback(() => {
+    setVersionSucursales((version) => version + 1)
+  }, [])
+
+  const marcarSucursalCerrada = useCallback((sucursalId: number) => {
+    cierresManualesRef.current.add(sucursalId)
+    setZona((actual) => {
+      if (!actual || actual.sucursalId !== sucursalId) return actual
+      if (!actual.sucursalAbierta) return actual
+
+      const actualizada: Zona = { ...actual, sucursalAbierta: false }
+      guardarZona(actualizada)
+      return actualizada
+    })
   }, [])
 
   // Si la sucursal guardada se desactivó, hay que volver a elegir.
@@ -72,7 +100,9 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
     }
 
     const actualizar = (sucursal: Sucursal, actual: Zona) => {
-      const abierta = estadoSucursal(sucursal.horario, sucursal.zona_horaria).abierta
+      const abierta =
+        !cierresManualesRef.current.has(sucursal.id) &&
+        estadoSucursal(sucursal.horario, sucursal.zona_horaria).abierta
       const zonaHoraria = zonaHorariaDeSucursal(sucursal.zona_horaria)
       if (actual.sucursalAbierta === abierta && actual.sucursalZonaHoraria === zonaHoraria) return
 
@@ -111,6 +141,7 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
 
   // Al cerrar sesión, la ubicación se borra: es del usuario, no del navegador
   function limpiarZona() {
+    cierresManualesRef.current.clear()
     setZona(null)
     setSelectorAbierto(false)
     guardarZona(null)
@@ -132,6 +163,8 @@ export function ZonaProvider({ children }: { children: ReactNode }) {
         cerrarSelector: () => setSelectorAbierto(false),
         elegirUbicacion,
         limpiarZona,
+        refrescarSucursales,
+        marcarSucursalCerrada,
       }}
     >
       {children}

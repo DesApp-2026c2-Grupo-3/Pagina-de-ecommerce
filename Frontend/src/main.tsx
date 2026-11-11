@@ -6,16 +6,22 @@ import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext.tsx'
 import { ToastProvider } from './context/ToastContext.tsx'
+import { RealtimeProvider } from './context/realtime/RealtimeProvider'
+import { NotificacionProvider } from './context/notificaciones/NotificacionProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <CartProvider>
+        <RealtimeProvider>
           <ToastProvider>
-            <App />
+            <NotificacionProvider>
+              <CartProvider>
+                <App />
+              </CartProvider>
+            </NotificacionProvider>
           </ToastProvider>
-        </CartProvider>
+        </RealtimeProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
