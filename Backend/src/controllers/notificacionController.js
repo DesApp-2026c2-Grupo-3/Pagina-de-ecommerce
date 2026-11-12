@@ -2,15 +2,11 @@
 
 const notificacionRepository = require('../notifications/notificacionRepository');
 const { notificacionService } = require('../notifications');
-const { TIPOS } = require('../notifications/events');
+const registro = require('../notifications/registroEstrategias');
 
 const LIMITE_POR_DEFECTO = 20;
 const LIMITE_MAXIMO = 100;
-const TIPOS_ADMIN = [
-    TIPOS.PEDIDO_CREADO,
-    TIPOS.SUCURSAL_CERRADA,
-    TIPOS.STOCK_BAJO,
-];
+const TIPOS_ADMIN = registro.tiposInbox('admin');
 
 function destinatario(req) {
     return {

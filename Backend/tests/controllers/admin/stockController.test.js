@@ -31,6 +31,13 @@ const {
 const { StockSucursal, Insumo, MovimientoStock, Admin, Sucursal } = models;
 const t = models.__t;
 
+const identidadMaster = { tipo: 'admin', id: 7, rol: 'MASTER', sucursalId: null };
+const identidadAdmin = (sucursalId = 2) => ({ tipo: 'admin', id: 7, rol: 'ADMIN', sucursalId });
+
+function crearReq(params, body = {}, identidad = identidadMaster) {
+    return { params, body, identidad };
+}
+
 function crearRes() {
     const res = {};
     res.status = jest.fn().mockReturnValue(res);
@@ -76,7 +83,7 @@ describe('obtenerStockPorSucursal', () => {
         ]);
         const res = crearRes();
 
-        await obtenerStockPorSucursal({ params: { id: '2' } }, res);
+        await obtenerStockPorSucursal(crearReq({ id: '2' }), res);
 
         expect(res.status).toHaveBeenCalledWith(200);
         const grilla = res.json.mock.calls[0][0];
@@ -85,11 +92,29 @@ describe('obtenerStockPorSucursal', () => {
         expect(grilla[3].stockMinimo).toBeNull();
     });
 
+    test('rechaza a un admin de otra sucursal', async () => {
+        const res = crearRes();
+
+        await obtenerStockPorSucursal(crearReq({ id: '2' }, {}, identidadAdmin(3)), res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(StockSucursal.findAll).not.toHaveBeenCalled();
+    });
+
+    test('exige una sesión autenticada', async () => {
+        const res = crearRes();
+
+        await obtenerStockPorSucursal(crearReq({ id: '2' }, {}, null), res);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(StockSucursal.findAll).not.toHaveBeenCalled();
+    });
+
     test('responde 500 si falla la base de datos', async () => {
         StockSucursal.findAll.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await obtenerStockPorSucursal({ params: { id: '2' } }, res);
+        await obtenerStockPorSucursal(crearReq({ id: '2' }), res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
@@ -101,7 +126,7 @@ describe('cargarAumento', () => {
         StockSucursal.findByPk.mockResolvedValue(stock);
         const res = crearRes();
 
-        await cargarAumento({ params: { id: '1' }, body: { cantidad: 10, adminId: 7 } }, res);
+        await cargarAumento(crearReq({ id: '1' }, { cantidad: 10 }), res);
 
         expect(stock.update).toHaveBeenCalledWith({ cantidad: 50 }, { transaction: t });
         expect(MovimientoStock.create).toHaveBeenCalledWith(
@@ -122,16 +147,28 @@ describe('cargarAumento', () => {
         StockSucursal.findByPk.mockResolvedValue(registro(40));
         Admin.findByPk.mockResolvedValue(null);
 
-        await cargarAumento({ params: { id: '1' }, body: { cantidad: 10, adminId: 999 } }, crearRes());
+        await cargarAumento(crearReq({ id: '1' }, { cantidad: 10 }, { ...identidadMaster, id: 999 }), crearRes());
 
         expect(MovimientoStock.create).toHaveBeenCalledWith(expect.objectContaining({ adminId: null }), expect.anything());
+    });
+
+    test('rechaza modificar stock de otra sucursal y deshace la transacción', async () => {
+        const stock = registro(40);
+        StockSucursal.findByPk.mockResolvedValue(stock);
+        const res = crearRes();
+
+        await cargarAumento(crearReq({ id: '1' }, { cantidad: 10 }, identidadAdmin(3)), res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(stock.update).not.toHaveBeenCalled();
+        expect(t.rollback).toHaveBeenCalled();
     });
 
     test('responde 404 si el registro de stock no existe', async () => {
         StockSucursal.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await cargarAumento({ params: { id: '99' }, body: { cantidad: 10 } }, res);
+        await cargarAumento(crearReq({ id: '99' }, { cantidad: 10 }), res);
 
         expect(res.status).toHaveBeenCalledWith(404);
         expect(t.rollback).toHaveBeenCalled();
@@ -141,7 +178,7 @@ describe('cargarAumento', () => {
         StockSucursal.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await cargarAumento({ params: { id: '1' }, body: { cantidad: 10 } }, res);
+        await cargarAumento(crearReq({ id: '1' }, { cantidad: 10 }), res);
 
         expect(t.rollback).toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
@@ -154,7 +191,7 @@ describe('registrarBaja', () => {
         StockSucursal.findByPk.mockResolvedValue(stock);
         const res = crearRes();
 
-        await registrarBaja({ params: { id: '1' }, body: { cantidad: 5, motivo: 'vencimiento', detalle: '' } }, res);
+        await registrarBaja(crearReq({ id: '1' }, { cantidad: 5, motivo: 'vencimiento', detalle: '' }), res);
 
         expect(stock.update).toHaveBeenCalledWith({ cantidad: 15 }, { transaction: t });
         expect(MovimientoStock.create).toHaveBeenCalledWith(
@@ -169,7 +206,7 @@ describe('registrarBaja', () => {
         StockSucursal.findByPk.mockResolvedValue(stock);
 
         await registrarBaja(
-            { params: { id: '1' }, body: { cantidad: 10, motivo: 'merma' } },
+            crearReq({ id: '1' }, { cantidad: 10, motivo: 'merma' }),
             crearRes()
         );
 
@@ -187,7 +224,7 @@ describe('registrarBaja', () => {
         StockSucursal.findByPk.mockResolvedValue(registro(10, 10));
 
         await registrarBaja(
-            { params: { id: '1' }, body: { cantidad: 1, motivo: 'merma' } },
+            crearReq({ id: '1' }, { cantidad: 1, motivo: 'merma' }),
             crearRes()
         );
 
@@ -198,7 +235,7 @@ describe('registrarBaja', () => {
         StockSucursal.findByPk.mockResolvedValue(registro(5, null));
 
         await registrarBaja(
-            { params: { id: '1' }, body: { cantidad: 5, motivo: 'merma' } },
+            crearReq({ id: '1' }, { cantidad: 5, motivo: 'merma' }),
             crearRes()
         );
 
@@ -211,10 +248,22 @@ describe('registrarBaja', () => {
         Insumo.findByPk.mockResolvedValue({ nombre: 'Pan' });
         const res = crearRes();
 
-        await registrarBaja({ params: { id: '1' }, body: { cantidad: 30, motivo: 'merma' } }, res);
+        await registrarBaja(crearReq({ id: '1' }, { cantidad: 30, motivo: 'merma' }), res);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json.mock.calls[0][0].code).toContain('No se puede bajar más de lo que hay');
+        expect(stock.update).not.toHaveBeenCalled();
+        expect(t.rollback).toHaveBeenCalled();
+    });
+
+    test('rechaza dar de baja stock de otra sucursal y deshace la transacción', async () => {
+        const stock = registro(20);
+        StockSucursal.findByPk.mockResolvedValue(stock);
+        const res = crearRes();
+
+        await registrarBaja(crearReq({ id: '1' }, { cantidad: 1, motivo: 'merma' }, identidadAdmin(3)), res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
         expect(stock.update).not.toHaveBeenCalled();
         expect(t.rollback).toHaveBeenCalled();
     });
@@ -223,7 +272,7 @@ describe('registrarBaja', () => {
         StockSucursal.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await registrarBaja({ params: { id: '99' }, body: { cantidad: 1, motivo: 'merma' } }, res);
+        await registrarBaja(crearReq({ id: '99' }, { cantidad: 1, motivo: 'merma' }), res);
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -232,7 +281,7 @@ describe('registrarBaja', () => {
         StockSucursal.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await registrarBaja({ params: { id: '1' }, body: { cantidad: 1, motivo: 'merma' } }, res);
+        await registrarBaja(crearReq({ id: '1' }, { cantidad: 1, motivo: 'merma' }), res);
 
         expect(t.rollback).toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
@@ -245,7 +294,7 @@ describe('definirMinimo', () => {
         StockSucursal.findByPk.mockResolvedValue(stock);
         const res = crearRes();
 
-        await definirMinimo({ params: { id: '1' }, body: { stockMinimo: 10 } }, res);
+        await definirMinimo(crearReq({ id: '1' }, { stockMinimo: 10 }), res);
 
         expect(stock.update).toHaveBeenCalledWith({ stockMinimo: 10 });
         expect(notificarStockBajo).not.toHaveBeenCalled();
@@ -262,16 +311,27 @@ describe('definirMinimo', () => {
         const stock = { update: jest.fn() };
         StockSucursal.findByPk.mockResolvedValue(stock);
 
-        await definirMinimo({ params: { id: '1' }, body: { stockMinimo: null } }, crearRes());
+        await definirMinimo(crearReq({ id: '1' }, { stockMinimo: null }), crearRes());
 
         expect(stock.update).toHaveBeenCalledWith({ stockMinimo: null });
+    });
+
+    test('rechaza cambiar el mínimo de otra sucursal', async () => {
+        const stock = { sucursalId: 2, insumoId: 1, update: jest.fn() };
+        StockSucursal.findByPk.mockResolvedValue(stock);
+        const res = crearRes();
+
+        await definirMinimo(crearReq({ id: '1' }, { stockMinimo: 10 }, identidadAdmin(3)), res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(stock.update).not.toHaveBeenCalled();
     });
 
     test('responde 404 si el registro de stock no existe', async () => {
         StockSucursal.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await definirMinimo({ params: { id: '99' }, body: { stockMinimo: 10 } }, res);
+        await definirMinimo(crearReq({ id: '99' }, { stockMinimo: 10 }), res);
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -280,7 +340,7 @@ describe('definirMinimo', () => {
         StockSucursal.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await definirMinimo({ params: { id: '1' }, body: { stockMinimo: 10 } }, res);
+        await definirMinimo(crearReq({ id: '1' }, { stockMinimo: 10 }), res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
@@ -301,18 +361,27 @@ describe('obtenerMovimientos', () => {
         ]);
         const res = crearRes();
 
-        await obtenerMovimientos({ params: { id: '2' } }, res);
+        await obtenerMovimientos(crearReq({ id: '2' }), res);
 
         const historial = res.json.mock.calls[0][0];
         expect(historial[0]).toMatchObject({ tipo: 'venta', insumo: 'Pan', cantidad: 2, pedidoId: 45, admin: null });
         expect(historial[1]).toMatchObject({ tipo: 'baja', insumo: 'Insumo eliminado', motivo: 'merma', admin: 'Ana' });
     });
 
+    test('rechaza ver movimientos de otra sucursal', async () => {
+        const res = crearRes();
+
+        await obtenerMovimientos(crearReq({ id: '2' }, {}, identidadAdmin(3)), res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(MovimientoStock.findAll).not.toHaveBeenCalled();
+    });
+
     test('responde 500 si falla la base de datos', async () => {
         MovimientoStock.findAll.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await obtenerMovimientos({ params: { id: '2' } }, res);
+        await obtenerMovimientos(crearReq({ id: '2' }), res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });

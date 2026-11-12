@@ -1,20 +1,16 @@
 'use strict';
 
-const { TIPOS } = require('../events');
-const { paraSucursal } = require('../destinatarios');
-const { notificacionService } = require('../index');
+const { fabrica } = require('../index');
 
-async function notificarSucursalCerrada({ sucursalId, sucursalNombre }) {
-    const id = Number(sucursalId);
-
-    return notificacionService.publicar({
-        tipo: TIPOS.SUCURSAL_CERRADA,
-        datos: {
-            sucursalId: id,
-            sucursalNombre: String(sucursalNombre ?? ''),
-        },
-        destinos: paraSucursal({ sucursalId: id }),
-    });
+function notificarSucursalCerrada(payload) {
+    return fabrica.publicarPorTipo('sucursal.cerrada', payload);
 }
 
-module.exports = { notificarSucursalCerrada };
+function notificarSucursalModificadaPorAdmin(payload) {
+    return fabrica.publicarPorTipo('sucursal.modificada_por_admin', payload);
+}
+
+module.exports = {
+    notificarSucursalCerrada,
+    notificarSucursalModificadaPorAdmin,
+};

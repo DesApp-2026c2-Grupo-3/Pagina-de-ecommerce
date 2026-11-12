@@ -2,11 +2,13 @@
 
 const { getIo } = require('../../sockets');
 const { SALAS } = require('../../sockets/salas');
-const { TIPOS } = require('../events');
+const registro = require('../registroEstrategias');
 
 function salasDeNotificacion(destinos = {}, tipo = null) {
     const salas = new Set();
-    const admiteAdministradores = tipo !== TIPOS.PEDIDO_ESTADO_CAMBIADO;
+    const admiteAdministradores = tipo === null
+        ? true
+        : registro.tipoParaAdministradores(tipo);
 
     (destinos.clientes ?? []).forEach((id) => salas.add(SALAS.usuario('cliente', id)));
     if (admiteAdministradores) {

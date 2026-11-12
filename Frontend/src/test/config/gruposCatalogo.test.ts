@@ -45,10 +45,11 @@ describe('gruposCatalogo', () => {
     expect(sub('postres', 'Batido de Vainilla', 'Postres')).toBe('helados')
   })
 
-  it('Cafetería: los productos sin botón propio caen en Clásicos', () => {
+  it('Cafetería: los productos sin botón propio caen en Clásicos salvo mapeos explícitos', () => {
     expect(sub('cafeteria', 'Espresso', 'Café')).toBe('bebidas-calientes')
     expect(sub('cafeteria', 'Tostado de Jamón y Queso', 'Menú Café')).toBe('sandwiches')
-    expect(sub('cafeteria', 'Hot Cakes', 'Menú Café')).toBe('clasicos')
+    expect(sub('cafeteria', 'Medialunas x2', 'Menú Café')).toBe('clasicos')
+    expect(sub('cafeteria', 'Hot Cakes', 'Menú Café')).toBe('pasteleria')
   })
 
   it('las salsas no se ven en el menú, salvo la pileta de cheddar', () => {

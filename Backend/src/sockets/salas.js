@@ -15,6 +15,10 @@ function salasDeIdentidad(identidad) {
         SALAS.rol(identidad.tipo),
     ];
 
+    if (identidad.tipo === 'admin' && typeof identidad.rol === 'string' && identidad.rol) {
+        salas.push(SALAS.rol(identidad.rol));
+    }
+
     if (identidad.sucursalId) {
         salas.push(
             identidad.tipo === 'admin'

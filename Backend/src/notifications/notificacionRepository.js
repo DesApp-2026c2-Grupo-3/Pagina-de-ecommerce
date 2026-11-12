@@ -9,12 +9,11 @@ const {
   Usuario,
 } = require('../models');
 const { codificarCursor, decodificarCursor } = require('./cursor');
-const { TIPOS } = require('./events');
 
 const DESTINATARIO_CLIENTE = 'cliente';
 const DESTINATARIO_ADMIN = 'admin';
 const LIMITE_POR_DEFECTO = 50;
-const TIPOS_SIN_ADMIN = new Set([TIPOS.PEDIDO_ESTADO_CAMBIADO]);
+const ROLES_ADMIN_VALIDOS = new Set(['MASTER', 'ADMIN']);
 
 function idsUnicos(valor) {
   if (!Array.isArray(valor)) return [];
@@ -33,25 +32,13 @@ function normalizarDestinatario({ destinatarioTipo, destinatarioId, tipo, id } =
   };
 }
 
-function destinosSinAdministradores(tipo, destinos = {}) {
-  if (!TIPOS_SIN_ADMIN.has(tipo) || typeof destinos !== 'object' || destinos === null) {
-    return destinos;
-  }
+function rolesUnicos(valor) {
+  if (!Array.isArray(valor)) return [];
 
-  const limpios = { ...destinos };
-  delete limpios.administradores;
-  delete limpios.administradoresSucursal;
-
-  if (Array.isArray(limpios.roles)) {
-    const roles = limpios.roles.filter((rol) => rol !== 'admin');
-    if (roles.length > 0) {
-      limpios.roles = roles;
-    } else {
-      delete limpios.roles;
-    }
-  }
-
-  return limpios;
+  return [...new Set(
+    valor
+      .filter((rol) => ROLES_ADMIN_VALIDOS.has(rol))
+  )];
 }
 
 function filtroTipos(opciones = {}) {
@@ -118,6 +105,20 @@ async function resolverDestinatarios(destinos = {}, transaction) {
   idsUnicos(destinos.clientes).forEach((id) => agregar(DESTINATARIO_CLIENTE, id));
   idsUnicos(destinos.administradores).forEach((id) => agregar(DESTINATARIO_ADMIN, id));
 
+  const roles = rolesUnicos(destinos.roles);
+  if (roles.length > 0) {
+    const adminsPorRol = await Admin.findAll({
+      where: {
+        rol: { [Op.in]: roles },
+        activo: true,
+      },
+      attributes: ['id'],
+      transaction,
+    });
+
+    adminsPorRol.forEach((admin) => agregar(DESTINATARIO_ADMIN, admin.id));
+  }
+
   const sucursalesAdmin = idsUnicos(destinos.administradoresSucursal);
   if (sucursalesAdmin.length > 0) {
     const admins = await Admin.findAll({
@@ -149,7 +150,7 @@ async function resolverDestinatarios(destinos = {}, transaction) {
 }
 
 async function guardar({ tipo, datos, destinos = {}, version = 1, ocurridoEn = new Date() } = {}) {
-  const destinosPersistidos = destinosSinAdministradores(tipo, destinos);
+  const destinosPersistidos = destinos;
 
   return sequelize.transaction(async (transaction) => {
     const notificacion = await Notificacion.create({

@@ -2,15 +2,11 @@
 
 const notificacionRepository = require('../notifications/notificacionRepository');
 const { notificacionService } = require('../notifications');
-const { TIPOS } = require('../notifications/events');
+const registro = require('../notifications/registroEstrategias');
 
 const LIMITE_POR_DEFECTO = 20;
 const LIMITE_MAXIMO = 100;
-const TIPOS_CLIENTE = [
-    TIPOS.PEDIDO_CREADO,
-    TIPOS.PEDIDO_ESTADO_CAMBIADO,
-    TIPOS.SUCURSAL_CERRADA,
-];
+const TIPOS_CLIENTE = registro.tiposInbox('cliente');
 
 function destinatario(req) {
     return {

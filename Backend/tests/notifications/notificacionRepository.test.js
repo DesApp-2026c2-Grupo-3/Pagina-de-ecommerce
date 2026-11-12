@@ -96,7 +96,7 @@ describe('guardar', () => {
     expect(Usuario.findAll).not.toHaveBeenCalled();
   });
 
-  test('no persiste ni resuelve administradores para cambios de estado', async () => {
+  test('persiste los destinos tal como los recibe y no resuelve roles inexistentes', async () => {
     Notificacion.create.mockResolvedValue({
       id: '13',
       tipo: 'pedido.estado_cambiado',
@@ -110,22 +110,52 @@ describe('guardar', () => {
     await notificacionRepository.guardar({
       tipo: 'pedido.estado_cambiado',
       datos: { pedidoId: 45, estado: 'en proceso' },
-      destinos: {
-        clientes: [8],
-        administradores: [3],
-        administradoresSucursal: [2],
-        pedidos: [45],
-        roles: ['admin'],
-      },
+      destinos: { clientes: [8], pedidos: [45], roles: ['CLIENTE'] },
       ocurridoEn: FECHA,
     });
 
     expect(Notificacion.create).toHaveBeenCalledWith(expect.objectContaining({
-      destinos: { clientes: [8], pedidos: [45] },
+      destinos: { clientes: [8], pedidos: [45], roles: ['CLIENTE'] },
     }), { transaction: 'tx' });
     expect(Admin.findAll).not.toHaveBeenCalled();
     expect(NotificacionDestinatario.bulkCreate).toHaveBeenCalledWith([
       { destinatarioTipo: 'cliente', destinatarioId: 8, notificacionId: '13' },
+    ], { transaction: 'tx' });
+  });
+
+  test('resuelve los roles MASTER a administradores activos y deduplica', async () => {
+    const destinos = { roles: ['MASTER'] };
+
+    Notificacion.create.mockResolvedValue({
+      id: '14',
+      tipo: 'sucursal.modificada_por_admin',
+      version: 1,
+      datos: { sucursalId: 2, cambios: ['horarios'] },
+      destinos,
+      ocurridoEn: FECHA,
+    });
+    Admin.findAll.mockResolvedValue([{ id: 1 }, { id: 1 }, { id: 5 }]);
+    NotificacionDestinatario.bulkCreate.mockResolvedValue([]);
+
+    await notificacionRepository.guardar({
+      tipo: 'sucursal.modificada_por_admin',
+      datos: { sucursalId: 2, cambios: ['horarios'] },
+      destinos,
+      ocurridoEn: FECHA,
+    });
+
+    expect(Admin.findAll).toHaveBeenCalledWith({
+      where: {
+        rol: { [Op.in]: ['MASTER'] },
+        activo: true,
+      },
+      attributes: ['id'],
+      transaction: 'tx',
+    });
+
+    expect(NotificacionDestinatario.bulkCreate).toHaveBeenCalledWith([
+      { destinatarioTipo: 'admin', destinatarioId: 1, notificacionId: '14' },
+      { destinatarioTipo: 'admin', destinatarioId: 5, notificacionId: '14' },
     ], { transaction: 'tx' });
   });
 

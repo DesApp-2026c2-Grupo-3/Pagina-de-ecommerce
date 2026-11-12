@@ -1,103 +1,85 @@
 'use strict';
 
 jest.mock('../../src/notifications', () => ({
-    notificacionService: { publicar: jest.fn() },
+    fabrica: { publicarPorTipo: jest.fn() },
 }));
 
-const { notificacionService } = require('../../src/notifications');
+const { fabrica } = require('../../src/notifications');
 const { notificarPedidoCreado, notificarEstadoPedido } = require('../../src/notifications/handlers/pedidoHandlers');
-const { notificarSucursalCerrada } = require('../../src/notifications/handlers/sucursalHandlers');
+const {
+    notificarSucursalCerrada,
+    notificarSucursalModificadaPorAdmin,
+} = require('../../src/notifications/handlers/sucursalHandlers');
 const { notificarStockBajo } = require('../../src/notifications/handlers/stockHandlers');
-const { TIPOS } = require('../../src/notifications/events');
 
-const FECHA = '2026-11-02T15:00:00.000Z';
 const PEDIDO = {
     id: 45,
     usuarioId: 8,
     sucursalId: 2,
     estado: 'pendiente',
     total: 15400,
-    fecha: FECHA,
+    fecha: '2026-11-02T15:00:00.000Z',
 };
 
 beforeEach(() => {
     jest.clearAllMocks();
-    notificacionService.publicar.mockResolvedValue({ id: 1 });
+    fabrica.publicarPorTipo.mockResolvedValue({ id: 1 });
 });
 
-describe('handlers de pedidos', () => {
-    test('publica pedido.creado con destinatarios y DTO plano', async () => {
-        await notificarPedidoCreado(PEDIDO);
+test('delega el pedido creado a la fábrica', async () => {
+    await notificarPedidoCreado(PEDIDO);
 
-        expect(notificacionService.publicar).toHaveBeenCalledWith({
-            tipo: TIPOS.PEDIDO_CREADO,
-            datos: {
-                pedidoId: 45,
-                usuarioId: 8,
-                sucursalId: 2,
-                estadoAnterior: null,
-                estado: 'pendiente',
-                total: 15400,
-                fecha: FECHA,
-            },
-            destinos: {
-                clientes: [8],
-                administradoresSucursal: [2],
-                pedidos: [45],
-            },
-        });
-    });
-
-    test('publica el estado anterior solo al cliente y a la sala del pedido', async () => {
-        await notificarEstadoPedido({ ...PEDIDO, estado: 'en proceso' }, 'pendiente');
-
-        expect(notificacionService.publicar).toHaveBeenCalledWith(expect.objectContaining({
-            tipo: TIPOS.PEDIDO_ESTADO_CAMBIADO,
-            datos: expect.objectContaining({
-                estadoAnterior: 'pendiente',
-                estado: 'en proceso',
-            }),
-            destinos: {
-                clientes: [8],
-                pedidos: [45],
-            },
-        }));
+    expect(fabrica.publicarPorTipo).toHaveBeenCalledWith('pedido.creado', {
+        pedido: PEDIDO,
     });
 });
 
-test('publica el cierre de sucursal', async () => {
-    await notificarSucursalCerrada({ sucursalId: '2', sucursalNombre: 'Centro' });
+test('delega el cambio de estado con el estado anterior', async () => {
+    await notificarEstadoPedido(PEDIDO, 'pendiente');
 
-    expect(notificacionService.publicar).toHaveBeenCalledWith({
-        tipo: TIPOS.SUCURSAL_CERRADA,
-        datos: { sucursalId: 2, sucursalNombre: 'Centro' },
-        destinos: {
-            clientesSucursal: [2],
-            administradoresSucursal: [2],
-        },
+    expect(fabrica.publicarPorTipo).toHaveBeenCalledWith('pedido.estado_cambiado', {
+        pedido: PEDIDO,
+        estadoAnterior: 'pendiente',
     });
 });
 
-test('publica stock bajo con el contrato requerido', async () => {
-    await notificarStockBajo({
-        sucursalId: '2',
+test('delega el cierre de sucursal', async () => {
+    await notificarSucursalCerrada({ sucursalId: 2, sucursalNombre: 'Centro' });
+
+    expect(fabrica.publicarPorTipo).toHaveBeenCalledWith('sucursal.cerrada', {
+        sucursalId: 2,
         sucursalNombre: 'Centro',
-        insumoId: '7',
-        insumoNombre: 'Queso',
-        cantidad: '0.500',
-        stockMinimo: '1',
     });
+});
 
-    expect(notificacionService.publicar).toHaveBeenCalledWith({
-        tipo: TIPOS.STOCK_BAJO,
-        datos: {
-            sucursalId: 2,
-            sucursalNombre: 'Centro',
-            insumoId: 7,
-            insumoNombre: 'Queso',
-            cantidad: 0.5,
-            stockMinimo: 1,
-        },
-        destinos: { administradoresSucursal: [2] },
-    });
+test('delega el stock bajo', async () => {
+    const payload = {
+        sucursalId: 2,
+        sucursalNombre: 'Centro',
+        insumoId: 7,
+        insumoNombre: 'Queso',
+        cantidad: 0.5,
+        stockMinimo: 1,
+    };
+
+    await notificarStockBajo(payload);
+
+    expect(fabrica.publicarPorTipo).toHaveBeenCalledWith('stock.bajo', payload);
+});
+
+test('delega la modificación de sucursal por administrador', async () => {
+    const payload = {
+        sucursalId: 2,
+        sucursalNombre: 'Centro',
+        adminId: 7,
+        adminNombre: 'Ana',
+        cambios: ['horarios'],
+    };
+
+    await notificarSucursalModificadaPorAdmin(payload);
+
+    expect(fabrica.publicarPorTipo).toHaveBeenCalledWith(
+        'sucursal.modificada_por_admin',
+        payload,
+    );
 });

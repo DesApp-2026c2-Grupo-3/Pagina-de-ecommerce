@@ -3,7 +3,6 @@
 jest.mock('../../src/sockets', () => ({ getIo: jest.fn() }));
 
 const { getIo } = require('../../src/sockets');
-const { TIPOS } = require('../../src/notifications/events');
 const { SocketChannel, salasDeNotificacion } = require('../../src/notifications/canales/socketChannel');
 
 function crearIo() {
@@ -42,10 +41,18 @@ test('los cambios de estado no emiten a salas de administradores', () => {
         clientesSucursal: [2],
         pedidos: [45],
         roles: ['admin'],
-    }, TIPOS.PEDIDO_ESTADO_CAMBIADO)).toEqual([
+    }, 'pedido.estado_cambiado')).toEqual([
         'user:cliente:8',
         'sucursal:2',
         'pedido:45',
+    ]);
+});
+
+test('la modificación de sucursal emite a la sala del rol MASTER', () => {
+    expect(salasDeNotificacion({
+        roles: ['MASTER'],
+    }, 'sucursal.modificada_por_admin')).toEqual([
+        'role:MASTER',
     ]);
 });
 
@@ -56,6 +63,7 @@ test('emite notificacion a todas las salas', () => {
 
     const cantidad = channel.enviar({
         id: 1,
+        tipo: 'pedido.creado',
         destinos: { administradoresSucursal: [2], pedidos: [45] },
     });
 

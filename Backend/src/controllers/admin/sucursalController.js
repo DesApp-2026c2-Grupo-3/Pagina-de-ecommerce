@@ -1,6 +1,11 @@
 const { Op } = require('sequelize');
 const { Sucursal, Admin, Insumo, StockSucursal, sequelize } = require('../../models');
-const { notificarSucursalCerrada } = require('../../notifications/handlers/sucursalHandlers');
+const {
+    notificarSucursalCerrada,
+    notificarSucursalModificadaPorAdmin,
+} = require('../../notifications/handlers/sucursalHandlers');
+const { detectarBloquesModificados } = require('../../utils/sucursalCambios');
+const { motivoSinAcceso, mensajeSinAcceso } = require('../../utils/permisosSucursal');
 
 // Los admins de cada sucursal, solo con los datos que necesita el panel
 const ADMINS = { model: Admin, attributes: ['id', 'nombre', 'email'] };
@@ -37,6 +42,11 @@ const obtenerSucursalPorId = async (req, res) => {
 
         if (!sucursal) {
             return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
+        }
+
+        const acceso = motivoSinAcceso(req.identidad, sucursal.id);
+        if (acceso) {
+            return res.status(acceso).json({ mensaje: mensajeSinAcceso(acceso) });
         }
 
         res.status(200).json(conAdmins(sucursal));
@@ -77,17 +87,46 @@ const crearSucursal = async (req, res) => {
 // PATCH /admin/sucursales/editar/:id → edita los datos (no el estado)
 const editarSucursal = async (req, res) => {
     try {
+        const identidad = req.identidad;
+
+        if (!identidad) {
+            return res.status(401).json({ mensaje: 'Acceso no autorizado' });
+        }
+
         const sucursal = await Sucursal.findByPk(req.params.id);
 
         if (!sucursal) {
             return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
         }
 
-        if (await nombreEnUso(req.body.nombre, sucursal.id)) {
+        const esAdminSucursal = identidad.rol === 'ADMIN';
+
+        if (esAdminSucursal && Number(identidad.sucursalId) !== Number(sucursal.id)) {
+            return res.status(403).json({ mensaje: 'No puede editar otra sucursal' });
+        }
+
+        if (req.body.nombre && await nombreEnUso(req.body.nombre, sucursal.id)) {
             return res.status(400).json({ code: 'Ya existe una sucursal con ese nombre' });
         }
 
+        const anterior = sucursal.toJSON();
+        const cambios = detectarBloquesModificados(anterior, req.body);
+
         await sucursal.update(req.body);
+
+        if (esAdminSucursal && cambios.length > 0) {
+            try {
+                await notificarSucursalModificadaPorAdmin({
+                    sucursalId: sucursal.id,
+                    sucursalNombre: sucursal.nombre,
+                    adminId: identidad.id,
+                    adminNombre: identidad.nombre,
+                    cambios,
+                });
+            } catch (errorNotificacion) {
+                console.error('No se pudo notificar la edición de la sucursal:', errorNotificacion.message);
+            }
+        }
 
         res.status(200).json({ mensaje: 'Sucursal editada con éxito', sucursal });
     } catch (error) {

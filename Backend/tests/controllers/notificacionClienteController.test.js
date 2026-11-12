@@ -12,14 +12,10 @@ jest.mock('../../src/notifications', () => ({
 
 const repository = require('../../src/notifications/notificacionRepository');
 const { notificacionService } = require('../../src/notifications');
-const { TIPOS } = require('../../src/notifications/events');
+const registro = require('../../src/notifications/registroEstrategias');
 const controller = require('../../src/controllers/notificacionClienteController');
 
-const TIPOS_CLIENTE = [
-    TIPOS.PEDIDO_CREADO,
-    TIPOS.PEDIDO_ESTADO_CAMBIADO,
-    TIPOS.SUCURSAL_CERRADA,
-];
+const TIPOS_CLIENTE = registro.tiposInbox('cliente');
 
 function crearRes() {
     const res = {};

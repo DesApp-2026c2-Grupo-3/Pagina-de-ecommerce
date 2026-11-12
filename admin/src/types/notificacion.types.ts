@@ -1,53 +1,14 @@
-export type TipoNotificacion =
-  | 'pedido.creado'
-  | 'sucursal.cerrada'
-  | 'stock.bajo'
+import type { Notificacion } from '../notificaciones/catalogo'
 
-export interface DatosPedidoCreado {
-  pedidoId: number
-  usuarioId: number
-  sucursalId: number
-  estadoAnterior: null
-  estado: string
-  total: number
-  fecha: string
-}
-
-export interface DatosSucursalCerrada {
-  sucursalId: number
-  sucursalNombre: string
-}
-
-export interface DatosStockBajo {
-  sucursalId: number
-  sucursalNombre: string
-  insumoId: number
-  insumoNombre: string
-  cantidad: number
-  stockMinimo: number | null
-}
-
-interface NotificacionBase {
-  id: number
-  version: number
-  ocurridoEn: string
-  leida: boolean
-  leidaEn: string | null
-}
-
-export type Notificacion =
-  | (NotificacionBase & {
-      tipo: 'pedido.creado'
-      datos: DatosPedidoCreado
-    })
-  | (NotificacionBase & {
-      tipo: 'sucursal.cerrada'
-      datos: DatosSucursalCerrada
-    })
-  | (NotificacionBase & {
-      tipo: 'stock.bajo'
-      datos: DatosStockBajo
-    })
+export type {
+  BloqueSucursal,
+  DatosPedidoCreado,
+  DatosStockBajo,
+  DatosSucursalCerrada,
+  DatosSucursalModificadaPorAdmin,
+  Notificacion,
+  TipoNotificacion,
+} from '../notificaciones/catalogo'
 
 export interface PaginaNotificaciones {
   items: Notificacion[]
