@@ -1,0 +1,13 @@
+# Finales de línea: en el repositorio siempre LF, sin importar el sistema de cada uno
+* text=auto eol=lf
+
+# Binarios: no se tocan
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

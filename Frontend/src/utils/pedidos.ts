@@ -1,6 +1,8 @@
 import type { Order } from '../types/order'
 
 // "2× Hamburguesa Queso, 1× Papas" (corta si son muchos)
+// Lo que pagó el cliente: productos + envío
+export const totalConEnvio = (pedido: Order) => Number(pedido.total) + Number(pedido.costoEnvio ?? 0)
 export function resumenItems(pedido: Order, maximo = 3) {
   const partes = pedido.DetallePedidos.map((d) => `${d.cantidad}× ${d.Producto.nombre}`)
   const resto = partes.length - maximo

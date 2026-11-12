@@ -1,8 +1,16 @@
 jest.mock('../../../src/models', () => ({
-    Categoria: { findAll: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
+    Categoria: {
+        findAll: jest.fn(),
+        findByPk: jest.fn(),
+        create: jest.fn(),
+        count: jest.fn(),
+        max: jest.fn(),
+    },
+    Producto: { count: jest.fn() },
+    ComboGrupo: { count: jest.fn() },
 }));
 
-const { Categoria } = require('../../../src/models');
+const { Categoria, Producto, ComboGrupo } = require('../../../src/models');
 const {
     obtenerCategorias,
     crearCategoria,
@@ -20,6 +28,10 @@ function crearRes() {
 beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    Categoria.max.mockResolvedValue(0);
+    Categoria.count.mockResolvedValue(0);
+    Producto.count.mockResolvedValue(0);
+    ComboGrupo.count.mockResolvedValue(0);
 });
 
 describe('obtenerCategorias', () => {
@@ -50,7 +62,11 @@ describe('crearCategoria', () => {
 
         await crearCategoria({ body: { nombre: 'Postres' } }, res);
 
-        expect(Categoria.create).toHaveBeenCalledWith({ nombre: 'Postres' });
+        expect(Categoria.create).toHaveBeenCalledWith({
+            nombre: 'Postres',
+            categoriaPadreId: null,
+            orden: 10,
+        });
         expect(res.status).toHaveBeenCalledWith(201);
     });
 

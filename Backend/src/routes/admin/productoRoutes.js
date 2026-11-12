@@ -18,7 +18,8 @@ router.post('/nuevo', esMasterJwt, validarProducto, adminController.crearProduct
 router.patch('/editar/:id', esMasterJwt, validarProducto, esIdValido, adminController.editarProductoPorId);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminarProducto);
 router.get('/:id/stock', esMasterJwt, esIdValido, adminController.verStockProducto);
+// Inhabilitar / habilitar (el borrado lógico es el DELETE de /eliminar/:id)
+router.patch('/:id/disponibilidad', esMasterJwt, esIdValido, adminController.cambiarDisponibilidad);
 router.patch('/restaurar/:id', esMasterJwt, esIdValido, adminController.restaurarProducto);
-
 
 module.exports = router;

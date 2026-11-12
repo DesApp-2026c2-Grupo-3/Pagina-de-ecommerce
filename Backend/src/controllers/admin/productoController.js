@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { tamaniosDesdePrecio } = require('../../utils/tamanios');
 const {
     Producto,
@@ -22,13 +23,12 @@ async function borrarImagenSinUso(publicId) {
     if (enUso === 0) await borrarImagen(publicId);
 }
 
-const { Op } = require('sequelize');
-
 // Todo lo que compone un producto
 const INCLUIR_PARTES = [
     { model: RecetaInsumo, include: [{ model: Insumo, attributes: ['id', 'nombre', 'unidadMedida'] }] },
     { model: ProductoTamanio, as: 'tamanios', include: [{ model: Tamanio, attributes: ['nombre', 'orden'] }] },
     { model: ComboGrupo, as: 'grupos' },
+    { model: Producto, as: 'principal', attributes: ['id', 'nombre'], paranoid: false },
 ];
 
 // El producto como lo necesita el panel: receta, tamaños y grupos ordenados y con nombres
@@ -62,7 +62,18 @@ function formatear(producto) {
 
 // Controles que necesitan la base: que lo referenciado exista y tenga sentido.
 // Devuelve el mensaje de error, o '' si está todo bien.
-async function validarPartes({ receta, tamanios, grupos }, idPropio = null) {
+async function validarPartes({ receta, tamanios, grupos, productoPrincipalId }, idPropio = null) {
+    if (productoPrincipalId != null) {
+        if (idPropio && productoPrincipalId === idPropio) return 'Un combo no puede ser su propio producto principal';
+        const principal = await Producto.findByPk(productoPrincipalId, {
+            attributes: ['id', 'productoPrincipalId'],
+            include: [{ model: ComboGrupo, as: 'grupos', attributes: ['id'] }],
+        });
+        if (!principal) return 'El producto principal no existe';
+        if (principal.productoPrincipalId || principal.grupos.length > 0) {
+            return 'El producto principal no puede ser otro combo';
+        }
+    }    
     if (receta && receta.length > 0) {
         const ids = receta.map((r) => r.insumoId);
         const existentes = await Insumo.count({ where: { id: ids } });
@@ -156,7 +167,9 @@ async function nombreCategoria(categoriaId) {
 
 // Crea el producto con todas sus partes, o nada si algo falla
 const crearProducto = async (req, res) => {
-    const { receta = [], tamanios = [], grupos = [], ...datos } = req.body;
+    const { receta: recetaPedida = [], tamanios = [], grupos = [], ...datos } = req.body;
+    // Un combo con producto principal no tiene receta propia: usa la del principal
+    const receta = datos.productoPrincipalId ? [] : recetaPedida;    
     let t;
     let confirmado = false;
     try {
@@ -164,7 +177,7 @@ const crearProducto = async (req, res) => {
         const tamaniosFinales =
             tamanios.length > 0 ? tamaniosDesdePrecio(datos.precio, await nombreCategoria(datos.categoriaId)) : [];
 
-        const errorPartes = await validarPartes({ receta, tamanios: tamaniosFinales, grupos });
+        const errorPartes = await validarPartes({ receta, tamanios: tamaniosFinales, grupos, productoPrincipalId: datos.productoPrincipalId });        
         if (errorPartes) {
             return res.status(400).json({ code: errorPartes });
         }
@@ -187,7 +200,7 @@ const crearProducto = async (req, res) => {
 
 // Edita los datos, y reemplaza solo las partes que vienen en el pedido
 const editarProductoPorId = async (req, res) => {
-    const { receta, tamanios, grupos, ...datos } = req.body;
+    const { receta: recetaPedida, tamanios, grupos, ...datos } = req.body;    
     let t;
     let confirmado = false;
     try {
@@ -195,6 +208,11 @@ const editarProductoPorId = async (req, res) => {
         if (!producto) {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
+
+        
+        // Un combo con producto principal no tiene receta propia: usa la del principal
+        const principalId = datos.productoPrincipalId !== undefined ? datos.productoPrincipalId : producto.productoPrincipalId;
+        const receta = principalId ? [] : recetaPedida;
 
         // Los tamaños se rearman si vienen en el pedido, o si cambió el precio o la categoría
         // de un producto que ya los tiene. Si vienen vacíos (pasó a Simple), se borran.
@@ -211,7 +229,10 @@ const editarProductoPorId = async (req, res) => {
             }
         }
 
-        const errorPartes = await validarPartes({ receta, tamanios: tamaniosFinales, grupos }, producto.id);
+        const errorPartes = await validarPartes(
+            { receta, tamanios: tamaniosFinales, grupos, productoPrincipalId: datos.productoPrincipalId },
+            producto.id,
+        );        
         if (errorPartes) {
             return res.status(400).json({ code: errorPartes });
         }
@@ -254,6 +275,14 @@ const eliminarProducto = async (req, res) => {
             });
         }
 
+                // Tampoco si es el producto principal de un combo
+        const combosQueLoUsan = await Producto.count({ where: { productoPrincipalId: producto.id } });
+        if (combosQueLoUsan > 0) {
+            return res.status(409).json({
+                mensaje: 'Este producto es el principal de un combo. Cambiá o eliminá el combo antes de eliminarlo.',
+            });
+        }
+
         await producto.destroy();
         return res.status(200).json({ mensaje: 'Producto eliminado. Los pedidos anteriores lo conservan.' });
     } catch (error) {
@@ -276,7 +305,9 @@ const verStockProducto = async (req, res) => {
             order: [['nombre', 'ASC']],
         });
 
-        const receta = datos.receta.filter((r) => r.cantidadBase > 0);
+        // Un combo usa la receta de su producto principal
+        const principal = datos.productoPrincipalId ? await buscarCompleto(datos.productoPrincipalId) : null;
+        const receta = (principal ? formatear(principal) : datos).receta.filter((r) => r.cantidadBase > 0);        
         if (receta.length === 0) {
             return res.json({
                 id: datos.id,
@@ -320,6 +351,32 @@ const verStockProducto = async (req, res) => {
     }
 };
 
+// PATCH /admin/productos/:id/disponibilidad  { disponible: true | false }
+// Inhabilitar NO es borrar: el producto sigue en el admin y en la tienda (en gris, "No disponible"),
+// pero no se puede pedir. Se vuelve a habilitar con el mismo botón.
+const cambiarDisponibilidad = async (req, res) => {
+    try {
+        const { disponible } = req.body ?? {};
+        if (typeof disponible !== 'boolean') {
+            return res.status(400).json({ mensaje: 'Indicá si el producto queda disponible (true o false)' });
+        }
+
+        const producto = await Producto.findByPk(req.params.id);
+        if (!producto) {
+            return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        }
+
+        await producto.update({ disponible });
+        return res.status(200).json({
+            mensaje: disponible ? 'Producto habilitado' : 'Producto inhabilitado',
+            id: producto.id,
+            disponible,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ mensaje: 'Error al cambiar la disponibilidad del producto' });
+    }
+};
 
 const restaurarProducto = async (req, res) => {
     try {
@@ -353,7 +410,6 @@ const restaurarProducto = async (req, res) => {
     }
 };
 
-
 const obtenerProductosEliminados = async (req, res) => {
     try {
         const productos = await Producto.findAll({
@@ -361,8 +417,8 @@ const obtenerProductosEliminados = async (req, res) => {
             where: {
                 deletedAt: { [Op.ne]: null },
             },
-                include: INCLUIR_PARTES,
-                order: [['id', 'ASC']],
+            include: INCLUIR_PARTES,
+            order: [['id', 'ASC']],
         });
 
         return res.json(productos.map(formatear));
@@ -374,7 +430,6 @@ const obtenerProductosEliminados = async (req, res) => {
     }
 };
 
-
 module.exports = {
     obtenerProductos,
     obtenerProductoPorId,
@@ -384,4 +439,5 @@ module.exports = {
     verStockProducto,
     restaurarProducto,
     obtenerProductosEliminados,
+    cambiarDisponibilidad,
 };

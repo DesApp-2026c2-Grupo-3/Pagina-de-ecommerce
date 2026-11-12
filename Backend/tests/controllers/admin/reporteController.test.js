@@ -2,6 +2,7 @@ jest.mock('../../../src/models', () => ({
     Pedido: { findAll: jest.fn() },
     DetallePedido: { findAll: jest.fn() },
     Producto: { findAll: jest.fn() },
+    Categoria: { findAll: jest.fn() },
     Admin: { findByPk: jest.fn() },
     Sucursal: { findAll: jest.fn() },
     StockSucursal: { findAll: jest.fn() },
@@ -148,7 +149,7 @@ describe('obtenerProductosMenosVendidos', () => {
         await obtenerProductosMenosVendidos(pedidoAdmin(), res);
 
         expect(res.json).toHaveBeenCalledWith([
-            { productoId: 1, nombre: 'Agua', imagen: 'agua.png', unidadesVendidas: '0' },
+            { productoId: 1, nombre: 'Agua', imagen: 'agua.png', categoria: null, unidadesVendidas: '0' },
         ]);
     });
 
@@ -196,7 +197,7 @@ describe('obtenerProductosMayorFacturacion', () => {
         await obtenerProductosMayorFacturacion(pedidoAdmin(), res);
 
         expect(res.json).toHaveBeenCalledWith([
-            { productoId: 1, nombre: 'Clásica', imagen: 'clasica.png', facturacion: '25000' },
+            { productoId: 1, nombre: 'Clásica', imagen: 'clasica.png', categoria: null, facturacion: '25000' },
         ]);
     });
 

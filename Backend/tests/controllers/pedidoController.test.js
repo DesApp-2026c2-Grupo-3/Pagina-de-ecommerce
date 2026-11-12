@@ -26,8 +26,12 @@ jest.mock('../../src/notifications/handlers/stockHandlers', () => ({
 jest.mock('../../src/notifications/adminRefresco', () => ({
     emitirRefrescoAdmin: jest.fn(),
 }));
+jest.mock('../../src/utils/parametros', () => ({
+    obtenerParametros: jest.fn(),
+}));
 
 const models = require('../../src/models');
+const { obtenerParametros } = require('../../src/utils/parametros');
 const { notificarStockBajo } = require('../../src/notifications/handlers/stockHandlers');
 const { emitirRefrescoAdmin } = require('../../src/notifications/adminRefresco');
 const {
@@ -79,6 +83,17 @@ beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
+    obtenerParametros.mockResolvedValue({
+        maxPedidosEnCurso: 2,
+        radioEntregaKm: 10,
+        envioBase: 1200,
+        envioPorKm: 300,
+        preparacionBaseMin: 10,
+        preparacionPorProductoMin: 2,
+        viajeMinPorKm: 4,
+        margenDemoraMin: 5,
+    });
+
     Usuario.findByPk.mockResolvedValue({ id: 1 });
     Sucursal.findByPk.mockResolvedValue(sucursalMoron);
     Direccion.findOne.mockResolvedValue(direccionCercana);
@@ -115,7 +130,10 @@ describe('crearPedido', () => {
                 expect.objectContaining({ productoId: 10, cantidad: 2, precio: 5500 }),
                 expect.anything()
             );
-            expect(pedidoCreado.update).toHaveBeenCalledWith({ total: 11000 }, expect.anything());
+            expect(pedidoCreado.update).toHaveBeenCalledWith(
+                expect.objectContaining({ total: 11000 }),
+                expect.anything()
+            );
             expect(t.commit).toHaveBeenCalled();
             expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
                 dominio: 'stock',
@@ -424,7 +442,7 @@ describe('obtenerPedidos', () => {
 
 describe('obtenerPedidosPorUsuario', () => {
     test('devuelve los pedidos del usuario, del más nuevo al más viejo', async () => {
-        Pedido.findAll.mockResolvedValue([{ id: 5 }]);
+        Pedido.findAll.mockResolvedValue([{ id: 5, toJSON: () => ({ id: 5 }) }]);
         const res = crearRes();
 
         await obtenerPedidosPorUsuario({ params: { usuarioId: '1' } }, res);

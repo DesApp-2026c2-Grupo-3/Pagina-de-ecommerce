@@ -1,13 +1,13 @@
 import type { TipoPromo } from '../types/promocion.types'
 
-// Reglas de las promociones (las mismas que valida el backend)
-export const MAX_PROMOS_POR_DIA = 3
+// Reglas de las promociones (las mismas que valida el backend).
+// El máximo de promos por día se configura en Parámetros.
 
 export const TIPOS_PROMO: { valor: TipoPromo; titulo: string; detalle: string }[] = [
   { valor: 'SEMANA', titulo: 'Producto de la semana', detalle: 'Un producto con descuento todos los días. Hay uno solo activo.' },
   { valor: 'REGALO', titulo: 'Regalo de la semana', detalle: 'Un producto sin cargo con compra mínima. Hay uno solo activo.' },
-  { valor: 'DIA', titulo: 'Promo del día', detalle: `Vale solo los días que elijas. Hasta ${MAX_PROMOS_POR_DIA} activas por día.` },
-]
+    { valor: 'DIA', titulo: 'Promo del día', detalle: 'Vale solo los días que elijas. Hay un máximo de promos activas por día (se configura en Parámetros).' },
+  ]
 
 export const NOMBRE_TIPO: Record<TipoPromo, string> = {
   SEMANA: 'Producto de la semana',

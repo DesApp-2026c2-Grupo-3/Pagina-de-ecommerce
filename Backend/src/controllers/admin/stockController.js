@@ -44,7 +44,8 @@ const obtenerStockPorSucursal = async (req, res) => {
 
         const stock = await StockSucursal.findAll({
             where: { sucursalId },
-            include: [{ model: Insumo, attributes: ['id', 'nombre', 'unidadMedida', 'activo'] }],
+            // required: true → no muestra el stock de los insumos eliminados
+            include: [{ model: Insumo, attributes: ['id', 'nombre', 'unidadMedida', 'activo'], required: true }],            
             order: [[Insumo, 'nombre', 'ASC']],
         });
 
@@ -227,7 +228,8 @@ const obtenerMovimientos = async (req, res) => {
         const movimientos = await MovimientoStock.findAll({
             where: { sucursalId: req.params.id },
             include: [
-                { model: Insumo, attributes: ['nombre', 'unidadMedida'] },
+                // paranoid: false → el historial muestra también los insumos eliminados
+                { model: Insumo, attributes: ['nombre', 'unidadMedida'], paranoid: false },                
                 { model: Admin, attributes: ['nombre'] },
             ],
             order: [['createdAt', 'DESC']],

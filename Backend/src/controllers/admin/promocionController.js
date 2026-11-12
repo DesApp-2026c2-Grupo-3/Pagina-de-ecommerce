@@ -1,6 +1,8 @@
 const { Op } = require('sequelize');
 const { Promocion, PromocionItem, Producto, sequelize } = require('../../models');
-const { NOMBRES_DIAS, MAX_PROMOS_POR_DIA } = require('../../config/promociones');
+const { NOMBRES_DIAS } = require('../../config/promociones');
+// Máximo de promos por día: se edita desde el admin (Parámetros)
+const { obtenerParametros } = require('../../utils/parametros');
 const { incluirItems, aPromoAdmin } = require('../../utils/promociones');
 
 // Las promociones las arma y modifica solo el Admin-Master (todas las rutas pasan por esMasterJwt).
@@ -50,12 +52,13 @@ async function validarReglas(datos, idActual, transaction) {
         return;
     }
 
+    const { maxPromosPorDia } = await obtenerParametros(transaction);
     for (const dia of datos.dias) {
         const delDia = otras.filter((p) => p.tipo === 'DIA' && (p.dias ?? []).includes(dia));
-        if (delDia.length >= MAX_PROMOS_POR_DIA) {
+        if (delDia.length >= maxPromosPorDia) {
             throw new ErrorPromocion(
                 409,
-                `El ${NOMBRES_DIAS[dia].toLowerCase()} ya tiene ${MAX_PROMOS_POR_DIA} promos activas. Deshabilitá o cambiá de día alguna antes de sumar otra.`
+                `El ${NOMBRES_DIAS[dia].toLowerCase()} ya tiene ${maxPromosPorDia} promos activas. Deshabilitá o cambiá de día alguna antes de sumar otra.`
             );
         }
     }
@@ -220,9 +223,9 @@ const eliminarPromocion = async (req, res) => {
         if (!promocion) {
             return res.status(404).json({ mensaje: 'Promoción no encontrada' });
         }
-
+        // Borrado lógico (el modelo es paranoid): la fila queda, con deletedAt
         await promocion.destroy();
-        return res.status(200).json({ mensaje: 'Promoción eliminada con éxito' });
+        return res.status(200).json({ mensaje: 'Promoción eliminada. Los pedidos y reportes anteriores la conservan.' });
     } catch (error) {
         return responderError(res, error, 'Error al eliminar la promoción');
     }

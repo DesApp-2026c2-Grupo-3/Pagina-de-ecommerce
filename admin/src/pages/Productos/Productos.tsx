@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Boxes, Eye, Plus, Trash2, RotateCcw } from 'lucide-react'
+import { Ban, Boxes, CircleCheck, Eye, Plus, Trash2 } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
@@ -9,9 +9,8 @@ import { useToast } from '../../context/ToastContext'
 import { obtenerCategorias } from '../../services/categoriaService'
 import {
   obtenerProductos,
-  obtenerProductosEliminados,
   eliminarProducto as eliminarProductoAPI,
-  restaurarProducto,
+  cambiarDisponibilidad,
   verStockProducto,
 } from '../../services/productoService'
 
@@ -30,11 +29,12 @@ interface StockDeProducto {
 
 const POR_PAGINA = 8
 
+// Inhabilitado: se sigue viendo en la tienda (en gris, "No disponible") pero no se puede pedir
 function Disponibilidad({ disponible }: { disponible: boolean }) {
   return disponible ? (
-    <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Disponible</span>
+    <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Habilitado</span>
   ) : (
-    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Pausado</span>
+    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Inhabilitado</span>
   )
 }
 
@@ -50,25 +50,21 @@ export default function Productos() {
   const [aEliminar, setAEliminar] = useState<ProductoFila | null>(null)
   const [stockVisto, setStockVisto] = useState<StockDeProducto | null>(null)
 
-  const [vista, setVista] = useState<'activos' | 'eliminados'>('activos')
-
   // Filtros
   const [busqueda, setBusqueda] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState('todas')
   const [filtroDisponibilidad, setFiltroDisponibilidad] = useState('todas')
 
+  // Los eliminados (borrado lógico) no vienen: el backend solo devuelve los que no tienen deletedAt
   useEffect(() => {
-  const cargarProductos = vista === 'activos'
-    ? obtenerProductos()
-    : obtenerProductosEliminados()
-
-  cargarProductos
-    .then(setProductos)
-    .catch((error) => {
-      console.error('Error al cargar productos:', error)
-      mostrarToast('No se pudieron cargar los productos')
-    })
-}, [vista])
+    obtenerProductos()
+      .then(setProductos)
+      .catch((error) => {
+        console.error('Error al cargar productos:', error)
+        mostrarToast('No se pudieron cargar los productos')
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
 
 useEffect(() => {
@@ -88,7 +84,7 @@ useEffect(() => {
     (p) =>
       p.nombre.toLowerCase().includes(texto) &&
       (filtroCategoria === 'todas' || String(p.categoriaId) === filtroCategoria) &&
-      (filtroDisponibilidad === 'todas' || (filtroDisponibilidad === 'disponibles') === p.disponible),
+      (filtroDisponibilidad === 'todas' || (filtroDisponibilidad === 'habilitados') === p.disponible),
   )
   const pagina = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
   const hayFiltros = busqueda !== '' || filtroCategoria !== 'todas' || filtroDisponibilidad !== 'todas'
@@ -106,15 +102,17 @@ useEffect(() => {
     }
   }
 
-  async function restaurar(id: number) {
-  try {
-    await restaurarProducto(id)
-    setProductos((prev) => prev.filter((p) => p.id !== id))
-    mostrarToast('Producto restaurado con éxito')
-  } catch (error) {
-    mostrarToast(error instanceof Error ? error.message : 'No se pudo restaurar el producto')
+  // Inhabilitar / habilitar: el producto no se borra, solo cambia "disponible"
+  async function alternarDisponibilidad(producto: ProductoFila) {
+    const nuevo = !producto.disponible
+    try {
+      await cambiarDisponibilidad(producto.id, nuevo)
+      setProductos((prev) => prev.map((p) => (p.id === producto.id ? { ...p, disponible: nuevo } : p)))
+      mostrarToast(nuevo ? 'Producto habilitado!' : 'Producto inhabilitado!')
+    } catch (error) {
+      mostrarToast(error instanceof Error ? error.message : 'No se pudo cambiar la disponibilidad')
+    }
   }
-}
 
   async function verStock(producto: ProductoFila) {
     try {
@@ -124,54 +122,55 @@ useEffect(() => {
     }
   }
 
-  // Los tres botones, iguales en celular y escritorio
+  // Los botones, iguales en celular y escritorio
   const acciones = (p: ProductoFila) => (
-  <div className="flex shrink-0 gap-2">
-    {vista === 'activos' ? (
-      <>
-        <button
-          type="button"
-          onClick={() => navigate(`/admin/productos/editar/${p.id}`)}
-          aria-label={`Ver detalles de ${p.nombre}`}
-          title="Ver detalles"
-          className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
-        >
-          <Eye size={18} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => verStock(p)}
-          aria-label={`Ver stock de ${p.nombre}`}
-          title="Ver stock"
-          className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
-        >
-          <Boxes size={18} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setAEliminar(p)}
-          aria-label={`Eliminar ${p.nombre}`}
-          title="Eliminar"
-          className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
-        >
-          <Trash2 size={18} />
-        </button>
-      </>
-    ) : (
+    <div className="flex shrink-0 gap-2">
       <button
         type="button"
-        onClick={() => restaurar(p.id)}
-        aria-label={`Restaurar ${p.nombre}`}
-        title="Restaurar producto"
+        onClick={() => navigate(`/admin/productos/editar/${p.id}`)}
+        aria-label={`Ver detalles de ${p.nombre}`}
+        title="Ver detalles"
         className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
       >
-        <RotateCcw size={18} />
+        <Eye size={18} />
       </button>
-    )}
-  </div>
-)
+
+      <button
+        type="button"
+        onClick={() => verStock(p)}
+        aria-label={`Ver stock de ${p.nombre}`}
+        title="Ver stock"
+        className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
+      >
+        <Boxes size={18} />
+      </button>
+
+      {/* Inhabilitar / habilitar: se puede deshacer con el mismo botón */}
+      <button
+        type="button"
+        onClick={() => alternarDisponibilidad(p)}
+        aria-label={`${p.disponible ? 'Inhabilitar' : 'Habilitar'} ${p.nombre}`}
+        title={p.disponible ? 'Inhabilitar' : 'Habilitar'}
+        className={`${botonIcono} ${
+          p.disponible ? 'bg-gray-200 text-gray-700 hover:text-gray-900' : 'bg-emerald-200 text-success hover:text-success-hover'
+        }`}
+      >
+        {p.disponible ? <Ban size={18} /> : <CircleCheck size={18} />}
+      </button>
+
+      {/* Eliminar: borrado lógico, no se puede deshacer desde el panel */}
+      <button
+        type="button"
+        onClick={() => setAEliminar(p)}
+        aria-label={`Eliminar ${p.nombre}`}
+        title="Eliminar"
+        className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  )
+
   return (
     <main className="p-8">
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -193,38 +192,6 @@ useEffect(() => {
         </button>
       </div>
 
-      <div className="mb-5 flex gap-2">
-  <button
-    type="button"
-    onClick={() => {
-      setVista('activos')
-      setPaginaActual(1)
-    }}
-    className={`rounded-lg px-4 py-2 font-medium transition-colors ${
-      vista === 'activos'
-        ? 'bg-orange-500 text-white'
-        : 'border bg-white text-gray-700 hover:bg-gray-50'
-    }`}
-  >
-    Productos activos
-  </button>
-
-  <button
-    type="button"
-    onClick={() => {
-      setVista('eliminados')
-      setPaginaActual(1)
-    }}
-    className={`rounded-lg px-4 py-2 font-medium transition-colors ${
-      vista === 'eliminados'
-        ? 'bg-orange-500 text-white'
-        : 'border bg-white text-gray-700 hover:bg-gray-50'
-    }`}
-  >
-    Productos eliminados
-  </button>
-</div>
-
       <BarraFiltros>
         <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar producto..." />
         <SelectFiltro
@@ -242,8 +209,8 @@ useEffect(() => {
           etiqueta="Filtrar por disponibilidad"
           opciones={[
             { valor: 'todas', etiqueta: 'Todos' },
-            { valor: 'disponibles', etiqueta: 'Disponibles' },
-            { valor: 'pausados', etiqueta: 'Pausados' },
+            { valor: 'habilitados', etiqueta: 'Habilitados' },
+            { valor: 'inhabilitados', etiqueta: 'Inhabilitados' },
           ]}
         />
       </BarraFiltros>
@@ -275,7 +242,7 @@ useEffect(() => {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left">Nombre</th>
-                  <th className="px-6 py-3 text-left">Disponibilidad</th>
+                  <th className="px-6 py-3 text-left">Estado</th>
                   <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -306,7 +273,9 @@ useEffect(() => {
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}
-        mensaje={`¿Eliminar ${aEliminar?.nombre ?? 'este producto'}? Deja de verse en la tienda, pero los pedidos anteriores lo conservan.`}
+        titulo="Eliminar producto"
+        textoConfirmar="Eliminar"
+        mensaje={`¿Eliminar ${aEliminar?.nombre ?? 'este producto'}? Deja de verse en la tienda y en este panel, y no se puede deshacer. Los pedidos y reportes anteriores lo siguen mostrando. Si solo querés sacarlo de la venta por un tiempo, usá "Inhabilitar".`}
         onConfirmar={eliminar}
         onCancelar={() => setAEliminar(null)}
       />

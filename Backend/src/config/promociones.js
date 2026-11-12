@@ -18,9 +18,6 @@ const TIPOS_PROMO = {
   DIA: 'DIA',       // promos de cada día
 };
 
-// Promos del día que puede haber activas a la vez en un mismo día
-const MAX_PROMOS_POR_DIA = 3;
-
 /** Día de la semana de hoy en Argentina (0 = domingo) */
 function diaDeHoy(fecha = new Date()) {
   const corto = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: ZONA_HORARIA }).format(fecha);
@@ -34,6 +31,6 @@ const vigenteHoy = (promo, fecha) => !promo.dias || promo.dias.length === 0 || p
 const aplicarDescuento = (precio, descuento) => Math.round(precio * (1 - descuento));
 
 module.exports = {
-  ZONA_HORARIA, NOMBRES_DIAS, TIPOS_PROMO, MAX_PROMOS_POR_DIA,
+  ZONA_HORARIA, NOMBRES_DIAS, TIPOS_PROMO,
   diaDeHoy, vigenteHoy, aplicarDescuento,
 };

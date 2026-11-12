@@ -9,6 +9,8 @@ const { autenticarUsuario } = require('../middleware/autenticacion');
 router.get('/', pedidoController.obtenerPedidos);
 router.post('/', validarPedido, pedidoController.crearPedido);
 router.get('/cliente/:id', esIdValido, autenticarUsuario, pedidoController.obtenerPedidoClienteId);
+// Antes de confirmar: costo de envío y tiempo estimado
+router.post('/cotizar', pedidoController.cotizarEnvio);
 router.get('/:id', pedidoController.obtenerPedidoId);
 router.get('/usuario/:usuarioId', pedidoController.obtenerPedidosPorUsuario);
 router.get('/:id/repetir', esIdValido, repetirPedido);

@@ -1,8 +1,12 @@
 jest.mock('../../src/models', () => ({
     Sucursal: { findAll: jest.fn() },
 }));
+jest.mock('../../src/utils/parametros', () => ({
+    obtenerParametros: jest.fn(),
+}));
 
 const { Sucursal } = require('../../src/models');
+const { obtenerParametros } = require('../../src/utils/parametros');
 const { obtenerSucursales } = require('../../src/controllers/sucursalController');
 
 function crearRes() {
@@ -15,11 +19,12 @@ function crearRes() {
 beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    obtenerParametros.mockResolvedValue({ radioEntregaKm: 10 });
 });
 
 describe('obtenerSucursales', () => {
     test('devuelve solo las sucursales activas, ordenadas por nombre', async () => {
-        const sucursales = [{ id: 1, nombre: 'Centro' }];
+        const sucursales = [{ id: 1, nombre: 'Centro', toJSON: () => ({ id: 1, nombre: 'Centro' }) }];
         Sucursal.findAll.mockResolvedValue(sucursales);
         const res = crearRes();
 
@@ -28,7 +33,9 @@ describe('obtenerSucursales', () => {
         expect(Sucursal.findAll).toHaveBeenCalledWith(
             expect.objectContaining({ where: { activa: true }, order: [['nombre', 'ASC']] })
         );
-        expect(res.json).toHaveBeenCalledWith(sucursales);
+        expect(res.json).toHaveBeenCalledWith([
+            { id: 1, nombre: 'Centro', radioEntregaKm: 10 },
+        ]);
     });
 
     test('no expone datos internos (es un endpoint público)', async () => {

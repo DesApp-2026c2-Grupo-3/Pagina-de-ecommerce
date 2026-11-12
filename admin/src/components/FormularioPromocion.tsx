@@ -1,14 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
 import { obtenerProductos } from '../services/productoService'
-import { DIAS, MAX_PROMOS_POR_DIA, TIPOS_PROMO } from '../config/promociones'
+import { deshabilitarPromocion, obtenerPromociones } from '../services/promocionService'
+import { obtenerParametros } from '../services/parametroService'
+import { DIAS, NOMBRE_TIPO, TIPOS_PROMO } from '../config/promociones'
 import type { PromocionAdmin, TipoPromo } from '../types/promocion.types'
 
 // ---------- Tipos del formulario (los números van como texto mientras se escriben) ----------
 
+// Cada fila es UNA unidad. Para un 2×1 se agrega el mismo producto dos veces.
 export interface FilaItem {
   productoId: string
-  cantidad: string
   // En porcentaje, de 0 a 100 (0 = va a precio de lista, 100 = gratis)
   descuento: string
   // Nombre del producto eliminado que tenía la fila: hay que elegir otro
@@ -18,10 +20,8 @@ export interface FilaItem {
 export interface DatosPromocion {
   tipo: TipoPromo
   titulo: string
-  destacado: string
   detalle: string
   dias: number[]
-  maxPorPedido: string
   compraMinima: string
   activo: boolean
   items: FilaItem[]
@@ -33,9 +33,11 @@ interface ProductoOpcion {
   precio: number
 }
 
+// El producto y el regalo de la semana son un solo producto, de a una unidad
+const unSoloProducto = (tipo: TipoPromo) => tipo === 'SEMANA' || tipo === 'REGALO'
+
 const filaVacia = (tipo: TipoPromo): FilaItem => ({
   productoId: '',
-  cantidad: '1',
   descuento: tipo === 'REGALO' ? '100' : '',
   eliminado: '',
 })
@@ -43,10 +45,8 @@ const filaVacia = (tipo: TipoPromo): FilaItem => ({
 export const promocionVacia: DatosPromocion = {
   tipo: 'DIA',
   titulo: '',
-  destacado: '',
   detalle: '',
   dias: [],
-  maxPorPedido: '',
   compraMinima: '',
   activo: true,
   items: [filaVacia('DIA')],
@@ -54,42 +54,76 @@ export const promocionVacia: DatosPromocion = {
 
 const aPorcentaje = (descuento: number) => String(Math.round(descuento * 1000) / 10)
 
-// De la promo que devuelve el backend (GET /admin/promociones/:id) al formulario
+// De la promo que devuelve el backend al formulario: cada producto se abre en tantas filas como unidades tenga
 export function desdePromocion(p: PromocionAdmin): DatosPromocion {
   return {
     tipo: p.tipo,
     titulo: p.titulo,
-    destacado: p.destacado,
     detalle: p.detalle,
     dias: p.dias,
-    maxPorPedido: p.maxPorPedido ? String(p.maxPorPedido) : '',
     compraMinima: p.compraMinima ? String(p.compraMinima) : '',
     activo: p.activo,
-    items: p.items.map((i) => ({
-      productoId: i.eliminado ? '' : String(i.productoId),
-      cantidad: String(i.cantidad),
-      descuento: aPorcentaje(i.descuento),
-      eliminado: i.eliminado ? (i.nombre ?? 'un producto') : '',
-    })),
+    items: p.items.flatMap((i) =>
+      Array.from({ length: i.cantidad }, () => ({
+        productoId: i.eliminado ? '' : String(i.productoId),
+        descuento: aPorcentaje(i.descuento),
+        eliminado: i.eliminado ? (i.nombre ?? 'un producto') : '',
+      })),
+    ),
   }
+}
+
+// Las filas del mismo producto se juntan en una, con la cantidad y el descuento promedio
+// (la base no permite el mismo producto dos veces en una promo). El cliente paga lo mismo:
+// 1 al 0 % + 1 al 100 % = 2 al 50 %.
+function agrupar(filas: FilaItem[]) {
+  const porProducto = new Map<number, { cantidad: number; sumaDescuento: number }>()
+  for (const fila of filas) {
+    const id = Number(fila.productoId)
+    const actual = porProducto.get(id) ?? { cantidad: 0, sumaDescuento: 0 }
+    porProducto.set(id, { cantidad: actual.cantidad + 1, sumaDescuento: actual.sumaDescuento + Number(fila.descuento) })
+  }
+  return [...porProducto.entries()].map(([productoId, { cantidad, sumaDescuento }]) => ({
+    productoId,
+    cantidad,
+    // En porcentaje, con un decimal (33,3 %)
+    descuento: Math.round((sumaDescuento / cantidad) * 10) / 10,
+  }))
+}
+
+// Lo que va en el círculo, según los descuentos: "Gratis", "2×1", "3×2", "20%" o "Hasta 50%"
+function armarDestacado(items: { cantidad: number; descuento: number }[]): string {
+  if (items.every((i) => i.descuento === 100)) return 'Gratis'
+
+  if (items.length === 1 && items[0].cantidad >= 2) {
+    const { cantidad, descuento } = items[0]
+    const sePagan = cantidad * (1 - descuento / 100)
+    const redondo = Math.round(sePagan)
+    if (redondo >= 1 && redondo < cantidad && Math.abs(sePagan - redondo) < 0.05) return `${cantidad}×${redondo}`
+  }
+
+  const conDescuento = items.filter((i) => i.descuento > 0).map((i) => Math.round(i.descuento))
+  const maximo = Math.max(...conDescuento)
+  return conDescuento.every((d) => d === maximo) ? `${maximo}%` : `Hasta ${maximo}%`
 }
 
 // Del formulario a lo que espera el backend. Lo que no corresponde al tipo de promo se manda vacío.
 export function aPedido(d: DatosPromocion) {
-  const llevaLimites = d.tipo !== 'SEMANA'
+  const items = agrupar(d.items)
   return {
     tipo: d.tipo,
     titulo: d.titulo.trim(),
-    destacado: d.destacado.trim(),
+    destacado: armarDestacado(items),
     detalle: d.detalle.trim(),
     dias: d.tipo === 'DIA' ? d.dias : null,
-    maxPorPedido: llevaLimites && d.maxPorPedido !== '' ? Number(d.maxPorPedido) : null,
-    compraMinima: llevaLimites && d.compraMinima !== '' ? Number(d.compraMinima) : null,
+    // El regalo y la promo del día se piden una sola vez por pedido; el producto de la semana, sin límite
+    maxPorPedido: d.tipo === 'SEMANA' ? null : 1,
+    compraMinima: d.tipo !== 'SEMANA' && d.compraMinima !== '' ? Number(d.compraMinima) : null,
     activo: d.activo,
-    items: d.items.map((i) => ({
-      productoId: Number(i.productoId),
-      cantidad: Number(i.cantidad),
-      descuento: Number(i.descuento) / 100,
+    items: items.map((i) => ({
+      productoId: i.productoId,
+      cantidad: i.cantidad,
+      descuento: Math.round(i.descuento * 10) / 1000,
     })),
   }
 }
@@ -97,65 +131,34 @@ export function aPedido(d: DatosPromocion) {
 // Devuelve el primer error que encuentre, o '' si está todo bien (las mismas reglas que el backend)
 function validar(d: DatosPromocion): string {
   if (d.titulo.trim().length < 3) return 'El título debe tener al menos 3 caracteres.'
-  if (d.destacado.trim() === '') return 'Escribí lo que va en el círculo (por ejemplo 2×1, 20% o Gratis).'
-  if (d.destacado.trim().length > 10) return 'Lo que va en el círculo no puede superar los 10 caracteres.'
-  if (d.detalle.trim().length < 5) return 'El detalle debe tener al menos 5 caracteres.'
+  if (d.detalle.trim().length < 5) return 'Escribí un detalle de al menos 5 caracteres.'
   if (d.tipo === 'DIA' && d.dias.length === 0) return 'Elegí al menos un día para la promo.'
+  if (d.items.length === 0) return 'Agregá al menos un producto.'
 
   for (const [i, fila] of d.items.entries()) {
     const n = i + 1
-    if (fila.productoId === '') {
-      return fila.eliminado
-        ? `El producto "${fila.eliminado}" fue eliminado: elegí otro en la fila ${n}.`
-        : `Elegí el producto de la fila ${n}.`
-    }
-    const cantidad = Number(fila.cantidad)
-    if (fila.cantidad === '' || !Number.isInteger(cantidad) || cantidad < 1 || cantidad > 20) {
-      return `La cantidad de la fila ${n} debe ser un número entero de 1 a 20.`
-    }
+    if (fila.productoId === '') return `Elegí el producto de la fila ${n}.`
     const descuento = Number(fila.descuento)
     if (fila.descuento === '' || Number.isNaN(descuento) || descuento < 0 || descuento > 100) {
-      return `El descuento de la fila ${n} debe ser un número de 0 a 100 (0 si va a precio de lista).`
+      return `El descuento de la fila ${n} debe ser un número de 0 a 100.`
     }
   }
 
-  const ids = d.items.map((i) => i.productoId)
-  if (new Set(ids).size !== ids.length) return 'Un producto no puede repetirse en la promo: subí la cantidad en su fila.'
-  if (!d.items.some((i) => Number(i.descuento) > 0)) return 'Al menos un producto de la promo tiene que tener descuento.'
-
-  if (d.tipo === 'SEMANA' && (d.items.length !== 1 || d.items[0].cantidad !== '1')) {
-    return 'El producto de la semana es un solo producto, de a una unidad.'
+  if (!d.items.some((i) => Number(i.descuento) > 0)) return 'Al menos un producto tiene que tener descuento.'
+  if (agrupar(d.items).some((i) => i.cantidad > 20)) return 'Un mismo producto no puede repetirse más de 20 veces.'
+  if (unSoloProducto(d.tipo) && d.items.length !== 1) {
+    return `El ${NOMBRE_TIPO[d.tipo].toLowerCase()} es un solo producto, de a una unidad.`
   }
-  if (d.tipo === 'REGALO' && d.items.some((i) => Number(i.descuento) !== 100)) {
-    return 'En el regalo de la semana todos los productos van sin cargo (100 %).'
-  }
+  if (d.tipo === 'REGALO' && Number(d.items[0].descuento) !== 100) return 'El regalo de la semana va sin cargo (100 %).'
 
-  if (d.tipo !== 'SEMANA') {
-    if (d.maxPorPedido !== '') {
-      const max = Number(d.maxPorPedido)
-      if (!Number.isInteger(max) || max < 1 || max > 10) return 'El máximo por pedido debe ser un número entero de 1 a 10.'
-    }
-    if (d.compraMinima !== '') {
-      const minima = Number(d.compraMinima)
-      if (!Number.isInteger(minima) || minima < 0 || minima > 1000000) {
-        return 'La compra mínima debe ser un número entero de 0 a 1.000.000.'
-      }
+  if (d.tipo !== 'SEMANA' && d.compraMinima !== '') {
+    const minima = Number(d.compraMinima)
+    if (!Number.isInteger(minima) || minima < 0 || minima > 1000000) {
+      return 'La compra mínima debe ser un número entero entre 0 y 1.000.000.'
     }
   }
 
   return ''
-}
-
-// Lo que va en el círculo, según los descuentos cargados
-function sugerirDestacado(items: FilaItem[]): string {
-  const conDescuento = items.filter((i) => Number(i.descuento) > 0)
-  if (conDescuento.length === 0) return ''
-  const porcentajes = [...new Set(conDescuento.map((i) => Number(i.descuento)))]
-  if (porcentajes.length !== 1) return ''
-  const porcentaje = porcentajes[0]
-  if (porcentaje === 100) return 'Gratis'
-  if (porcentaje === 50 && conDescuento.length === 1 && Number(conDescuento[0].cantidad) === 2) return '2×1'
-  return `${porcentaje}%`
 }
 
 const formatearPrecio = (n: number) => `$${n.toLocaleString('es-AR')}`
@@ -166,31 +169,29 @@ const tarjeta = 'rounded-lg border bg-white p-5'
 const botonAgregar =
   'inline-flex items-center gap-1 rounded border border-orange-300 px-3 py-1.5 text-sm font-semibold text-action hover:bg-orange-50'
 const botonQuitar = 'rounded border bg-red-200 p-2 text-danger hover:text-danger-hover'
-const chip = 'rounded-full border px-3 py-1 text-xs font-semibold transition-colors'
 
-const DESCUENTOS_RAPIDOS = [
-  { valor: '0', etiqueta: 'Precio de lista' },
-  { valor: '20', etiqueta: '20%' },
-  { valor: '25', etiqueta: '25%' },
-  { valor: '30', etiqueta: '30%' },
-  { valor: '50', etiqueta: '50%' },
-  { valor: '100', etiqueta: 'Gratis' },
-]
+// Se muestran al hacer clic en el campo de descuento (también se puede escribir otro valor)
+const DESCUENTOS_SUGERIDOS = [0, 20, 25, 30, 50, 100]
 
 interface FormularioPromocionProps {
   inicial: DatosPromocion
   textoBoton: string
+  /** Al editar: el id de la promo, para no contarla entre las que ya están activas */
+  idPropio?: number
   onGuardar: (datos: DatosPromocion) => Promise<void>
   onCancelar: () => void
 }
 
-export default function FormularioPromocion({ inicial, textoBoton, onGuardar, onCancelar }: FormularioPromocionProps) {
+export default function FormularioPromocion({ inicial, textoBoton, idPropio, onGuardar, onCancelar }: FormularioPromocionProps) {
   const [datos, setDatos] = useState<DatosPromocion>(inicial)
   const [productos, setProductos] = useState<ProductoOpcion[]>([])
+  // Las otras promos (para avisar antes de guardar si ya hay una activa del mismo tipo o el día está lleno)
+  const [promos, setPromos] = useState<PromocionAdmin[]>([])
+  const [maxPorDia, setMaxPorDia] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
 
-  // Los productos que se pueden sumar a la promo (los eliminados no vienen)
+  // Los productos que se pueden sumar a la promo (los eliminados no vienen), las promos y el máximo por día
   useEffect(() => {
     obtenerProductos()
       .then((lista: any[]) =>
@@ -201,7 +202,32 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
         ),
       )
       .catch(() => setError('No se pudo cargar la lista de productos. Revisá que el backend esté funcionando.'))
+    obtenerPromociones()
+      .then(setPromos)
+      .catch(() => setPromos([]))
+    obtenerParametros()
+      .then((p) => setMaxPorDia(p.maxPromosPorDia))
+      .catch(() => setMaxPorDia(null))
   }, [])
+
+  // ---------- Avisos de antemano ----------
+  const otrasActivas = promos.filter((p) => p.activo && p.id !== idPropio)
+  // Producto o regalo de la semana: hay uno solo activo
+  const activaDelTipo = unSoloProducto(datos.tipo) ? otrasActivas.find((p) => p.tipo === datos.tipo) : undefined
+  // Promos del día: cuántas activas tiene cada día
+  const activasDelDia = (dia: number) => otrasActivas.filter((p) => p.tipo === 'DIA' && p.dias.includes(dia)).length
+  const diaLleno = (dia: number) => maxPorDia !== null && activasDelDia(dia) >= maxPorDia
+  const diasLlenosElegidos = datos.tipo === 'DIA' ? datos.dias.filter(diaLleno) : []
+
+  async function desactivarAnterior(promo: PromocionAdmin) {
+    try {
+      await deshabilitarPromocion(promo.id)
+      setPromos((prev) => prev.map((p) => (p.id === promo.id ? { ...p, activo: false } : p)))
+      setError('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo desactivar la promo anterior.')
+    }
+  }
 
   function cambiar<K extends keyof DatosPromocion>(clave: K, valor: DatosPromocion[K]) {
     setDatos((prev) => ({ ...prev, [clave]: valor }))
@@ -212,14 +238,13 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
   function cambiarTipo(tipo: TipoPromo) {
     setDatos((prev) => {
       let items = prev.items
-      if (tipo === 'SEMANA') items = items.slice(0, 1).map((i) => ({ ...i, cantidad: '1' }))
+      if (unSoloProducto(tipo)) items = items.slice(0, 1)
       if (tipo === 'REGALO') items = items.map((i) => ({ ...i, descuento: '100' }))
       return {
         ...prev,
         tipo,
         items,
         dias: tipo === 'DIA' ? prev.dias : [],
-        maxPorPedido: tipo === 'SEMANA' ? '' : tipo === 'REGALO' && prev.maxPorPedido === '' ? '1' : prev.maxPorPedido,
         compraMinima: tipo === 'SEMANA' ? '' : prev.compraMinima,
       }
     })
@@ -265,22 +290,28 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
   const esRegalo = datos.tipo === 'REGALO'
   const esDia = datos.tipo === 'DIA'
 
-  // Referencia de precios con lo que ya está cargado (precio de lista del producto)
+  // Totales de la promo (precio de lista contra precio con la promo)
   const filasConPrecio = datos.items.map((fila) => {
     const producto = productos.find((p) => String(p.id) === fila.productoId)
-    const cantidad = Number(fila.cantidad) || 0
-    const descuento = Math.min(Math.max(Number(fila.descuento) || 0, 0), 100) / 100
-    return { producto, cantidad, descuento }
+    const descuento = (Number(fila.descuento) || 0) / 100
+    return { producto, descuento }
   })
-  const todasConPrecio = filasConPrecio.length > 0 && filasConPrecio.every((f) => f.producto && f.cantidad > 0)
-  const totalLista = filasConPrecio.reduce((s, f) => s + (f.producto ? f.producto.precio * f.cantidad : 0), 0)
+  const todasConPrecio = filasConPrecio.length > 0 && filasConPrecio.every((f) => f.producto)
+  const totalLista = filasConPrecio.reduce((s, f) => s + (f.producto ? f.producto.precio : 0), 0)
   const totalPromo = filasConPrecio.reduce(
-    (s, f) => s + (f.producto ? Math.round(f.producto.precio * (1 - f.descuento)) * f.cantidad : 0),
+    (s, f) => s + (f.producto ? Math.round(f.producto.precio * (1 - f.descuento)) : 0),
     0,
   )
 
   return (
     <form onSubmit={enviar} noValidate className="flex max-w-3xl flex-col gap-6">
+      {/* Opciones del campo de descuento: aparecen al hacer clic */}
+      <datalist id="descuentos-sugeridos">
+        {DESCUENTOS_SUGERIDOS.map((d) => (
+          <option key={d} value={d} label={d === 0 ? 'Precio de lista' : d === 100 ? 'Gratis' : `${d}%`} />
+        ))}
+      </datalist>
+
       {/* ---------- Tipo ---------- */}
       <section className={tarjeta}>
         <h2 className="mb-3 text-lg font-bold">¿Qué tipo de promo es?</h2>
@@ -305,6 +336,24 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
             </label>
           ))}
         </div>
+
+        {/* Ya hay uno activo: se avisa antes de armar el nuevo, y se puede desactivar desde acá */}
+        {activaDelTipo && datos.activo && (
+          <div role="alert" className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <AlertTriangle size={18} className="shrink-0" />
+            <p className="min-w-0 flex-1">
+              Ya hay un {NOMBRE_TIPO[datos.tipo].toLowerCase()} activo: <strong>"{activaDelTipo.titulo}"</strong>. Para
+              guardar esta como activa, hay que desactivar el anterior.
+            </p>
+            <button
+              type="button"
+              onClick={() => void desactivarAnterior(activaDelTipo)}
+              className="shrink-0 rounded border border-amber-400 bg-white px-3 py-1.5 font-semibold hover:bg-amber-100"
+            >
+              Desactivarlo ahora
+            </button>
+          </div>
+        )}
       </section>
 
       {/* ---------- Datos que ve el cliente ---------- */}
@@ -335,39 +384,9 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
             placeholder="Ej: Llevás dos Fast Classic y pagás una."
             className={campo}
           />
-        </div>
-
-        <div>
-          <label htmlFor="promo-destacado" className="mb-1 block font-medium">Lo que va en el círculo</label>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              id="promo-destacado"
-              type="text"
-              value={datos.destacado}
-              maxLength={10}
-              onChange={(e) => cambiar('destacado', e.target.value)}
-              placeholder="2×1, 20%, Gratis"
-              className="w-40 rounded border p-2"
-            />
-            <button
-              type="button"
-              onClick={() => cambiar('destacado', sugerirDestacado(datos.items))}
-              className={`${chip} hover:bg-gray-50`}
-            >
-              Sugerir según los descuentos
-            </button>
-          </div>
-        </div>
-
-        {/* Vista previa del círculo y el texto */}
-        <div className="flex items-center gap-4 rounded-lg border bg-gray-50 p-4">
-          <div className="grid h-20 w-20 shrink-0 -rotate-12 place-items-center rounded-full border-[3px] border-gray-900 bg-yellow-300 px-1 text-center text-xl font-extrabold leading-none">
-            {datos.destacado.trim() || '—'}
-          </div>
-          <div className="min-w-0">
-            <p className="font-bold">{datos.titulo.trim() || 'Título de la promo'}</p>
-            <p className="text-sm text-gray-600">{datos.detalle.trim() || 'El detalle de la promo se ve acá.'}</p>
-          </div>
+          <p className="mt-1 text-sm text-gray-600">
+            El círculo de la promo ("2×1", "20%", "Gratis") se arma solo con los descuentos de abajo.
+          </p>
         </div>
       </section>
 
@@ -376,27 +395,49 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
         <section className={tarjeta}>
           <h2 className="mb-1 text-lg font-bold">¿Qué días vale?</h2>
           <p className="mb-3 text-sm text-gray-600">
-            Cada día puede tener hasta {MAX_PROMOS_POR_DIA} promos activas. Se pide solo esos días.
+            {maxPorDia !== null
+              ? `Cada día admite hasta ${maxPorDia} promos activas (se configura en Parámetros).`
+              : 'Cada día tiene un máximo de promos activas (se configura en Parámetros).'}
           </p>
           <div className="flex flex-wrap gap-2">
             {DIAS.map((d) => {
               const elegido = datos.dias.includes(d.valor)
+              const lleno = diaLleno(d.valor)
               return (
                 <button
                   key={d.valor}
                   type="button"
                   aria-pressed={elegido}
-                  title={d.nombre}
+                  title={lleno ? `${d.nombre}: ya tiene el máximo de promos activas` : d.nombre}
                   onClick={() => alternarDia(d.valor)}
-                  className={`min-w-14 rounded-lg border px-3 py-2 font-semibold transition-colors ${
-                    elegido ? 'border-orange-400 bg-orange-500 text-white' : 'bg-white hover:bg-gray-50'
+                  className={`min-w-16 rounded-lg border px-3 py-2 font-semibold transition-colors ${
+                    elegido
+                      ? lleno
+                        ? 'border-red-400 bg-red-500 text-white'
+                        : 'border-orange-400 bg-orange-500 text-white'
+                      : lleno
+                        ? 'border-red-200 bg-red-50 text-red-700'
+                        : 'bg-white hover:bg-gray-50'
                   }`}
                 >
                   {d.corto}
+                  {maxPorDia !== null && (
+                    <span className="block text-[11px] font-medium opacity-80">
+                      {activasDelDia(d.valor)}/{maxPorDia}
+                    </span>
+                  )}
                 </button>
               )
             })}
           </div>
+
+          {diasLlenosElegidos.length > 0 && datos.activo && (
+            <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              {diasLlenosElegidos.map((dia) => DIAS.find((d) => d.valor === dia)?.nombre).join(', ')}{' '}
+              {diasLlenosElegidos.length === 1 ? 'ya tiene' : 'ya tienen'} el máximo de promos activas. Elegí otro día o
+              desactivá alguna de ese día antes de guardar.
+            </p>
+          )}
         </section>
       )}
 
@@ -405,10 +446,10 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
         <h2 className="mb-1 text-lg font-bold">Productos de la promo</h2>
         <p className="mb-4 text-sm text-gray-600">
           {esSemana
-            ? 'El producto de la semana es un solo producto, de a una unidad.'
+            ? 'El producto de la semana es un solo producto, con descuento todos los días.'
             : esRegalo
-              ? 'Todo lo que sumes va sin cargo.'
-              : 'Cada producto lleva su cantidad y su descuento. El cliente pide la promo completa.'}
+              ? 'El regalo es un solo producto, sin cargo.'
+              : 'Cada fila es una unidad con su descuento. Para un 2×1, agregá el mismo producto dos veces al 50 %.'}
         </p>
 
         <div className="flex flex-col gap-4">
@@ -416,7 +457,7 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
             const { producto } = filasConPrecio[i]
             return (
               <div key={i} className="rounded-lg border p-3">
-                <div className="grid gap-3 sm:grid-cols-[1fr_6rem_8rem_auto]">
+                <div className="grid gap-3 sm:grid-cols-[1fr_9rem_auto]">
                   <div>
                     <label htmlFor={`promo-producto-${i}`} className="mb-1 block text-sm font-medium">Producto</label>
                     <select
@@ -433,35 +474,23 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
                   </div>
 
                   <div>
-                    <label htmlFor={`promo-cantidad-${i}`} className="mb-1 block text-sm font-medium">Cantidad</label>
-                    <input
-                      id={`promo-cantidad-${i}`}
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={fila.cantidad}
-                      disabled={esSemana}
-                      onChange={(e) => cambiarFila(i, { cantidad: e.target.value })}
-                      className={`${campo} disabled:bg-gray-100`}
-                    />
-                  </div>
-
-                  <div>
                     <label htmlFor={`promo-descuento-${i}`} className="mb-1 block text-sm font-medium">Descuento (%)</label>
                     <input
                       id={`promo-descuento-${i}`}
                       type="number"
+                      list="descuentos-sugeridos"
                       min={0}
                       max={100}
                       step="any"
                       value={fila.descuento}
                       disabled={esRegalo}
                       onChange={(e) => cambiarFila(i, { descuento: e.target.value })}
+                      placeholder="Elegí o escribí"
                       className={`${campo} disabled:bg-gray-100`}
                     />
                   </div>
 
-                  {!esSemana && (
+                  {!unSoloProducto(datos.tipo) && (
                     <div className="flex items-end">
                       <button
                         type="button"
@@ -483,28 +512,11 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
                   </p>
                 )}
 
-                {!esRegalo && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {DESCUENTOS_RAPIDOS.map((d) => (
-                      <button
-                        key={d.valor}
-                        type="button"
-                        onClick={() => cambiarFila(i, { descuento: d.valor })}
-                        className={`${chip} ${
-                          fila.descuento === d.valor ? 'border-orange-400 bg-orange-50 text-orange-700' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        {d.etiqueta}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
                 {producto && (
                   <p className="mt-2 text-sm text-gray-600">
-                    Precio de lista: {formatearPrecio(producto.precio)} c/u
+                    Precio de lista: {formatearPrecio(producto.precio)}
                     {Number(fila.descuento) > 0 &&
-                      ` · con la promo: ${formatearPrecio(Math.round(producto.precio * (1 - filasConPrecio[i].descuento)))} c/u`}
+                      ` · con la promo: ${formatearPrecio(Math.round(producto.precio * (1 - filasConPrecio[i].descuento)))}`}
                   </p>
                 )}
               </div>
@@ -512,7 +524,7 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
           })}
         </div>
 
-        {!esSemana && datos.items.length < 8 && (
+        {!unSoloProducto(datos.tipo) && datos.items.length < 8 && (
           <button
             type="button"
             onClick={() => setDatos((prev) => ({ ...prev, items: [...prev.items, filaVacia(prev.tipo)] }))}
@@ -530,37 +542,23 @@ export default function FormularioPromocion({ inicial, textoBoton, onGuardar, on
         )}
       </section>
 
-      {/* ---------- Límites ---------- */}
+      {/* ---------- Compra mínima (regalo y promo del día). Se pide una vez por pedido. ---------- */}
       {!esSemana && (
-        <section className={`${tarjeta} grid gap-4 sm:grid-cols-2`}>
-          <div>
-            <label htmlFor="promo-max" className="mb-1 block font-medium">Máximo por pedido (opcional)</label>
-            <input
-              id="promo-max"
-              type="number"
-              min={1}
-              max={10}
-              value={datos.maxPorPedido}
-              onChange={(e) => cambiar('maxPorPedido', e.target.value)}
-              placeholder="Sin límite"
-              className={campo}
-            />
-            <p className="mt-1 text-sm text-gray-600">Cuántas veces se puede pedir la promo en un mismo pedido.</p>
-          </div>
-          <div>
-            <label htmlFor="promo-minima" className="mb-1 block font-medium">Compra mínima en $ (opcional)</label>
-            <input
-              id="promo-minima"
-              type="number"
-              min={0}
-              max={1000000}
-              value={datos.compraMinima}
-              onChange={(e) => cambiar('compraMinima', e.target.value)}
-              placeholder="Sin mínimo"
-              className={campo}
-            />
-            <p className="mt-1 text-sm text-gray-600">Lo que tiene que sumar el resto del pedido, sin contar la promo.</p>
-          </div>
+        <section className={tarjeta}>
+          <label htmlFor="promo-minima" className="mb-1 block font-medium">Compra mínima en $ (opcional)</label>
+          <input
+            id="promo-minima"
+            type="number"
+            min={0}
+            max={1000000}
+            value={datos.compraMinima}
+            onChange={(e) => cambiar('compraMinima', e.target.value)}
+            placeholder="Sin mínimo"
+            className={`${campo} sm:max-w-xs`}
+          />
+          <p className="mt-1 text-sm text-gray-600">
+            Lo que tiene que sumar el resto del pedido, sin contar la promo. La promo se puede pedir una vez por pedido.
+          </p>
         </section>
       )}
 

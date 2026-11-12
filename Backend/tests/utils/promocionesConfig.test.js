@@ -1,4 +1,4 @@
-const { diaDeHoy, vigenteHoy, aplicarDescuento, MAX_PROMOS_POR_DIA } = require('../../src/config/promociones');
+const { diaDeHoy, vigenteHoy, aplicarDescuento } = require('../../src/config/promociones');
 
 describe('diaDeHoy', () => {
     test('usa el día de Argentina, no el de UTC', () => {
@@ -35,8 +35,4 @@ describe('aplicarDescuento', () => {
     ])('precio %d con descuento %d da %d', (precio, descuento, esperado) => {
         expect(aplicarDescuento(precio, descuento)).toBe(esperado);
     });
-});
-
-test('hay un máximo de 3 promos activas por día', () => {
-    expect(MAX_PROMOS_POR_DIA).toBe(3);
 });

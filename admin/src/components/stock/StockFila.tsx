@@ -60,8 +60,9 @@ function Acciones({
         type="button"
         onClick={() => onAumentar(item)}
         aria-label={`Aumentar ${item.nombre}`}
-        title="Aumentar stock"
-        className="inline-flex items-center gap-1 rounded border border-orange-300 bg-action p-2 text-sm font-semibold text-white hover:bg-action-hover md:px-3"
+        title={item.activo ? 'Aumentar stock' : 'Insumo deshabilitado: no se repone, se usa hasta agotar stock'}
+        disabled={!item.activo}
+        className="inline-flex items-center gap-1 rounded border border-orange-300 bg-action p-2 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-action md:px-3"
       >
         <Plus size={18} /> <span className="hidden md:inline">Aumentar</span>
       </button>

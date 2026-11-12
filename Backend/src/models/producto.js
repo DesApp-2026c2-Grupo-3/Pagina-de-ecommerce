@@ -19,6 +19,8 @@ module.exports = (sequelize, DataTypes) => {
       Producto.hasMany(models.ProductoTamanio, { foreignKey: 'productoId', as: 'tamanios' });
       // Solo combos: qué lugares elegibles tiene (acompañamiento, bebida, ...)
       Producto.hasMany(models.ComboGrupo, { foreignKey: 'productoId', as: 'grupos' });
+      // Solo combos: el producto que arma su receta (ej: Combo Fast Cheese → Fast Cheese)
+      Producto.belongsTo(models.Producto, { foreignKey: 'productoPrincipalId', as: 'principal' });
     }
   }
 
@@ -33,6 +35,7 @@ module.exports = (sequelize, DataTypes) => {
     disponible: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     categoriaId: { type: DataTypes.INTEGER, allowNull: true },
     sabor: { type: DataTypes.STRING, allowNull: true },
+    productoPrincipalId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     sequelize,
     modelName: 'Producto',

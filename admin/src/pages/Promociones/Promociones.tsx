@@ -12,7 +12,7 @@ import {
   habilitarPromocion,
   obtenerPromociones,
 } from '../../services/promocionService'
-import { DIAS, MAX_PROMOS_POR_DIA, NOMBRE_TIPO } from '../../config/promociones'
+import { DIAS, NOMBRE_TIPO } from '../../config/promociones'
 import type { PromocionAdmin, TipoPromo } from '../../types/promocion.types'
 
 const POR_PAGINA = 8
@@ -182,7 +182,7 @@ export default function Promociones() {
           <h1 className="text-3xl font-bold">Promociones</h1>
           <p className="mt-2 text-gray-600">
             Armá las promos que se ven en la sección Promos de la tienda. Hay un producto y un regalo de la semana
-            activos a la vez, y hasta {MAX_PROMOS_POR_DIA} promos activas por día.
+            activos a la vez, y un máximo de promos activas por día           
           </p>
         </div>
         <button
@@ -290,7 +290,9 @@ export default function Promociones() {
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}
-        mensaje={`¿Estás seguro de que querés eliminar la promoción "${aEliminar?.titulo ?? ''}"? Esta acción no se puede deshacer.`}
+        titulo="Eliminar promoción"
+        textoConfirmar="Eliminar"
+        mensaje={`¿Eliminar la promoción "${aEliminar?.titulo ?? ''}"? Deja de verse en la tienda y en este panel, y no se puede deshacer. Los pedidos y reportes anteriores la siguen mostrando. Si solo querés pausarla, usá "Deshabilitar".`}
         onConfirmar={() => {
           if (aEliminar) eliminar(aEliminar)
           setAEliminar(null)

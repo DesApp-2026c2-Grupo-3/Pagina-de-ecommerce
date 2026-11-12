@@ -66,9 +66,11 @@ const registro = (cantidad, stockMinimo = null) => ({
 
 beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => { });
     Admin.findByPk.mockResolvedValue({ id: 7 });
+
     // cargarAumento solo suma stock a insumos activos
+
     Insumo.findByPk.mockResolvedValue({ id: 1, nombre: 'Pan', activo: true });
     Sucursal.findByPk.mockResolvedValue({ id: 2, nombre: 'Centro' });
 });

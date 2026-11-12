@@ -6,6 +6,7 @@ const {
 } = require('../../notifications/handlers/sucursalHandlers');
 const { detectarBloquesModificados } = require('../../utils/sucursalCambios');
 const { motivoSinAcceso, mensajeSinAcceso } = require('../../utils/permisosSucursal');
+const { validarHorarioSucursal } = require('../../utils/horarioSucursal');
 
 // Los admins de cada sucursal, solo con los datos que necesita el panel
 const ADMINS = { model: Admin, attributes: ['id', 'nombre', 'email'] };
@@ -58,6 +59,11 @@ const obtenerSucursalPorId = async (req, res) => {
 
 // POST /admin/sucursales/nueva → crea la sucursal y su stock en 0 para todos los insumos
 const crearSucursal = async (req, res) => {
+    const errorHorario = validarHorarioSucursal(req.body.horario);
+    if (errorHorario) {
+        return res.status(400).json({ code: errorHorario });
+    }
+
     const t = await sequelize.transaction();
 
     try {
@@ -68,10 +74,10 @@ const crearSucursal = async (req, res) => {
 
         const sucursal = await Sucursal.create({ ...req.body, activa: true }, { transaction: t });
 
-        // Stock inicial: un registro en 0 por cada insumo, así el admin solo carga cantidades
-        const insumos = await Insumo.findAll({ attributes: ['id'], transaction: t });
+        // con el stock mínimo sugerido de cada insumo
+        const insumos = await Insumo.findAll({ attributes: ['id', 'stockMinimo'], transaction: t });
         await StockSucursal.bulkCreate(
-            insumos.map((insumo) => ({ insumoId: insumo.id, sucursalId: sucursal.id, cantidad: 0 })),
+            insumos.map((insumo) => ({ insumoId: insumo.id, sucursalId: sucursal.id, cantidad: 0, stockMinimo: insumo.stockMinimo ?? null })),
             { transaction: t }
         );
 
@@ -86,6 +92,13 @@ const crearSucursal = async (req, res) => {
 
 // PATCH /admin/sucursales/editar/:id → edita los datos (no el estado)
 const editarSucursal = async (req, res) => {
+    if (req.body.horario !== undefined) {
+        const errorHorario = validarHorarioSucursal(req.body.horario);
+        if (errorHorario) {
+            return res.status(400).json({ code: errorHorario });
+        }
+    }
+
     try {
         const identidad = req.identidad;
 

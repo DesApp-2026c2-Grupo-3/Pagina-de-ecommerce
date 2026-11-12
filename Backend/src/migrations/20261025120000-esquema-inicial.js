@@ -50,7 +50,7 @@ module.exports = {
         // Permite "apagar" una sucursal sin borrarla (no rompe usuarios ni pedidos)
         activa: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
         zona_horaria: { type: Sequelize.STRING, allowNull: false, defaultValue: 'America/Argentina/Buenos_Aires' },
-        // Horario por día: { lunes: { apertura, cierre, abierto }, ... }
+        // Horario por día: { lunes: { abierto, turnos: [{ apertura, cierre, cruzaMedianoche }] }, ... }
         horario: { type: Sequelize.JSONB, allowNull: false, defaultValue: JSON.stringify(HORARIO_POR_DEFECTO) },
         ...timestamps,
       });
@@ -82,6 +82,22 @@ module.exports = {
           allowNull: true,
           ...ref('Sucursals', { onUpdate: 'CASCADE', onDelete: 'SET NULL' }),
         },
+        ...timestamps,
+      });
+
+      // ---------- Repartidores ----------
+      await crear('Repartidors', {
+        id,
+        nombre: { type: Sequelize.STRING, allowNull: false },
+        apellido: { type: Sequelize.STRING, allowNull: false },
+        email: { type: Sequelize.STRING, allowNull: false, unique: true },
+        password: { type: Sequelize.STRING, allowNull: false },
+        sucursalId: {
+          type: Sequelize.INTEGER,
+          allowNull: false,
+          ...ref('Sucursals', { onUpdate: 'CASCADE', onDelete: 'RESTRICT' }),
+        },
+        activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
         ...timestamps,
       });
 
@@ -245,6 +261,61 @@ module.exports = {
       });
       await unica('StockSucursals', ['insumoId', 'sucursalId'], 'stock_sucursal_insumo_sucursal_unique');
 
+      // ---------- Viajes ----------
+      await crear('Viajes', {
+        id,
+        repartidorId: {
+          type: Sequelize.INTEGER,
+          allowNull: false,
+          ...ref('Repartidors', { onUpdate: 'CASCADE', onDelete: 'RESTRICT' }),
+        },
+        fechaInicio: {
+          type: Sequelize.DATE,
+          allowNull: true,
+          defaultValue: Sequelize.NOW,
+        },
+        fechaFin: { type: Sequelize.DATE, allowNull: true 
+        },
+        estado: {
+          type: Sequelize.STRING,
+          allowNull: false,
+          defaultValue: 'preparando',
+        },
+        motivoAsistencia: {
+          type: Sequelize.STRING,
+          allowNull: true,
+        },
+        comentarioAsistencia: {
+          type: Sequelize.TEXT,
+          allowNull: true,
+        },
+        fechaSolicitudAsistencia: {
+          type: Sequelize.DATE,
+          allowNull: true,
+        },
+        latitudAsistencia: {
+          type: Sequelize.DECIMAL(10, 7),
+          allowNull: true,
+        },
+        longitudAsistencia: {
+          type: Sequelize.DECIMAL(10, 7),
+          allowNull: true,
+        },
+        ...timestamps,
+      });
+
+//La propia base de datos impide que un repartidor tenga dos viajes con estado activo, incluso si llegan dos peticiones simultaneas.
+      await queryInterface.addIndex('Viajes', ['repartidorId'], {
+        name: 'viaje_en_curso_por_repartidor_unico',
+        unique: true,
+        where: {
+          estado:{
+            [Sequelize.Op.in]: ['activo', 'requiere asistencia'],
+          },
+        },
+        transaction,
+      });
+
       // ---------- Pedidos ----------
       await crear('Pedidos', {
         id,
@@ -255,6 +326,9 @@ module.exports = {
         },
         direccionId: { type: Sequelize.INTEGER, allowNull: true, ...ref('Direccions', { onDelete: 'SET NULL' }) },
         sucursalId: { type: Sequelize.INTEGER, allowNull: true, ...ref('Sucursals', { onDelete: 'SET NULL' }) },
+        viajeId: { type: Sequelize.INTEGER, allowNull: true,
+          ...ref('Viajes', { onUpdate: 'CASCADE', onDelete: 'SET NULL' }),
+        },
         fecha: { type: Sequelize.DATE },
         total: { type: Sequelize.DECIMAL },
         estado: { type: Sequelize.STRING },
@@ -339,7 +413,7 @@ module.exports = {
   async down(queryInterface) {
     // Orden inverso al de creación, por las claves foráneas
     const tablas = [
-      'MovimientoStocks', 'historialDeTiemposPedido', 'DetallePedidos', 'Pedidos',
+      'MovimientoStocks', 'historialDeTiemposPedido', 'DetallePedidos', 'Pedidos', 'Viajes', 'Repartidors',      
       'StockSucursals', 'RecetaInsumos', 'Insumos',
       'ComboGrupos', 'ProductoTamanios', 'Tamanios', 'Productos', 'Categoria',
       'Direccions', 'TokensRecuperacion', 'Admins', 'Usuarios', 'Sucursals',

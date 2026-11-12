@@ -7,21 +7,35 @@ import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
 import { deshabilitarCategoria, habilitarCategoria, obtenerCategorias } from '../../services/categoriaService';
 import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categoriaService'
+import SeccionDesplegable from '../../components/SeccionDesplegable'
+import type { CategoriaAdmin } from '../../types/categoria.types'
 
 interface Categoria {
   id: number
   nombre: string
   activo: boolean
+  categoriaPadreId?: number | null
+}
+
+// Cada categoría principal seguida de sus hijas (Cafetería, y debajo Café y Menú Café)
+function enOrdenJerarquico(lista: CategoriaAdmin[]): CategoriaAdmin[] {
+  const ids = new Set(lista.map((c) => c.id))
+  const resultado: CategoriaAdmin[] = []
+  for (const c of lista) {
+    if (c.categoriaPadreId !== null && ids.has(c.categoriaPadreId)) continue
+    resultado.push(c, ...lista.filter((h) => h.categoriaPadreId === c.id))
+  }
+  return resultado
 }
 
 export default function Categorias() {
   const navigate = useNavigate();
   const [paginaActual, setPaginaActual] = useState(1);
-  const categoriaPorPagina = 5;
+  const categoriaPorPagina = 10;
   const [categoriaAEliminar, setCategoriaAEliminar] = useState<number | null>(null);
   const { mostrarToast } = useToast();
 
-  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [categorias, setCategorias] = useState<CategoriaAdmin[]>([])
   const [filtroEstado, setFiltroEstado] = useState('todos')
 
   const cambiarEstado = async (categoria: Categoria) => {
@@ -76,7 +90,7 @@ export default function Categorias() {
     cargarCategorias()
   }, [])
 
-  const filtradas = categorias.filter((categoria) => {
+  const filtradas = enOrdenJerarquico(categorias).filter((categoria) => {
     if (filtroEstado === 'activas') return categoria.activo
     if (filtroEstado === 'deshabilitadas') return !categoria.activo
     return true
@@ -129,6 +143,13 @@ export default function Categorias() {
       </button>
     </div>
 
+    <SeccionDesplegable
+      id="categorias-lista"
+      titulo="Todas las categorías"
+      descripcion="El listado completo: crear, editar, habilitar o deshabilitar y eliminar."
+      resumen={`${categorias.length} categorías · ${categorias.filter((c) => !c.activo).length} deshabilitadas`}
+      abiertaPorDefecto
+    >
     <div className="mb-4">
       <label htmlFor="filtro-categoria" className="sr-only">
         Filtrar categorías
@@ -171,7 +192,15 @@ export default function Categorias() {
         categoriasPagina.map((categoria: Categoria) => (
           <tr key={categoria.id} className="border-t border-b">
             <td className="px-4 py-4 sm:px-6">
+              {categoria.categoriaPadreId ? (
+                <span className="text-gray-500">↳ </span>
+              ) : null}
               {categoria.nombre}
+              {categoria.categoriaPadreId ? (
+                <span className="ml-2 text-xs text-gray-500">
+                  en {categorias.find((c) => c.id === categoria.categoriaPadreId)?.nombre ?? 'otra categoría'}
+                </span>
+              ) : null}
             </td>
 
             <td className="px-4 py-4 sm:px-6">
@@ -220,7 +249,9 @@ export default function Categorias() {
 
     <ConfirmarEliminacion
     abierto={categoriaAEliminar !== null}
-    mensaje="¿Estás seguro de que querés eliminar esta categoria?"
+    titulo="Eliminar categoría"
+    textoConfirmar="Eliminar"
+    mensaje={'¿Eliminar esta categoría? Deja de verse en la tienda y en este panel, y no se puede deshacer. Solo se puede si no tiene productos ni subcategorías. Los pedidos y reportes anteriores la siguen mostrando. Si solo querés ocultarla un tiempo, usá "Deshabilitar".'}    
     onConfirmar={() => {
       if (categoriaAEliminar !== null) {
         eliminarCategoria(categoriaAEliminar)
@@ -235,6 +266,7 @@ export default function Categorias() {
       totalElementos={filtradas.length}
       elementosPorPagina={categoriaPorPagina}
       cambiarPagina={setPaginaActual} />
+    </SeccionDesplegable>
   </main>
   )
 }

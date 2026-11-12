@@ -92,7 +92,7 @@ describe('esAdminJwt', () => {
 
         await esAdminJwt(req, crearRes(), next);
 
-        expect(req.usuario).toEqual({ id: 1, nombre: 'Admin', rol: 'ADMIN' });
+        expect(req.usuario).toEqual({ id: 1, nombre: 'Admin', rol: 'ADMIN', sucursalId: 2 });
         expect(req.admin).toMatchObject({ id: 1, rol: 'ADMIN', sucursalId: 2 });
         expect(next).toHaveBeenCalled();
     });

@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { login as loginService, register as registerService } from '../services/authService'
-import { suscribirSesionExpirada } from '../services/httpClient'
+import { API_URL, suscribirSesionExpirada } from '../services/httpClient'
 import type { LoginCredentials, RegisterData, User } from '../types/user'
 import {
   guardarSesion,
@@ -73,6 +73,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => suscribirSesionExpirada(logout), [logout])
+
+  // Si la base se recreó, el usuario guardado puede no existir más: se cierra la sesión.
+  // Solo se cierra con 404/401; si el backend no responde, la sesión queda como está.
+  useEffect(() => {
+    if (!user) return
+    const controlador = new AbortController()
+
+    fetch(`${API_URL}/usuario/${user.id}`, { signal: controlador.signal })
+      .then((respuesta) => {
+        if (respuesta.status === 404 || respuesta.status === 401) {
+          logout()
+        }
+      })
+      .catch((error) => {
+        if (error?.name === 'AbortError') return
+      })
+
+    return () => controlador.abort()
+  }, [logout, user])
 
   const setUser = (nuevoUsuario: User) => {
     setUserState(nuevoUsuario)
