@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ShoppingBag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useSocket } from '../context/SocketContext'
 import { getHistorialPedidos } from '../services/orderService'
 import type { Order } from '../types/order'
 import { FILTROS_PEDIDO, estaEnCurso, type FiltroPedido } from '../config/pedidoEstados'
@@ -12,21 +13,41 @@ import ErrorAlert from '../components/ErrorAlert'
 
 function HistorialPedidos() {
   const { user } = useAuth()
+  const socket = useSocket()
   const [pedidos, setPedidos] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filtro, setFiltro] = useState<FiltroPedido>('todos')
 
-  useEffect(() => {
+  const cargarPedidos = useCallback(() => {
     if (!user) return
 
     getHistorialPedidos(user.id)
-      .then(setPedidos)
+      .then((datos) => {
+        setPedidos(datos)
+        setError('')
+      })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Error al cargar el historial')
       })
       .finally(() => setLoading(false))
   }, [user])
+
+  // Carga inicial al entrar a la página
+  useEffect(() => {
+    cargarPedidos()
+  }, [cargarPedidos])
+
+  // Refresco automático en vivo cuando cambia cualquier pedido del usuario
+  useEffect(() => {
+    if (!socket) return
+
+    socket.on('pedido:actualizado', cargarPedidos)
+
+    return () => {
+      socket.off('pedido:actualizado', cargarPedidos)
+    }
+  }, [socket, cargarPedidos])
 
   const enCurso = pedidos.filter((p) => estaEnCurso(p.estado))
   const aplica = FILTROS_PEDIDO.find((f) => f.id === filtro)!.aplica
@@ -81,7 +102,8 @@ function HistorialPedidos() {
               {filtrados.map((pedido) => (
                 <PedidoCard key={pedido.id} pedido={pedido} />
               ))}
-            </div>          )}
+            </div>
+          )}
         </>
       )}
     </AccountLayout>

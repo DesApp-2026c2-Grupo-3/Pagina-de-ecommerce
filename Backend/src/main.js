@@ -1,11 +1,17 @@
 const express = require('express');
+const http = require('http'); 
 require('dotenv').config();
 let cookieParser = require('cookie-parser');
 const db = require('./models');
 const cors = require('cors');
+const { inicializarSockets } = require('./sockets'); 
 
 const app = express();
+const server = http.createServer(app); 
 const PORT = process.env.PORT || 3000;
+
+const io = inicializarSockets(server);
+app.set('io', io);
 
 const origenesPermitidos = [
     'http://localhost:5173',
@@ -14,7 +20,13 @@ const origenesPermitidos = [
 ];
 
 app.use(cors({
-    origin: origenesPermitidos,
+    origin: (origin, callback) => {
+        if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Bloqueado por CORS'));
+        }
+    },
     credentials: true
 }));
 
@@ -88,13 +100,12 @@ app.use('/repartidor/viajes', viajeRepartidorRoutes);
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
 async function iniciarServidor() {
     try {
-
-
         await db.sequelize.authenticate();
         console.log('Conexión con la base de datos OK');
 
-        app.listen(PORT, () => {
-            console.log(`Servidor corriendo en http://localhost:${PORT}`);
+        // 5. Cambiamos app.listen por server.listen
+        server.listen(PORT, () => {
+            console.log(`Servidor corriendo con Sockets en http://localhost:${PORT}`);
         });
     } catch (error) {
         console.error('No se pudo conectar con la base de datos:', error.message);

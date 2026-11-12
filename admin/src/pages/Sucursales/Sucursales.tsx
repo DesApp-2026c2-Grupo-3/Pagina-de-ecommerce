@@ -146,8 +146,8 @@ export default function Sucursales() {
     </div>
   )
 
-  return (
-    <main className="p-8">
+ return (
+    <main className="p-4 sm:p-8">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
@@ -189,8 +189,8 @@ export default function Sucursales() {
         </div>
       ) : (
         <>
-          {/* Celular: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
+          {/* Celular y Tablet (< 1024px): tarjetas */}
+          <ul className="flex flex-col gap-3 lg:hidden">
             {pagina.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
                 <div className="min-w-0">
@@ -210,32 +210,32 @@ export default function Sucursales() {
             ))}
           </ul>
 
-          {/* Escritorio: tabla */}
-          <div className="hidden rounded-lg border bg-white md:block">
+          {/* Escritorio (>= 1024px): tabla */}
+          <div className="hidden overflow-x-auto rounded-lg border bg-white lg:block">
             <table className="w-full border-collapse">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-100 text-center">
                 <tr>
-                  <th className="px-6 py-3 text-left">Nombre</th>
-                  <th className="px-6 py-3 text-left">Horario</th>
-                  <th className="px-6 py-3 text-left">Encargados editan horario</th>
-                  <th className="px-6 py-3 text-left">Estado</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
+                  <th className="px-4 py-3 text-left xl:px-6">Nombre</th>
+                  <th className="px-4 py-3 text-left xl:px-6">Horario</th>
+                  <th className="px-4 py-3 text-left xl:px-6">Encargados editan horario</th>
+                  <th className="px-4 py-3 text-left xl:px-6">Estado</th>
+                  <th className="px-4 py-3 text-center xl:px-6">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {pagina.map((s) => (
                   <tr key={s.id} className="border-t">
-                    <td className="px-6 py-4 font-medium">{s.nombre}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 font-medium xl:px-6">{s.nombre}</td>
+                    <td className="px-4 py-4 xl:px-6">
                       <ResumenHorario horario={s.horario} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 xl:px-6">
                       <PerillaHorario sucursal={s} onCambiar={cambiarPermisoHorario} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 xl:px-6">
                       <Estado activa={s.activa} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 xl:px-6">
                       <div className="flex justify-end">{acciones(s)}</div>
                     </td>
                   </tr>

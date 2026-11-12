@@ -29,6 +29,8 @@ import BotonSubir from './components/layout/BotonSubir'
 import RecuperarPassword from './pages/RecuperarPassword'
 import RestablecerPassword from './pages/RestablecerPassword'
 import CalificacionPendiente from './components/calificaciones/CalificacionPendiente'
+import { SocketProvider } from './context/SocketContext'
+
 
 function App() {
   const { user } = useAuth()
@@ -37,46 +39,49 @@ function App() {
   const conBarraInferior = !pathname.startsWith('/producto/')
 
   return (
-    <ZonaProvider>
-    <div className="flex flex-1 flex-col bg-brand-cream text-brand-dark">
-      <ScrollToTop />
-      <Navbar />
-      {/* pb-24: espacio para la barra inferior del celular (ahí no hay footer) */}
-      <main className={`flex-1 lg:pb-0 ${conBarraInferior ? 'pb-24' : ''}`}>
-        {/* La key reinicia las páginas al cambiar de usuario: no quedan datos del anterior */}
-        {/* La key con la ruta hace que cada página nueva entre con la animación */}
-        <div key={pathname} className={pathname === '/carrito' || pathname === '/checkout' ? '' : 'bf-pagina'}>        
-        <Routes key={user?.id ?? 'invitado'}>          <Route path="/" element={<Home />} />
-          <Route path="/catalogo" element={<Products />} />
-          <Route path="/promociones" element={<Promociones />} />
-          <Route path="/producto/:id" element={<ProductDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Register />} />
-          <Route path="/recuperar-password" element={<RecuperarPassword />} />
-          <Route path="/restablecer-password" element={<RestablecerPassword />} />
-          <Route path="/carrito" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route path="/historial" element={<HistorialPedidos />} />
-          <Route path="/direcciones" element={<Address />} />
-          <Route path="/seguridad" element={<Seguridad />} />
-          <Route path="/conocenos" element={<Conocenos />} />
-          <Route path="/cuenta" element={<Cuenta />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+    <SocketProvider>
+      <ZonaProvider>
+        <div className="flex flex-1 flex-col bg-brand-cream text-brand-dark">
+          <ScrollToTop />
+          <Navbar />
+          {/* pb-24: espacio para la barra inferior del celular (ahí no hay footer) */}
+          <main className={`flex-1 lg:pb-0 ${conBarraInferior ? 'pb-24' : ''}`}>
+            {/* La key reinicia las páginas al cambiar de usuario: no quedan datos del anterior */}
+            {/* La key con la ruta hace que cada página nueva entre con la animación */}
+            <div key={pathname} className={pathname === '/carrito' || pathname === '/checkout' ? '' : 'bf-pagina'}>
+              <Routes key={user?.id ?? 'invitado'}>          <Route path="/" element={<Home />} />
+                <Route path="/catalogo" element={<Products />} />
+                <Route path="/promociones" element={<Promociones />} />
+                <Route path="/producto/:id" element={<ProductDetail />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/registro" element={<Register />} />
+                <Route path="/recuperar-password" element={<RecuperarPassword />} />
+                <Route path="/restablecer-password" element={<RestablecerPassword />} />
+                <Route path="/carrito" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/perfil" element={<Perfil />} />
+                <Route path="/historial" element={<HistorialPedidos />} />
+                <Route path="/direcciones" element={<Address />} />
+                <Route path="/seguridad" element={<Seguridad />} />
+                <Route path="/conocenos" element={<Conocenos />} />
+                <Route path="/cuenta" element={<Cuenta />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </main>
+          <Footer />
+          <BottomNav />
+          <BotonSubir />
+          <Toast />
+          <ZonaDesdeUsuario />
+          <ElegirZonaModal />
+          <PantallaBienvenida />
+          <PantallaDespedida />
+          <CalificacionPendiente />
         </div>
-      </main>
-      <Footer />
-      <BottomNav />
-      <BotonSubir />
-      <Toast />
-      <ZonaDesdeUsuario />
-      <ElegirZonaModal />
-      <PantallaBienvenida />
-      <PantallaDespedida />
-      <CalificacionPendiente />
-    </div>
-    </ZonaProvider>
+      </ZonaProvider>
+    </SocketProvider>
+
   )
 }
 

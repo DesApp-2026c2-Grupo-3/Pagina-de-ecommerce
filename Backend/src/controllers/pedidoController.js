@@ -3,6 +3,7 @@ const { precioMasBarato } = require('../utils/combo');
 const { vigenteHoy, aplicarDescuento } = require('../config/promociones');
 const { buscarPromo } = require('../utils/promociones');
 const { MAX_COMPLEMENTO_POR_PEDIDO } = require('../config/complementos');
+const { notificarCambioPedido } = require('../sockets');
 
 // Regla de negocio: pedidos en curso simultáneos por cliente
 const MAX_PEDIDOS_EN_CURSO = 2;
@@ -547,6 +548,8 @@ const crearPedido = async (req, res) => {
 
         await t.commit();
 
+        notificarCambioPedido(req, nuevoPedido);
+
         return res.status(201).json(nuevoPedido)
 
     } catch (error) {
@@ -564,4 +567,4 @@ const crearPedido = async (req, res) => {
 };
 
 
-module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };
+module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };

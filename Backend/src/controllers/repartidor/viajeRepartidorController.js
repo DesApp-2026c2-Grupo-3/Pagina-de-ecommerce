@@ -1,5 +1,8 @@
 const { Op } = require('sequelize');
-const { Viaje, Pedido , Usuario, Direccion, DetallePedido, Producto }= require('../../models');
+const { Viaje, Pedido, Usuario, Direccion, DetallePedido, Producto } = require('../../models');
+const { notificarCambioPedido } = require('../../sockets');
+
+
 
 const tomarPedidos = async (req, res) => {
     const { pedidoIds } = req.body;
@@ -94,6 +97,15 @@ const tomarPedidos = async (req, res) => {
         );
 
         await transaction.commit();
+
+        // Avisamos a la sucursal y a los demás repartidores que estos pedidos ya fueron tomados
+        for (const p of pedidos) {
+            notificarCambioPedido(req, {
+                ...p.toJSON(),
+                viajeId: viaje.id,
+                repartidorId,
+            });
+        }
 
         return res.status(201).json({
             mensaje: 'Pedidos asignados correctamente. Retiralos para poder iniciar el viaje',
@@ -194,6 +206,13 @@ const iniciarViaje = async (req, res) => {
 
         await transaction.commit();
 
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`sucursal_${req.repartidor.sucursalId}`)
+                .to('admin_global')
+                .emit('viaje:actualizado', viaje);
+        }
+
         return res.status(200).json({
             mensaje: 'Viaje iniciado correctamente',
             viaje: {
@@ -293,6 +312,12 @@ const quitarPedidoDelViaje = async (req, res) => {
 
         await transaction.commit();
 
+        // El pedido vuelve a quedar disponible (viajeId: null) para otros repartidores de la sucursal
+        notificarCambioPedido(req, {
+            ...pedido.toJSON(),
+            viajeId: null,
+        });
+
         return res.status(200).json({
             mensaje: pedidosRestantes === 0
                 ? 'Pedido quitado. El viaje quedó vacío y fue eliminado'
@@ -324,8 +349,8 @@ const obtenerViajeActivo = async (req, res) => {
         const viaje = await Viaje.findOne({
             where: {
                 repartidorId,
-                estado: {[Op.in]: ['preparando', 'activo', 'requiere asistencia']}
-                
+                estado: { [Op.in]: ['preparando', 'activo', 'requiere asistencia'] }
+
             },
             include: [
                 {
@@ -377,8 +402,8 @@ const obtenerHistorialViajes = async (req, res) => {
         const viajes = await Viaje.findAll({
             where: {
                 repartidorId,
-                estado: 
-                {[Op.in]: ['finalizado', 'cancelado']}
+                estado:
+                    { [Op.in]: ['finalizado', 'cancelado'] }
             },
             include: [
                 {
@@ -450,15 +475,14 @@ const solicitarAyuda = async (req, res) => {
         });
     }
 
-    if ( typeof latitud !== 'number' ||
+    if (typeof latitud !== 'number' ||
         !Number.isFinite(latitud) ||
         latitud < -90 ||
         latitud > 90 ||
         typeof longitud !== 'number' ||
         !Number.isFinite(longitud) ||
         longitud < -180 ||
-        longitud > 180) 
-        {
+        longitud > 180) {
         return res.status(400).json({
             mensaje: 'No se pudo obtener una ubicación válida',
         });

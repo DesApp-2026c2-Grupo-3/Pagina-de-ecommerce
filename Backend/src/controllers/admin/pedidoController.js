@@ -1,6 +1,8 @@
 const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, historialDeTiemposPedido, sequelize } = require('../../models');
 const { ROLES } = require('../../config/roles');
 const { devolverStockPedido } = require('../../utils/stockPedido');
+const { notificarCambioPedido } = require('../../sockets');
+
 
 // Qué se trae de cada parte del pedido (nunca la contraseña del cliente).
 // paranoid: false → los productos eliminados (borrado lógico) se siguen viendo en los pedidos viejos
@@ -167,7 +169,7 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
             await t.rollback();
             throw error;
         }
-
+        notificarCambioPedido(req, pedido);
         res.status(200).json(pedido);
     } catch (error) {
         console.error('Algo salió mal:', error.message);

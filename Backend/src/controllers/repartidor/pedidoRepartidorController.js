@@ -1,3 +1,6 @@
+const { notificarCambioPedido } = require('../../sockets');
+
+
 const {
     Pedido,
     DetallePedido,
@@ -193,6 +196,12 @@ const actualizarEstadoPedido = async (req, res) => {
         }
 
         await transaction.commit();
+
+        // Avisamos al cliente, a la sucursal, al master y al propio repartidor
+        notificarCambioPedido(req, {
+            ...pedido.toJSON(),
+            repartidorId,
+        });
 
         return res.status(200).json({
             mensaje: 'Estado del pedido actualizado correctamente',
