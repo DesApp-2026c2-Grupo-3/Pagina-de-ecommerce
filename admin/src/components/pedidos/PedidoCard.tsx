@@ -2,19 +2,12 @@ import { Eye, Lock } from 'lucide-react'
 import type { Etapa, PedidoFila } from '../../types/pedido.types'
 import { ETAPAS } from '../../types/pedido.types'
 import {
+  admiteCambiosDelAdmin,
+  COLORES_ETAPA,
   esEstadoFinal,
   formatearFechaHora,
 } from '../../utils/pedidoEstado'
 import SelectorEtapa from './SelectorEtapa'
-
-const coloresEtapa: Record<Etapa, string> = {
-  Pendiente: 'bg-amber-100 text-amber-700',
-  'En proceso': 'bg-blue-100 text-blue-700',
-  'Listo para retirar': 'bg-teal-100 text-teal-700',
-  'En camino': 'bg-purple-100 text-purple-700',
-  Entregado: 'bg-green-100 text-green-700',
-  Cancelado: 'bg-red-100 text-red-700',
-}
 
 const botonAceptar =
   'rounded border border-orange-300 bg-action px-4 py-2 font-semibold text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40'
@@ -25,7 +18,7 @@ function esEtapa(valor: string): valor is Etapa {
 
 function EtapaBadge({ estado }: { estado: string }) {
   const color = esEtapa(estado)
-    ? coloresEtapa[estado]
+    ? COLORES_ETAPA[estado]
     : 'bg-gray-200 text-gray-600'
   return (
     <span
@@ -70,6 +63,8 @@ export default function PedidoCard({
   onVerDetalle,
 }: PedidoCardProps) {
   const cerrado = esEstadoFinal(pedido.estado)
+  // En camino: no es final, pero lo gestiona el repartidor (el panel no lo cambia)
+  const editable = admiteCambiosDelAdmin(pedido.estado)
   const cliente = pedido.Usuario
     ? [pedido.Usuario.nombre, pedido.Usuario.apellido]
         .filter((parte) => parte?.trim())
@@ -120,14 +115,16 @@ export default function PedidoCard({
           </p>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onAceptar}
-            disabled={!puedeAceptar}
-            className={botonAceptar}
-          >
-            {guardando ? 'Guardando...' : 'Aceptar'}
-          </button>
+          {editable && (
+            <button
+              type="button"
+              onClick={onAceptar}
+              disabled={!puedeAceptar}
+              className={botonAceptar}
+            >
+              {guardando ? 'Guardando...' : 'Aceptar'}
+            </button>
+          )}
           <button
             type="button"
             onClick={onVerDetalle}

@@ -8,6 +8,7 @@ import type {
   TipoNotificacionCliente,
 } from '../../types/notificacion.types'
 import { formatearPrecio } from '../precio'
+import { esEstadoInterno, normalizarEstado } from '../../config/pedidoEstados'
 import {
   esRegistro,
   esTipoNotificacionCliente,
@@ -133,6 +134,9 @@ const estrategiaPedidoEstadoCambiado: EstrategiaNotificacionCliente<Notificacion
   crear(base, datos) {
     const pedido = leerPedidoComun(datos)
     if (!pedido) return null
+    // Estados internos local/repartidor ("Listo para retirar"): el cliente no los ve.
+    // El backend ya no los envía; esto descarta los que hayan quedado guardados.
+    if (esEstadoInterno(pedido.estado)) return null
 
     const datosPedido: DatosPedidoEstadoCambiado = pedido
     return {
@@ -142,7 +146,12 @@ const estrategiaPedidoEstadoCambiado: EstrategiaNotificacionCliente<Notificacion
     }
   },
   describir(notificacion) {
-    const anterior = notificacion.datos.estadoAnterior
+    const anteriorCrudo = notificacion.datos.estadoAnterior
+    // "Listo para retirar" → "En proceso" (lo que el cliente vio por última vez)
+    const anterior =
+      anteriorCrudo && esEstadoInterno(anteriorCrudo)
+        ? normalizarEstado(anteriorCrudo)
+        : anteriorCrudo
     return {
       titulo: `Pedido #${notificacion.datos.pedidoId}: ${notificacion.datos.estado}`,
       detalle: anterior ? `Antes estaba en ${anterior}` : null,

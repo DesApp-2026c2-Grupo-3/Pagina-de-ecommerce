@@ -228,7 +228,8 @@ export default function Pedidos() {
     : administrador?.sucursal?.nombre;
 
   // Inhabilitado: sin selección, igual a la actual, guardando, cerrado
-  // o retorno a Pendiente (bloqueado por el backend)
+  // o un cambio que el admin no puede pedir (TRANSICIONES_ADMIN: nunca
+  // "En camino"/"Entregado", que los marca el repartidor)
   const puedeAceptar = (pedido: PedidoFila) => {
     const elegida = seleccion[pedido.id];
     if (elegida === undefined) return false;

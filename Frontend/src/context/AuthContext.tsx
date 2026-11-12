@@ -7,7 +7,11 @@ import {
   type ReactNode,
 } from 'react'
 import { login as loginService, register as registerService } from '../services/authService'
-import { API_URL, suscribirSesionExpirada } from '../services/httpClient'
+import {
+  ErrorApi,
+  httpClient,
+  suscribirSesionExpirada,
+} from '../services/httpClient'
 import type { LoginCredentials, RegisterData, User } from '../types/user'
 import {
   guardarSesion,
@@ -74,24 +78,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => suscribirSesionExpirada(logout), [logout])
 
-  // Si la base se recreó, el usuario guardado puede no existir más: se cierra la sesión.
-  // Solo se cierra con 404/401; si el backend no responde, la sesión queda como está.
+  // Revalida la sesión guardada contra el backend usando el token activo
+  // (GET /usuario/me: el usuario sale del token, nunca del id guardado en el navegador).
+  // - 401: token vencido/inválido o el usuario ya no existe (p. ej. la base se recreó).
+  //   httpClient avisa a suscribirSesionExpirada y logout() limpia storage, socket y bus.
+  // - 404: el usuario del token no existe: se cierra la sesión igual.
+  // - Sin conexión o error del servidor: la sesión queda como está.
+  // Corre al montar y cada vez que cambia el token (login), no en cada cambio de perfil.
   useEffect(() => {
-    if (!user) return
+    if (!token) return
     const controlador = new AbortController()
 
-    fetch(`${API_URL}/usuario/${user.id}`, { signal: controlador.signal })
-      .then((respuesta) => {
-        if (respuesta.status === 404 || respuesta.status === 401) {
+    httpClient<unknown>('/usuario/me', { signal: controlador.signal }).catch(
+      (error: unknown) => {
+        if (controlador.signal.aborted) return
+        if (error instanceof ErrorApi && error.status === 404) {
           logout()
         }
-      })
-      .catch((error) => {
-        if (error?.name === 'AbortError') return
-      })
+      },
+    )
 
     return () => controlador.abort()
-  }, [logout, user])
+  }, [logout, token])
 
   const setUser = (nuevoUsuario: User) => {
     setUserState(nuevoUsuario)

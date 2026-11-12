@@ -90,3 +90,46 @@ describe('mapearNotificacion', () => {
     ).toBeNull()
   })
 })
+
+describe('estados internos local/repartidor', () => {
+  test('descarta un aviso de "Listo para retirar" (el cliente no ve ese estado)', () => {
+    const notificacion = mapearNotificacion(
+      payload({
+        datos: {
+          pedidoId: 50,
+          usuarioId: 7,
+          sucursalId: 2,
+          estadoAnterior: 'En proceso',
+          estado: 'Listo para retirar',
+          total: 5000,
+          fecha: '2026-01-01T10:00:00.000Z',
+        },
+      }),
+    )
+
+    expect(notificacion).toBeNull()
+  })
+
+  test('si se cancela desde "Listo para retirar", el detalle muestra "En proceso"', () => {
+    const notificacion = mapearNotificacion(
+      payload({
+        datos: {
+          pedidoId: 50,
+          usuarioId: 7,
+          sucursalId: 2,
+          estadoAnterior: 'Listo para retirar',
+          estado: 'Cancelado',
+          total: 5000,
+          fecha: '2026-01-01T10:00:00.000Z',
+        },
+      }),
+    )
+
+    if (!notificacion || notificacion.tipo === 'sucursal.cerrada') {
+      throw new Error('Se esperaba una notificación de pedido')
+    }
+    expect(fabricaNotificacionesCliente.describir(notificacion).detalle).toBe(
+      'Antes estaba en En proceso',
+    )
+  })
+})

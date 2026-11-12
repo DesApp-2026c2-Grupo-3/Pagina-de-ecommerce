@@ -19,13 +19,17 @@ const SUCURSAL = { model: Sucursal, attributes: ['id', 'nombre'] };
 // Línea de tiempo de estados: se devuelve ordenada cronológicamente en el detalle
 // `as` explícito: coincide con el alias del modelo y la clave que espera el front (`historialDeTiemposPedidos`)
 const HISTORIAL = { model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos', attributes: ['id', 'estado', 'estadoAnterior', 'fecha'] };
-// Flujo permitido: desde cada estado, a cuáles se puede pasar (en minúscula)
+// Flujo permitido AL ADMINISTRADOR: desde cada estado, a cuáles puede pasar (en minúscula).
+// "En camino" y "Entregado" los marca el repartidor desde su app (pedidoRepartidorController):
+// el admin no puede despachar ni entregar a mano, y un pedido en viaje ya no se toca desde el panel.
+// Espejo en el panel: TRANSICIONES_ADMIN de admin/src/utils/pedidoEstado.ts
 const TRANSICIONES = {
     'pendiente': ['en proceso', 'cancelado'],
     'en proceso': ['listo para retirar', 'cancelado'],
-    'listo para retirar': ['en camino', 'cancelado'],
-    'en camino': ['entregado', 'cancelado'],
+    'listo para retirar': ['cancelado'],
 };
+// Estados que solo maneja el repartidor
+const ESTADOS_DEL_REPARTIDOR = ['en camino', 'entregado'];
 // Un pedido en estos estados ya está cerrado: no se puede cambiar
 const ESTADOS_FINALES = ['entregado', 'cancelado'];
 
@@ -133,8 +137,20 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
         // Una vez que el pedido abandona Pendiente nunca puede volver:
         // Pendiente es solo el estado inicial
         const actual = String(pedido.estado).toLowerCase();
+        const destino = String(estado).toLowerCase();
+        // Lo que maneja el repartidor no se toca desde el panel
+        if (ESTADOS_DEL_REPARTIDOR.includes(actual)) {
+            return res.status(400).json({
+                mensaje: `El pedido está "${pedido.estado}": lo gestiona el repartidor desde su app`
+            });
+        }
+        if (ESTADOS_DEL_REPARTIDOR.includes(destino)) {
+            return res.status(400).json({
+                mensaje: `"${estado}" lo marca el repartidor desde su app`
+            });
+        }
         const permitidos = TRANSICIONES[actual] ?? [];
-        if (!permitidos.includes(String(estado).toLowerCase())) {
+        if (!permitidos.includes(destino)) {
             return res.status(400).json({
                 mensaje: `No se puede pasar de "${pedido.estado}" a "${estado}"`
             });

@@ -146,7 +146,9 @@ function ZoneButton() {
         }
         aria-label={
           zona
-            ? `Pedís desde ${zona.sucursalNombre}. Cambiar dirección`
+            ? sucursalCerrada
+              ? `${zona.sucursalNombre} está cerrada ahora. Ver opciones`
+              : `Pedís desde ${zona.sucursalNombre}. Cambiar dirección`
             : 'Elegir dirección de entrega'
         }
         className={`flex min-h-11 min-w-0 items-center justify-center rounded-full border bg-white/5 p-0 text-left text-white transition-colors hover:bg-white/10 max-[360px]:h-11 max-[360px]:w-11 max-[360px]:shrink-0 min-[360px]:justify-start min-[360px]:gap-2 min-[360px]:py-1 min-[360px]:pl-2 min-[360px]:pr-3 ${

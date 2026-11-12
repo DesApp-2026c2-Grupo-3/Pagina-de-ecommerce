@@ -23,28 +23,33 @@ export function esEstadoFinal(estado: string) {
   return e === 'Entregado' || e === 'Cancelado'
 }
 
-// Pendiente es solo el estado inicial: una vez abandonado nunca se puede volver.
-// Espejo de la validación del backend en PATCH /admin/pedidos/editar/estado/:id
-export function esRetornoAPendienteProhibido(estadoActual: string, destino: string) {
-  return (
-    normalizarEstado(destino) === 'Pendiente' &&
-    normalizarEstado(estadoActual) !== 'Pendiente'
-  )
-}
-
-// Flujo permitido (espejo de TRANSICIONES del backend)
-const TRANSICIONES: Record<EstadoPedido, EstadoPedido[]> = {
+// Lo que el ADMIN puede pedir desde cada estado (espejo de TRANSICIONES en
+// Backend/src/controllers/admin/pedidoController.js).
+// "En camino" y "Entregado" los marca el repartidor desde su app: el panel nunca los ofrece,
+// y un pedido que ya salió con el repartidor queda en solo lectura.
+const TRANSICIONES_ADMIN: Record<EstadoPedido, EstadoPedido[]> = {
   Pendiente: ['En proceso', 'Cancelado'],
   'En proceso': ['Listo para retirar', 'Cancelado'],
-  'Listo para retirar': ['En camino', 'Cancelado'],
-  'En camino': ['Entregado', 'Cancelado'],
+  'Listo para retirar': ['Cancelado'],
+  'En camino': [],
   Entregado: [],
   Cancelado: [],
 }
 
-// ¿Se puede pedir el cambio de estado? (el backend tiene la última palabra)
+// ¿Puede el admin pedir este cambio? (el backend tiene la última palabra)
 export function puedePasarA(estadoActual: string, destino: string) {
-  return TRANSICIONES[normalizarEstado(estadoActual)].includes(normalizarEstado(destino))
+  return TRANSICIONES_ADMIN[normalizarEstado(estadoActual)].includes(normalizarEstado(destino))
+}
+
+// Etapas que ve el admin en el selector: la actual (marcada) y las que puede pedir
+export function opcionesDeEtapa(estadoActual: string): EstadoPedido[] {
+  const actual = normalizarEstado(estadoActual)
+  return [actual, ...TRANSICIONES_ADMIN[actual]]
+}
+
+// ¿El panel todavía puede cambiar algo? (false en En camino, Entregado y Cancelado)
+export function admiteCambiosDelAdmin(estadoActual: string) {
+  return TRANSICIONES_ADMIN[normalizarEstado(estadoActual)].length > 0
 }
 
 // Posición en la línea de tiempo (0 a 3); -1 si es Cancelado (fuera del flujo)

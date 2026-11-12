@@ -12,7 +12,6 @@ const imagenController = require('../../controllers/admin/imagenProductoControll
 router.post('/imagen', esMasterJwt, subirImagen, imagenController.subirImagen);
 router.delete('/imagen', esMasterJwt, imagenController.descartarImagen);
 router.get('/', esMasterJwt, adminController.obtenerProductos);
-router.get('/eliminados', esMasterJwt, adminController.obtenerProductosEliminados);
 router.get('/:id', esMasterJwt, esIdValido, adminController.obtenerProductoPorId);
 router.post('/nuevo', esMasterJwt, validarProducto, adminController.crearProducto);
 router.patch('/editar/:id', esMasterJwt, validarProducto, esIdValido, adminController.editarProductoPorId);
@@ -20,6 +19,5 @@ router.delete('/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminar
 router.get('/:id/stock', esMasterJwt, esIdValido, adminController.verStockProducto);
 // Inhabilitar / habilitar (el borrado lógico es el DELETE de /eliminar/:id)
 router.patch('/:id/disponibilidad', esMasterJwt, esIdValido, adminController.cambiarDisponibilidad);
-router.patch('/restaurar/:id', esMasterJwt, esIdValido, adminController.restaurarProducto);
 
 module.exports = router;

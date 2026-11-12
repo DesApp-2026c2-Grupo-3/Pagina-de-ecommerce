@@ -43,6 +43,27 @@ test('delega el cambio de estado con el estado anterior', async () => {
     });
 });
 
+test('no avisa al cliente el paso a "Listo para retirar" (estado interno)', async () => {
+    const resultado = await notificarEstadoPedido(
+        { ...PEDIDO, estado: 'Listo para retirar' },
+        'En proceso',
+    );
+
+    expect(resultado).toBeNull();
+    expect(fabrica.publicarPorTipo).not.toHaveBeenCalled();
+});
+
+test('si se cancela desde "Listo para retirar", el cliente ve "En proceso" como anterior', async () => {
+    const pedido = { ...PEDIDO, estado: 'Cancelado' };
+
+    await notificarEstadoPedido(pedido, 'Listo para retirar');
+
+    expect(fabrica.publicarPorTipo).toHaveBeenCalledWith('pedido.estado_cambiado', {
+        pedido,
+        estadoAnterior: 'En proceso',
+    });
+});
+
 test('delega el cierre de sucursal', async () => {
     await notificarSucursalCerrada({ sucursalId: 2, sucursalNombre: 'Centro' });
 
