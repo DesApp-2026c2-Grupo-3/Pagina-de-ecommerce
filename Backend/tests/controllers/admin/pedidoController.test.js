@@ -17,9 +17,17 @@ jest.mock('../../../src/models', () => {
 jest.mock('../../../src/utils/stockPedido', () => ({
     devolverStockPedido: jest.fn(),
 }));
+jest.mock('../../../src/notifications/adminRefresco', () => ({
+    emitirRefrescoAdmin: jest.fn(),
+}));
+jest.mock('../../../src/notifications/handlers/pedidoHandlers', () => ({
+    notificarEstadoPedido: jest.fn(),
+}));
 
 const models = require('../../../src/models');
 const { devolverStockPedido } = require('../../../src/utils/stockPedido');
+const { emitirRefrescoAdmin } = require('../../../src/notifications/adminRefresco');
+const { notificarEstadoPedido } = require('../../../src/notifications/handlers/pedidoHandlers');
 const {
     obtenerPedidosPorSucursal,
     obtenerPedidoPorId,
@@ -266,11 +274,23 @@ describe('cambiarEstadoPedidoPorId', () => {
         Pedido.findByPk.mockResolvedValue(pedidoDeLaBase({ estado: 'Pendiente' }));
         const res = crearRes();
 
+        await cambiarEstadoPedidoPorId(req('Listo para retirar'), res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+            mensaje: 'No se puede pasar de "Pendiente" a "Listo para retirar"',
+        });
+    });
+
+    test('rechaza que el admin marque "Entregado" (lo marca el repartidor)', async () => {
+        Pedido.findByPk.mockResolvedValue(pedidoDeLaBase({ estado: 'Pendiente' }));
+        const res = crearRes();
+
         await cambiarEstadoPedidoPorId(req('Entregado'), res);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'No se puede pasar de "Pendiente" a "Entregado"',
+            mensaje: '"Entregado" lo marca el repartidor desde su app',
         });
     });
 
@@ -307,6 +327,21 @@ describe('cambiarEstadoPedidoPorId', () => {
         expect(t.commit).toHaveBeenCalled();
     });
 
+    test('al devolver stock al cancelar avisa a la sucursal para refrescar', async () => {
+        const pedido = pedidoDeLaBase({ estado: 'Pendiente' });
+        Pedido.findByPk.mockResolvedValue(pedido);
+        devolverStockPedido.mockResolvedValue(2);
+
+        await cambiarEstadoPedidoPorId(req('Cancelado'), crearRes());
+
+        expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: 2,
+            recursos: { pedidoId: 100 },
+        });
+    });
+
     test('al cancelar desde En proceso no devuelve el stock automáticamente', async () => {
         const pedido = pedidoDeLaBase({ estado: 'En proceso' });
         Pedido.findByPk.mockResolvedValue(pedido);
@@ -315,6 +350,61 @@ describe('cambiarEstadoPedidoPorId', () => {
 
         expect(devolverStockPedido).not.toHaveBeenCalled();
         expect(t.commit).toHaveBeenCalled();
+    });
+
+    test('el admin no puede despachar: "En camino" lo marca el repartidor', async () => {
+        const pedido = pedidoDeLaBase({ estado: 'Listo para retirar' });
+        Pedido.findByPk.mockResolvedValue(pedido);
+        const res = crearRes();
+
+        await cambiarEstadoPedidoPorId(req('En camino'), res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+            mensaje: '"En camino" lo marca el repartidor desde su app',
+        });
+        expect(pedido.update).not.toHaveBeenCalled();
+        expect(notificarEstadoPedido).not.toHaveBeenCalled();
+    });
+
+    test('un pedido "En camino" no se modifica desde el panel', async () => {
+        const pedido = pedidoDeLaBase({ estado: 'En camino' });
+        Pedido.findByPk.mockResolvedValue(pedido);
+        const res = crearRes();
+
+        await cambiarEstadoPedidoPorId(req('Entregado'), res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+            mensaje: 'El pedido está "En camino": lo gestiona el repartidor desde su app',
+        });
+        expect(pedido.update).not.toHaveBeenCalled();
+    });
+
+    test('desde "Listo para retirar" el admin solo puede cancelar', async () => {
+        const pedido = pedidoDeLaBase({ estado: 'Listo para retirar' });
+        Pedido.findByPk.mockResolvedValue(pedido);
+        const res = crearRes();
+
+        await cambiarEstadoPedidoPorId(req('Cancelado'), res);
+
+        expect(pedido.update).toHaveBeenCalledWith({ estado: 'Cancelado' }, { transaction: t });
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    // El handler decide qué ve el cliente: "Listo para retirar" es interno y no se le avisa
+    // (ver tests/notifications/handlers.test.js)
+    test('pasar a "Listo para retirar" delega en el handler con el estado anterior', async () => {
+        const pedido = pedidoDeLaBase({ estado: 'En proceso' });
+        Pedido.findByPk.mockResolvedValue(pedido);
+        const res = crearRes();
+
+        await cambiarEstadoPedidoPorId(req('Listo para retirar'), res);
+
+        expect(pedido.update).toHaveBeenCalledWith({ estado: 'Listo para retirar' }, { transaction: t });
+        expect(t.commit).toHaveBeenCalled();
+        expect(notificarEstadoPedido).toHaveBeenCalledWith(pedido, 'En proceso');
+        expect(res.status).toHaveBeenCalledWith(200);
     });
 
     test('acepta un estado viejo en minúsculas', async () => {

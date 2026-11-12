@@ -12,6 +12,7 @@ import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Perfil from './pages/Perfil'
 import HistorialPedidos from './pages/HistorialPedidos'
+import PedidoDetalle from './pages/PedidoDetalle'
 import Address from './pages/Address'
 import Seguridad from './pages/Seguridad'
 import Toast from './components/Toast'
@@ -28,6 +29,7 @@ import PantallaDespedida from './components/ui/PantallaDespedida'
 import BotonSubir from './components/layout/BotonSubir'
 import RecuperarPassword from './pages/RecuperarPassword'
 import RestablecerPassword from './pages/RestablecerPassword'
+import AlertasNotificaciones from './components/notificaciones/AlertasNotificaciones'
 
 function App() {
   const { user } = useAuth()
@@ -57,6 +59,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/historial" element={<HistorialPedidos />} />
+          <Route path="/pedidos/:id" element={<PedidoDetalle />} />
           <Route path="/direcciones" element={<Address />} />
           <Route path="/seguridad" element={<Seguridad />} />
           <Route path="/conocenos" element={<Conocenos />} />
@@ -70,6 +73,7 @@ function App() {
       <BotonSubir />
       <Toast />
       <ZonaDesdeUsuario />
+      <AlertasNotificaciones />
       <ElegirZonaModal />
       <PantallaBienvenida />
       <PantallaDespedida />

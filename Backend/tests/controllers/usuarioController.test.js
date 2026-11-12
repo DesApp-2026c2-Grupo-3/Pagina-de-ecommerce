@@ -12,10 +12,14 @@ jest.mock('../../src/models', () => ({
 jest.mock('../../src/services/emailServices', () => ({
     enviarCorreoRecuperacion: jest.fn(),
 }));
+jest.mock('../../src/services/authService', () => ({
+    firmarTokenCliente: jest.fn(() => 'token-cliente'),
+}));
 
 const bcrypt = require('bcrypt');
 const { Usuario, Sucursal, TokenRecuperacion, sequelize } = require('../../src/models');
 const { enviarCorreoRecuperacion } = require('../../src/services/emailServices');
+const { firmarTokenCliente } = require('../../src/services/authService');
 const {
     verUsuarios,
     crearUsuario,
@@ -23,6 +27,7 @@ const {
     solicitarRecuperacion,
     restablecerPassword,
     obtenerUsuarioPorId,
+    obtenerMiUsuario,
     actualizarSucursalPredeterminada,
     actualizarUsuario,
 } = require('../../src/controllers/usuarioController');
@@ -157,7 +162,13 @@ describe('login', () => {
         await login({ body }, res);
 
         expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ id: 1, nombre: 'Juan', email: 'juan@mail.com' });
+        expect(res.json).toHaveBeenCalledWith({
+            id: 1,
+            nombre: 'Juan',
+            email: 'juan@mail.com',
+            token: 'token-cliente',
+        });
+        expect(firmarTokenCliente).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
     });
 
     test('responde 500 si falla la base de datos', async () => {
@@ -213,6 +224,39 @@ describe('obtenerUsuarioPorId', () => {
         const res = crearRes();
 
         await obtenerUsuarioPorId({ params: { id: '1' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('obtenerMiUsuario', () => {
+    test('busca el usuario del token, no el de la URL', async () => {
+        Usuario.findByPk.mockResolvedValue({ id: 7 });
+        const res = crearRes();
+
+        await obtenerMiUsuario({ usuario: { id: 7 }, params: { id: '1' } }, res);
+
+        expect(Usuario.findByPk.mock.calls[0][0]).toBe(7);
+        const { attributes } = Usuario.findByPk.mock.calls[0][1];
+        expect(attributes).not.toContain('password');
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ id: 7 });
+    });
+
+    test('responde 404 si el usuario del token ya no existe', async () => {
+        Usuario.findByPk.mockResolvedValue(null);
+        const res = crearRes();
+
+        await obtenerMiUsuario({ usuario: { id: 99 } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    test('responde 500 si falla la base de datos', async () => {
+        Usuario.findByPk.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await obtenerMiUsuario({ usuario: { id: 1 } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });

@@ -1,16 +1,12 @@
-jest.mock('../../src/utils/jwt', () => ({
-    verificarToken: jest.fn(),
+jest.mock('../../src/services/authService', () => ({
+    resolverIdentidad: jest.fn(),
 }));
 
-jest.mock('../../src/models', () => ({
-    Admin: { findByPk: jest.fn() },
-}));
-
-const { verificarToken } = require('../../src/utils/jwt');
-const { Admin } = require('../../src/models');
+const { resolverIdentidad } = require('../../src/services/authService');
 const {
     autenticarUsuario,
     autenticarAdmin,
+    autenticarCualquiera,
     soloMaster,
     deSuSucursal,
 } = require('../../src/middleware/autenticacion');
@@ -22,9 +18,10 @@ function crearRes() {
     return res;
 }
 
-function crearReq(authorization) {
+function crearReq(authorization, cookies = {}) {
     return {
         headers: authorization === undefined ? {} : { authorization },
+        cookies,
     };
 }
 
@@ -34,78 +31,99 @@ beforeEach(() => {
 });
 
 describe('autenticarUsuario', () => {
-    test('responde 401 si no viene el header de autorización', () => {
-        const req = crearReq();
+    test('responde 401 si no viene el header de autorización', async () => {
         const res = crearRes();
         const next = jest.fn();
 
-        autenticarUsuario(req, res, next);
+        await autenticarUsuario(crearReq(), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Iniciá sesión para continuar' });
         expect(next).not.toHaveBeenCalled();
     });
 
-    test('responde 401 si el header no es del tipo Bearer', () => {
-        const req = crearReq('Basic abc123');
+    test('responde 401 si el header no es del tipo Bearer', async () => {
         const res = crearRes();
         const next = jest.fn();
 
-        autenticarUsuario(req, res, next);
+        await autenticarUsuario(crearReq('Basic abc123'), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Iniciá sesión para continuar' });
-        expect(verificarToken).not.toHaveBeenCalled();
+        expect(resolverIdentidad).not.toHaveBeenCalled();
     });
 
-    test('responde 401 si el token viene vacío', () => {
-        const req = crearReq('Bearer ');
+    test('responde 401 si el token viene vacío', async () => {
         const res = crearRes();
         const next = jest.fn();
 
-        autenticarUsuario(req, res, next);
+        await autenticarUsuario(crearReq('Bearer '), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Iniciá sesión para continuar' });
-        expect(verificarToken).not.toHaveBeenCalled();
+        expect(resolverIdentidad).not.toHaveBeenCalled();
     });
 
-    test('deja pasar un token válido de usuario y guarda su id en req.usuario', () => {
-        verificarToken.mockReturnValue({ id: 7, tipo: 'usuario' });
+    test('deja pasar un cliente y guarda su identidad en req.usuario', async () => {
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'cliente',
+            id: 7,
+            nombre: 'Juan',
+            sucursalId: 2,
+        });
         const req = crearReq('Bearer token-valido');
         const res = crearRes();
         const next = jest.fn();
 
-        autenticarUsuario(req, res, next);
+        await autenticarUsuario(req, res, next);
 
-        expect(verificarToken).toHaveBeenCalledWith('token-valido');
-        expect(req.usuario).toEqual({ id: 7 });
+        expect(resolverIdentidad).toHaveBeenCalledWith('token-valido');
+        expect(req.usuario).toEqual({ id: 7, nombre: 'Juan', sucursalId: 2 });
+        expect(req.identidad).toMatchObject({ tipo: 'cliente', id: 7 });
         expect(next).toHaveBeenCalled();
         expect(res.status).not.toHaveBeenCalled();
     });
 
-    test('rechaza un token que pertenece a un administrador', () => {
-        verificarToken.mockReturnValue({ id: 1, tipo: 'admin' });
-        const req = crearReq('Bearer token-admin');
+    test('acepta el token desde la cookie access_token', async () => {
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'cliente',
+            id: 7,
+            nombre: 'Juan',
+            sucursalId: null,
+        });
+        const req = crearReq(undefined, { access_token: 'token-cookie' });
+        const next = jest.fn();
+
+        await autenticarUsuario(req, crearRes(), next);
+
+        expect(resolverIdentidad).toHaveBeenCalledWith('token-cookie');
+        expect(next).toHaveBeenCalled();
+    });
+
+    test('rechaza un token que pertenece a un administrador', async () => {
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'admin',
+            id: 1,
+            rol: 'ADMIN',
+            sucursalId: 2,
+            nombre: 'Ana',
+        });
         const res = crearRes();
         const next = jest.fn();
 
-        autenticarUsuario(req, res, next);
+        await autenticarUsuario(crearReq('Bearer token-admin'), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Tu sesión venció. Iniciá sesión de nuevo' });
         expect(next).not.toHaveBeenCalled();
     });
 
-    test('responde 401 si el token venció o es inválido', () => {
-        verificarToken.mockImplementation(() => {
-            throw new Error('jwt expired');
-        });
-        const req = crearReq('Bearer token-vencido');
+    test('responde 401 si el token venció o es inválido', async () => {
+        resolverIdentidad.mockRejectedValue({ codigo: 'AUTH_EXPIRED' });
         const res = crearRes();
         const next = jest.fn();
 
-        autenticarUsuario(req, res, next);
+        await autenticarUsuario(crearReq('Bearer token-vencido'), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Tu sesión venció. Iniciá sesión de nuevo' });
@@ -114,72 +132,52 @@ describe('autenticarUsuario', () => {
 });
 
 describe('autenticarAdmin', () => {
-    test('responde 401 si no viene el header de autorización', async () => {
-        const req = crearReq();
+    test('responde 401 si no viene token', async () => {
         const res = crearRes();
         const next = jest.fn();
 
-        await autenticarAdmin(req, res, next);
+        await autenticarAdmin(crearReq(), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Iniciá sesión para continuar' });
-        expect(Admin.findByPk).not.toHaveBeenCalled();
         expect(next).not.toHaveBeenCalled();
     });
 
     test('responde 401 si el token venció o es inválido', async () => {
-        verificarToken.mockImplementation(() => {
-            throw new Error('jwt expired');
-        });
-        const req = crearReq('Bearer token-vencido');
+        resolverIdentidad.mockRejectedValue({ codigo: 'AUTH_INVALID' });
         const res = crearRes();
         const next = jest.fn();
 
-        await autenticarAdmin(req, res, next);
+        await autenticarAdmin(crearReq('Bearer token-vencido'), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Tu sesión venció. Iniciá sesión de nuevo' });
-        expect(Admin.findByPk).not.toHaveBeenCalled();
         expect(next).not.toHaveBeenCalled();
     });
 
     test('rechaza un token de cliente', async () => {
-        verificarToken.mockReturnValue({ id: 3, tipo: 'usuario' });
-        const req = crearReq('Bearer token-cliente');
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'cliente',
+            id: 3,
+            nombre: 'Juan',
+            sucursalId: null,
+        });
         const res = crearRes();
         const next = jest.fn();
 
-        await autenticarAdmin(req, res, next);
+        await autenticarAdmin(crearReq('Bearer token-cliente'), res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Iniciá sesión como administrador' });
-        expect(Admin.findByPk).not.toHaveBeenCalled();
         expect(next).not.toHaveBeenCalled();
     });
 
-    test('responde 401 si el administrador ya no existe', async () => {
-        verificarToken.mockReturnValue({ id: 3, tipo: 'admin' });
-        Admin.findByPk.mockResolvedValue(null);
-        const req = crearReq('Bearer token-admin');
+    test('responde 500 si falla la base al resolver la identidad', async () => {
+        resolverIdentidad.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
         const next = jest.fn();
 
-        await autenticarAdmin(req, res, next);
-
-        expect(Admin.findByPk).toHaveBeenCalledWith(3, { attributes: ['id', 'rol', 'sucursalId'] });
-        expect(res.status).toHaveBeenCalledWith(401);
-        expect(res.json).toHaveBeenCalledWith({ mensaje: 'Iniciá sesión de nuevo' });
-        expect(next).not.toHaveBeenCalled();
-    });
-
-    test('responde 500 si falla la base de datos al buscar el administrador', async () => {
-        verificarToken.mockReturnValue({ id: 3, tipo: 'admin' });
-        Admin.findByPk.mockRejectedValue(new Error('Base caída'));
-        const req = crearReq('Bearer token-admin');
-        const res = crearRes();
-        const next = jest.fn();
-
-        await autenticarAdmin(req, res, next);
+        await autenticarAdmin(crearReq('Bearer token-admin'), res, next);
 
         expect(console.error).toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
@@ -187,19 +185,50 @@ describe('autenticarAdmin', () => {
         expect(next).not.toHaveBeenCalled();
     });
 
-    test('deja pasar un administrador válido y guarda sus datos en req.admin', async () => {
-        verificarToken.mockReturnValue({ id: 3, tipo: 'admin' });
-        Admin.findByPk.mockResolvedValue({ id: 3, rol: 'ADMIN', sucursalId: 2 });
+    test('deja pasar un administrador y guarda req.admin y req.usuario', async () => {
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'admin',
+            id: 3,
+            nombre: 'Ana',
+            rol: 'ADMIN',
+            sucursalId: 2,
+        });
         const req = crearReq('Bearer token-admin');
         const res = crearRes();
         const next = jest.fn();
 
         await autenticarAdmin(req, res, next);
 
-        expect(Admin.findByPk).toHaveBeenCalledWith(3, { attributes: ['id', 'rol', 'sucursalId'] });
-        expect(req.admin).toEqual({ id: 3, rol: 'ADMIN', sucursalId: 2 });
+        expect(req.admin).toEqual({
+            id: 3,
+            nombre: 'Ana',
+            rol: 'ADMIN',
+            sucursalId: 2,
+        });
+        expect(req.usuario).toEqual({ id: 3, nombre: 'Ana', rol: 'ADMIN' });
         expect(next).toHaveBeenCalled();
         expect(res.status).not.toHaveBeenCalled();
+    });
+});
+
+describe('autenticarCualquiera', () => {
+    test('deja pasar un cliente o un admin y guarda req.identidad', async () => {
+        resolverIdentidad.mockResolvedValue({ tipo: 'cliente', id: 7 });
+        const req = crearReq('Bearer token');
+        const next = jest.fn();
+
+        await autenticarCualquiera(req, crearRes(), next);
+
+        expect(req.identidad).toEqual({ tipo: 'cliente', id: 7 });
+        expect(next).toHaveBeenCalled();
+    });
+
+    test('responde 401 sin token', async () => {
+        const res = crearRes();
+
+        await autenticarCualquiera(crearReq(), res, jest.fn());
+
+        expect(res.status).toHaveBeenCalledWith(401);
     });
 });
 

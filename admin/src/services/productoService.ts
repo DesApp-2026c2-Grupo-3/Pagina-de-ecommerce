@@ -70,13 +70,6 @@ export async function cambiarDisponibilidad(id: number, disponible: boolean) {
   })
 }
 
-export async function restaurarProducto(id: number) {
-  return apiFetch(`${API}/restaurar/${id}`, {
-    method: 'PATCH',
-    mensajePorDefecto: 'Error al restaurar el producto',
-  })
-}
-
 // Sube la imagen a Cloudinary (el backend la comprime).
 // Devuelve { url, publicId }.
 // Sin header Content-Type: el navegador lo arma solo para enviar el archivo.

@@ -1,6 +1,30 @@
-const { StockSucursal, Insumo, MovimientoStock, Admin, sequelize } = require('../../models');
+const { StockSucursal, Insumo, MovimientoStock, Admin, Sucursal, sequelize } = require('../../models');
+const { notificarStockBajo } = require('../../notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../../notifications/adminRefresco');
+const { cruzaMinimo, normalizarMinimo } = require('../../utils/stockMinimo');
+const { motivoSinAcceso, mensajeSinAcceso } = require('../../utils/permisosSucursal');
 
 const redondear = (n) => Math.round(n * 1000) / 1000;
+
+async function notificarBajoMinimo({ sucursalId, insumoId, cantidad, stockMinimo }) {
+    try {
+        const [sucursal, insumo] = await Promise.all([
+            Sucursal.findByPk(sucursalId, { attributes: ['id', 'nombre'] }),
+            Insumo.findByPk(insumoId, { attributes: ['id', 'nombre'] }),
+        ]);
+
+        await notificarStockBajo({
+            sucursalId,
+            sucursalNombre: sucursal?.nombre ?? '',
+            insumoId,
+            insumoNombre: insumo?.nombre ?? '',
+            cantidad,
+            stockMinimo,
+        });
+    } catch (error) {
+        console.error('No se pudo publicar la alerta de stock:', error.message);
+    }
+}
 
 // Solo se registra el admin si existe (así un id viejo no rompe el movimiento)
 async function adminValido(adminId, transaction) {
@@ -13,6 +37,10 @@ async function adminValido(adminId, transaction) {
 const obtenerStockPorSucursal = async (req, res) => {
     try {
         const { id: sucursalId } = req.params;
+        const acceso = motivoSinAcceso(req.identidad, sucursalId);
+        if (acceso) {
+            return res.status(acceso).json({ mensaje: mensajeSinAcceso(acceso) });
+        }
 
         const stock = await StockSucursal.findAll({
             where: { sucursalId },
@@ -57,6 +85,12 @@ const cargarAumento = async (req, res) => {
             return res.status(404).json({ mensaje: 'Registro de stock no encontrado' });
         }
 
+        const acceso = motivoSinAcceso(req.identidad, stock.sucursalId);
+        if (acceso) {
+            await t.rollback();
+            return res.status(acceso).json({ mensaje: mensajeSinAcceso(acceso) });
+        }
+
         const insumo = await Insumo.findByPk(stock.insumoId, {
             attributes: ['id', 'nombre', 'activo'],
             transaction: t,
@@ -87,10 +121,18 @@ const cargarAumento = async (req, res) => {
             cantidad: req.body.cantidad,
             cantidadAnterior: anterior,
             cantidadNueva: nueva,
-            adminId: await adminValido(req.body.adminId, t),
+            adminId: await adminValido(req.identidad.id, t),
         }, { transaction: t });
 
         await t.commit();
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: stock.sucursalId,
+            recursos: { insumoId: stock.insumoId },
+        });
+
         return res.status(200).json({ mensaje: 'Stock actualizado con éxito', stock });
     } catch (error) {
         await t.rollback();
@@ -113,7 +155,14 @@ const registrarBaja = async (req, res) => {
             return res.status(404).json({ mensaje: 'Registro de stock no encontrado' });
         }
 
+        const acceso = motivoSinAcceso(req.identidad, stock.sucursalId);
+        if (acceso) {
+            await t.rollback();
+            return res.status(acceso).json({ mensaje: mensajeSinAcceso(acceso) });
+        }
+
         const anterior = Number(stock.cantidad);
+        const minimo = normalizarMinimo(stock.stockMinimo);
         const { cantidad, motivo, detalle } = req.body;
 
         // El stock nunca queda negativo
@@ -139,10 +188,27 @@ const registrarBaja = async (req, res) => {
             cantidadNueva: nueva,
             motivo,
             detalle: detalle || null,
-            adminId: await adminValido(req.body.adminId, t),
+            adminId: await adminValido(req.identidad.id, t),
         }, { transaction: t });
 
         await t.commit();
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: stock.sucursalId,
+            recursos: { insumoId: stock.insumoId },
+        });
+
+        if (cruzaMinimo(anterior, nueva, minimo)) {
+            await notificarBajoMinimo({
+                sucursalId: stock.sucursalId,
+                insumoId: stock.insumoId,
+                cantidad: nueva,
+                stockMinimo: minimo,
+            });
+        }
+
         return res.status(200).json({ mensaje: 'Baja registrada con éxito', stock });
     } catch (error) {
         await t.rollback();
@@ -154,6 +220,11 @@ const registrarBaja = async (req, res) => {
 // GET /admin/stock/sucursal/:id/movimientos → los últimos 50 movimientos de la sucursal
 const obtenerMovimientos = async (req, res) => {
     try {
+        const acceso = motivoSinAcceso(req.identidad, req.params.id);
+        if (acceso) {
+            return res.status(acceso).json({ mensaje: mensajeSinAcceso(acceso) });
+        }
+
         const movimientos = await MovimientoStock.findAll({
             where: { sucursalId: req.params.id },
             include: [
@@ -192,7 +263,20 @@ const definirMinimo = async (req, res) => {
             return res.status(404).json({ mensaje: 'Registro de stock no encontrado' });
         }
 
+        const acceso = motivoSinAcceso(req.identidad, stock.sucursalId);
+        if (acceso) {
+            return res.status(acceso).json({ mensaje: mensajeSinAcceso(acceso) });
+        }
+
         await stock.update({ stockMinimo: req.body.stockMinimo });
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: stock.sucursalId,
+            recursos: { insumoId: stock.insumoId },
+        });
+
         return res.status(200).json({ mensaje: 'Mínimo actualizado', stock });
     } catch (error) {
         console.error('Algo salió mal', error.message);

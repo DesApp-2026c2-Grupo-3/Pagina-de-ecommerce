@@ -2,7 +2,7 @@
 jest.mock('../../src/models', () => {
     const t = { commit: jest.fn(), rollback: jest.fn(), LOCK: { UPDATE: 'UPDATE' } };
     return {
-        Pedido: { create: jest.fn(), findAll: jest.fn(), findByPk: jest.fn(), count: jest.fn().mockResolvedValue(0) },
+        Pedido: { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), count: jest.fn().mockResolvedValue(0) },
         DetallePedido: { create: jest.fn() },
         Producto: { findByPk: jest.fn() },
         Usuario: { findByPk: jest.fn() },
@@ -10,7 +10,7 @@ jest.mock('../../src/models', () => {
         Sucursal: { findByPk: jest.fn() },
         RecetaInsumo: { findAll: jest.fn() },
         ComboGrupo: { findAll: jest.fn() },
-        Insumo: {},
+        Insumo: { findAll: jest.fn() },
         ProductoTamanio: {},
         StockSucursal: { findOne: jest.fn() },
         MovimientoStock: { create: jest.fn() },
@@ -20,12 +20,26 @@ jest.mock('../../src/models', () => {
     };
 });
 
+jest.mock('../../src/notifications/handlers/stockHandlers', () => ({
+    notificarStockBajo: jest.fn(),
+}));
+jest.mock('../../src/notifications/adminRefresco', () => ({
+    emitirRefrescoAdmin: jest.fn(),
+}));
+jest.mock('../../src/utils/parametros', () => ({
+    obtenerParametros: jest.fn(),
+}));
+
 const models = require('../../src/models');
+const { obtenerParametros } = require('../../src/utils/parametros');
+const { notificarStockBajo } = require('../../src/notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../../src/notifications/adminRefresco');
 const {
     crearPedido,
     obtenerPedidos,
     obtenerPedidosPorUsuario,
     obtenerPedidoId,
+    obtenerPedidoClienteId,
 } = require('../../src/controllers/pedidoController');
 
 const {
@@ -41,9 +55,10 @@ function crearRes() {
 }
 
 // Un registro de stock falso que se actualiza de verdad cuando el controlador lo descuenta
-function crearStock(cantidad) {
+function crearStock(cantidad, stockMinimo = null) {
     const stock = {
         cantidad,
+        stockMinimo,
         update: jest.fn(({ cantidad: nueva }) => {
             stock.cantidad = nueva;
         }),
@@ -67,6 +82,17 @@ let stocks;
 beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    obtenerParametros.mockResolvedValue({
+        maxPedidosEnCurso: 2,
+        radioEntregaKm: 10,
+        envioBase: 1200,
+        envioPorKm: 300,
+        preparacionBaseMin: 10,
+        preparacionPorProductoMin: 2,
+        viajeMinPorKm: 4,
+        margenDemoraMin: 5,
+    });
 
     Usuario.findByPk.mockResolvedValue({ id: 1 });
     Sucursal.findByPk.mockResolvedValue(sucursalMoron);
@@ -104,9 +130,46 @@ describe('crearPedido', () => {
                 expect.objectContaining({ productoId: 10, cantidad: 2, precio: 5500 }),
                 expect.anything()
             );
-            expect(pedidoCreado.update).toHaveBeenCalledWith({ total: 11000 }, expect.anything());
+            expect(pedidoCreado.update).toHaveBeenCalledWith(
+                expect.objectContaining({ total: 11000 }),
+                expect.anything()
+            );
             expect(t.commit).toHaveBeenCalled();
+            expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+                dominio: 'stock',
+                accion: 'actualizado',
+                sucursalId: 2,
+                recursos: { pedidoId: 100 },
+            });
+            expect(emitirRefrescoAdmin).toHaveBeenCalledWith({
+                dominio: 'pedidos',
+                accion: 'creado',
+                sucursalId: 2,
+                recursos: { pedidoId: 100 },
+            });
+            expect(emitirRefrescoAdmin).toHaveBeenCalledTimes(2);
+            expect(emitirRefrescoAdmin.mock.invocationCallOrder[0])
+                .toBeLessThan(emitirRefrescoAdmin.mock.invocationCallOrder[1]);
             expect(res.status).toHaveBeenCalledWith(201);
+        });
+
+        test('emite el refresco de pedidos después del commit', async () => {
+            emitirRefrescoAdmin.mockImplementation(() => {
+                expect(t.commit).toHaveBeenCalled();
+                return Promise.resolve(true);
+            });
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), crearRes());
+        });
+
+        test('un refresco no emitido no revierte el pedido', async () => {
+            emitirRefrescoAdmin.mockResolvedValue(false);
+            const res = crearRes();
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
+
+            expect(res.status).toHaveBeenCalledWith(201);
+            expect(t.rollback).not.toHaveBeenCalled();
         });
 
         test('descuenta el stock según la personalización', async () => {
@@ -119,6 +182,30 @@ describe('crearPedido', () => {
             expect(stocks[1].cantidad).toBe(48);
             expect(stocks[2].cantidad).toBe(50);
             expect(stocks[3].cantidad).toBe(46);
+        });
+
+        test('notifica stock bajo solo cuando la venta cruza el mínimo', async () => {
+            stocks[1] = crearStock(50, 48);
+            models.Insumo.findAll.mockResolvedValue([{ id: 1, nombre: 'Pan' }]);
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 2 }]), crearRes());
+
+            expect(notificarStockBajo).toHaveBeenCalledWith({
+                sucursalId: 2,
+                insumoId: 1,
+                cantidad: 48,
+                stockMinimo: 48,
+                sucursalNombre: 'Morón',
+                insumoNombre: 'Pan',
+            });
+        });
+
+        test('no repite la alerta si el stock ya estaba bajo el mínimo', async () => {
+            stocks[1] = crearStock(48, 48);
+
+            await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), crearRes());
+
+            expect(notificarStockBajo).not.toHaveBeenCalled();
         });
 
         test('registra cada descuento como venta del pedido en el historial de stock', async () => {
@@ -326,6 +413,7 @@ describe('crearPedido', () => {
         await crearPedido(pedidoCon([{ productoId: 10, cantidad: 1 }]), res);
 
         expect(t.rollback).toHaveBeenCalled();
+        expect(emitirRefrescoAdmin).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
     });
 });
@@ -354,7 +442,7 @@ describe('obtenerPedidos', () => {
 
 describe('obtenerPedidosPorUsuario', () => {
     test('devuelve los pedidos del usuario, del más nuevo al más viejo', async () => {
-        Pedido.findAll.mockResolvedValue([{ id: 5 }]);
+        Pedido.findAll.mockResolvedValue([{ id: 5, toJSON: () => ({ id: 5 }) }]);
         const res = crearRes();
 
         await obtenerPedidosPorUsuario({ params: { usuarioId: '1' } }, res);
@@ -398,11 +486,68 @@ describe('obtenerPedidoId', () => {
     });
 
     test('responde 500 si falla la base de datos', async () => {
-        Pedido.findByPk.mockRejectedValue(new Error('Base caída'));
+        Pedido.findByPk.mockRejectedValue(new Error('Base ca��da'));
         const res = crearRes();
 
         await obtenerPedidoId({ params: { id: '7' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('obtenerPedidoClienteId', () => {
+    test('devuelve solo el pedido del cliente autenticado con su historial', async () => {
+        const pedido = { id: 7, usuarioId: 1 };
+        Pedido.findOne.mockResolvedValue(pedido);
+        const res = crearRes();
+
+        await obtenerPedidoClienteId(
+            { params: { id: '7' }, identidad: { tipo: 'cliente', id: 1 } },
+            res,
+        );
+
+        expect(Pedido.findOne).toHaveBeenCalledWith(expect.objectContaining({
+            where: { id: '7', usuarioId: 1 },
+            include: expect.arrayContaining([
+                expect.objectContaining({ model: expect.anything() }),
+            ]),
+            order: [[
+                { model: expect.anything(), as: 'historialDeTiemposPedidos' },
+                'fecha',
+                'ASC',
+            ]],
+        }));
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(pedido);
+    });
+
+    test('responde 404 si el pedido no existe o es de otro usuario', async () => {
+        Pedido.findOne.mockResolvedValue(null);
+        const res = crearRes();
+
+        await obtenerPedidoClienteId(
+            { params: { id: '7' }, identidad: { tipo: 'cliente', id: 1 } },
+            res,
+        );
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith({
+            mensaje: 'Pedido no encontrado',
+        });
+    });
+
+    test('responde 500 si falla la base de datos', async () => {
+        Pedido.findOne.mockRejectedValue(new Error('Base ca��da'));
+        const res = crearRes();
+
+        await obtenerPedidoClienteId(
+            { params: { id: '7' }, identidad: { tipo: 'cliente', id: 1 } },
+            res,
+        );
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({
+            mensaje: 'Error al obtener el pedido',
+        });
     });
 });

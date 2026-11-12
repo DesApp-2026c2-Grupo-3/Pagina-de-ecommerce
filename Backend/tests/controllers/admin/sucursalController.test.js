@@ -10,8 +10,17 @@ jest.mock('../../../src/models', () => {
     };
 });
 
+jest.mock('../../../src/notifications/handlers/sucursalHandlers', () => ({
+    notificarSucursalCerrada: jest.fn(),
+    notificarSucursalModificadaPorAdmin: jest.fn(),
+}));
+
 const models = require('../../../src/models');
 const { DIAS_SEMANA } = require('../../../src/utils/horarioSucursal');
+const {
+    notificarSucursalCerrada,
+    notificarSucursalModificadaPorAdmin,
+} = require('../../../src/notifications/handlers/sucursalHandlers');
 const {
     obtenerSucursales,
     obtenerSucursalPorId,
@@ -22,6 +31,24 @@ const {
 
 const { Sucursal, Insumo, StockSucursal } = models;
 const t = models.__t;
+
+const identidadMaster = {
+    tipo: 'admin',
+    id: 1,
+    rol: 'MASTER',
+    sucursalId: null,
+    nombre: 'Admin-Master',
+};
+
+function identidadAdmin(sucursalId = 2) {
+    return {
+        tipo: 'admin',
+        id: 7,
+        rol: 'ADMIN',
+        sucursalId,
+        nombre: 'Ana',
+    };
+}
 
 function crearRes() {
     const res = {};
@@ -61,6 +88,22 @@ const bodySucursal = {
     longitud: -58.62,
     radioEntregaKm: 5,
 };
+
+const bodyCompleto = {
+    ...bodySucursal,
+    telefono: '1234-5678',
+    horario: horarioValido,
+    zona_horaria: 'America/Argentina/Buenos_Aires',
+    codigoPostal: '1708',
+};
+
+function sucursalCompleta(datos = {}) {
+    return sucursalDeLaBase({
+        ...bodyCompleto,
+        radioEntregaKm: '5.00',
+        ...datos,
+    });
+}
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -108,7 +151,7 @@ describe('obtenerSucursalPorId', () => {
         Sucursal.findByPk.mockResolvedValue(sucursalDeLaBase());
         const res = crearRes();
 
-        await obtenerSucursalPorId({ params: { id: '2' } }, res);
+        await obtenerSucursalPorId({ params: { id: '2' }, identidad: identidadMaster }, res);
 
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json.mock.calls[0][0]).toMatchObject({
@@ -118,11 +161,29 @@ describe('obtenerSucursalPorId', () => {
         });
     });
 
+    test('rechaza a un admin de otra sucursal', async () => {
+        Sucursal.findByPk.mockResolvedValue(sucursalDeLaBase());
+        const res = crearRes();
+
+        await obtenerSucursalPorId({ params: { id: '2' }, identidad: identidadAdmin(3) }, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    test('exige una sesión autenticada', async () => {
+        Sucursal.findByPk.mockResolvedValue(sucursalDeLaBase());
+        const res = crearRes();
+
+        await obtenerSucursalPorId({ params: { id: '2' }, identidad: null }, res);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+    });
+
     test('responde 404 si no existe', async () => {
         Sucursal.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await obtenerSucursalPorId({ params: { id: '99' } }, res);
+        await obtenerSucursalPorId({ params: { id: '99' }, identidad: identidadMaster }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Sucursal no encontrada' });
@@ -132,7 +193,7 @@ describe('obtenerSucursalPorId', () => {
         Sucursal.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await obtenerSucursalPorId({ params: { id: '2' } }, res);
+        await obtenerSucursalPorId({ params: { id: '2' }, identidad: identidadMaster }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
@@ -162,8 +223,8 @@ describe('crearSucursal', () => {
 
         expect(Sucursal.create).toHaveBeenCalledWith({ ...bodySucursal, activa: true }, { transaction: t });
         expect(StockSucursal.bulkCreate).toHaveBeenCalledWith([
-            { insumoId: 1, sucursalId: 5, cantidad: 0 },
-            { insumoId: 2, sucursalId: 5, cantidad: 0 },
+            { insumoId: 1, sucursalId: 5, cantidad: 0, stockMinimo: null },
+            { insumoId: 2, sucursalId: 5, cantidad: 0, stockMinimo: null },
         ], { transaction: t });
         expect(t.commit).toHaveBeenCalled();
         expect(t.rollback).not.toHaveBeenCalled();
@@ -205,7 +266,7 @@ describe('editarSucursal', () => {
         Sucursal.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await editarSucursal({ params: { id: '99' }, body: bodySucursal }, res);
+        await editarSucursal({ params: { id: '99' }, body: bodySucursal, identidad: identidadMaster }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -215,7 +276,7 @@ describe('editarSucursal', () => {
         Sucursal.findOne.mockResolvedValue({ id: 9 });
         const res = crearRes();
 
-        await editarSucursal({ params: { id: '2' }, body: bodySucursal }, res);
+        await editarSucursal({ params: { id: '2' }, body: bodySucursal, identidad: identidadMaster }, res);
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({ code: 'Ya existe una sucursal con ese nombre' });
@@ -241,7 +302,7 @@ describe('editarSucursal', () => {
         const res = crearRes();
         const body = { nombre: 'Morón Centro', horario: horarioValido };
 
-        await editarSucursal({ params: { id: '2' }, body }, res);
+        await editarSucursal({ params: { id: '2' }, body, identidad: identidadMaster }, res);
 
         expect(sucursal.update).toHaveBeenCalledWith(body);
         expect(res.status).toHaveBeenCalledWith(200);
@@ -253,7 +314,7 @@ describe('editarSucursal', () => {
         Sucursal.findOne.mockResolvedValue({ id: 2 });
         const res = crearRes();
 
-        await editarSucursal({ params: { id: '2' }, body: bodySucursal }, res);
+        await editarSucursal({ params: { id: '2' }, body: bodySucursal, identidad: identidadMaster }, res);
 
         expect(sucursal.update).toHaveBeenCalledWith(bodySucursal);
         expect(res.status).toHaveBeenCalledWith(200);
@@ -265,17 +326,103 @@ describe('editarSucursal', () => {
         Sucursal.findOne.mockResolvedValue(null);
         const res = crearRes();
 
-        await editarSucursal({ params: { id: '2' }, body: { nombre: 'Morón Centro' } }, res);
+        await editarSucursal({ params: { id: '2' }, body: { nombre: 'Morón Centro' }, identidad: identidadMaster }, res);
 
         expect(sucursal.update).toHaveBeenCalledWith({ nombre: 'Morón Centro' });
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Sucursal editada con éxito', sucursal });
+    });
+
+    test('un ADMIN de la sucursal notifica los bloques modificados', async () => {
+        const sucursal = sucursalCompleta();
+        Sucursal.findByPk.mockResolvedValue(sucursal);
+        Sucursal.findOne.mockResolvedValue(null);
+        const res = crearRes();
+
+        await editarSucursal({
+            params: { id: '2' },
+            body: { ...bodyCompleto, nombre: 'Morón Centro' },
+            identidad: identidadAdmin(2),
+        }, res);
+
+        expect(notificarSucursalModificadaPorAdmin).toHaveBeenCalledWith({
+            sucursalId: 2,
+            sucursalNombre: 'Morón',
+            adminId: 7,
+            adminNombre: 'Ana',
+            cambios: ['datos_generales'],
+        });
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    test('un ADMIN sin cambios reales no notifica', async () => {
+        const sucursal = sucursalCompleta();
+        Sucursal.findByPk.mockResolvedValue(sucursal);
+        Sucursal.findOne.mockResolvedValue(null);
+        const res = crearRes();
+
+        await editarSucursal({
+            params: { id: '2' },
+            body: bodyCompleto,
+            identidad: identidadAdmin(2),
+        }, res);
+
+        expect(notificarSucursalModificadaPorAdmin).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    test('un MASTER no genera notificación', async () => {
+        const sucursal = sucursalCompleta();
+        Sucursal.findByPk.mockResolvedValue(sucursal);
+        Sucursal.findOne.mockResolvedValue(null);
+        const res = crearRes();
+
+        await editarSucursal({
+            params: { id: '2' },
+            body: { ...bodyCompleto, radioEntregaKm: 8 },
+            identidad: identidadMaster,
+        }, res);
+
+        expect(notificarSucursalModificadaPorAdmin).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    test('un ADMIN no puede editar otra sucursal', async () => {
+        const sucursal = sucursalCompleta();
+        Sucursal.findByPk.mockResolvedValue(sucursal);
+        const res = crearRes();
+
+        await editarSucursal({
+            params: { id: '2' },
+            body: bodyCompleto,
+            identidad: identidadAdmin(3),
+        }, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(sucursal.update).not.toHaveBeenCalled();
+        expect(notificarSucursalModificadaPorAdmin).not.toHaveBeenCalled();
+    });
+
+    test('si falla la notificación, la edición responde 200', async () => {
+        const sucursal = sucursalCompleta();
+        Sucursal.findByPk.mockResolvedValue(sucursal);
+        Sucursal.findOne.mockResolvedValue(null);
+        notificarSucursalModificadaPorAdmin.mockRejectedValue(new Error('Socket caído'));
+        const res = crearRes();
+
+        await editarSucursal({
+            params: { id: '2' },
+            body: { ...bodyCompleto, nombre: 'Morón Centro' },
+            identidad: identidadAdmin(2),
+        }, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
     });
 
     test('responde 500 si falla la base de datos', async () => {
         Sucursal.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await editarSucursal({ params: { id: '2' }, body: bodySucursal }, res);
+        await editarSucursal({ params: { id: '2' }, body: bodySucursal, identidad: identidadMaster }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });

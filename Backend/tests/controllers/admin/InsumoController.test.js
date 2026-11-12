@@ -5,6 +5,7 @@ jest.mock('../../../src/models', () => {
         Sucursal: { findAll: jest.fn() },
         StockSucursal: { bulkCreate: jest.fn(), destroy: jest.fn() },
         RecetaInsumo: { count: jest.fn() },
+        Producto: {},
         sequelize: { transaction: jest.fn().mockResolvedValue(t) },
         __t: t,
     };
@@ -97,8 +98,8 @@ describe('crearInsumo', () => {
         expect(Insumo.create).toHaveBeenCalledWith(bodyInsumo, { transaction: t });
         expect(Sucursal.findAll).toHaveBeenCalledWith(expect.objectContaining({ transaction: t }));
         expect(StockSucursal.bulkCreate).toHaveBeenCalledWith([
-            { insumoId: 5, sucursalId: 1, cantidad: 0 },
-            { insumoId: 5, sucursalId: 2, cantidad: 0 },
+            { insumoId: 5, sucursalId: 1, cantidad: 0, stockMinimo: null },
+            { insumoId: 5, sucursalId: 2, cantidad: 0, stockMinimo: null },
         ], { transaction: t });
         expect(t.commit).toHaveBeenCalled();
         expect(t.rollback).not.toHaveBeenCalled();
@@ -196,7 +197,7 @@ describe('eliminarInsumo', () => {
         expect(res.json.mock.calls[0][0].mensaje).toContain('se usa en 3 productos');
     });
 
-    test('elimina el stock y el insumo en una transacción', async () => {
+    test('elimina el insumo con borrado lógico y conserva el stock', async () => {
         const insumo = insumoDeLaBase();
         Insumo.findByPk.mockResolvedValue(insumo);
         RecetaInsumo.count.mockResolvedValue(0);
@@ -204,27 +205,20 @@ describe('eliminarInsumo', () => {
 
         await eliminarInsumo({ params: { id: '1' } }, res);
 
-        expect(StockSucursal.destroy).toHaveBeenCalledWith({
-            where: { insumoId: 1 },
-            transaction: t,
-        });
-        expect(insumo.destroy).toHaveBeenCalledWith({ transaction: t });
-        expect(t.commit).toHaveBeenCalled();
-        expect(t.rollback).not.toHaveBeenCalled();
-        expect(res.json).toHaveBeenCalledWith({ mensaje: 'Insumo eliminado con éxito' });
+        expect(insumo.destroy).toHaveBeenCalledWith();
+        expect(StockSucursal.destroy).not.toHaveBeenCalled();
+        expect(res.json).toHaveBeenCalledWith({ mensaje: 'Insumo eliminado. El historial de stock lo conserva.' });
     });
 
-    test('si falla al eliminar, deshace todo y responde 500', async () => {
+    test('si falla al eliminar, responde 500', async () => {
         const insumo = insumoDeLaBase();
         Insumo.findByPk.mockResolvedValue(insumo);
         RecetaInsumo.count.mockResolvedValue(0);
-        StockSucursal.destroy.mockRejectedValue(new Error('Base caída'));
+        insumo.destroy.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
         await eliminarInsumo({ params: { id: '1' } }, res);
 
-        expect(t.rollback).toHaveBeenCalled();
-        expect(t.commit).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error al eliminar el insumo' });
     });

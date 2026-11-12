@@ -1,45 +1,47 @@
-const jwt = require('jsonwebtoken');
+const { resolverIdentidad } = require('../../services/authService');
 const { limpiarCookieSesion } = require('../../utils/sesionAdmin');
-const { Admin } = require('../../models');
+
+function leerToken(req) {
+    const header = req.headers?.authorization ?? '';
+    if (header.startsWith('Bearer ')) {
+        return header.slice(7) || null;
+    }
+    return req.cookies?.access_token ?? null;
+}
 
 const esAdminJwt = async (req, res, next) => {
-    try {
-        const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
-        const token = req.cookies.access_token;
-        if (!token) {
-            return res.status(401).json({ msj: "Acceso no autorizado" });
-        }
-        const data = jwt.verify(token, SECRET_JWT_TOKEN);
+    const token = leerToken(req);
 
-        if (data.rol !== "ADMIN" && data.rol !== "MASTER") {
-            return res.status(403).json({ msj: "Acceso no autorizado" });
-        }
-        req.usuario = data;
-
-        const admin = await Admin.findByPk(data.id);
-
-        if (!admin || !admin.activo) {
-            limpiarCookieSesion(res);
-            return res.status(401).json({
-                msj: "La sesión no es válida o el administrador está inactivo"
-            });
-        }
-
-        req.usuario = {
-            id: admin.id,
-            nombre: admin.nombre,
-            rol: admin.rol,
-            sucursalId: admin.sucursalId
-        };
-
-        return next();
-
-
-    } catch (error) {
-        limpiarCookieSesion(res);
-        return res.status(401).json({ msj: "Token inválido o expirado" });
+    if (!token) {
+        return res.status(401).json({ msj: 'Acceso no autorizado' });
     }
-};
 
+    let identidad;
+    try {
+        identidad = await resolverIdentidad(token);
+    } catch (error) {
+        if (!error?.codigo) {
+            console.error(error);
+            return res.status(500).json({ msj: 'Error del servidor' });
+        }
+        limpiarCookieSesion(res);
+        return res.status(401).json({ msj: 'Token inválido o expirado' });
+    }
+
+    if (identidad.tipo !== 'admin') {
+        return res.status(403).json({ msj: 'Acceso no autorizado' });
+    }
+
+    req.identidad = identidad;
+    req.admin = identidad;
+    req.usuario = {
+        id: identidad.id,
+        nombre: identidad.nombre,
+        rol: identidad.rol,
+        sucursalId: identidad.sucursalId,
+    };
+
+    return next();
+};
 
 module.exports = { esAdminJwt };

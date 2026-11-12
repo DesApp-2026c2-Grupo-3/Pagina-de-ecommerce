@@ -33,7 +33,6 @@ function bodyValido(datos = {}) {
         zona_horaria: 'America/Argentina/Buenos_Aires',
         latitud: -34.65,
         longitud: -58.62,
-        radioEntregaKm: 5,
         ...datos,
     };
 }
@@ -44,7 +43,7 @@ function codigoDe(res) {
 
 describe('validarSucursal', () => {
     test('deja pasar una sucursal válida y limpia los datos', () => {
-        const req = { body: bodyValido({ nombre: '  Morón  ', latitud: '-34.65', radioEntregaKm: '5.5' }) };
+        const req = { body: bodyValido({ nombre: '  Morón  ', latitud: '-34.65' }) };
         const next = jest.fn();
 
         validarSucursal(req, crearRes(), next);
@@ -52,7 +51,6 @@ describe('validarSucursal', () => {
         expect(next).toHaveBeenCalled();
         expect(req.body.nombre).toBe('Morón');
         expect(req.body.latitud).toBe(-34.65);
-        expect(req.body.radioEntregaKm).toBe(5.5);
     });
 
     test('acepta dos turnos y un turno que cruza la medianoche', () => {
@@ -160,14 +158,10 @@ describe('validarSucursal', () => {
         expect(codigoDe(res)).toBe('Marcá la ubicación en el mapa');
     });
 
-    test('rechaza un radio de entrega inválido', () => {
-        const resCero = crearRes();
-        validarSucursal({ body: bodyValido({ radioEntregaKm: 0 }) }, resCero, jest.fn());
-        expect(codigoDe(resCero)).toBe('El radio de entrega debe ser mayor a 0');
-
-        const resAlto = crearRes();
-        validarSucursal({ body: bodyValido({ radioEntregaKm: 31 }) }, resAlto, jest.fn());
-        expect(codigoDe(resAlto)).toBe('El radio de entrega no puede superar los 30 km');
+    test('no acepta un radio de entrega por sucursal (es un parámetro global)', () => {
+        const res = crearRes();
+        validarSucursal({ body: bodyValido({ radioEntregaKm: 5 }) }, res, jest.fn());
+        expect(codigoDe(res)).toMatch(/not allowed/);
     });
 
     test('rechaza una zona horaria inválida', () => {

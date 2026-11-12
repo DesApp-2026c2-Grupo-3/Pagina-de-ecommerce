@@ -144,22 +144,29 @@ function ZoneButton() {
               : `Pedís desde ${zona.sucursalNombre}`
             : 'Elegí dónde recibir tu pedido'
         }
-        className={`flex min-h-11 min-w-0 items-center gap-2 rounded-full border bg-white/5 py-1 pl-2 pr-3 text-left text-white transition-colors hover:bg-white/10 ${
+        aria-label={
+          zona
+            ? sucursalCerrada
+              ? `${zona.sucursalNombre} está cerrada ahora. Ver opciones`
+              : `Pedís desde ${zona.sucursalNombre}. Cambiar dirección`
+            : 'Elegir dirección de entrega'
+        }
+        className={`flex min-h-11 min-w-0 items-center justify-center rounded-full border bg-white/5 p-0 text-left text-white transition-colors hover:bg-white/10 max-[360px]:h-11 max-[360px]:w-11 max-[360px]:shrink-0 min-[360px]:justify-start min-[360px]:gap-2 min-[360px]:py-1 min-[360px]:pl-2 min-[360px]:pr-3 ${
           zona ? 'border-white/15' : 'border-brand-red'
         }`}
       >
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-red">
           <MapPin className="h-4 w-4" />
         </span>
-        <span className="min-w-0 leading-tight">
+        <span className="min-w-0 leading-tight max-[360px]:hidden">
           <span className="block text-[10px] font-semibold uppercase tracking-wider text-white/55">
             {zona ? 'Entregar en' : 'Tu ubicación'}
           </span>
-          <span className="block max-w-[7rem] truncate text-sm font-bold sm:max-w-[12rem]">
+          <span className="block max-w-[90px] truncate text-sm font-bold sm:max-w-[12rem]">
             {zona ? `${zona.calle} ${zona.numero}` : 'Ingresá tu dirección'}
           </span>
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-brand-mustard" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-brand-mustard max-[360px]:hidden" />
       </button>
 
       {popover === 'sin-zona' && (

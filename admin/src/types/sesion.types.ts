@@ -7,3 +7,7 @@ export interface AdministradorSesion {
   sucursalId: number | null // null para el MASTER
   sucursal: { id: number; nombre: string } | null
 }
+
+export interface RespuestaLoginAdmin extends AdministradorSesion {
+  token: string
+}

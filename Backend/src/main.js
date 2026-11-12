@@ -1,17 +1,14 @@
 const express = require('express');
 require('dotenv').config();
+const http = require('http');
 let cookieParser = require('cookie-parser');
 const db = require('./models');
 const cors = require('cors');
+const { origenesPermitidos } = require('./config/cors');
+const { inicializarSockets } = require('./sockets');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-const origenesPermitidos = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175'
-];
 
 app.use(cors({
     origin: origenesPermitidos,
@@ -69,6 +66,8 @@ app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
+app.use('/notificaciones/cliente', require('./routes/notificacionClienteRoutes'));
+app.use('/notificaciones', require('./routes/notificacionRoutes'));
 app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
@@ -88,7 +87,10 @@ async function iniciarServidor() {
         await db.sequelize.authenticate();
         console.log('Conexión con la base de datos OK');
 
-        app.listen(PORT, () => {
+        const server = http.createServer(app);
+        inicializarSockets(server);
+
+        server.listen(PORT, () => {
             console.log(`Servidor corriendo en http://localhost:${PORT}`);
         });
     } catch (error) {

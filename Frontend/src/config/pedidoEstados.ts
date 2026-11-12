@@ -3,10 +3,23 @@ export const PASOS_SEGUIMIENTO = ['Pendiente', 'En proceso', 'En camino', 'Entre
 
 export type EstadoPedido = (typeof PASOS_SEGUIMIENTO)[number] | 'Cancelado'
 
+// Estados internos entre el local y el repartidor que el cliente no ve.
+// "Listo para retirar" (el pedido espera al repartidor) se muestra como "En proceso":
+// sin esto caía en el valor por defecto y el cliente veía su pedido volver a "Pendiente".
+const ESTADOS_INTERNOS = new Map<string, EstadoPedido>([
+  ['listo para retirar', 'En proceso'],
+])
+
+export function esEstadoInterno(estado: string) {
+  return ESTADOS_INTERNOS.has((estado ?? '').trim().toLowerCase())
+}
+
 // Acepta variantes viejas en minúscula ('pendiente', 'entregado'...)
 export function normalizarEstado(estado: string): EstadoPedido {
-  const limpio = estado.trim().toLowerCase()
+  const limpio = (estado ?? '').trim().toLowerCase()
   if (limpio === 'cancelado') return 'Cancelado'
+  const visible = ESTADOS_INTERNOS.get(limpio)
+  if (visible) return visible
   return PASOS_SEGUIMIENTO.find((p) => p.toLowerCase() === limpio) ?? 'Pendiente'
 }
 

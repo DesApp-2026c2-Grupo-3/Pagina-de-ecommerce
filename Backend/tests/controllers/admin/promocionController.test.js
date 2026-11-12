@@ -4,8 +4,12 @@ jest.mock('../../../src/models', () => ({
     Producto: { findAll: jest.fn() },
     sequelize: { transaction: jest.fn() },
 }));
+jest.mock('../../../src/utils/parametros', () => ({
+    obtenerParametros: jest.fn(),
+}));
 
 const { Promocion, PromocionItem, Producto, sequelize } = require('../../../src/models');
+const { obtenerParametros } = require('../../../src/utils/parametros');
 const {
     obtenerPromociones,
     obtenerPromocionPorId,
@@ -67,6 +71,7 @@ let t;
 beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    obtenerParametros.mockResolvedValue({ maxPromosPorDia: 3 });
     t = { commit: jest.fn(), rollback: jest.fn() };
     sequelize.transaction.mockResolvedValue(t);
     Producto.findAll.mockResolvedValue([{ id: 4 }]);

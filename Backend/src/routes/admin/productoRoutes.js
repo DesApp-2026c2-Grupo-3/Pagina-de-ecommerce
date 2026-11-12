@@ -12,7 +12,7 @@ const imagenController = require('../../controllers/admin/imagenProductoControll
 router.post('/imagen', esMasterJwt, subirImagen, imagenController.subirImagen);
 router.delete('/imagen', esMasterJwt, imagenController.descartarImagen);
 router.get('/', esMasterJwt, adminController.obtenerProductos);
-router.get('/:id', esIdValido, adminController.obtenerProductoPorId);
+router.get('/:id', esMasterJwt, esIdValido, adminController.obtenerProductoPorId);
 router.post('/nuevo', esMasterJwt, validarProducto, adminController.crearProducto);
 router.patch('/editar/:id', esMasterJwt, validarProducto, esIdValido, adminController.editarProductoPorId);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, adminController.eliminarProducto);

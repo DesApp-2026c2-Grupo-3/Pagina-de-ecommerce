@@ -2,6 +2,8 @@ import { Route, Routes } from 'react-router-dom'
 import Home from '../pages/Home'
 import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../components/AdminLayout'
+import { NotificacionProvider } from '../context/notificaciones/NotificacionProvider'
+import { RealtimeProvider } from '../context/realtime/RealtimeProvider'
 import Productos from '../pages/Productos/Productos'
 import NuevoProducto from '../pages/Productos/NuevoProducto'
 import EditarProducto from '../pages/Productos/EditarProducto'
@@ -42,7 +44,11 @@ export default function AppRoutes() {
       <Route
         element={
           <ProtectedRoute>
-            <AdminLayout />
+            <RealtimeProvider>
+              <NotificacionProvider>
+                <AdminLayout />
+              </NotificacionProvider>
+            </RealtimeProvider>
           </ProtectedRoute>
         }
       >

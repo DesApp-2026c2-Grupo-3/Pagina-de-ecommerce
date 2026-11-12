@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef, type MouseEvent } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutDashboard, LogOut, ShoppingBag, Package,
   Store, ChartNoAxesCombined, ChevronLeft, ChevronRight,Users, Wheat,
   Tags, Hamburger, Bike, type LucideIcon, Percent,
@@ -12,8 +12,9 @@ import { LayoutDashboard, LogOut, ShoppingBag, Package,
   Building2,
   Settings2,} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { cerrarSesionService } from '../services/authService'
 import { enlacesDe, type Enlace } from '../config/menu'
+import { useLogoutAdmin } from '../hooks/useLogoutAdmin'
+import NotificacionCampana from './notificaciones/NotificacionCampana'
 
 interface NavBarProps {
   menuAbierto: boolean
@@ -79,8 +80,8 @@ interface Leyenda {
 
 export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false)
-  const navigate = useNavigate()
-  const { administrador, cerrarSesion } = useAuth();
+  const { administrador } = useAuth()
+  const { salir, saliendo } = useLogoutAdmin()
 
   const navRef = useRef<HTMLElement>(null)
 
@@ -175,16 +176,6 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
     administrador?.rol === 'MASTER'
       ? 'Administrador general'
       : `Sucursal ${administrador?.sucursal?.nombre ?? 'sin asignar'}`
-
-  const salir = async () => {
-    try {
-      await cerrarSesionService()
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error)
-    }
-    cerrarSesion()
-    navigate('/')
-  }
 
   const contenidoMenu = (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -377,10 +368,11 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
             }
           </div>
 
-          <button type="button" onClick={salir}
+          <button type="button" onClick={() => void salir()}
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
-          className="flex shrink-0 items-center justify-center rounded-lg p-2 text-gray-300 hover:bg-red-500/15 hover:text-red-400">
+          disabled={saliendo}
+          className="flex shrink-0 items-center justify-center rounded-lg p-2 text-gray-300 hover:bg-red-500/15 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50">
             <LogOut size={20} />
           </button>
   
@@ -392,6 +384,19 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
 
   return (
     <>
+    <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-6">
+      <div className="min-w-0 flex-1">
+        <p className="whitespace-normal break-words text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">
+          Panel de administración
+        </p>
+        <p className="mt-0.5 whitespace-normal break-words text-xs text-slate-500 [overflow-wrap:anywhere]">
+          Gestioná pedidos, stock y novedades.
+        </p>
+      </div>
+
+      <NotificacionCampana />
+    </div>
+
     {/* Leyenda del ícono con el menú contraído: al costado, así el mouse no la tapa */}
     {/* Con el menú expandido ya se leen los nombres: la leyenda no hace falta */}
     {leyenda && !mostrarTexto && (

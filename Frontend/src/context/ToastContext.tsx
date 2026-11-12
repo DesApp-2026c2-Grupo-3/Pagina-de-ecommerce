@@ -7,20 +7,36 @@ import {
   type ReactNode,
 } from 'react'
 
+export type ToastVariante = 'exito' | 'alerta'
+
+export interface ToastAccion {
+  label: string
+  onClick: () => void
+}
+
+export interface ToastOpciones {
+  duracion?: number
+  variante?: ToastVariante
+  accion?: ToastAccion
+}
+
 interface ToastState {
   id: number
   message: string
+  variante: ToastVariante
+  accion?: ToastAccion
 }
 
 interface ToastContextType {
   toast: ToastState | null
-  showToast: (message: string, duration?: number) => void
+  showToast: (message: string, opciones?: ToastOpciones) => void
   dismissToast: () => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
-const DEFAULT_DURATION = 2000
+const DURACION_EXITO = 2000
+const DURACION_ALERTA = 6000
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastState | null>(null)
@@ -34,20 +50,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToast(null)
   }, [])
 
-  const showToast = useCallback((message: string, duration = DEFAULT_DURATION) => {
-    // Si ya hay un toast visible o un timer corriendo, lo cancelamos:
-    // así el tiempo de vida es siempre el mismo, click tras click.
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
+  const showToast = useCallback(
+    (message: string, opciones: ToastOpciones = {}) => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+      }
 
-    setToast({ id: Date.now(), message })
+      const variante = opciones.variante ?? 'exito'
+      const duracion =
+        opciones.duracion ??
+        (variante === 'alerta' ? DURACION_ALERTA : DURACION_EXITO)
 
-    timerRef.current = setTimeout(() => {
-      setToast(null)
-      timerRef.current = null
-    }, duration)
-  }, [])
+      setToast({
+        id: Date.now(),
+        message,
+        variante,
+        accion: opciones.accion,
+      })
+
+      timerRef.current = setTimeout(() => {
+        setToast(null)
+        timerRef.current = null
+      }, duracion)
+    },
+    [],
+  )
 
   return (
     <ToastContext.Provider value={{ toast, showToast, dismissToast }}>

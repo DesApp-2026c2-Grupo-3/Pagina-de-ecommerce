@@ -5,9 +5,8 @@ import {
   obtenerImpactoPromociones,
   obtenerPromocionesMasUtilizadas,
 } from "../../services/reporteService";
-import { obtenerSucursales } from "../../services/sucursalService";
+import { useSucursalesReporte } from "../../hooks/useSucursalesReporte";
 import { useAuth } from "../../context/AuthContext";
-import type { Sucursal } from "../../types/sucursal.types";
 import type { ImpactoPromociones, PromocionMasUtilizada } from "../../types/reporte.types";
 import CuponesPromo from "./CuponesPromo";
 import BalanzaPromo from "./BalanzaPromo";
@@ -161,34 +160,13 @@ export default function ReportesPromociones() {
 
   const [pestania, setPestania] = useState<PestaniaPromociones>("utilizadas");
 
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-  const [cargandoSucursales, setCargandoSucursales] = useState(true);
-  const [errorSucursales, setErrorSucursales] = useState("");
+  // Filtro de sucursal (solo MASTER): el admin de sucursal no pide la lista
+  const { sucursales, cargandoSucursales, errorSucursales } = useSucursalesReporte();
 
   // undefined significa que se seleccionaron todas las sucursales.
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState<
     number | undefined
   >(undefined);
-
-  useEffect(() => {
-    const cargarSucursales = async () => {
-      try {
-        setErrorSucursales("");
-        const resultado = await obtenerSucursales();
-        setSucursales(resultado.filter((sucursal) => sucursal.activa));
-      } catch (err) {
-        setErrorSucursales(
-          err instanceof Error
-            ? err.message
-            : "No se pudieron cargar las sucursales.",
-        );
-      } finally {
-        setCargandoSucursales(false);
-      }
-    };
-
-    void cargarSucursales();
-  }, []);
 
   const pedirUtilizadas = useCallback(
     () => obtenerPromocionesMasUtilizadas(sucursalSeleccionada),

@@ -25,6 +25,10 @@ const {
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 const { estadoSucursal } = require('../utils/horarioSucursal');
+const { notificarPedidoCreado } = require('../notifications/handlers/pedidoHandlers');
+const { notificarStockBajo } = require('../notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../notifications/adminRefresco');
+const { cruzaMinimo, normalizarMinimo } = require('../utils/stockMinimo');
 
 
    // Distancia en km entre la dirección del cliente y la sucursal (null si a alguna le falta la ubicación)
@@ -56,7 +60,7 @@ const redondear = (n) => Math.round(n * 1000) / 1000;
 
 // Descuenta stock de un insumo en la sucursal, con lock de fila dentro de la transacción,
 // y lo registra en el historial como venta del pedido
-async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, pedidoId, t }) {
+async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, pedidoId, t, stockBajos }) {
     if (cantidad <= 0) return;
 
     const stock = await StockSucursal.findOne({
@@ -85,6 +89,45 @@ async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, 
         cantidadNueva: nueva,
         pedidoId,
     }, { transaction: t });
+
+    const minimo = normalizarMinimo(stock.stockMinimo);
+
+    if (stockBajos instanceof Map && minimo !== null && nueva <= minimo) {
+        const clave = `${sucursalId}:${insumoId}`;
+        const existente = stockBajos.get(clave);
+
+        if (existente) {
+            existente.cantidad = nueva;
+        } else if (cruzaMinimo(anterior, nueva, minimo)) {
+            stockBajos.set(clave, {
+                sucursalId: Number(sucursalId),
+                insumoId: Number(insumoId),
+                cantidad: nueva,
+                stockMinimo: minimo,
+            });
+        }
+    }
+}
+
+async function notificarStockBajoDeVentas(stockBajos, sucursalNombre) {
+    const eventos = [...stockBajos.values()];
+    if (eventos.length === 0) return;
+
+    try {
+        const insumos = await Insumo.findAll({
+            where: { id: { [Op.in]: eventos.map((evento) => evento.insumoId) } },
+            attributes: ['id', 'nombre'],
+        });
+        const nombres = new Map(insumos.map((insumo) => [Number(insumo.id), insumo.nombre]));
+
+        await Promise.all(eventos.map((evento) => notificarStockBajo({
+            ...evento,
+            sucursalNombre,
+            insumoNombre: nombres.get(evento.insumoId) ?? '',
+        })));
+    } catch (error) {
+        console.error('No se pudieron publicar las alertas de stock:', error.message);
+    }
 }
 
 // Valida lo que el cliente eligió para un grupo del combo y calcula su recargo y su consumo de stock.
@@ -209,6 +252,39 @@ const obtenerPedidoId = async (req, res) => {
     };
 };
 
+const obtenerPedidoClienteId = async (req, res) => {
+    try {
+        const pedido = await Pedido.findOne({
+            where: {
+                id: req.params.id,
+                usuarioId: req.identidad.id,
+            },
+            include: [{
+                model: DetallePedido,
+                include: [{ model: Producto, paranoid: false }],
+            }, {
+                model: Sucursal,
+            }, {
+                model: historialDeTiemposPedido,
+                as: 'historialDeTiemposPedidos',
+                attributes: ['estado', 'fecha'],
+            }],
+            order: [[{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+        });
+
+        if (!pedido) {
+            return res.status(404).json({
+                mensaje: 'Pedido no encontrado',
+            });
+        }
+
+        return res.status(200).json(pedido);
+    } catch (error) {
+        console.error('No se pudo obtener el pedido del cliente:', error.message);
+        return res.status(500).json({ mensaje: 'Error al obtener el pedido' });
+    }
+};
+
 // Valida las líneas con promoId y devuelve Map(índice de línea -> descuento).
 // Reglas: la promo existe y vale hoy; cada producto pertenece a la promo; todos sus productos vienen,
 // en la misma proporción (la promo se pide k veces completa) y sin pasar el máximo por pedido.
@@ -273,7 +349,7 @@ const crearPedido = async (req, res) => {
                 estado: { [Op.notIn]: ['Entregado', 'Cancelado', 'entregado', 'cancelado'] },
             },
         });
-           if (enCurso >= parametros.maxPedidosEnCurso) {            
+           if (enCurso >= parametros.maxPedidosEnCurso) {
             await t.rollback();
             return res.status(409).json({
                 mensaje: `Ya tenés ${enCurso} pedidos en curso. Esperá a que se entregue alguno para hacer otro.`
@@ -330,6 +406,7 @@ const crearPedido = async (req, res) => {
         let total = 0;
         // Subtotal de cada línea, para controlar la compra mínima de las promos
         const lineasCobradas = [];
+        const stockBajos = new Map();
         // Recorrer los productos recibidos
         for (const [indice, producto] of productos.entries()) {
 
@@ -352,7 +429,6 @@ const crearPedido = async (req, res) => {
                 throw new ErrorPedido(400, `El producto ${productoBD.nombre} no está disponible`);
             }
 
-            
             // Un combo usa la receta de su producto principal: tiene que existir y estar disponible
             let idReceta = productoBD.id;
             if (productoBD.productoPrincipalId) {
@@ -389,7 +465,7 @@ const crearPedido = async (req, res) => {
             );
 
             const receta = await RecetaInsumo.findAll({
-                where: { productoId: idReceta },                
+                where: { productoId: idReceta },
                 include: [Insumo],
                 transaction: t
             });
@@ -480,7 +556,8 @@ const crearPedido = async (req, res) => {
                     sucursalId,
                     nombreProducto: productoBD.nombre,
                     pedidoId: nuevoPedido.id,
-                    t
+                    t,
+                    stockBajos
                 });
             }
 
@@ -495,7 +572,8 @@ const crearPedido = async (req, res) => {
                         sucursalId,
                         nombreProducto: elegido.nombre,
                         pedidoId: nuevoPedido.id,
-                        t
+                        t,
+                        stockBajos
                     });
                 }
             }
@@ -519,7 +597,7 @@ const crearPedido = async (req, res) => {
                 tamanioId: tamanioElegido ? tamanioElegido.tamanioId : null,
                 // Para los reportes de promociones: qué promo se usó y el precio sin descuento
                 promocionId: producto.promoId ? Number(producto.promoId) : null,
-                precioLista: producto.promoId ? precioLista : null,   
+                precioLista: producto.promoId ? precioLista : null,
                 personalizaciones,
                 combo: elecciones.length > 0
                     ? {
@@ -564,6 +642,21 @@ const crearPedido = async (req, res) => {
         }, { transaction: t });
 
         await t.commit();
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: sucursal.id,
+            recursos: { pedidoId: nuevoPedido.id },
+        });
+        await emitirRefrescoAdmin({
+            dominio: 'pedidos',
+            accion: 'creado',
+            sucursalId: sucursal.id,
+            recursos: { pedidoId: nuevoPedido.id },
+        });
+        await notificarPedidoCreado(nuevoPedido);
+        await notificarStockBajoDeVentas(stockBajos, sucursal.nombre);
 
         return res.status(201).json(nuevoPedido)
 
@@ -617,4 +710,11 @@ const crearPedido = async (req, res) => {
        }
    };
 
-   module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario, cotizarEnvio };
+   module.exports = {
+       obtenerPedidos,
+       obtenerPedidoId,
+       obtenerPedidoClienteId,
+       crearPedido,
+       obtenerPedidosPorUsuario,
+       cotizarEnvio,
+   };

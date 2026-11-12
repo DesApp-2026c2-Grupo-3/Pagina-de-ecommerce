@@ -1,7 +1,7 @@
 jest.mock('../../../src/models', () => {
     const t = { commit: jest.fn(), rollback: jest.fn() };
     return {
-        Producto: { findAll: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
+        Producto: { findAll: jest.fn(), findByPk: jest.fn(), create: jest.fn(), count: jest.fn() },
         RecetaInsumo: { destroy: jest.fn(), bulkCreate: jest.fn() },
         Insumo: { count: jest.fn() },
         ProductoTamanio: { destroy: jest.fn(), bulkCreate: jest.fn(), count: jest.fn() },        Tamanio: { count: jest.fn() },
@@ -61,6 +61,7 @@ const receta = [{ insumoId: 10, cantidadBase: 1, esRemovible: false, esAgregable
 beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    Producto.count.mockResolvedValue(0);
 });
 
 describe('obtenerProductos', () => {

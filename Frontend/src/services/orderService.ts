@@ -30,6 +30,10 @@ export const getHistorialPedidos = async (usuarioId: number): Promise<Order[]> =
   return httpClient<Order[]>(`/pedido/usuario/${usuarioId}`)
 }
 
+export const getPedidoCliente = async (pedidoId: number): Promise<Order> => {
+  return httpClient<Order>(`/pedido/cliente/${pedidoId}`)
+}
+
 
 // Una línea de un pedido viejo, reconstruida con los precios de hoy
 export interface LineaRepetida {
