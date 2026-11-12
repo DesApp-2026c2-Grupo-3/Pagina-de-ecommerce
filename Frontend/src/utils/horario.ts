@@ -3,9 +3,12 @@ import {
   ZONA_HORARIA_POR_DEFECTO,
   type DiaSemana,
   type EstadoSucursal,
+  type GrupoHorario,
   type HorarioDia,
   type HorarioSemana,
 } from '../types/sucursal'
+
+// El backend es quien valida el horario (utils/horarioSucursal.js); acá solo se interpreta para mostrarlo.
 
 const ETIQUETA_DIA_CORTA: Record<DiaSemana, string> = {
   lunes: 'Lun',
@@ -15,6 +18,16 @@ const ETIQUETA_DIA_CORTA: Record<DiaSemana, string> = {
   viernes: 'Vie',
   sabado: 'Sáb',
   domingo: 'Dom',
+}
+
+const NOMBRE_DIA: Record<DiaSemana, string> = {
+  lunes: 'lunes',
+  martes: 'martes',
+  miercoles: 'miércoles',
+  jueves: 'jueves',
+  viernes: 'viernes',
+  sabado: 'sábado',
+  domingo: 'domingo',
 }
 
 const DIAS_POR_NOMBRE_EN: Record<string, DiaSemana> = {
@@ -27,10 +40,22 @@ const DIAS_POR_NOMBRE_EN: Record<string, DiaSemana> = {
   Sunday: 'domingo',
 }
 
-const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/
+const FIN_DE_DIA = '23:59'
+const MINUTOS_POR_DIA = 24 * 60
 
-function esHoraValida(valor: string) {
-  return HORA_REGEX.test(valor)
+function aMinutos(hhmm: unknown) {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(hhmm ?? ''))
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null
+}
+
+// 23:59 cuenta como las 24:00 (sin hueco antes de la transnoche)
+const finDelDia = (cierre: string) => (cierre === FIN_DE_DIA ? MINUTOS_POR_DIA : aMinutos(cierre))
+
+// 150 -> "+02:30"
+export function formatearExceso(minutos: number) {
+  const hh = String(Math.floor(minutos / 60)).padStart(2, '0')
+  const mm = String(minutos % 60).padStart(2, '0')
+  return `+${hh}:${mm}`
 }
 
 export function esZonaHorariaValida(zona: string) {
@@ -56,135 +81,91 @@ function obtenerHoraLocal(fecha: Date, zonaHoraria: string) {
     hourCycle: 'h23',
   }).formatToParts(fecha)
 
-  const dia = DIAS_POR_NOMBRE_EN[partes.find((p) => p.type === 'weekday')?.value ?? '']
-  const hora = Number(partes.find((p) => p.type === 'hour')?.value ?? 0)
-  const minuto = Number(partes.find((p) => p.type === 'minute')?.value ?? 0)
-
-  return { dia, minutos: hora * 60 + minuto }
+  const valor = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? ''
+  return { dia: DIAS_POR_NOMBRE_EN[valor('weekday')], minutos: Number(valor('hour')) * 60 + Number(valor('minute')) }
 }
 
-function aMinutos(hhmm: unknown) {
-  const match = HORA_REGEX.exec(String(hhmm ?? ''))
-  if (!match) return null
-  return Number(match[1]) * 60 + Number(match[2])
-}
-
-function cierreEnMinutos(cierre: unknown) {
-  const minutos = aMinutos(cierre)
-  return minutos === 0 ? 24 * 60 : minutos
-}
-
-export function estadoSucursal(
-  horario: unknown,
-  zonaHoraria?: string | null,
-  ahora = new Date(),
-): EstadoSucursal {
-  if (!horario || typeof horario !== 'object' || Array.isArray(horario)) {
-    return { abierta: true, motivo: null }
+// Solo la forma: los siete días, cada uno con abierto, apertura y cierre. Devuelve el error o null.
+export function validarHorarioSemana(valor: unknown): string | null {
+  if (!valor || typeof valor !== 'object' || Array.isArray(valor)) {
+    return 'El horario debe ser un objeto con los días de la semana'
   }
-
-  const { dia, minutos } = obtenerHoraLocal(ahora, zonaHorariaDeSucursal(zonaHoraria))
-  if (!dia) return { abierta: true, motivo: null }
-
-  const config = (horario as Record<string, unknown>)[dia]
-
-  if (!config || typeof config !== 'object' || Array.isArray(config)) {
-    return { abierta: true, motivo: null }
-  }
-
-  const { apertura, cierre, abierto } = config as Record<string, unknown>
-  const minutosApertura = aMinutos(apertura)
-  const minutosCierre = cierreEnMinutos(cierre)
-
-  if (typeof abierto !== 'boolean' || minutosApertura === null || minutosCierre === null) {
-    return { abierta: true, motivo: null }
-  }
-
-  if (!abierto) {
-    return { abierta: false, motivo: `La sucursal no atiende los ${dia}` }
-  }
-
-  const enHorario =
-    minutosCierre > minutosApertura
-      ? minutos >= minutosApertura && minutos < minutosCierre
-      : minutos >= minutosApertura || minutos < minutosCierre
-
-  if (!enHorario) {
-    return {
-      abierta: false,
-      motivo: `La sucursal se encuentra cerrada en este horario. Atiende de ${String(apertura)} a ${String(cierre)}`,
-    }
-  }
-
-  return { abierta: true, motivo: null }
-}
-
-function horarioPorDefecto(): HorarioSemana {
-  return Object.fromEntries(
-    DIAS_SEMANA.map((dia) => [dia, { apertura: '09:00', cierre: '23:00', abierto: true }]),
-  ) as HorarioSemana
-}
-
-function normalizarHorario(valor: unknown): HorarioSemana {
-  if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return horarioPorDefecto()
-
-  const objeto = valor as Record<string, unknown>
-  const horario = horarioPorDefecto()
-  for (const dia of DIAS_SEMANA) {
-    const config = objeto[dia]
-    if (!config || typeof config !== 'object' || Array.isArray(config)) continue
-
-    const { apertura, cierre, abierto } = config as Record<string, unknown>
-    const diaNormalizado = horario[dia]
-    if (typeof apertura === 'string' && esHoraValida(apertura)) diaNormalizado.apertura = apertura
-    if (typeof cierre === 'string' && esHoraValida(cierre)) diaNormalizado.cierre = cierre
-    if (typeof abierto === 'boolean') diaNormalizado.abierto = abierto
-  }
-  return horario
-}
-
-function mismoHorario(a: HorarioDia, b: HorarioDia) {
-  return a.abierto === b.abierto && a.apertura === b.apertura && a.cierre === b.cierre
-}
-
-// Estado de una sucursal: el cierre temporal del encargado pesa más que su horario semanal.
-// Sin cierre temporal, la app decide sola si está abierta según el día y el rango de horarios.
-export function estadoDeSucursal(
-  sucursal: { horario: unknown; zona_horaria?: string | null; cierreTemporal?: boolean },
-  ahora = new Date(),
-): EstadoSucursal {
-  if (sucursal.cierreTemporal) {
-    return { abierta: false, motivo: 'La sucursal está cerrada temporalmente' }
-  }
-  return estadoSucursal(sucursal.horario, sucursal.zona_horaria, ahora)
-}
-
-export function formatearHorario(valor: unknown): string {
-  if (typeof valor === 'string') return valor.trim() || '—'
-  if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return '—'
-
-  const objeto = valor as Record<string, unknown>
-  if (!DIAS_SEMANA.some((dia) => dia in objeto)) return '—'
-
-  const horario = normalizarHorario(objeto)
-  const grupos: { desde: DiaSemana; hasta: DiaSemana; config: HorarioDia }[] = []
+  const horario = valor as Record<string, Partial<HorarioDia> | undefined>
   for (const dia of DIAS_SEMANA) {
     const config = horario[dia]
-    const ultimo = grupos[grupos.length - 1]
-    if (ultimo && mismoHorario(ultimo.config, config)) {
-      ultimo.hasta = dia
-    } else {
-      grupos.push({ desde: dia, hasta: dia, config })
+    if (!config || typeof config.abierto !== 'boolean' || !config.apertura || !config.cierre) {
+      return `El horario del ${NOMBRE_DIA[dia]} está incompleto`
     }
+  }
+  return null
+}
+
+function horasDelDia(config: HorarioDia) {
+  const horas = `${config.apertura} a ${config.cierre}`
+  return config.transnocheMin ? `${horas} ${formatearExceso(config.transnocheMin)}` : horas
+}
+
+// Un horario ausente o incompleto no bloquea: solo se cierra con un horario explícito (igual que el backend)
+export function estadoSucursal(
+  horario: HorarioSemana,
+  zonaHoraria: string = ZONA_HORARIA_POR_DEFECTO,
+  ahora = new Date(),
+): EstadoSucursal {
+  const abierta = { abierta: true, motivo: null }
+  if (!horario) return abierta
+
+  const { dia, minutos } = obtenerHoraLocal(ahora, zonaHorariaDeSucursal(zonaHoraria))
+  const ayer = horario[DIAS_SEMANA[(DIAS_SEMANA.indexOf(dia) + DIAS_SEMANA.length - 1) % DIAS_SEMANA.length]]
+
+  // La madrugada de hoy puede ser la transnoche de ayer
+  if (ayer?.abierto && Number.isInteger(ayer.transnocheMin) && minutos < (ayer.transnocheMin ?? 0)) return abierta
+
+  const config = horario[dia]
+  if (!config || typeof config.abierto !== 'boolean') return abierta
+  if (!config.abierto) return { abierta: false, motivo: `La sucursal no atiende los ${NOMBRE_DIA[dia]}` }
+
+  const inicio = aMinutos(config.apertura)
+  const fin = finDelDia(config.cierre)
+  if (inicio === null || fin === null || fin <= inicio) return abierta
+  if (minutos >= inicio && minutos < fin) return abierta
+
+  return { abierta: false, motivo: `La sucursal se encuentra cerrada en este horario. Atiende de ${horasDelDia(config)}` }
+}
+
+const mismoHorario = (a: HorarioDia, b: HorarioDia) =>
+  a.abierto === b.abierto &&
+  a.apertura === b.apertura &&
+  a.cierre === b.cierre &&
+  (a.transnocheMin ?? 0) === (b.transnocheMin ?? 0)
+
+// "Lun a Vie 09:00 a 23:00 · Sáb 10:00 a 23:59 +02:30 · Dom cerrado"
+export function formatearHorario(horario: HorarioSemana): string {
+  const grupos: GrupoHorario[] = []
+
+  for (const dia of DIAS_SEMANA) {
+    const config = horario[dia]
+    if (!config) continue
+    const ultimo = grupos[grupos.length - 1]
+    if (ultimo && mismoHorario(ultimo.config, config)) ultimo.hasta = dia
+    else grupos.push({ desde: dia, hasta: dia, config })
   }
 
   return grupos
     .map(({ desde, hasta, config }) => {
       const dias =
-        desde === hasta
-          ? ETIQUETA_DIA_CORTA[desde]
-          : `${ETIQUETA_DIA_CORTA[desde]} a ${ETIQUETA_DIA_CORTA[hasta]}`
-      return config.abierto ? `${dias} ${config.apertura}–${config.cierre}` : `${dias} cerrado`
+        desde === hasta ? ETIQUETA_DIA_CORTA[desde] : `${ETIQUETA_DIA_CORTA[desde]} a ${ETIQUETA_DIA_CORTA[hasta]}`
+      return config.abierto ? `${dias} ${horasDelDia(config)}` : `${dias} cerrado`
     })
     .join(' · ')
+}
+
+// Estado de una sucursal: el cierre temporal del encargado pesa más que su horario semanal.
+export function estadoDeSucursal(
+  sucursal: { horario: HorarioSemana; zona_horaria?: string | null; cierreTemporal?: boolean },
+  ahora = new Date(),
+): EstadoSucursal {
+  if (sucursal.cierreTemporal) {
+    return { abierta: false, motivo: 'La sucursal está cerrada temporalmente' }
+  }
+  return estadoSucursal(sucursal.horario, sucursal.zona_horaria ?? undefined, ahora)
 }

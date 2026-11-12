@@ -1,29 +1,40 @@
 // Tipos de sucursales del panel de administración.
-// El horario es un objeto con los 7 días de la semana (JSONB en el backend)
-// y la zona horaria es un identificador IANA en el que se interpretan las horas.
+// El horario es un objeto con los 7 días de la semana (JSONB en el backend).
+// Cada día tiene un estado, una apertura y un cierre (de 00:00 a 23:59), y opcionalmente una transnoche:
+// minutos que sigue abierto después de medianoche (solo si cierra a las 23:59).
+// La zona horaria es un identificador IANA en el que se interpretan las horas.
 
-export const DIAS_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
+export const DIAS_SEMANA = [
+  "lunes",
+  "martes",
+  "miercoles",
+  "jueves",
+  "viernes",
+  "sabado",
+  "domingo",
+] as const;
 
-export type DiaSemana = (typeof DIAS_SEMANA)[number]
+export type DiaSemana = (typeof DIAS_SEMANA)[number];
 
-export const ZONA_HORARIA_POR_DEFECTO = 'America/Argentina/Buenos_Aires'
+export const ZONA_HORARIA_POR_DEFECTO = "America/Argentina/Buenos_Aires";
 
 export interface HorarioDia {
-  apertura: string
-  cierre: string
-  abierto: boolean
+  abierto: boolean;
+  apertura: string;
+  cierre: string;
+  transnocheMin?: number;
 }
 
-export type HorarioSemana = Record<DiaSemana, HorarioDia>
+export type HorarioSemana = Record<DiaSemana, HorarioDia>;
 
 export interface UbicacionSucursal {
-  calle: string
-  numero: string
-  localidad: string
-  provincia: string
-  codigoPostal: string
-  latitud: number | null
-  longitud: number | null
+  calle: string;
+  numero: string;
+  localidad: string;
+  provincia: string;
+  codigoPostal: string;
+  latitud: number | null;
+  longitud: number | null;
 }
 
 // Lo que devuelve el backend. El horario llega como objeto JSONB (o como texto
@@ -60,10 +71,18 @@ export interface DatosSucursal {
 
 // Respuesta de crear/editar/cambiar estado
 export interface RespuestaSucursal {
-  mensaje?: string
-  sucursal: Sucursal
+  mensaje?: string;
+  sucursal: Sucursal;
 }
-
+export const ETIQUETA_DIA: Record<DiaSemana, string> = {
+  lunes: "Lunes",
+  martes: "Martes",
+  miercoles: "Miércoles",
+  jueves: "Jueves",
+  viernes: "Viernes",
+  sabado: "Sábado",
+  domingo: "Domingo",
+};
 // Lo que espera el backend al crear o editar (claves exactas del schema Joi, sin extras)
 export interface PayloadSucursal {
   nombre: string

@@ -1,12 +1,13 @@
 # AGENTS.md — Pagina-de-ecommerce
 
-Plataforma de delivery de comida rápida. Tres apps + docs, sin workspaces/npm workspaces: cada carpeta tiene su propio `package.json` y `node_modules`.
+Plataforma de delivery de comida rápida. Cuatro apps + docs, sin workspaces/npm workspaces: cada carpeta tiene su propio `package.json` y `node_modules`.
 
 ## Estructura
 
 - `Backend/` — API Express 5, CommonJS, Sequelize 6. Entrypoint: `src/main.js`.
 - `Frontend/` — app cliente: React 19 + Vite + TypeScript + Tailwind CSS v4 (`@tailwindcss/vite`).
 - `admin/` — panel admin: React 19 + Vite + TS + Tailwind v4 (mismo stack, repo aparte de carpetas).
+- `repartidor/` — app del repartidor: React + Vite + TS + Tailwind v4 (`npm run dev` en el puerto 5175, que el CORS del Backend ya permite). Usa las rutas `/repartidor/...` del Backend.
 - `doc/` — requisitos y permisos. `enunciado.md` es la fuente de verdad; `analisis-requerimientos.md` es borrador, no definitivo; `roles-y-permisos.md` describe la matriz de roles.
 - `.agents.md` — contexto de negocio y reglas (estados de pedido, roles, asignación de sucursal). Leer antes de tocar lógica de pedidos.
 
@@ -26,6 +27,9 @@ Jest config está embebido en `Backend/package.json`; ignora `main.js`, migratio
 - Migrations/seeders: sequelize-cli con `.sequelizerc` → paths en `src/migrations`, `src/seeders`, `src/config/config.json`. Ejecutar desde `Backend/`. Orden: `db:migrate` y después `db:seed:all`.
 - `20261025120000-esquema-inicial.js` consolida el esquema; las migraciones anteriores están en `src/migrations/_historico` y no se ejecutan. Todo cambio de columnas va en una migración nueva (con `describeTable` para que sea idempotente). Un `migration:generate` vacío se registra como aplicado y no hace nada: completalo antes de migrar.
 - `config.json` sección `test` tiene `username: root, password: root, database: database_test` con dialect postgres — parece heredado de MySQL y probablemente haya que corregirlo si se corren tests contra DB real.
+- Migraciones `20261108120000-agregar-repartidores-y-viajes` (Repartidors, Viajes y `Pedidos.viajeId`), `20261108130000-convertir-horario-a-turnos` y `20261109120000-horario-con-transnoche` (llevan los horarios guardados al formato actual): el esquema inicial se editó para incluir lo del reparto, pero eso no alcanza a las bases que ya lo habían aplicado. Son idempotentes.
+- Horario de sucursal: `{ lunes: { abierto, apertura, cierre, transnocheMin? } }`, horas de 00:00 a 23:59 (23:59 cuenta como las 24:00). El botón "Atención Trasnoche" fija el cierre a las 23:59 y suma `transnocheMin` minutos después de medianoche, con tope `min(apertura del día siguiente − 1 h, 06:00)`; se muestra como `+hh:mm`. Las reglas viven en `Backend/src/utils/horarioSucursal.js` (el panel y la app de clientes tienen su copia para mostrarlo).
+- Reparto: tablas `Repartidors` y `Viajes`; los pedidos pasan por "Listo para retirar" antes de "En camino". Admin y encargado manejan repartidores y viajes (el encargado solo los de su sucursal); el repartidor entra por su propia app.
 - Seeds: `20261020000000-catalogo-definitivo` (sucursales, categorías, productos, insumos, recetas, stock y el master), `ventas-demo` (40 clientes y pedidos) y `20261107140000-personal-demo` (2 encargados y 2 empleados por sucursal, contraseña `Burger1234`). Los de `seeders/historico` no corren.
 
 ## Env vars

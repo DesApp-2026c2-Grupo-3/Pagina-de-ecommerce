@@ -114,35 +114,41 @@ function Cart() {
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
-      <PageHeader 
-      titulo="Tu carrito"
-      subtitulo="Acá podés ver los productos seleccionados">
+      <PageHeader
+        titulo="Tu carrito"
+        subtitulo="Acá podés ver los productos seleccionados">
         <PasosCompra actual={0} />
       </PageHeader>
 
 
       <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-3">
-        
+
           <div className=" min-h-6 my-4 -mb-0 ">
             <div className="flex flex-wrap items-center justify-between gap-3 ">
               <Link to="/catalogo?grupo=todos" className={`${botonChico} w-fit shadow-sticker`}>
-              <ArrowLeft className="h-4 w-4" /> Ir al Menú
-            </Link>
-              <button
-                type="button"
-                onClick={() => setMostrarModalVaciar(true)}
-                className="group inline-flex min-h-11 w-fit items-center gap-3 rounded-full border-2 border-black bg-amber-500 text-black
-                pl-2 pr-5 text-sm font-bold shadow-[5px_5px_0px_theme(colors.black)] transition-all duration-200 hover:translate-y-0.5
-                hover:!bg-red-600 hover:!text-white hover:shadow-amber-500"
-              >
-                {/* Contenedor circular del tachito */}
-                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-red-500 text-white transition-colors duration-200 group-hover:border-white  group-hover:bg-black  group-hover:text-white">
-                  <Trash2 className="h-4 w-4 stroke-[2.4px]" />
-                </div>
+                <ArrowLeft className="h-4 w-4" /> Ir al Menú
+              </Link>
+             <button
+  type="button"
+  onClick={() => setMostrarModalVaciar(true)}
+  className="group inline-flex min-h-11 w-fit items-center gap-2.5 min-[380px]:gap-3 rounded-full border-2 border-black bg-amber-500 text-black
+  pl-2 pr-4 min-[380px]:pr-5 text-sm font-bold shadow-[5px_5px_0px_theme(colors.black)] transition-all duration-200 hover:translate-y-0.5
+  hover:!bg-red-600 hover:!text-white hover:shadow-amber-500"
+>
+  {/* Contenedor circular del tachito */}
+  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-black bg-red-500 text-white transition-colors duration-200 group-hover:border-white group-hover:bg-black group-hover:text-white">
+    <Trash2 className="h-4 w-4 stroke-[2.4px]" />
+  </div>
 
-                Eliminar todo
-              </button>
+  {/* Texto corto para pantallas menores a 380px */}
+  <span className="min-[380px]:hidden">Vaciar</span>
+
+  {/* Texto completo desde 380px en adelante */}
+  <span className="hidden min-[380px]:inline">Eliminar todo</span>
+</button>
+
+
             </div>
           </div>
 

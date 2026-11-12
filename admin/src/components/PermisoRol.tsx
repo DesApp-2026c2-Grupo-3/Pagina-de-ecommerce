@@ -27,8 +27,12 @@ export function SoloPersonalDeSucursal() {
 export function SoloSuSucursal() {
   const { administrador } = useAuth()
   const { id } = useParams()
+  const esMaster = administrador?.rol === 'MASTER'
+  const esEncargadoConSucursal = administrador?.rol === 'ADMIN' && Boolean(administrador?.sucursalId)
+
+  // Con :id en la URL el encargado solo entra a su sucursal; sin :id alcanza con tener una asignada.
+  // El empleado no entra nunca: trabaja con pedidos y partes.
   const permitido =
-    administrador?.rol === 'MASTER' ||
-    (administrador?.rol === 'ADMIN' && Number(id) === administrador.sucursalId)
+    esMaster || (esEncargadoConSucursal && (!id || Number(id) === administrador?.sucursalId))
   return permitido ? <Outlet /> : <Navigate to="/admin" replace />
 }

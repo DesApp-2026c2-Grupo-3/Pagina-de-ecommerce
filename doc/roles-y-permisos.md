@@ -27,6 +27,8 @@ Cadena de altas: el **master** crea a los **encargados** y cada encargado crea a
 | Dar un parte al encargado (equipo roto, falta de insumo, problema con un pedido) | no | no | sí |
 | Ver y resolver los partes de su sucursal | no (solo lectura por API) | sí | solo ve los suyos |
 | Ver sus notificaciones y su perfil, y cambiar su contraseña | sí | sí | sí |
+| Gestionar repartidores y reasignar viajes | de todas las sucursales | solo los de su sucursal | no |
+| Entregar los pedidos (app del repartidor) | no | no | no (lo hace el repartidor, con su propia sesión) |
 | Productos, categorías, insumos, promociones y menú | sí | no | no |
 | Crear, editar y desactivar sucursales | sí | no | no |
 | Ver los datos de su sucursal ("Mi sucursal") | sí | sí, solo lectura | no |

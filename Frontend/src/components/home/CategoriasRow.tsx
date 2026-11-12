@@ -6,7 +6,7 @@ import CategoryIcon from '../icons/CategoryIcon'
 import FilaDeslizable from '../ui/FilaDeslizable'
 import type { Category } from '../../types/product'
 import { ArrowRight } from 'lucide-react'
-import { useAuth } from  '../../context/AuthContext'
+import { useAuth } from '../../context/AuthContext'
 
 interface Acceso {
   clave: string
@@ -46,22 +46,27 @@ function CategoriasRow() {
       py-6: Reducimos a la mitad el aire superior e inferior en mobile.
       md:py-12: Recupera su espaciado original en desktop.
     */
-    <section className="bg-brand-cream px-4 py-0 md:py-4 text-brand-dark">
+    <section className="bg-brand-cream px-4 py-2 md:py-4 text-brand-dark">
       <div className="mx-auto max-w-7xl">
-        
+
         {/* Cabecera compactada en mobile */}
         <div className="mb-4 md:mb-6 flex flex-row items-center justify-between gap-3">
           {/* text-2xl en mobile, text-4xl original en md+ */}
-          <h2 className="font-display text-2xl md:text-4xl font-extrabold tracking-tight">Elegí por <span className='text-brand-red'>antojo</span></h2>
-          
-          {/* El botón "Ver todo el menú" se vuelve más sutil en mobile con paddings e h-9 compactos */}
+          <h2 className="font-display text-2xl md:text-4xl font-extrabold tracking-tight">
+            Elegí por <span className="text-brand-red">antojo</span>
+          </h2>
+
+          {/* El botón cambia de texto por debajo de 360px */}
           <Link
             to="/catalogo?grupo=todos"
-            className="inline-flex min-h-[2.25rem] md:min-h-11 items-center gap-1.5 md:gap-2 rounded-full border-2 border-brand-dark bg-white px-3 md:px-5 text-xs md:text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
+            className="inline-flex min-h-[2.25rem] md:min-h-11 shrink-0 items-center gap-1.5 md:gap-2 rounded-full border-2 border-brand-dark bg-white px-3 md:px-5 text-xs md:text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5"
           >
-            Ver todo el menú <ArrowRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span className="min-[360px]:hidden">Menú</span>
+            <span className="hidden min-[360px]:inline">Ver todo el menú</span>
+            <ArrowRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </Link>
         </div>
+
 
         <FilaDeslizable
           key={idUsuario ?? 'invitado'}
@@ -90,7 +95,7 @@ function CategoriasRow() {
                   <CategoryIcon icono={acceso.icono} />
                 </div>
               </span>
-              
+
               {/* Texto de la categoría con un pequeño ajuste de interlineado */}
               <span className="leading-tight px-0.5 block truncate max-w-full md:whitespace-normal">
                 {acceso.nombre}

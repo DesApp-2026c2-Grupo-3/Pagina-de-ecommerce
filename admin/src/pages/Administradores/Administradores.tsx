@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Plus, Trash2, Power, RotateCcw } from 'lucide-react'
+import { Pencil, Plus, Power, RotateCcw } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
@@ -237,18 +237,18 @@ const acciones = (a: AdminFila) => (
                   <th className="px-6 py-3 text-left">Email</th>
                   <th className="px-6 py-3 text-left">Rol</th>
                   <th className="px-6 py-3 text-left">Sucursal</th>
-                  <th className="px-6 py-3 text-right">Estado</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
+                  <th className="px-6 py-3 text-left">Estado</th>
+                  <th className="px-6 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {pagina.map((a) => (
-                  <tr key={a.id} className="border-t">
-                    <td className="px-6 py-4 font-medium">{a.nombre}</td>
-                    <td className="px-6 py-4">{a.email}</td>
+                  <tr key={a.id} className="border-t text-left">
+                    <td className="px-6 py-4 font-medium ">{a.nombre}</td>
+                    <td className="px-6 py-4 ">{a.email}</td>
                     <td className="px-6 py-4">{rolTexto(a.rol)}</td>
-                    <td className="px-6 py-4">{a.sucursal?.nombre ?? 'Sin sucursal'}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 !text-left">{a.sucursal?.nombre ?? 'Sin sucursal'}</td>
+                    <td className="px-6 py-4 !text-center">
                       <span
                       className={`rounded-full px-3 py-1 text-sm font-medium ${
                         a.activo
@@ -259,7 +259,7 @@ const acciones = (a: AdminFila) => (
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex justify-end">{acciones(a)}</div>
+                      <div className="flex justify-center">{acciones(a)}</div>
                     </td>
                   </tr>
                 ))}

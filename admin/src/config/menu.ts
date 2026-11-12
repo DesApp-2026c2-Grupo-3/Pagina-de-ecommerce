@@ -12,6 +12,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
     return [
       { to: '/admin', label: 'Reportes', end: true },
       { to: '/admin/pedidos', label: 'Pedidos' },
+      { to: '/admin/viajes', label: 'Viajes' },
       { to: '/admin/calificaciones', label: 'Calificaciones' },
       { to: '/admin/productos', label: 'Productos' },
       { to: '/admin/promociones', label: 'Promociones' },
@@ -20,6 +21,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
       { to: '/admin/menu', label: 'Menú' },
       { to: '/admin/sucursales', label: 'Sucursales' },
       { to: '/admin/administradores', label: 'Personal' },
+      { to: '/admin/repartidores', label: 'Repartidores' },
     ]
   }
 
@@ -38,13 +40,15 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
     ...(id
       ? [
           { to: '/admin/pedidos', label: 'Pedidos' },
+          { to: '/admin/viajes', label: 'Viajes' },
           { to: '/admin/calificaciones', label: 'Calificaciones' },
           { to: '/admin/disponibilidad', label: 'Productos' },
           { to: '/admin/partes', label: 'Partes' },
           { to: `/admin/sucursales/${id}/stock`, label: 'Stock' },
           { to: '/admin/mi-sucursal', label: 'Mi sucursal' },
           { to: '/admin/administradores', label: 'Empleados' },
+          { to: '/admin/repartidores', label: 'Repartidores' },
         ]
       : []),
   ]
-}
+}

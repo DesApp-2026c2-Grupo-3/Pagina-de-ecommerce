@@ -3,7 +3,8 @@ import { AdvancedMarker, APIProvider, Map } from '@vis.gl/react-google-maps'
 import { Clock, MapPin, Navigation, Phone, Store, ChevronDown, ChevronUp, Map as MapIcon } from 'lucide-react'
 import { useZona } from '../../context/ZonaContext'
 import { getSucursales } from '../../services/sucursalService'
-import { formatearHorario } from '../../utils/horario'
+import { estadoDeSucursal, formatearHorario } from '../../utils/horario'
+import AvisoCierreSucursal from '../sucursal/AvisoCierreSucursal'
 import type { Sucursal } from '../../types/sucursal'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
@@ -16,7 +17,7 @@ function direccionDe(s: Sucursal) {
 
 // Genera el enlace directo para abrir el ruteo en la app nativa de mapas o web
 function linkComoLlegar(s: Sucursal) {
-  return `https://google.com{s.latitud},${s.longitud}`
+  return `https://www.google.com/maps/dir/?api=1&destination=${s.latitud},${s.longitud}`
 }
 
 function TuSucursal() {
@@ -60,6 +61,8 @@ function TuSucursal() {
 
   if (!sucursal) return null
 
+  const estado = estadoDeSucursal(sucursal)
+  const sucursalCerrada = !estado.abierta
   const posicion = { lat: sucursal.latitud, lng: sucursal.longitud }
 
   // Nodo de renderizado del mapa para no duplicar JSX
@@ -114,10 +117,10 @@ function TuSucursal() {
               <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-brand-muted">Tu sucursal</p>
               <span
                 className={`rounded-full px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-extrabold ${
-                  zona.sucursalAbierta === false ? 'bg-brand-red text-white' : 'bg-brand-mustard text-brand-dark'
+                  sucursalCerrada ? 'bg-brand-red text-white' : 'bg-brand-mustard text-brand-dark'
                 }`}
               >
-                {zona.sucursalAbierta === false ? 'Cerrada ahora' : 'Abierta ahora'}
+                {sucursalCerrada ? 'Cerrada ahora' : 'Abierta ahora'}
               </span>
             </div>
 
@@ -162,6 +165,10 @@ function TuSucursal() {
               A {zona.distanciaKm.toLocaleString('es-AR', { maximumFractionDigits: 1 })} km de tu dirección
             </p>
           </div>
+
+          {sucursalCerrada && (
+            <AvisoCierreSucursal sucursal={sucursal.nombre} motivo={estado.motivo} />
+          )}
 
           {/* Botones inferiores acoplados en paralelo en mobile */}
           <div className="mt-2 md:mt-auto flex flex-row max-[400px]:flex-col gap-2 pt-1 md:flex-col md:gap-2">

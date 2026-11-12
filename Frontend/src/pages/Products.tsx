@@ -156,14 +156,14 @@ function Products() {
   const enSecciones = Boolean(grupo?.porSecciones && grupo.subgrupos && !sub && !buscando);
   const secciones = enSecciones
     ? grupo!.subgrupos!
-        .map((s) => ({
-          ...s,
-          productos: delGrupo
-            .filter((e) => e.subgrupo?.slug === s.slug)
-            .map((e) => e.product)
-            .sort(disponiblesPrimero),
-        }))
-        .filter((s) => s.productos.length > 0)
+      .map((s) => ({
+        ...s,
+        productos: delGrupo
+          .filter((e) => e.subgrupo?.slug === s.slug)
+          .map((e) => e.product)
+          .sort(disponiblesPrimero),
+      }))
+      .filter((s) => s.productos.length > 0)
     : [];
 
   const totalPaginas = Math.ceil(filteredProducts.length / POR_PAGINA);
@@ -177,13 +177,13 @@ function Products() {
 
   // Los grupos, con la forma que espera el filtro de chips
   const gruposVisibles = useMemo(
-  () =>
-    grupos.filter((g) =>
-      visibles.some((product) => {
-        const categoria = nombrePorId.get(product.categoriaId) ?? "";
-        return ubicarEnGrupo(g, product.nombre, categoria).pertenece;
-      })
-    ),
+    () =>
+      grupos.filter((g) =>
+        visibles.some((product) => {
+          const categoria = nombrePorId.get(product.categoriaId) ?? "";
+          return ubicarEnGrupo(g, product.nombre, categoria).pertenece;
+        })
+      ),
     [grupos, visibles, nombrePorId],
   );
 
@@ -256,8 +256,15 @@ function Products() {
 
         {/* Subcategorías del grupo elegido */}
         {!buscando && grupo?.subgrupos && (
-          <SubcategoriaFilter subgrupos={grupo.subgrupos} seleccionado={sub?.slug ?? null} onSeleccionar={elegirSub} />
+          <div className="flex justify-center w-full">
+            <SubcategoriaFilter
+              subgrupos={grupo.subgrupos}
+              seleccionado={sub?.slug ?? null}
+              onSeleccionar={elegirSub}
+            />
+          </div>
         )}
+
 
         {buscando && (
           <p role="status" className="mt-4 text-sm font-semibold text-brand-muted">

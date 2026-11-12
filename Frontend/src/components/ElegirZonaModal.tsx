@@ -28,7 +28,7 @@ const ubicacionVacia: UbicacionEnCurso = {
 
 // Se abre solo cuando la persona lo pide (desde el botón de dirección del Navbar)
 function ElegirZonaModal() {
-  const { zona, selectorAbierto, cerrarSelector, elegirUbicacion } = useZona()
+  const { zona, selectorAbierto, abrirSelector, cerrarSelector, elegirUbicacion } = useZona()
   const { user, isAuthenticated } = useAuth()
   const [ubicacion, setUbicacion] = useState<UbicacionEnCurso>(ubicacionVacia)
   const [direcciones, setDirecciones] = useState<Address[]>([])
@@ -80,6 +80,10 @@ function ElegirZonaModal() {
         sucursal={zona.sucursalNombre}
         distanciaKm={zona.distanciaKm}
         abierta={zona.sucursalAbierta !== false}
+        onCambiarDireccion={() => {
+          setBuscando(false)
+          abrirSelector()
+        }}
       />
     )}
     <Modal

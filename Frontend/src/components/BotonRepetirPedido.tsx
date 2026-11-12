@@ -29,10 +29,10 @@ interface Props {
   /** El pedido a repetir (se usa su id y, en la pantalla de carga, sus productos) */
   pedido: Order;
   variante?: keyof typeof estilos;
-   ocultarMensaje?: boolean;
+  ocultarMensaje?: boolean;
 }
 
-function BotonRepetirPedido({ pedido, variante = "claro",ocultarMensaje = false }: Props) {
+function BotonRepetirPedido({ pedido, variante = "claro", ocultarMensaje = false }: Props) {
   const { user } = useAuth();
   const { addItem } = useCart();
   const { zona, abrirSelector } = useZona();
@@ -120,27 +120,34 @@ function BotonRepetirPedido({ pedido, variante = "claro",ocultarMensaje = false 
   return (
     <>
       <button
-        type="button"
-        onClick={repetir}
-        disabled={cargando || sucursalCerrada}
-        className={`inline-flex items-center justify-center gap-2 rounded-full font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${estilos[variante]}`}
-      >
-        <RotateCcw size={16} />
-        {cargando ? "Cargando..." : "Repetir pedido"}
-      </button>
-      
+  type="button"
+  onClick={repetir}
+  disabled={cargando || sucursalCerrada}
+  title={sucursalCerrada ? "La sucursal está cerrada" : "Repetir pedido"}
+  aria-label="Repetir pedido"
+  className={`inline-flex shrink-0 items-center justify-center min-[401px]:gap-2 rounded-full font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${estilos[variante]}`}
+>
+  <RotateCcw size={16} />
+  <span className="hidden min-[401px]:inline">
+    {cargando ? (
+      "Cargando..."
+    ) : (
+      <>
+        <span className="min-[520px]:hidden">Repetir</span>
+        <span className="hidden min-[520px]:inline">Repetir pedido</span>
+      </>
+    )}
+  </span>
+</button>
+
+
+
       {/* 
         Silenciamos los textos únicamente si ocultarMensaje es false 
       */}
       {error && !ocultarMensaje && (
         <p className="mt-2 text-sm font-semibold text-brand-red">{error}</p>
       )}
-      {sucursalCerrada && !error && !ocultarMensaje && (
-        <p className="mt-2 text-sm font-semibold text-brand-red">
-          La sucursal está cerrada. No podés repetir el pedido ahora.
-        </p>
-      )}
-      
       {cargando && <ArmandoPedido pedido={pedido} />}
 
       <Modal

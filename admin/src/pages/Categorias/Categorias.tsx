@@ -98,12 +98,6 @@ export default function Categorias() {
     return true
   })
 
-  const indiceUltimaCategoria = 
-  paginaActual * categoriaPorPagina
-
-  const indicePrimeraCategoria =
-  indiceUltimaCategoria - categoriaPorPagina
-
   const categoriasPagina = filtradas.slice(
     (paginaActual - 1) * categoriaPorPagina,
     paginaActual * categoriaPorPagina
@@ -285,4 +279,4 @@ export default function Categorias() {
     </SeccionDesplegable>
   </main>
   )
-}
+}

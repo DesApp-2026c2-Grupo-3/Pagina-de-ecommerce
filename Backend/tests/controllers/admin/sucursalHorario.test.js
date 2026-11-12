@@ -16,8 +16,8 @@ const MASTER = { id: 1, rol: 'MASTER', sucursalId: null };
 const ENCARGADO = { id: 9, rol: 'ADMIN', sucursalId: 2 };
 
 const horarioNuevo = {
-    lunes: { apertura: '10:00', cierre: '22:00', abierto: true },
-    domingo: { apertura: '10:00', cierre: '22:00', abierto: false },
+    lunes: { abierto: true, apertura: '10:00', cierre: '22:00' },
+    domingo: { abierto: false, apertura: '10:00', cierre: '22:00' },
 };
 
 function crearRes() {

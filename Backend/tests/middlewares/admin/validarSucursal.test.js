@@ -8,8 +8,12 @@ function crearRes() {
     return res;
 }
 
+function dia(apertura = '09:00', cierre = '23:00', extra = {}) {
+    return { abierto: true, apertura, cierre, ...extra };
+}
+
 const horarioValido = Object.fromEntries(
-    DIAS_SEMANA.map((dia) => [dia, { apertura: '09:00', cierre: '23:00', abierto: true }])
+    DIAS_SEMANA.map((nombre) => [nombre, dia()])
 );
 
 function bodyValido(datos = {}) {
@@ -45,6 +49,19 @@ describe('validarSucursal', () => {
         expect(req.body.nombre).toBe('Morón');
         expect(req.body.latitud).toBe(-34.65);
         expect(req.body.radioEntregaKm).toBe(5.5);
+    });
+
+    test('acepta un día con transnoche', () => {
+        const req = {
+            body: bodyValido({
+                horario: { ...horarioValido, viernes: dia('18:00', '23:59', { transnocheMin: 150 }) },
+            }),
+        };
+        const next = jest.fn();
+
+        validarSucursal(req, crearRes(), next);
+
+        expect(next).toHaveBeenCalled();
     });
 
     test('aplica la zona horaria por defecto', () => {
@@ -173,27 +190,68 @@ describe('validarSucursal', () => {
         validarSucursal({ body: bodyValido({ horario: horarioSinLunes }) }, res, jest.fn());
 
         expect(res.status).toHaveBeenCalledWith(400);
-        expect(codigoDe(res)).toMatch(/lunes/);
+        expect(codigoDe(res)).toBe('Completá el horario del lunes');
     });
 
-    test('exige que cada día indique el cierre', () => {
+    test.each([
+        ['la apertura', { abierto: true, cierre: '23:00' }, 'Cada día debe indicar la apertura'],
+        ['el cierre', { abierto: true, apertura: '09:00' }, 'Cada día debe indicar el cierre'],
+        ['si está abierto', { apertura: '09:00', cierre: '23:00' }, 'Cada día debe indicar si está abierto'],
+    ])('exige que cada día indique %s', (_campo, config, mensaje) => {
+        const res = crearRes();
+
+        validarSucursal({ body: bodyValido({ horario: { ...horarioValido, lunes: config } }) }, res, jest.fn());
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(codigoDe(res)).toBe(mensaje);
+    });
+
+    test.each([
+        ['una hora fuera de rango', dia('25:00', '23:00'), 'Las horas del lunes van de 00:00 a 23:59 (formato HH:MM)'],
+        ['un cierre igual a la apertura', dia('09:00', '09:00'), 'En el lunes, el cierre tiene que ser posterior a la apertura'],
+        ['un cierre anterior a la apertura', dia('18:00', '02:00'), 'En el lunes, el cierre tiene que ser posterior a la apertura'],
+        ['una transnoche sin cerrar a las 23:59', dia('18:00', '23:00', { transnocheMin: 60 }), 'La transnoche del lunes requiere cerrar a las 23:59'],
+        ['una transnoche mayor al tope', dia('18:00', '23:59', { transnocheMin: 361 }), 'La transnoche del lunes puede llegar hasta +06:00'],
+        ['una transnoche en un día cerrado', { abierto: false, apertura: '09:00', cierre: '23:59', transnocheMin: 60 }, 'El lunes está cerrado: no puede tener transnoche'],
+    ])('rechaza %s', (_nombre, config, mensaje) => {
+        const res = crearRes();
+
+        validarSucursal({ body: bodyValido({ horario: { ...horarioValido, lunes: config } }) }, res, jest.fn());
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(codigoDe(res)).toBe(mensaje);
+    });
+
+    test('la transnoche respeta la apertura del día siguiente', () => {
         const res = crearRes();
 
         validarSucursal({
-            body: bodyValido({ horario: { ...horarioValido, lunes: { apertura: '09:00', abierto: true } } }),
+            body: bodyValido({
+                horario: {
+                    ...horarioValido,
+                    viernes: dia('18:00', '23:59', { transnocheMin: 241 }),
+                    sabado: dia('05:00', '15:00'),
+                },
+            }),
         }, res, jest.fn());
 
-        expect(codigoDe(res)).toBe('Cada día debe indicar el cierre');
+        expect(codigoDe(res)).toBe('La transnoche del viernes puede llegar hasta +04:00');
     });
 
-    test('rechaza una hora con formato inválido', () => {
+    test('rechaza el formato de turnos', () => {
         const res = crearRes();
 
         validarSucursal({
-            body: bodyValido({ horario: { ...horarioValido, lunes: { apertura: '25:00', cierre: '23:00', abierto: true } } }),
+            body: bodyValido({
+                horario: {
+                    ...horarioValido,
+                    lunes: { abierto: true, turnos: [{ apertura: '09:00', cierre: '23:00', cruzaMedianoche: false }] },
+                },
+            }),
         }, res, jest.fn());
 
-        expect(codigoDe(res)).toBe('La apertura debe tener formato HH:MM (ej: "09:00")');
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(codigoDe(res)).toBe('Cada día debe indicar la apertura');
     });
 
     test('rechaza campos desconocidos', () => {

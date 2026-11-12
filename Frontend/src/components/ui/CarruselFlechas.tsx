@@ -67,6 +67,7 @@ export default function CarruselFlechas({
     <div className="relative w-full max-w-full overflow-hidden isolate" role="region" aria-roledescription="carrusel" aria-label={etiqueta}>
       
       {/* Botón Izquierda */}
+      
       <button
         type="button"
         disabled={!puedeIrIzquierda}

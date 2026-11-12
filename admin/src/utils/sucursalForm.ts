@@ -1,6 +1,8 @@
 import {
+  DIAS_SEMANA,
   ZONA_HORARIA_POR_DEFECTO,
   type DatosSucursal,
+  type HorarioSemana,
   type PayloadSucursal,
   type Sucursal,
 } from '../types/sucursal.types'
@@ -42,12 +44,22 @@ export function desdeSucursal(s: Sucursal): DatosSucursal {
   }
 }
 
+// Un día cerrado no lleva transnoche: se limpia antes de enviar
+export function horarioParaEnviar(horario: HorarioSemana): HorarioSemana {
+  return Object.fromEntries(
+    DIAS_SEMANA.map((dia) => {
+      const { abierto, apertura, cierre, transnocheMin } = horario[dia]
+      return [dia, { abierto, apertura, cierre, ...(abierto && transnocheMin ? { transnocheMin } : {}) }]
+    }),
+  ) as HorarioSemana
+}
+
 // Del formulario a lo que espera el backend (las claves exactas del schema Joi)
 export function aPedido(d: DatosSucursal): PayloadSucursal {
   return {
     nombre: d.nombre.trim(),
     telefono: d.telefono.trim(),
-    horario: normalizarHorario(d.horario),
+    horario: horarioParaEnviar(normalizarHorario(d.horario)),
     zona_horaria: d.zonaHoraria.trim(),
     calle: d.ubicacion.calle,
     numero: d.ubicacion.numero,

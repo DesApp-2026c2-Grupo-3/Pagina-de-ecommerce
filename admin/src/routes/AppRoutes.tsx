@@ -33,6 +33,11 @@ import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos'
 import ProductosMenosVendidos from '../components/reportes/ProductosMenosVendidos'
 import ProductosMayorFacturacion from '../components/reportes/ProductosMayorFacturacion'
 import ProductosSinStock from '../components/reportes/ProductosSinStock'
+import Repartidores from '../pages/Repartidores/Repartidores'
+import NuevoRepartidor from '../pages/Repartidores/NuevoRepartidor'
+import EditarRepartidor from '../pages/Repartidores/EditarRepartidor'
+import Viajes from '../pages/Viajes/Viajes'
+
 
 export default function AppRoutes() {
   return (
@@ -101,6 +106,12 @@ export default function AppRoutes() {
         {/* Stock: el master, o el encargado de esa sucursal */}
         <Route element={<SoloSuSucursal />}>
           <Route path="/admin/sucursales/:id/stock" element={<Stock />} />
+
+          <Route path="/admin/repartidores" element={<Repartidores />} />
+          <Route path="/admin/viajes" element={<Viajes />} />
+          <Route path="/admin/repartidores/editar/:id" element={<EditarRepartidor />}/>
+          <Route path="/admin/repartidores/nuevo" element={<NuevoRepartidor />} />
+          
         </Route>
       </Route>
 

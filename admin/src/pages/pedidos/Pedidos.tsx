@@ -25,6 +25,7 @@ const POR_PAGINA = 8;
 const coloresEtapa: Record<Etapa, string> = {
   Pendiente: "bg-amber-100 text-amber-700",
   "En proceso": "bg-blue-100 text-blue-700",
+  "Listo para retirar": "bg-cyan-100 text-cyan-700",
   "En camino": "bg-purple-100 text-purple-700",
   Entregado: "bg-green-100 text-green-700",
   Cancelado: "bg-red-100 text-red-700",
@@ -99,13 +100,23 @@ function SelectorEtapa({
   bloqueado: boolean;
   onChange: (etapa: Etapa) => void;
 }) {
+
+  const opcionesDisponibles: Record<Etapa, Etapa[]> = {
+    Pendiente: ["Pendiente", "En proceso", "Cancelado"],
+    "En proceso": ["En proceso", "Listo para retirar", "Cancelado"],
+    "Listo para retirar": ["Listo para retirar", "Cancelado"],
+    "En camino": ["En camino"],
+    Entregado: ["Entregado"],
+    Cancelado: ["Cancelado"],
+  };
+
   return (
     <div
       role="radiogroup"
       aria-label={`Elegir etapa del pedido ${pedidoId}`}
       className="grid grid-cols-2 gap-2 sm:grid-cols-4"
     >
-      {ETAPAS.map((etapa) => {
+      {opcionesDisponibles[estadoActual as Etapa].map((etapa) => {
         const activa = valor === etapa;
         const retornoProhibido = esRetornoAPendienteProhibido(
           estadoActual,

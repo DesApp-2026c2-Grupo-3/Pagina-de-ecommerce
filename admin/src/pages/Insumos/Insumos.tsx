@@ -353,7 +353,7 @@ const acciones = (insumo: Insumo) => (
                   <th className="px-6 py-3 text-left">Nombre</th>
                   <th className="px-6 py-3 text-left">Estado</th>
                   <th className="px-6 py-3 text-left">Precio por extra</th>  
-                  <th className="px-6 py-3 text-right">Acciones</th>
+                  <th className="px-6 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -370,7 +370,7 @@ const acciones = (insumo: Insumo) => (
                       </span>
                     </td>
                     <td className="px-6 py-4">{precioTexto(insumo)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       <div className="flex justify-end">{acciones(insumo)}</div>
                     </td>
                   </tr>

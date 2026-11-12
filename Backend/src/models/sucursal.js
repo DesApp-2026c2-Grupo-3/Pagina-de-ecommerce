@@ -27,6 +27,10 @@ module.exports = (sequelize, DataTypes) => {
       Sucursal.hasMany(models.Pedido, {
        foreignKey: 'sucursalId'
       });
+
+      Sucursal.hasMany(models.Repartidor, {
+        foreignKey: 'sucursalId'
+      })
     }
   }
   Sucursal.init({
@@ -36,6 +40,7 @@ module.exports = (sequelize, DataTypes) => {
     localidad: { type: DataTypes.STRING, allowNull: false },
     provincia: { type: DataTypes.STRING, allowNull: false },
     telefono: { type: DataTypes.STRING, allowNull: true },
+    // Horario por día: { lunes: { abierto, apertura, cierre, transnocheMin? }, ... } (ver utils/horarioSucursal.js)
     horario: { type: DataTypes.JSONB, allowNull: false, defaultValue: HORARIO_POR_DEFECTO },
     zona_horaria: { type: DataTypes.STRING, allowNull: false, defaultValue: ZONA_HORARIA_POR_DEFECTO },
     // Cupo de empleados activos que puede tener la sucursal (lo define el master)

@@ -11,7 +11,8 @@ import {
   type HorarioSemana,
   type Sucursal,
 } from '../../types/sucursal.types'
-import { ETIQUETA_DIA, aplicarDiaATodos, normalizarHorario, validarHorario } from '../../utils/horario'
+import { ETIQUETA_DIA, formatearDia, normalizarHorario, validarHorario } from '../../utils/horario'
+import { horarioParaEnviar } from '../../utils/sucursalForm'
 
 const filaClase = 'flex flex-col gap-1 border-b border-gray-200 py-3 last:border-b-0 sm:flex-row sm:gap-4'
 const etiquetaClase = 'font-medium text-gray-700 sm:w-48 sm:shrink-0'
@@ -78,7 +79,8 @@ export default function MiSucursal() {
 
     setGuardando(true)
     try {
-      const respuesta = await actualizarHorarioSucursal(sucursalId, horarioEditable)
+      // Un día cerrado no lleva transnoche: se limpia antes de enviar
+      const respuesta = await actualizarHorarioSucursal(sucursalId, horarioParaEnviar(horarioEditable))
       setSucursal((prev) => (prev ? { ...prev, horario: respuesta.sucursal.horario } : prev))
       mostrarToast('Horario actualizado')
     } catch (e) {
@@ -140,15 +142,7 @@ export default function MiSucursal() {
               <div className="flex flex-col gap-4">
                 <EditorHorario horario={horarioEditable} onCambiarDia={cambiarDia} />
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setHorarioEditable(aplicarDiaATodos(horarioEditable, 'lunes'))}
-                    className="self-start text-sm font-semibold text-orange-600 hover:underline"
-                  >
-                    Aplicar lunes a todos los días
-                  </button>
-
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={guardarHorario}
@@ -165,9 +159,7 @@ export default function MiSucursal() {
                   {DIAS_SEMANA.map((dia) => (
                     <li key={dia}>
                       <span className="inline-block w-28 text-gray-700">{ETIQUETA_DIA[dia]}</span>
-                      {horarioActual[dia].abierto
-                        ? `${horarioActual[dia].apertura} a ${horarioActual[dia].cierre}`
-                        : 'Cerrado'}
+                      {horarioActual[dia].abierto ? formatearDia(horarioActual[dia]) : 'Cerrado'}
                     </li>
                   ))}
                 </ul>

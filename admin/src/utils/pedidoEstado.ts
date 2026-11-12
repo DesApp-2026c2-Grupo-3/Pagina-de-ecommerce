@@ -1,7 +1,7 @@
 import type { RegistroTiempoPedido } from '../types/pedido.types'
 
 // Pasos de la línea de tiempo, en el mismo orden que valida el backend
-export const PASOS_SEGUIMIENTO = ['Pendiente', 'En proceso', 'En camino', 'Entregado'] as const
+export const PASOS_SEGUIMIENTO = ['Pendiente', 'En proceso', 'Listo para retirar', 'En camino', 'Entregado'] as const
 
 export type EstadoPedido = (typeof PASOS_SEGUIMIENTO)[number] | 'Cancelado'
 
@@ -35,7 +35,8 @@ export function esRetornoAPendienteProhibido(estadoActual: string, destino: stri
 // Flujo permitido (espejo de TRANSICIONES del backend)
 const TRANSICIONES: Record<EstadoPedido, EstadoPedido[]> = {
   Pendiente: ['En proceso', 'Cancelado'],
-  'En proceso': ['En camino', 'Cancelado'],
+  'En proceso': ['Listo para retirar', 'Cancelado'],
+  'Listo para retirar': ['En camino', 'Cancelado'],
   'En camino': ['Entregado', 'Cancelado'],
   Entregado: [],
   Cancelado: [],
@@ -55,6 +56,7 @@ export function pasoActual(estado: string) {
 export const COLORES_ETAPA: Record<EstadoPedido, string> = {
   Pendiente: 'bg-amber-100 text-amber-700',
   'En proceso': 'bg-blue-100 text-blue-700',
+  'Listo para retirar': 'bg-cyan-100 text-cyan-700',
   'En camino': 'bg-purple-100 text-purple-700',
   Entregado: 'bg-green-100 text-green-700',
   Cancelado: 'bg-red-100 text-red-700',

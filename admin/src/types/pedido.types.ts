@@ -72,6 +72,7 @@ export interface PropsDetallePedidoModal {
 export const ETAPAS = [
   'Pendiente',
   'En proceso',
+  'Listo para retirar',
   'En camino',
   'Entregado',
   'Cancelado',

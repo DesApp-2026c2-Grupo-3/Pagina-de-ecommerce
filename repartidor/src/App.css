@@ -1,0 +1,287 @@
+
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 40px 24px;
+  color: #1f2937;
+}
+
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.subtitulo {
+  margin: 0 0 8px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 8px;
+  font-size: 32px;
+}
+
+.descripcion,
+.titulo-seccion p {
+  margin-bottom: 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.perfil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.avatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.perfil p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.tarjeta-resumen,
+.seccion-pedidos {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 4px 16px rgb(15 23 42 / 4%);
+}
+
+.tarjeta-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+}
+
+.tarjeta-resumen span {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.tarjeta-resumen strong {
+  font-size: 30px;
+}
+
+.seccion-pedidos {
+  margin-bottom: 24px;
+  padding: 24px;
+}
+
+.titulo-seccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.titulo-seccion h2 {
+  margin-bottom: 6px;
+  font-size: 20px;
+}
+
+.contador {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lista-pedidos {
+  display: grid;
+  gap: 12px;
+}
+
+.tarjeta-pedido {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  transition: border-color 150ms, background 150ms;
+}
+
+.tarjeta-pedido.seleccionado {
+  border-color: #2563eb;
+  background: #f8fbff;
+}
+
+.seleccion-pedido {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  cursor: pointer;
+}
+
+.seleccion-pedido input {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.datos-pedido {
+  flex: 1;
+  min-width: 0;
+}
+
+.numero-pedido {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.estado {
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.estado.pendiente {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.direccion {
+  margin: 12px 0 6px;
+  color: #374151;
+}
+
+.productos {
+  margin-bottom: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.seleccion-info {
+  margin: 20px 0 12px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.boton-principal {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.boton-principal:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.boton-principal:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+.vacio {
+  padding: 22px;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #6b7280;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .app {
+    padding: 24px 16px;
+  }
+
+  .encabezado {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  .resumen {
+    gap: 10px;
+  }
+
+  .tarjeta-resumen {
+    padding: 16px;
+  }
+
+  .tarjeta-resumen strong {
+    font-size: 26px;
+  }
+
+  .seccion-pedidos {
+    padding: 16px;
+  }
+
+  .titulo-seccion {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.estado.en-reparto {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.boton-entregado {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #16a34a;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton-entregado:hover {
+  background: #15803d;
+}

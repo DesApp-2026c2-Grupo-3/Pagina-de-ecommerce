@@ -15,7 +15,7 @@ interface Props {
   onEditar?: () => void
 }
 
-const botonIcono = 'grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl text-brand-dark transition-colors'
+const botonIcono = 'grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-xl text-brand-dark transition-colors'
 
 // "20% OFF", "50% OFF", "GRATIS"
 const etiquetaDescuento = (d: number) => (d >= 1 ? 'GRATIS' : `${Math.round(d * 100)}% OFF`)
@@ -39,7 +39,7 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
   return (
     <article className="flex flex-row items-center gap-3 sm:gap-4 rounded-3xl border-2 border-brand-dark bg-white p-3 sm:p-4 w-full">
       
-      {/* 🖼️ FOTO RESTAURADA AL TAMAÑO ORIGINAL: Clavada firme en h-20 w-20 siempre */}
+      {/* 🖼️ FOTO RESTAURADA AL TAMAÑO ORIGINAL */}
       <div className={`grid h-20 w-20 shrink-0 place-items-center rounded-2xl border border-brand-dark/10 shadow-sm ${product.id % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'}`}>
         {product.imagen && !imagenRota ? (
           <img
@@ -64,23 +64,33 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
               {item.descuento ? ` · ${etiquetaDescuento(item.descuento)}` : ''}
             </span>
           )}
-          <h3 className="font-display text-sm sm:text-lg font-extrabold leading-tight text-brand-dark truncate">{product.nombre}</h3>
+
+          {/* 🛠️ FILA DEL NOMBRE: Se convierte en Flexbox en menos de 380px para poner el PRECIO al lado */}
+          <div className="max-[380px]:flex max-[380px]:items-baseline max-[380px]:justify-between max-[380px]:gap-2 min-w-0">
+            <h3 className="font-display text-sm sm:text-lg font-extrabold leading-tight text-brand-dark truncate flex-1">
+              {product.nombre}
+            </h3>
+            
+            {/* SUBTOTAL SUPERIOR (Sólo se activa a la derecha del nombre en <= 380px) */}
+            <span className="hidden max-[380px]:block text-right font-display text-sm font-extrabold text-brand-dark shrink-0 z-10">
+              {formatearPrecio(item.unitPrice * item.quantity)}
+            </span>
+          </div>
+
+          {/* Detalles e ingredientes */}
           {detalle && <p className="text-[11px] sm:text-sm text-brand-muted truncate mt-0.5">{detalle}</p>}
+          
+          {/* Subprecio unitario ($6.300 $5.670 c/u) */}
           <p className="text-[11px] sm:text-sm font-bold text-brand-muted mt-0.5 leading-none">
             {conDescuento && <s className="mr-1.5 font-semibold">{formatearPrecio(item.precioLista!)}</s>}
             {item.unitPrice === 0 ? 'Gratis' : `${formatearPrecio(item.unitPrice)} c/u`}
           </p>
         </div>
 
-        {/* CONTROLES Y ACCIONES (Riel inferior unificado al lado de la imagen) */}
+        {/* CONTROLES Y ACCIONES (Riel inferior equilibrado sin el precio en el medio) */}
         <div className="flex w-full flex-row items-center justify-between gap-1 sm:gap-3 border-0 pt-0 sm:border-t-2 sm:border-dashed sm:border-brand-sand sm:pt-3">
           
-          {/* 
-            🛠️ COMPACTACIÓN MÁXIMA DEL BOTÓN INCREMENTADOR:
-            - Usamos `scale-[0.82]` para aplanarlo de forma quirúrgica en mobile.
-            - `max-w-[85px]` impide que empuje o desplace los precios en pantallas de 360px.
-            - md:scale-100 y md:max-w-none restauran el layout original en PC.
-          */}
+          {/* STEPPER ORIGINAL (Se queda firme a la izquierda siempre) */}
           <div className="scale-[0.82] sm:scale-100 origin-left shrink-0 max-w-[85px] sm:max-w-none">
             {item.promoFija ? (
               <span className="rounded-full bg-brand-cream px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-brand-dark">× {item.quantity}</span>
@@ -88,13 +98,13 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
               <QuantityStepper value={item.quantity} onChange={onCantidad} min={1} max={20} label={product.nombre} />
             )}
           </div>
-
-          {/* Subtotal */}
-          <span className="text-right font-display text-sm sm:text-xl font-extrabold text-brand-dark min-w-0 flex-1 px-1 sm:min-w-24">
+            
+          {/* SUBTOTAL INFERIOR ORIGINAL (Se destruye de la barra si la pantalla baja de 380px) */}
+           <span className="max-[380px]:hidden text-right font-display text-sm sm:text-xl font-extrabold text-brand-dark min-w-0 flex-1 px-2 sm:min-w-24">
             {formatearPrecio(item.unitPrice * item.quantity)}
           </span>
 
-          {/* Botones de Editar y Basurero */}
+          {/* Botones de Editar y Basurero (Firmes abajo a la derecha) */}
           <div className="flex items-center shrink-0">
             {onEditar ? (
               <button type="button" onClick={onEditar} aria-label={`Editar ${product.nombre}`} className={`${botonIcono} hover:bg-brand-cream`}>
