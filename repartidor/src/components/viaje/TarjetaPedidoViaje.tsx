@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   MapPin,
   UserRound,
@@ -5,6 +6,7 @@ import {
   Clock,
   Phone,
   ExternalLink,
+  ChevronDown,
 } from 'lucide-react'
 
 import type { Pedido } from '../../types/pedido.types'
@@ -28,6 +30,8 @@ export default function TarjetaPedidoViaje({ pedido, onActualizarEstado, procesa
   const direccion = pedido.Direccion
   const telefono = pedido.Usuario.telefono
 
+  const [mostrarProductos, setMostrarProductos] = useState(false)
+
   const tieneCoordenadas =
     direccion?.latitud != null && direccion?.longitud != null
 
@@ -37,18 +41,84 @@ export default function TarjetaPedidoViaje({ pedido, onActualizarEstado, procesa
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">Pedido #{pedido.id}</p>
-          <h3 className="mt-1 text-lg font-bold text-slate-900">
+        <div className="grid grid-cols-2 items-center gap-y-2">
+  {/* Fila 1 - Izquierda */}
+          <p className="text-sm text-slate-500">
+            Pedido #{pedido.id}
+          </p>
+
+  {/* Fila 1 - Derecha */}
+          <div className="flex justify-end">
+            <span className="rounded-full bg-orange-50 px-5 py-1 text-xs font-semibold text-orange-600">
+              {pedido.estado}
+            </span>
+          </div>
+
+  {/* Fila 2 - Izquierda */}
+          <h3 className="text-lg font-bold text-slate-900">
             ${Number(pedido.total).toLocaleString('es-AR')}
           </h3>
-        </div>
 
-        <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600">
-          {pedido.estado}
-        </span>
-      </div>
+  {/* Fila 2 - Derecha */}
+          <div className="relative flex justify-end">
+            <button type="button"
+            onClick={() => setMostrarProductos(!mostrarProductos)}
+            className="flex items-center gap-2 rounded-lg bg-slate-100 p-2 text-sm font-semibold text-slate-600
+             transition hover:bg-slate-200"
+            >
+
+            <Package size={16} />
+            {pedido.DetallePedidos.length} productos
+            <ChevronDown size={15}
+            className={`transition-transform ${
+              mostrarProductos ? 'rotate-180' : ''
+            }`}/>
+            </button>
+
+          {mostrarProductos && (
+          <div className="absolute right-0 top-full z-30 mt-2 w-80 max-w-[calc(100vw-3rem)]
+           rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+            <h4 className="mb-3 text-sm font-bold text-slate-800">
+              Productos del pedido
+            </h4>
+
+            <div className="max-h-64 space-y-3 overflow-y-auto">
+              {pedido.DetallePedidos.map((detalle) => (
+                <div key={detalle.id} className="flex items-center gap-3">
+                  {detalle.Producto.imagen ? (
+                    <img src={detalle.Producto.imagen}
+                    alt={detalle.Producto.nombre}
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                    <Package className="text-slate-400" size={18} />
+                  </div>
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-800">
+                      {detalle.Producto.nombre}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Cantidad: {detalle.cantidad}
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 text-sm font-semibold text-slate-700">
+                    ${Number(detalle.precio).toLocaleString('es-AR')}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+          )}  
+
+          </div>
+
+        </div>
+      
 
       {/* Datos del cliente y dirección */}
       <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
@@ -132,43 +202,8 @@ export default function TarjetaPedidoViaje({ pedido, onActualizarEstado, procesa
         </div>
       </div>
 
-      {/* Productos */}
-      <div className="mt-5 border-t border-slate-100 pt-4">
-        <h4 className="mb-3 text-sm font-bold text-slate-800">
-          Productos del pedido
-        </h4>
-
-        <div className="space-y-3">
-          {pedido.DetallePedidos.map((detalle) => (
-            <div key={detalle.id} className="flex items-center gap-3">
-              {detalle.Producto.imagen ? (
-                <img
-                  src={detalle.Producto.imagen}
-                  alt={detalle.Producto.nombre}
-                  className="h-12 w-12 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100">
-                  <Package className="text-slate-400" size={20} />
-                </div>
-              )}
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-800">
-                  {detalle.Producto.nombre}
-                </p>
-                <p className="text-xs text-slate-500">
-                  Cantidad: {detalle.cantidad}
-                </p>
-              </div>
-
-              <span className="text-sm font-semibold text-slate-700">
-                ${Number(detalle.precio).toLocaleString('es-AR')}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+      
+     
 
       {/* Observaciones del pedido */}
       {pedido.observaciones && (

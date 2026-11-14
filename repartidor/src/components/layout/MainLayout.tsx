@@ -40,7 +40,7 @@ export default function MainLayout() {
                 {repartidor?.nombre} {repartidor?.apellido}
               </p>
               <p className="text-xs text-slate-500">
-                Sucursal #{repartidor?.sucursalId}
+                Sucursal {repartidor?.Sucursal?.nombre ?? `Sucursal #${repartidor?.sucursalId}`}
               </p>
             </div>
 

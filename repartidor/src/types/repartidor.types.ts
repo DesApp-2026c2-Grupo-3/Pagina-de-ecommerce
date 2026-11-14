@@ -4,4 +4,8 @@ export interface Repartidor {
   apellido: string
   email: string
   sucursalId: number
+  Sucursal?: {
+    id: number
+    nombre: string
+  }
 }
