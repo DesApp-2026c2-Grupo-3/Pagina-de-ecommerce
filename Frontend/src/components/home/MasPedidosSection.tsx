@@ -28,12 +28,15 @@ function MasPedidosSection() {
   if (productos.length === 0) return null
 
   return (
-    <RankingProductosRow
+    <div className='mt-[-60px]'>
+      <RankingProductosRow
       titulo="Los más pedidos en"
       lugar={<span className="text-brand-red">{zona ? zona.sucursalNombre : 'BurgerFast'}</span>}
       productos={productos}
       etiqueta="Los productos más pedidos"
-    />
+      />
+    </div>
+    
   )
 }
 

@@ -53,8 +53,14 @@ function PromoDestacadaBanner() {
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
     >
+
       <div className="mx-auto max-w-7xl">
-        <div className="relative grid [&>*]:col-start-1 [&>*]:row-start-1">          {lista.map((p, i) => (
+        <h2 className="font-display py-6 text-2xl md:text-4xl font-extrabold tracking-tight">
+            No hay dos sin...<span className="text-brand-red">3 promos</span>
+        </h2>
+        <div className="relative grid [&>*]:col-start-1 [&>*]:row-start-1">          
+          
+          {lista.map((p, i) => (
             <div
               key={p.id}
               aria-hidden={i !== visible}
