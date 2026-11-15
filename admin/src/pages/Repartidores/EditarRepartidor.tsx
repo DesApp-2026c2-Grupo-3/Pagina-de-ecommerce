@@ -29,6 +29,9 @@ export default function EditarRepartidor() {
   const [errorPassword, setErrorPassword] = useState('')
   const [errorSucursal, setErrorSucursal] = useState('')
 
+  const [cargandoDatos, setCargandoDatos] = useState(true)
+  const [errorCarga, setErrorCarga] = useState('')
+
   const guardarCambios = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -93,32 +96,79 @@ export default function EditarRepartidor() {
     }
   }
 
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        const repartidor = await obtenerRepartidorPorId(Number(id))
-
-        setNombre(repartidor.nombre)
-        setApellido(repartidor.apellido)
-        setEmail(repartidor.email)
-        setSucursalId(repartidor.sucursalId.toString())
-
-        if (esMaster) {
-          const datosSucursales = await obtenerSucursales()
-          setSucursales(datosSucursales)
-        }
-      } catch (error) {
-        console.error('Error al cargar repartidor:', error)
-        mostrarToast(
-          error instanceof Error
-            ? error.message
-            : 'Error al cargar el repartidor'
-        )
+useEffect(() => {
+  const cargarDatos = async () => {
+    try {
+      if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+        setErrorCarga('El repartidor solicitado no es válido.')
+        return
       }
-    }
 
-    if (id) cargarDatos()
-  }, [id, esMaster])
+      const repartidor = await obtenerRepartidorPorId(Number(id))
+
+      if (repartidor.tieneViajeEnCurso) {
+        setErrorCarga(
+          'No se puede editar este repartidor porque tiene un viaje en curso.'
+        )
+        return
+      }
+
+      setNombre(repartidor.nombre)
+      setApellido(repartidor.apellido)
+      setEmail(repartidor.email)
+      setSucursalId(repartidor.sucursalId.toString())
+
+      if (esMaster) {
+        const datosSucursales = await obtenerSucursales()
+        setSucursales(datosSucursales)
+      }
+    } catch (error) {
+      console.error('Error al cargar repartidor:', error)
+
+      setErrorCarga(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo cargar el repartidor.'
+      )
+    } finally {
+      setCargandoDatos(false)
+    }
+  }
+
+  cargarDatos()
+}, [id, esMaster])
+
+
+if (cargandoDatos) {
+  return (
+    <main className="p-8">
+      <p className="text-slate-600">Verificando repartidor...</p>
+    </main>
+  )
+}
+
+if (errorCarga) {
+  return (
+    <main className="p-8">
+      <div className="max-w-lg rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
+        <h1 className="mb-3 text-xl font-bold text-slate-800">
+          No se puede editar el repartidor
+        </h1>
+
+        <p className="mb-6 text-slate-600">
+          {errorCarga}
+        </p>
+
+        <button
+          onClick={() => navigate('/admin/repartidores')}
+          className="rounded-xl bg-orange-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-700"
+        >
+          Volver a repartidores
+        </button>
+      </div>
+    </main>
+  )
+}
 
   return (
     <main className="p-8">

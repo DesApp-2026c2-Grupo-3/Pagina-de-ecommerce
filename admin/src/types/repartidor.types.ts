@@ -12,6 +12,7 @@ export interface Repartidor {
   activo: boolean
   createdAt: string
   sucursal?: SucursalRepartidor
+  tieneViajeEnCurso: boolean
 }
 
 export interface PayloadRepartidor {

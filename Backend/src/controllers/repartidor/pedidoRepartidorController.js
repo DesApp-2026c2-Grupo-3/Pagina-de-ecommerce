@@ -140,6 +140,17 @@ const actualizarEstadoPedido = async (req, res) => {
                 throw error;
             }
 
+        // Validar que el repartidor haya confirmado la recepción.
+        if (estado === 'Entregado' &&
+            !viaje.recepcionConfirmada
+        ) {
+            const error = new Error(
+            'Primero tenés que confirmar que recibiste todos los pedidos'
+            );
+            error.statusCode = 403;
+            throw error;
+        }
+
         // Comprobar que la transición esté permitida.
         const estadosPermitidos = TRANSICIONES[pedido.estado];
 

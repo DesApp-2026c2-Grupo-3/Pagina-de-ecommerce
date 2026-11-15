@@ -1,4 +1,5 @@
-import { Search } from 'lucide-react'
+
+import { Search, CalendarDays, Filter, RotateCcw } from 'lucide-react'
 
 interface Props {
   filtroEstado: string
@@ -34,25 +35,42 @@ export default function FiltrosHistorial({
     { valor: 'cancelado', texto: 'Cancelados' },
   ]
 
+  const hayFiltrosActivos =
+    filtroEstado !== 'todos' || busqueda !== '' || fechaDesde !== '' || fechaHasta !== ''
+
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-800">
-          Filtrar historial
-        </h3>
+    <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm sm:p-6">
+      {/* Encabezado */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100">
+            <Filter size={20} className="text-orange-600" />
+          </div>
+
+          <div>
+            <h3 className="font-bold text-slate-800">
+              Filtrar historial
+            </h3>
+            <p className="text-xs text-slate-500">
+              Encontrá viajes según tus preferencias
+            </p>
+          </div>
+        </div>
 
         <button
           type="button"
           onClick={limpiarFiltros}
-          className="text-xs font-semibold text-orange-600 hover:text-orange-700"
+          disabled={!hayFiltrosActivos}
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-orange-600 transition hover:bg-orange-50 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
+          <RotateCcw size={14} />
           Limpiar filtros
         </button>
       </div>
 
       {/* Estado */}
-      <div>
-        <p className="mb-2 text-xs font-semibold text-slate-500">
+      <div className="mb-6">
+        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
           Estado del viaje
         </p>
 
@@ -62,10 +80,10 @@ export default function FiltrosHistorial({
               key={opcion.valor}
               type="button"
               onClick={() => setFiltroEstado(opcion.valor)}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+              className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
                 filtroEstado === opcion.valor
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                  : 'border-orange-100 bg-orange-50/50 text-slate-600 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700'
               }`}
             >
               {opcion.texto}
@@ -75,33 +93,36 @@ export default function FiltrosHistorial({
       </div>
 
       {/* Búsqueda */}
-      <div>
-        <label className="mb-2 block text-xs font-semibold text-slate-500">
+      <div className="mb-6">
+        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
           Buscar viaje
         </label>
 
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3">
-          <Search size={18} className="text-slate-400" />
+        <div className="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/40 px-4 transition focus-within:border-orange-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-100">
+          <Search size={18} className="shrink-0 text-orange-500" />
 
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Ej. 125"
-            className="w-full bg-transparent py-3 text-sm outline-none"
+            placeholder="Ingresá el número de viaje..."
+            className="w-full bg-transparent py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
           />
         </div>
       </div>
 
       {/* Fechas */}
       <div>
-        <p className="mb-2 text-xs font-semibold text-slate-500">
-          Fecha de inicio del viaje
-        </p>
+        <div className="mb-3 flex items-center gap-2">
+          <CalendarDays size={16} className="text-orange-500" />
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            Fecha de inicio del viaje
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs text-slate-500">
+            <label className="mb-2 block text-sm font-medium text-slate-600">
               Desde
             </label>
 
@@ -110,12 +131,12 @@ export default function FiltrosHistorial({
               value={fechaDesde}
               max={fechaHasta || undefined}
               onChange={(e) => setFechaDesde(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+              className="w-full rounded-xl border border-orange-100 bg-orange-50/40 px-3 py-3 text-sm text-slate-700 outline-none transition hover:border-orange-200 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">
+            <label className="mb-2 block text-sm font-medium text-slate-600">
               Hasta
             </label>
 
@@ -124,11 +145,11 @@ export default function FiltrosHistorial({
               value={fechaHasta}
               min={fechaDesde || undefined}
               onChange={(e) => setFechaHasta(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+              className="w-full rounded-xl border border-orange-100 bg-orange-50/40 px-3 py-3 text-sm text-slate-700 outline-none transition hover:border-orange-200 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
             />
           </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

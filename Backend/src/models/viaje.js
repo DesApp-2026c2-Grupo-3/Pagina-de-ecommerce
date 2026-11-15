@@ -55,6 +55,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 7),
       allowNull: true,
     },
+    recepcionConfirmada: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
   }, {
     sequelize,
     modelName: 'Viaje',

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { History, Search } from 'lucide-react'
+import { ArrowUp, History, Search } from 'lucide-react'
 
 import { obtenerHistorialViajes } from '../../services/viajeService'
 import type { ViajeHistorial } from '../../types/viaje.types'
@@ -18,6 +18,20 @@ export default function Historial() {
   const [busqueda, setBusqueda] = useState('')
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
+
+  const [mostrarVolverArriba, setMostrarVolverArriba] = useState(false)
+
+  useEffect(() => {
+    const controlarScroll = () => {
+      setMostrarVolverArriba(window.scrollY > 400)
+    }
+
+    window.addEventListener('scroll', controlarScroll)
+
+    return () => {
+      window.removeEventListener('scroll', controlarScroll)
+    }
+  }, [])
 
   useEffect(() => {
     const cargarHistorial = async () => {
@@ -134,6 +148,14 @@ export default function Historial() {
             </div>
           )}
         </>
+      )}
+
+      {mostrarVolverArriba && (
+        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-orange-600 text-white shadow-lg shadow-orange-500/30 transition-all duration-200 hover:-translate-y-1 hover:bg-orange-700 hover:shadow-xl"
+        aria-label="Volver arriba" title="Volver arriba">
+          <ArrowUp size={22} />
+        </button>
       )}
     </div>
   )

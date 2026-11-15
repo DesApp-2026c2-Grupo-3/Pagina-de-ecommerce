@@ -22,6 +22,7 @@ function datosDe(repartidor) {
             : null,
         activo: repartidor.activo,
         createdAt: repartidor.createdAt,
+        tieneViajeEnCurso: repartidor.Viajes?.length > 0,
     };
 }
 
@@ -58,7 +59,14 @@ const verRepartidores = async (req, res) => {
                 'activo',
                 'createdAt',
             ],
-            include: [SUCURSAL],
+            include: [SUCURSAL, {
+                    association: Repartidor.associations.Viajes,
+                    attributes: ['id'],
+                    where: {
+                        estado: ['preparando', 'activo', 'requiere asistencia'],
+                    },
+                    required: false,
+                },],
             order: [['nombre', 'ASC']],
         });
 
@@ -104,7 +112,18 @@ const obtenerRepartidorPorId = async (req, res) => {
             });
         }
 
-        return res.status(200).json(datosDe(repartidor));
+        const viajeEnCurso = await Viaje.findOne({
+        where: {
+            repartidorId: repartidor.id,
+            estado: ['preparando', 'activo', 'requiere asistencia'],
+        },
+        attributes: ['id'],
+         });
+
+        return res.status(200).json({
+            ...datosDe(repartidor),
+            tieneViajeEnCurso: Boolean(viajeEnCurso),
+        });
     } catch (error) {
         console.error('Error al obtener repartidor:', error.message);
         return res.status(500).json({
@@ -130,6 +149,20 @@ const actualizarRepartidor = async (req, res) => {
         ) {
             return res.status(403).json({
                 mensaje: 'No tenés permisos para modificar este repartidor',
+            });
+        }
+
+        const viajeEnCurso = await Viaje.findOne({
+            where: {
+                repartidorId: repartidor.id,
+                estado: ['preparando', 'activo', 'requiere asistencia'],
+            },
+        });0
+
+        if (viajeEnCurso) {
+            return res.status(409).json({
+                code: 'repartidor-con-viaje-en-curso',
+                mensaje: 'No se puede editar un repartidor que tiene un viaje en curso',
             });
         }
 
@@ -426,6 +459,56 @@ const obtenerRepartidoresDisponibles = async (req, res) => {
     }
 };
 
+const darDeBajaRepartidor = async (req, res) => {
+    try {
+        const repartidor = await Repartidor.findByPk(req.params.id);
+
+        if (!repartidor) {
+            return res.status(404).json({
+                mensaje: 'Repartidor no encontrado'
+            });
+        }
+
+        if (
+            req.usuario.rol !== 'MASTER' &&
+            repartidor.sucursalId !== req.usuario.sucursalId
+        ) {
+            return res.status(403).json({
+                mensaje: 'No tenés permisos para dar de baja este repartidor'
+            });
+        }
+
+        const viajeEnCurso = await Viaje.findOne({
+            where: {
+                repartidorId: repartidor.id,
+                estado: {
+                    [Op.in]: ['preparando', 'activo', 'requiere asistencia']
+                }
+            }
+        });
+
+        if (viajeEnCurso) {
+            return res.status(409).json({
+                mensaje: 'No se puede dar de baja un repartidor que tiene un viaje en curso'
+            });
+        }
+
+        await repartidor.update({ activo: false });
+        await repartidor.destroy();
+
+        return res.status(200).json({
+            mensaje: 'Repartidor dado de baja correctamente'
+        });
+
+    } catch (error) {
+        console.error('Error al dar de baja repartidor:', error);
+
+        return res.status(500).json({
+            mensaje: 'Error al dar de baja el repartidor'
+        });
+    }
+};
+
 module.exports = {
     verRepartidores,
     crearRepartidor,
@@ -433,5 +516,6 @@ module.exports = {
     actualizarRepartidor,
     desactivarRepartidor,
     reactivarRepartidor,
-    obtenerRepartidoresDisponibles
+    obtenerRepartidoresDisponibles,
+    darDeBajaRepartidor
 };
