@@ -218,6 +218,7 @@ const reasignarViaje = async (req, res) => {
                 {
                     repartidorId: nuevoRepartidor.id,
                     estado: 'activo',
+                    recepcionConfirmada: false,
                 },
                 { transaction }
             );

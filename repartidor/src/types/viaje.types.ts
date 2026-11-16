@@ -39,6 +39,7 @@ export interface ViajeActivo extends ViajeCreado {
   fechaSolicitudAsistencia: string | null
   latitudAsistencia: string | number | null
   longitudAsistencia: string | number | null
+  recepcionConfirmada: boolean
   Pedidos: Pedido[]
 }
 

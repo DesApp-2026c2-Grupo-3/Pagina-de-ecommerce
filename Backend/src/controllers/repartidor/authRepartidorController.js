@@ -11,7 +11,11 @@ const login = async (req, res) => {
         const emailNormalizado = email.trim().toLowerCase();
 
         const repartidor = await Repartidor.findOne({
-            where: { email: emailNormalizado }
+            where: { email: emailNormalizado },
+            include: [{
+                association: 'Sucursal',
+                attributes: ['id', 'nombre']
+            }]
         });
 
         if (!repartidor || !repartidor.activo) {
@@ -53,7 +57,8 @@ const login = async (req, res) => {
             nombre: repartidor.nombre,
             apellido: repartidor.apellido,
             email: repartidor.email,
-            sucursalId: repartidor.sucursalId
+            sucursalId: repartidor.sucursalId,
+            Sucursal: repartidor.Sucursal
         });
 
     } catch (error) {
@@ -85,7 +90,11 @@ const logout = async (req, res) => {
 const obtenerSesion = async (req, res) => {
     try {
         const repartidor = await Repartidor.findByPk(req.repartidor.id, {
-            attributes: { exclude: ['password'] }
+            attributes: { exclude: ['password'] },
+            include: [{
+                association: 'Sucursal',
+                attributes: ['id', 'nombre']
+            }]
         });
 
         if (!repartidor || !repartidor.activo) {

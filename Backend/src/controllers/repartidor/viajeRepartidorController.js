@@ -370,6 +370,67 @@ const obtenerViajeActivo = async (req, res) => {
     }
 };
 
+const confirmarRecepcion = async (req, res) => {
+    const { id: repartidorId } = req.repartidor;
+
+    const transaction = await Viaje.sequelize.transaction();
+
+    try {
+        // Buscar y bloquear el viaje activo del repartidor.
+        const viaje = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: 'activo',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!viaje) {
+            const error = new Error(
+                'No tenés un viaje activo para confirmar la recepción'
+            );
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Si ya confirmó, no hace falta repetir la operación.
+        if (viaje.recepcionConfirmada) {
+            await transaction.commit();
+
+            return res.status(200).json({
+                mensaje: 'La recepción ya estaba confirmada',
+                recepcionConfirmada: true,
+            });
+        }
+
+        await viaje.update(
+            { recepcionConfirmada: true },
+            { transaction }
+        );
+
+        await transaction.commit();
+
+        return res.status(200).json({
+            mensaje: 'Recepción de pedidos confirmada correctamente',
+            recepcionConfirmada: true,
+        });
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error('Error al confirmar recepción:', error.message);
+
+        return res.status(error.statusCode || 500).json({
+            mensaje: error.statusCode
+                ? error.message
+                : 'Error al confirmar la recepción de los pedidos',
+        });
+    }
+};
+
 const obtenerHistorialViajes = async (req, res) => {
     try {
         const { id: repartidorId } = req.repartidor;
@@ -525,5 +586,6 @@ const solicitarAyuda = async (req, res) => {
 };
 
 module.exports = {
-    iniciarViaje, obtenerViajeActivo, obtenerHistorialViajes, solicitarAyuda, tomarPedidos, quitarPedidoDelViaje
+    iniciarViaje, obtenerViajeActivo, confirmarRecepcion, obtenerHistorialViajes,
+     solicitarAyuda, tomarPedidos, quitarPedidoDelViaje
 }

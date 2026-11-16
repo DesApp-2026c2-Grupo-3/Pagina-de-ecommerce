@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Plus, UserCheck, UserX } from 'lucide-react'
+import { Pencil, Plus, Trash2, UserCheck, UserX } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import MensajeVacio from '../../components/MensajeVacio'
 import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
-import { desactivarRepartidor, obtenerRepartidores, reactivarRepartidor } from '../../services/repartidorService'
+import { darDeBajaRepartidor, desactivarRepartidor, obtenerRepartidores, reactivarRepartidor } from '../../services/repartidorService'
 import type { Repartidor } from '../../types/repartidor.types'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import { useToast } from '../../context/ToastContext'
@@ -23,6 +23,7 @@ export default function Repartidores() {
   const { mostrarToast } = useToast()
 
   const [aDesactivar, setADesactivar] = useState<Repartidor | null>(null)
+  const [aDarDeBaja, setADarDeBaja] = useState<Repartidor | null>(null)
 
 
   useEffect(() => {
@@ -112,6 +113,32 @@ async function reactivar(r: Repartidor) {
   )
 
   const hayFiltros = busqueda !== '' || filtroSucursal !== 'todas'
+
+  async function darDeBaja() {
+  if (!aDarDeBaja) return
+
+  try {
+    await darDeBajaRepartidor(aDarDeBaja.id)
+
+    setRepartidores((prev) =>
+      prev.filter((r) => r.id !== aDarDeBaja.id)
+    )
+
+    if (pagina.length === 1 && paginaActual > 1) {
+      setPaginaActual((prev) => prev - 1)
+    }
+
+    mostrarToast('Repartidor dado de baja correctamente')
+  } catch (error) {
+    mostrarToast(
+      error instanceof Error
+        ? error.message
+        : 'No se pudo dar de baja el repartidor',
+    )
+  } finally {
+    setADarDeBaja(null)
+  }
+}
 
   return (
     <main className="p-8">
@@ -204,9 +231,14 @@ async function reactivar(r: Repartidor) {
                   </p>
                 </div>
 
-                <button type="button" onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
-                  title="Editar repartidor" aria-label={`Editar a ${r.nombre} ${r.apellido}`}
-                  className="shrink-0 rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50">
+                <button type="button" disabled={r.tieneViajeEnCurso} onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
+                  title={ r.tieneViajeEnCurso
+                    ? 'No se puede editar: tiene un viaje en curso'
+                    : 'Editar repartidor'
+                  }
+                  className="shrink-0 rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50
+                  disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400
+                  disabled:hover:bg-transparent">
                     <Pencil size={18} />
                 </button>
 
@@ -223,13 +255,29 @@ async function reactivar(r: Repartidor) {
                      <UserCheck size={18} />
                   </button>
                )}
+               
+               <button type="button"
+                onClick={() => setADarDeBaja(r)}
+                disabled={r.tieneViajeEnCurso}
+                title={ r.tieneViajeEnCurso
+                ? 'No se puede dar de baja: tiene un viaje en curso'
+                : 'Dar de baja permanentemente'
+                }
+                aria-label={`Dar de baja a ${r.nombre}`}
+                className="shrink-0 rounded-lg border border-red-300 p-2 text-red-700 
+                transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 
+                disabled:text-gray-400 disabled:hover:bg-transparent">
+                  <Trash2 size={18} />
+                </button>
+
+
               </li>
             ))}
           </ul>
 
           {/* Escritorio: tabla */}
-          <div className="hidden rounded-lg border bg-white md:block">
-            <table className="w-full border-collapse">
+          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
+            <table className="w-full min-w-[750px] border-collapse">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left">Nombre</th>
@@ -267,9 +315,14 @@ async function reactivar(r: Repartidor) {
 
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button type="button" onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
-                          title="Editar repartidor" aria-label={`Editar a ${r.nombre} ${r.apellido}`}
-                          className="rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50">
+                        <button type="button" disabled={r.tieneViajeEnCurso} onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
+                          title={ r.tieneViajeEnCurso
+                            ? 'No se puede editar: tiene un viaje en curso'
+                            : 'Editar repartidor'
+                          }
+                          className="rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50
+                          disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400
+                          disabled:hover:bg-transparent">
                             <Pencil size={18} />
                         </button>
                         
@@ -286,6 +339,20 @@ async function reactivar(r: Repartidor) {
                                 <UserCheck size={18} />
                           </button>
                         )}
+
+                        <button type="button"
+                        onClick={() => setADarDeBaja(r)}
+                        disabled={r.tieneViajeEnCurso}
+                        title={r.tieneViajeEnCurso
+                        ? 'No se puede dar de baja: tiene un viaje en curso'
+                        : 'Dar de baja permanentemente'
+                        }
+                        aria-label={`Dar de baja a ${r.nombre}`}
+                        className="rounded-lg border border-red-300 p-2 text-red-700 transition-colors 
+                        hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 
+                        disabled:hover:bg-transparent">
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -308,6 +375,15 @@ async function reactivar(r: Repartidor) {
         mensaje={`¿Seguro que querés desactivar a ${aDesactivar?.nombre ?? 'este repartidor'}?`}
         onConfirmar={desactivar}
         onCancelar={() => setADesactivar(null)}
+      />
+
+      <ConfirmarEliminacion
+      abierto={aDarDeBaja !== null}
+      titulo="Confirmar baja permanente"
+      textoConfirmar="Dar de baja"
+      mensaje={`¿Estás seguro de que querés dar de baja permanentemente a ${aDarDeBaja?.nombre ?? 'este repartidor'}? Esta acción no se puede revertir desde el sistema y conservará sus registros históricos.`}
+      onConfirmar={darDeBaja}
+      onCancelar={() => setADarDeBaja(null)}
       />
 
     </main>
