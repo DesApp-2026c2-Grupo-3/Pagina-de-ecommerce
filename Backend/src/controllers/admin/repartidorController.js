@@ -157,7 +157,7 @@ const actualizarRepartidor = async (req, res) => {
                 repartidorId: repartidor.id,
                 estado: ['preparando', 'activo', 'requiere asistencia'],
             },
-        });0
+        });
 
         if (viajeEnCurso) {
             return res.status(409).json({
