@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, ChevronRight, MapPin } from 'lucide-react'
+import { ChevronDown, ChevronRight, MapPin, Trash2 } from 'lucide-react'
 import Modal from './Modal'
 import AddressPicker from './AddressPicker'
 import ErrorAlert from './ErrorAlert'
@@ -11,6 +11,7 @@ import { getDirecciones } from '../services/addressService'
 import type { Address } from '../types/address'
 import BuscandoSucursal from './BuscandoSucursal'
 import ElegirSucursal from './sucursal/ElegirSucursal'
+
 
 interface UbicacionEnCurso extends Omit<UbicacionElegida, 'latitud' | 'longitud'> {
   latitud: number | null
@@ -29,7 +30,7 @@ const ubicacionVacia: UbicacionEnCurso = {
 
 // Se abre solo cuando la persona lo pide (desde el botón de dirección del Navbar)
 function ElegirZonaModal() {
-  const { zona, selectorAbierto, abrirSelector, cerrarSelector, elegirUbicacion, opcionesSucursal } = useZona()
+  const { zona, selectorAbierto, abrirSelector, cerrarSelector, elegirUbicacion, limpiarZona, opcionesSucursal } = useZona()
   const { user, isAuthenticated } = useAuth()
   const [ubicacion, setUbicacion] = useState<UbicacionEnCurso>(ubicacionVacia)
   const [direcciones, setDirecciones] = useState<Address[]>([])
@@ -71,8 +72,19 @@ function ElegirZonaModal() {
     const motivo = elegirUbicacion({ ...u, latitud: u.latitud, longitud: u.longitud })
     setError(motivo)
     // Sin motivo = la zona quedó elegida (y el modal se cierra): se muestra la búsqueda de la sucursal
-    if (!motivo) setBuscando(true)
+    if (!motivo) {
+      setUbicacion(ubicacionVacia)
+      setBuscando(true)
+    }
+
   }
+
+  function alBorrar() {
+    setUbicacion(ubicacionVacia)
+    setError('')
+    limpiarZona()
+  }
+
 
   // Solo sirven las direcciones guardadas que tienen ubicación en el mapa
   const guardadas = direcciones.filter((d) => d.latitud != null && d.longitud != null)
@@ -101,8 +113,35 @@ function ElegirZonaModal() {
         subtitle="Así te mostramos lo que tiene la sucursal más cercana."
       >
         <div className="flex flex-col gap-5">
+          {zona && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3">
+              <div className="min-w-0">
+                <span className="block text-[11px] font-extrabold uppercase tracking-wider text-brand-muted">
+                  Dirección actual ({zona.sucursalNombre})
+                </span>
+                <span className="block truncate font-bold text-brand-dark">
+                  {zona.calle} {zona.numero}
+                  {zona.localidad ? `, ${zona.localidad}` : ''}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={alBorrar}
+                title="Borrar dirección actual"
+                aria-label="Borrar dirección actual"
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-white px-3.5 text-xs font-bold text-brand-red transition-colors hover:bg-brand-red hover:text-white"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Borrar</span>
+              </button>
+            </div>
+          )}
+
           {/* Si a la dirección le llegan varias sucursales, se elige desde cuál pedir */}
+
           {zona && opcionesSucursal.length > 1 && (
+
             <div>
               <p className="mb-2 text-sm font-bold">
                 A tu dirección le llegan {opcionesSucursal.length} sucursales. Elegí desde cuál pedir:
@@ -136,9 +175,8 @@ function ElegirZonaModal() {
                       className="group flex items-center gap-3 rounded-2xl border-2 border-brand-dark bg-white p-3 text-left transition-transform hover:translate-y-0.5"
                     >
                       <span
-                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                          d.predeterminada ? 'bg-brand-mustard' : 'bg-brand-cream'
-                        }`}
+                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${d.predeterminada ? 'bg-brand-mustard' : 'bg-brand-cream'
+                          }`}
                       >
                         <MapPin className="h-5 w-5" />
                       </span>
@@ -176,12 +214,14 @@ function ElegirZonaModal() {
           )}
 
           <AddressPicker
+            key={`${ubicacion.calle}-${ubicacion.numero}`}
             value={ubicacion}
             onChange={(cambios) => {
               setUbicacion((prev) => ({ ...prev, ...cambios }))
               setError('')
             }}
           />
+
 
           {errorEnId === null && <ErrorAlert message={error} />}
           <button

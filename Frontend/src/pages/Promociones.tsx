@@ -9,8 +9,6 @@ import PromoBanner, { type TonoPromo } from '../components/promos/PromoBanner'
 import CategoryIcon from '../components/icons/CategoryIcon'
 import type { Promo } from '../types/promo'
 import NuevoEnLaCarta from '../components/promos/NuevoEnLaCarta'
-import { MoveRight } from 'lucide-react'
-
 
 const TONOS: TonoPromo[] = ['rojo', 'oscuro', 'mostaza']
 
@@ -36,7 +34,7 @@ const ESTILOS = {
     'mt-0.5 break-words font-display text-lg font-extrabold leading-tight tracking-tight sm:text-2xl md:text-xl lg:text-3xl',
   semanaPrecioActual: 'text-lg font-extrabold sm:text-xl md:text-xl lg:text-2xl',
   semanaPrecioLista: 'text-[10px] font-bold text-white/70 sm:text-xs md:text-sm',
-    semanaCtaPill:
+  semanaCtaPill:
     'mt-2.5 inline-flex min-h-11 min-w-[8.5rem] items-center justify-center gap-2 self-start rounded-full bg-white px-5 py-2 text-xs font-extrabold text-brand-dark shadow-sm sm:min-h-12 sm:min-w-[9.5rem] sm:px-6 sm:text-sm',
 
   semanaImgWrapper: 'flex w-28 shrink-0 items-center justify-center overflow-visible sm:w-40 md:w-44 lg:w-56',
@@ -44,17 +42,17 @@ const ESTILOS = {
 
   // Regalo de la semana
   regaloWrapper: 'mx-auto -mt-7 max-w-6xl px-4',
-    regaloCard:
+  regaloCard:
     'relative flex cursor-pointer flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-brand-mustard px-5 py-4 shadow-sticker transition-transform active:scale-[0.99] min-[392px]:cursor-default min-[392px]:px-6 min-[392px]:active:scale-100',
   regaloBoton:
     'hidden min-h-11 items-center gap-2 rounded-full bg-brand-dark px-4 font-bold text-brand-cream transition-transform hover:-translate-y-0.5 disabled:opacity-50 min-[392px]:inline-flex',
   regaloAvisoMobile:
     'mt-1 block text-[11px] font-black uppercase tracking-wider text-brand-dark/70 min-[392px]:hidden',
-regaloRibbon:
+  regaloRibbon:
     'absolute -top-3 left-20 z-10 -translate-y-px rounded-md border-2 border-black bg-red-500 px-2 py-0.5 text-[10px] !font-black uppercase tracking-wider text-white shadow-sm',
   regaloIconoWrapper:
     'flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-3 border-black bg-red-600 shadow-sm',
-  
+
 
   // La semana en promos
   semanaSeccion: 'mx-auto max-w-6xl px-4 pt-14',
@@ -158,7 +156,7 @@ function Promociones() {
         </div>
       </section>
 
-            {/* ---------- Regalo de la semana ---------- */}
+      {/* ---------- Regalo de la semana ---------- */}
       {promos?.regalo && (
         <div className={ESTILOS.regaloWrapper}>
           <div
