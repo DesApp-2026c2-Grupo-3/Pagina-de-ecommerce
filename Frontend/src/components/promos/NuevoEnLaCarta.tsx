@@ -7,6 +7,25 @@ import type { ProductoBackend } from '../../types/product'
 // Combo que se presenta como recién agregado a la carta (se busca por nombre exacto)
 const PRODUCTO_NUEVO = 'Combo Abominación'
 
+const ESTILOS = {
+  seccion: 'mx-auto max-w-6xl px-4 pt-14',
+  card: 'grid grid-cols-2 overflow-hidden rounded-[2.25rem] border-2 border-brand-dark bg-white shadow-sticker md:flex md:flex-wrap',
+  mediaCol:
+    'relative grid w-full place-items-center bg-brand-mustard p-4 sm:p-6 md:min-h-64 md:flex-1 md:basis-64 md:p-8',
+  imagen: 'h-auto w-full max-w-[8.5rem] object-contain drop-shadow-2xl sm:max-w-[11rem] md:max-w-xs',
+  badgeNuevo:
+    'absolute left-3 top-3 -rotate-6 rounded-full border-2 border-brand-dark bg-brand-red px-3 py-1 font-display text-sm font-extrabold uppercase tracking-wide text-white sm:left-6 sm:top-6 sm:px-4 sm:py-1.5 sm:text-lg',
+  infoCol: 'flex min-w-0 flex-col items-start justify-center gap-2 p-5 pl-3 sm:p-8 md:flex-1 md:basis-64 md:p-10',
+  subtitulo: 'inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-brand-red sm:text-xs',
+  subtituloIcono: 'h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4',
+  titulo: 'break-words font-display text-2xl font-extrabold leading-[0.95] tracking-tight sm:text-3xl md:text-5xl',
+  descripcion: 'line-clamp-3 max-w-md text-xs text-brand-muted sm:text-sm md:line-clamp-none md:text-lg',
+  precio: 'font-display text-xl font-extrabold sm:text-2xl md:text-3xl',
+  ctaBtn:
+    'mt-1 inline-flex min-h-10 items-center gap-1.5 rounded-full bg-brand-dark px-4 text-xs font-bold text-brand-cream transition-transform hover:translate-y-0.5 sm:text-sm md:min-h-12 md:px-6 md:text-base',
+  ctaIcono: 'h-4 w-4 md:h-5 md:w-5',
+} as const
+
 interface Props {
   catalogo: ProductoBackend[]
 }
@@ -17,33 +36,32 @@ function NuevoEnLaCarta({ catalogo }: Props) {
   if (!producto) return null
 
   return (
-    <section className="mx-auto max-w-6xl px-4 pt-14" aria-labelledby="nuevo-en-la-carta">
-      <div className="flex flex-wrap overflow-hidden rounded-[2.25rem] border-2 border-brand-dark bg-white shadow-sticker">
-        <div className="relative grid min-h-56 min-w-0 flex-1 basis-64 place-items-center bg-brand-mustard p-6 sm:min-h-64 sm:p-8">          
+    <section className={ESTILOS.seccion} aria-labelledby="nuevo-en-la-carta">
+      <div className={ESTILOS.card}>
+        {/* Mitad Izquierda: Bloque Mostaza con el Combo */}
+        <div className={ESTILOS.mediaCol}>
           {producto.imagen ? (
-            <img src={producto.imagen} alt={producto.nombre} className="w-full max-w-xs object-contain drop-shadow-2xl" />
+            <img src={producto.imagen} alt={producto.nombre} className={ESTILOS.imagen} />
           ) : (
             <CategoryIcon icono="combo" className="h-24 w-24" />
           )}
-          <span className="absolute left-6 top-6 -rotate-6 rounded-full border-2 border-brand-dark bg-brand-red px-4 py-1.5 font-display text-lg font-extrabold uppercase tracking-wide text-white">
-            Nuevo
-          </span>
+
+          <span className={ESTILOS.badgeNuevo}>Nuevo</span>
         </div>
 
-        <div className="flex min-w-0 flex-1 basis-64 flex-col items-start justify-center gap-4 p-6 sm:p-10">          
-          <span className="inline-flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-brand-red">
-            <Sparkles className="h-4 w-4" /> Recién llegado a la carta
+        {/* Mitad Derecha: Datos y Enlace */}
+        <div className={ESTILOS.infoCol}>
+          <span className={ESTILOS.subtitulo}>
+            <Sparkles className={ESTILOS.subtituloIcono} /> Recién llegado a la carta
           </span>
-          <h2 id="nuevo-en-la-carta" className="break-words font-display text-4xl font-extrabold leading-[0.95] tracking-tight sm:text-5xl">            
+          <h2 id="nuevo-en-la-carta" className={ESTILOS.titulo}>
             {producto.nombre}
           </h2>
-          {producto.descripcion && <p className="max-w-md text-lg text-brand-muted">{producto.descripcion}</p>}
-          <p className="font-display text-3xl font-extrabold">Desde {formatearPrecio(Number(producto.precio))}</p>
-          <Link
-            to={`/producto/${producto.id}`}
-            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-dark px-6 font-bold text-brand-cream transition-transform hover:translate-y-0.5"
-          >
-            Armalo <ArrowRight className="h-5 w-5" />
+          {producto.descripcion && <p className={ESTILOS.descripcion}>{producto.descripcion}</p>}
+          <p className={ESTILOS.precio}>Desde {formatearPrecio(Number(producto.precio))}</p>
+
+          <Link to={`/producto/${producto.id}`} className={ESTILOS.ctaBtn}>
+            Armalo <ArrowRight className={ESTILOS.ctaIcono} />
           </Link>
         </div>
       </div>

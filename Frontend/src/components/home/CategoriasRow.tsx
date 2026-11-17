@@ -19,7 +19,7 @@ const STYLES = {
     'inline-flex min-h-[2.25rem] shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-white px-3 text-xs font-bold shadow-sticker transition-transform hover:translate-y-0.5 md:min-h-11 md:gap-2 md:px-5 md:text-sm',
   ctaIcon: 'h-3.5 w-3.5 md:h-4 md:w-4',
   sliderRow:
-    'scrollbar-hide mx-0 flex gap-1.5 overflow-x-auto px-0 pb-2 min-[480px]:max-[659px]:justify-between min-[480px]:max-[659px]:gap-2 min-[660px]:gap-2.5 md:grid md:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:gap-4 md:overflow-visible',
+    'scrollbar-hide mx-[clamp(-16px,calc(16.87vw-75px),0px)] flex gap-1.5 overflow-x-auto px-0 pb-2 min-[480px]:max-[659px]:justify-between min-[480px]:max-[659px]:gap-2 min-[660px]:gap-2.5 md:grid md:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:gap-4 md:overflow-visible',
   card: 'flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 bg-transparent px-0.5 py-1 text-center text-[11px] font-bold transition-transform hover:translate-y-1 min-[480px]:max-[659px]:w-auto min-[480px]:max-[659px]:flex-1 min-[480px]:max-[659px]:text-xs min-[660px]:w-24 min-[660px]:gap-2 min-[660px]:rounded-3xl min-[660px]:border-2 min-[660px]:border-brand-dark min-[660px]:bg-white min-[660px]:px-1 min-[660px]:pb-3 min-[660px]:pt-4 min-[660px]:text-xs md:w-auto md:gap-3 md:px-2 md:pb-4 md:pt-5 md:text-sm',
   iconBox:
     'grid h-12 w-12 place-items-center rounded-2xl min-[480px]:max-[659px]:h-14 min-[480px]:max-[659px]:w-14 min-[660px]:h-14 min-[660px]:w-14 md:h-16 md:w-16',
