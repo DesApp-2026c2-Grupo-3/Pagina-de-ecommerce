@@ -26,6 +26,15 @@ export const obtenerViajeActivo = () => {
   return apiFetch<ViajeActivo | null>('/repartidor/viajes/activo')
 }
 
+export const confirmarRecepcion = () => {
+  return apiFetch<{
+    mensaje: string
+    recepcionConfirmada: boolean
+  }>('/repartidor/viajes/confirmar-recepcion', {
+    method: 'PATCH',
+  })
+}
+
 export const obtenerHistorialViajes = () => {
   return apiFetch<ViajeHistorial[]>('/repartidor/viajes/historial')
 }

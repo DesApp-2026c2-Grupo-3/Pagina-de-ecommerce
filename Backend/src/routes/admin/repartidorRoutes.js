@@ -21,4 +21,6 @@ router.patch( '/:id/desactivar', esAdminJwt, repartidorController.desactivarRepa
 
 router.patch( '/:id/reactivar', esAdminJwt, repartidorController.reactivarRepartidor);
 
+router.delete('/:id', esAdminJwt, repartidorController.darDeBajaRepartidor);
+
 module.exports = router;

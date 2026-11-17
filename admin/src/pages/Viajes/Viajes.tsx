@@ -436,35 +436,37 @@ export default function Viajes() {
                             <div>
                               <p className="flex items-center gap-2 text-xs font-medium text-gray-500">
                                 <MapPin size={15} />
-                                  Ubicación registrada
+                                Ubicación del repartidor
                               </p>
-
-                            {viaje.latitudAsistencia != null &&
+                              
+                              {viaje.latitudAsistencia != null &&
                               viaje.longitudAsistencia != null ? (
-                                <>
-                                  <p className="mt-1 text-sm text-gray-700">
-                                    Latitud: {viaje.latitudAsistencia}
+                              <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border
+                               border-orange-200 bg-white p-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-gray-800">
+                                    Punto de asistencia registrado
                                   </p>
-                                  <p className="text-sm text-gray-700">
-                                    Longitud: {viaje.longitudAsistencia}
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    Ubicación guardada al solicitar ayuda.
                                   </p>
-                                  
-                                  <a href={`https://www.google.com/maps?q=${viaje.latitudAsistencia},${viaje.longitudAsistencia}`}
-                                  target="_blank" rel="noopener noreferrer"
-                                  className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700"
-                                  >
-                                    Ver ubicación en Google Maps
-                                    <span aria-hidden="true">↗</span>
-                                  </a>
-                                </>
+                                </div>
+                                
+                                <a href={`https://www.google.com/maps?q=${viaje.latitudAsistencia},${viaje.longitudAsistencia}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-orange-500
+                                 px-3 py-2 text-xs font-semibold text-white transition hover:bg-orange-600">
+                                  <MapPin size={15} />
+                                  Ver mapa
+                                </a>
+                              </div>
                               ) : (
-                                <p className="text-sm text-gray-600">
-                                    No hay una ubicación registrada.
-                                </p>
-                              )
-                            }
-                            </div>
+                              <p className="mt-1 text-sm text-gray-600">
+                                No hay una ubicación registrada.
+                              </p>
+                            )}
                           </div>
+                        </div>
                         )}
 
                         <button type="button" onClick={() => abrirReasignacion(viaje.id)}
