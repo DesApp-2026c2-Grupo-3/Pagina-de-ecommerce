@@ -5,47 +5,110 @@ import SlideContent from './SlideContent'
 import SlideBackdrop from './SlideBackdrop'
 
 interface CarouselProps {
-  slides: CarouselSlide[]
+  slides?: CarouselSlide[]
   autoPlayMs?: number
+  transparentesEnMovil?: boolean
+  children?: React.ReactNode[]
 }
 
-function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
+const STYLES = {
+  section: 'relative overflow-hidden border-b-4 border-brand-red bg-brand-dark text-white',
+  slideContainer:
+    'relative flex min-h-[17rem] w-full items-center px-4 pb-16 pt-8 md:mx-auto md:min-h-[30rem] md:max-w-7xl md:py-12',
+  navBtnBase:
+    'absolute top-1/2 -translate-y-1/2 rounded-full bg-black/20 p-2 text-2xl leading-none text-white transition-colors hover:bg-black/40',
+  heroNavBtn: 'hidden md:block',
+  dotBase: 'h-2 rounded-full transition-all',
+  dotActive: 'w-6 bg-brand-mustard',
+  dotInactive: 'w-2 bg-white/40',
+} as const
+
+function Carousel({
+  slides = [],
+  autoPlayMs = 6000,
+  transparentesEnMovil = false,
+  children,
+}: CarouselProps) {
   const [index, setIndex] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Si cambia la cantidad de slides (ej. al loguearse), volvemos al primero.
+  const totalItems = children ? children.length : slides.length
+
   useEffect(() => {
     setIndex(0)
-  }, [slides.length])
+  }, [totalItems])
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current)
-    if (slides.length <= 1) return
+    if (totalItems <= 1) return
 
     timerRef.current = setInterval(() => {
-      setIndex((prev) => (prev + 1) % slides.length)
+      setIndex((prev) => (prev + 1) % totalItems)
     }, autoPlayMs)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-    // Reiniciamos el timer también cuando el usuario navega manualmente,
-    // así no "salta" un slide extra apenas después de un click.
-  }, [slides.length, autoPlayMs, index])
+  }, [totalItems, autoPlayMs, index])
 
   function goTo(next: number) {
-    setIndex((next + slides.length) % slides.length)
+    setIndex((next + totalItems) % totalItems)
+  }
+
+  if (children) {
+    return (
+      <div className="relative w-full">
+        <div className="flex w-full justify-center transition-all duration-300">
+          {children[index]}
+        </div>
+
+        {totalItems > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Anterior"
+              onClick={() => goTo(index - 1)}
+              className={`${STYLES.navBtnBase} left-[-8px]`}
+            >
+              <ArrowBigLeft size={18} />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Siguiente"
+              onClick={() => goTo(index + 1)}
+              className={`${STYLES.navBtnBase} right-[-8px]`}
+            >
+              <ArrowBigRight size={18} />
+            </button>
+
+            <div className="absolute -bottom-8 left-0 right-0 flex justify-center gap-2">
+              {children.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Ir al slide ${i + 1}`}
+                  aria-current={i === index}
+                  onClick={() => goTo(i)}
+                  className={`${STYLES.dotBase} ${i === index ? STYLES.dotActive : STYLES.dotInactive}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    )
   }
 
   const slide = slides[index]
   if (!slide) return null
 
   return (
-    <section className="relative overflow-hidden border-b-4 border-brand-red bg-brand-dark text-white">
+    <section className={STYLES.section}>
       <SlideBackdrop imagen={slide.backgroundImage} />
 
-      <div className="relative mx-auto flex min-h-[24rem] max-w-7xl items-center px-4 py-12 md:min-h-[30rem]">
-        <SlideContent slide={slide} />
+      <div className={STYLES.slideContainer}>
+        <SlideContent slide={slide} transparentesEnMovil={transparentesEnMovil} />
       </div>
 
       {slides.length > 1 && (
@@ -54,7 +117,7 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
             type="button"
             aria-label="Slide anterior"
             onClick={() => goTo(index - 1)}
-            className="absolute left-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-2xl leading-none text-white transition-colors hover:bg-black/40 md:block"
+            className={`${STYLES.navBtnBase} ${STYLES.heroNavBtn} left-2`}
           >
             <ArrowBigLeft size={18} />
           </button>
@@ -63,22 +126,20 @@ function Carousel({ slides, autoPlayMs = 6000 }: CarouselProps) {
             type="button"
             aria-label="Slide siguiente"
             onClick={() => goTo(index + 1)}
-            className="absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-2xl leading-none text-white transition-colors hover:bg-black/40 md:block"
+            className={`${STYLES.navBtnBase} ${STYLES.heroNavBtn} right-2`}
           >
             <ArrowBigRight size={18} />
           </button>
 
-          <div className="relative flex justify-center gap-2 pb-14">
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
             {slides.map((s, i) => (
               <button
-                key={s.id}
+                key={s.id || i}
                 type="button"
                 aria-label={`Ir al slide ${i + 1}`}
                 aria-current={i === index}
                 onClick={() => goTo(i)}
-                className={`h-2 rounded-full transition-all ${
-                  i === index ? 'w-6 bg-brand-mustard' : 'w-2 bg-white/40'
-                }`}
+                className={`${STYLES.dotBase} ${i === index ? STYLES.dotActive : STYLES.dotInactive}`}
               />
             ))}
           </div>
