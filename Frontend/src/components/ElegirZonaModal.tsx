@@ -107,7 +107,10 @@ function ElegirZonaModal() {
       )}
       <Modal
         isOpen={selectorAbierto}
-        onClose={cerrarSelector}
+        onClose={() => {
+          setUbicacion(ubicacionVacia)
+          cerrarSelector()
+        }}
         tamanio="lg"
         title="¿Dónde querés recibir tu pedido?"
         subtitle="Así te mostramos lo que tiene la sucursal más cercana."
@@ -214,7 +217,7 @@ function ElegirZonaModal() {
           )}
 
           <AddressPicker
-            key={`${ubicacion.calle}-${ubicacion.numero}`}
+            key={String(selectorAbierto)}
             value={ubicacion}
             onChange={(cambios) => {
               setUbicacion((prev) => ({ ...prev, ...cambios }))
