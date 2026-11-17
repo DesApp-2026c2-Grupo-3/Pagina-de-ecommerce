@@ -1,5 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
-import Home from '../pages/Home'
+import Home from '../pages/HomeMatrix'
 import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../components/AdminLayout'
 import { NotificacionProvider } from '../context/notificaciones/NotificacionProvider'
