@@ -1,5 +1,35 @@
 const { Op } = require('sequelize');
 const { Viaje, Pedido , Usuario, Direccion, DetallePedido, Producto }= require('../../models');
+const { notificarEstadoPedido } = require('../../notifications/handlers/pedidoHandlers');
+const { emitirRefrescoAdmin } = require('../../notifications/adminRefresco');
+
+// Al iniciar el viaje, cada cliente recibe "En camino" (hasta acá lo veía "En proceso":
+// el retiro en el local es interno). El estado anterior que se informa es el que el
+// cliente veía ("Listo para retirar" → "En proceso", lo traduce el handler).
+// Se llama después del commit: si un aviso falla, el viaje ya quedó iniciado.
+async function avisarSalidaDelViaje(viajeId) {
+    try {
+        const pedidos = await Pedido.findAll({
+            where: { viajeId, estado: 'En camino' },
+        });
+
+        const sucursales = new Set();
+        for (const pedido of pedidos) {
+            sucursales.add(pedido.sucursalId);
+            try {
+                await notificarEstadoPedido(pedido, 'Listo para retirar');
+            } catch (error) {
+                console.error(`No se pudo avisar la salida del pedido ${pedido.id}:`, error.message);
+            }
+        }
+
+        for (const sucursalId of sucursales) {
+            await emitirRefrescoAdmin({ dominio: 'pedidos', accion: 'estado_cambiado', sucursalId });
+        }
+    } catch (error) {
+        console.error('No se pudo avisar la salida del viaje:', error.message);
+    }
+}
 
 const tomarPedidos = async (req, res) => {
     const { pedidoIds } = req.body;
@@ -193,6 +223,8 @@ const iniciarViaje = async (req, res) => {
         );
 
         await transaction.commit();
+
+        await avisarSalidaDelViaje(viaje.id);
 
         return res.status(200).json({
             mensaje: 'Viaje iniciado correctamente',

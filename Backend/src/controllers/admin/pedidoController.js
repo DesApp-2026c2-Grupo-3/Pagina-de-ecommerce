@@ -2,6 +2,7 @@ const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, hi
 const { devolverStockPedido } = require('../../utils/stockPedido');
 const { notificarEstadoPedido } = require('../../notifications/handlers/pedidoHandlers');
 const { emitirRefrescoAdmin } = require('../../notifications/adminRefresco');
+const { catalogoDelPedido } = require('../../utils/catalogoPedido');
 
 // Qué se trae de cada parte del pedido (nunca la contraseña del cliente).
 // paranoid: false → los productos eliminados (borrado lógico) se siguen viendo en los pedidos viejos
@@ -77,7 +78,10 @@ const obtenerPedidosPorSucursal = async (req, res) => {
     }
 };
 
-// GET /admin/pedidos/:id → detalle completo: productos, cliente, dirección y sucursal
+// GET /admin/pedidos/:id → detalle completo: productos, cliente, dirección y sucursal.
+// Incluye `catalogo` (nombres, recetas y grupos de combo de los productos del pedido e
+// insumos de sus personalizaciones): así el admin de sucursal arma "Sin cebolla" o
+// "Papas: Papas con cheddar" sin pedir el catálogo completo, que es solo del MASTER.
 const obtenerPedidoPorId = async (req, res) => {
     try {
         // Auth primero: no se revela si el pedido existe a quien no tiene sesión
@@ -98,7 +102,10 @@ const obtenerPedidoPorId = async (req, res) => {
         if (!pedido || !puedeVerSucursal(admin, pedido.sucursalId)) {
             return res.status(404).json({ mensaje: 'Pedido no encontrado' });
         }
-        res.status(200).json(pedido);
+
+        const datos = typeof pedido.toJSON === 'function' ? pedido.toJSON() : pedido;
+        const catalogo = await catalogoDelPedido(datos.DetallePedidos ?? []);
+        res.status(200).json({ ...datos, catalogo });
     } catch (error) {
         console.error('Algo salió mal:', error.message);
         res.status(500).json({ mensaje: 'Error al obtener el pedido' });

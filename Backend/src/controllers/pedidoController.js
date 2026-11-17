@@ -20,8 +20,13 @@ const {
     StockSucursal,
     MovimientoStock,
     historialDeTiemposPedido,
+    Viaje,
     sequelize,
 } = require('../models');
+const { adaptarPedidoParaCliente } = require('../utils/estadoCliente');
+
+// Solo lo del viaje que decide qué estado ve el cliente (ver utils/estadoCliente.js)
+const VIAJE_PARA_CLIENTE = { model: Viaje, attributes: ['estado', 'fechaInicio'] };
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 const { estadoSucursal } = require('../utils/horarioSucursal');
@@ -203,18 +208,19 @@ const obtenerPedidosPorUsuario = async (req, res) => {
                    // Solo la ubicación: para calcular la hora estimada de llegada
                    model: Direccion,
                    attributes: ['latitud', 'longitud'],
-               }],
+               }, VIAJE_PARA_CLIENTE],
                order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
            });
 
            // A cada pedido en curso se le agrega su hora estimada de llegada (se corrige sola si hay demoras)
            const parametros = await obtenerParametros();
            const respuesta = pedidos.map((pedido) => {
-               const datos = pedido.toJSON();
+               // Estado tal como lo ve el cliente ("En camino" recién cuando arranca el viaje)
+               const datos = adaptarPedidoParaCliente(pedido.toJSON());
                const distancia = distanciaEntre(pedido.Direccion, pedido.Sucursal);
                datos.estimacion = distancia === null ? null : estimarLlegada({
                    fecha: pedido.fecha,
-                   estado: pedido.estado,
+                   estado: datos.estado,
                    historial: datos.historialDeTiemposPedidos,
                    unidades: contarUnidades(datos.DetallePedidos ?? []),
                    distanciaKm: distancia,
@@ -268,7 +274,7 @@ const obtenerPedidoClienteId = async (req, res) => {
                 model: historialDeTiemposPedido,
                 as: 'historialDeTiemposPedidos',
                 attributes: ['estado', 'fecha'],
-            }],
+            }, VIAJE_PARA_CLIENTE],
             order: [[{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
         });
 
@@ -278,7 +284,8 @@ const obtenerPedidoClienteId = async (req, res) => {
             });
         }
 
-        return res.status(200).json(pedido);
+        const datos = typeof pedido.toJSON === 'function' ? pedido.toJSON() : pedido;
+        return res.status(200).json(adaptarPedidoParaCliente(datos));
     } catch (error) {
         console.error('No se pudo obtener el pedido del cliente:', error.message);
         return res.status(500).json({ mensaje: 'Error al obtener el pedido' });

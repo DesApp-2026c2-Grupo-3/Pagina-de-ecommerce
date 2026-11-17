@@ -23,11 +23,16 @@ jest.mock('../../../src/notifications/adminRefresco', () => ({
 jest.mock('../../../src/notifications/handlers/pedidoHandlers', () => ({
     notificarEstadoPedido: jest.fn(),
 }));
+jest.mock('../../../src/utils/catalogoPedido', () => ({
+    catalogoDelPedido: jest.fn(),
+}));
 
 const models = require('../../../src/models');
 const { devolverStockPedido } = require('../../../src/utils/stockPedido');
 const { emitirRefrescoAdmin } = require('../../../src/notifications/adminRefresco');
 const { notificarEstadoPedido } = require('../../../src/notifications/handlers/pedidoHandlers');
+const { catalogoDelPedido } = require('../../../src/utils/catalogoPedido');
+const CATALOGO_VACIO = { productos: [], insumos: [] };
 const {
     obtenerPedidosPorSucursal,
     obtenerPedidoPorId,
@@ -60,6 +65,7 @@ function pedidoDeLaBase(datos = {}) {
 
 beforeEach(() => {
     jest.clearAllMocks();
+    catalogoDelPedido.mockResolvedValue(CATALOGO_VACIO);
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     Admin.findByPk.mockResolvedValue(adminDeSucursal);
@@ -187,7 +193,25 @@ describe('obtenerPedidoPorId', () => {
         await obtenerPedidoPorId({ usuario: { id: 1 }, params: { id: '100' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(pedido);
+        expect(res.json).toHaveBeenCalledWith({ ...pedido, catalogo: CATALOGO_VACIO });
+    });
+
+    test('agrega el catálogo de los productos del pedido (sirve al admin de sucursal)', async () => {
+        const detalles = [{ id: 1, productoId: 5, personalizaciones: [{ insumoId: 3, cantidad: 0 }] }];
+        const pedido = pedidoDeLaBase({ DetallePedidos: detalles });
+        Pedido.findByPk.mockResolvedValue(pedido);
+        const catalogo = {
+            productos: [{ id: 5, nombre: 'Clásica', receta: [{ insumoId: 3, cantidadBase: 1 }], grupos: [] }],
+            insumos: [{ id: 3, nombre: 'Cebolla' }],
+        };
+        catalogoDelPedido.mockResolvedValue(catalogo);
+        const res = crearRes();
+
+        await obtenerPedidoPorId({ usuario: { id: 7 }, params: { id: '100' } }, res);
+
+        expect(catalogoDelPedido).toHaveBeenCalledWith(detalles);
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json.mock.calls[0][0].catalogo).toEqual(catalogo);
     });
 
     test('devuelve el pedido con su historial ordenado', async () => {

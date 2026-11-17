@@ -9,6 +9,8 @@ const {
 } = require('../../models');
 
 const { Op } = require('sequelize');
+const { notificarEstadoPedido } = require('../../notifications/handlers/pedidoHandlers');
+const { emitirRefrescoAdmin } = require('../../notifications/adminRefresco');
 
 const obtenerPedidosDisponibles = async (req, res) => {
     try {
@@ -194,6 +196,24 @@ const actualizarEstadoPedido = async (req, res) => {
 
         await transaction.commit();
 
+        // Avisos (después del commit: si fallan, el cambio ya quedó guardado).
+        // - Retiro ("En camino" con el viaje en preparación): solo el panel. El cliente
+        //   lo ve "En camino" recién cuando el repartidor inicia el viaje (iniciarViaje).
+        // - Entrega: el cliente recibe "Entregado".
+        try {
+            if (estado === 'Entregado') {
+                await notificarEstadoPedido(pedido, estadoAnterior);
+            }
+            await emitirRefrescoAdmin({
+                dominio: 'pedidos',
+                accion: 'estado_cambiado',
+                sucursalId: pedido.sucursalId,
+                recursos: { pedidoId: pedido.id },
+            });
+        } catch (error) {
+            console.error('No se pudo avisar el cambio de estado del pedido:', error.message);
+        }
+
         return res.status(200).json({
             mensaje: 'Estado del pedido actualizado correctamente',
             pedido: {
@@ -204,7 +224,9 @@ const actualizarEstadoPedido = async (req, res) => {
         });
 
     } catch (error) {
-        await transaction.rollback();
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
 
         console.error(
             'Error al actualizar estado del pedido:',
