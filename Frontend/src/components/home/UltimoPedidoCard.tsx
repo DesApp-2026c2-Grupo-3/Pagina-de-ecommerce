@@ -8,37 +8,26 @@ import { formatearFecha } from '../../utils/fechas'
 import { formatearPrecio } from '../../utils/precio'
 import type { Order } from '../../types/order'
 
-const RESPONSIVE_STYLES = `
-  .ultimo-pedido-icono { display: none; }
-  
-  @media (min-width: 360px) {
-    .ultimo-pedido-icono { display: grid; }
-    .ultimo-pedido-fecha { font-size: 0.75rem; line-height: 1rem; }
-    .ultimo-pedido-productos { font-size: 0.875rem; line-height: 1.25rem; }
-    .ultimo-pedido-precio { font-size: 1.125rem; line-height: 1.75rem; }
-    .ultimo-pedido-boton { font-size: 0.875rem; line-height: 1.25rem; max-width: none; }
-  }
-  @media (min-width: 768px) {
-    .ultimo-pedido-productos { font-size: 1.5rem; line-height: 2rem; }
-    .ultimo-pedido-precio { font-size: 1.875rem; line-height: 2.25rem; }
-    .ultimo-pedido-boton { font-size: 1rem; line-height: 1.5rem; }
-  }
-`
-
 const STYLES = {
   section: 'relative z-10 -mt-6 px-4 pb-6 sm:-mt-8 md:-mt-12 md:pb-10',
-  card: 'mx-auto flex max-w-7xl flex-col gap-2 rounded-[1.75rem] border-2 border-brand-dark bg-white p-3 shadow-sticker sm:p-4 md:gap-3 md:p-6',
+  card: 'relative mx-auto flex max-w-7xl flex-col gap-2 rounded-[1.75rem] border-2 border-brand-dark bg-white px-3 pb-3 pt-3.5 shadow-sticker min-[430px]:p-3 sm:p-4 md:gap-3 md:p-6',
+  floatingBadge:
+    'absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 inline-flex items-center whitespace-nowrap rounded-full border-2 border-black bg-brand-red px-2.5 py-0.5 font-display text-[10px] font-extrabold uppercase tracking-wider text-white min-[430px]:hidden',
   mainRow: 'flex w-full flex-row items-center justify-between gap-2 sm:gap-4 md:gap-6',
   leftSide: 'flex min-w-0 flex-1 items-center gap-2 md:gap-4',
-  iconBadge: 'ultimo-pedido-icono h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-cream md:h-14 md:w-14 md:rounded-2xl',
+  iconBadge:
+    'hidden min-[360px]:grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-cream md:h-14 md:w-14 md:rounded-2xl',
   icon: 'h-4.5 w-4.5 text-brand-red md:h-7 md:w-7',
-  mobileDate: 'ultimo-pedido-fecha block text-[10px] font-bold uppercase leading-normal tracking-wider text-brand-muted sm:text-xs md:hidden',
+  mobileDate:
+    'block whitespace-nowrap text-[10px] min-[360px]:text-xs font-bold uppercase leading-normal tracking-wider text-brand-muted md:hidden',
   desktopMeta: 'hidden text-xs font-bold uppercase tracking-wider text-brand-muted md:block',
-  productsText: 'ultimo-pedido-productos mt-0.5 truncate font-display text-xs font-extrabold leading-tight text-brand-dark sm:text-sm md:mt-0 md:whitespace-normal md:text-2xl',
+  productsText:
+    'mt-0.5 truncate font-display text-xs min-[360px]:text-sm font-extrabold leading-tight text-brand-dark md:mt-0 md:text-2xl',
   rightSide: 'flex shrink-0 flex-row items-center gap-2 sm:gap-4 md:gap-6',
-  priceText: 'ultimo-pedido-precio whitespace-nowrap font-display text-base font-extrabold text-brand-dark sm:text-lg md:text-3xl',
+  priceText:
+    'whitespace-nowrap font-display text-base min-[360px]:text-lg font-extrabold text-brand-dark md:text-3xl',
   buttonWrapper:
-    'ultimo-pedido-boton max-w-[125px] text-xs sm:max-w-none sm:text-sm md:text-base [&_button]:min-h-0 [&_button]:whitespace-nowrap [&_button]:px-3 [&_button]:py-2 [&_button]:!font-bold md:[&_button]:min-h-12 md:[&_button]:px-6 md:[&_button]:py-3',
+    "shrink-0 text-xs min-[360px]:text-sm md:text-base [&_button]:min-h-0 [&_button]:gap-0 [&_button]:whitespace-nowrap [&_button]:p-2.5 [&_button]:text-[0px] [&_button]:!font-bold min-[500px]:[&_button]:gap-2 min-[500px]:[&_button]:px-3 min-[500px]:[&_button]:py-2 min-[500px]:[&_button]:after:text-sm min-[500px]:[&_button]:after:content-['Repetir'] min-[540px]:[&_button]:text-sm min-[540px]:[&_button]:after:hidden md:[&_button]:min-h-12 md:[&_button]:px-6 md:[&_button]:py-3 md:[&_button]:text-base",
   closedBanner: 'mt-1 flex w-full items-center justify-center gap-1.5 border-t border-brand-dark/5 pt-2',
   closedIcon: 'h-3.5 w-3.5 shrink-0 text-brand-red md:h-4 md:w-4',
   closedText: 'font-display text-[10px] font-bold uppercase tracking-wider text-brand-red sm:text-xs',
@@ -59,7 +48,10 @@ function UltimoPedidoCard() {
   const isSucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setPedido(null)
+      return
+    }
 
     getHistorialPedidos(user.id)
       .then((pedidos) => {
@@ -79,11 +71,14 @@ function UltimoPedidoCard() {
 
   if (!pedido) return null
 
+  const resumen = resumirProductos(pedido)
+  const fechaFormateada = formatearFecha(pedido.fecha)
+
   return (
     <section className={STYLES.section}>
-      <style>{RESPONSIVE_STYLES}</style>
-
       <div className={STYLES.card}>
+        <span className={STYLES.floatingBadge}>Tu último pedido</span>
+
         <div className={STYLES.mainRow}>
           <div className={STYLES.leftSide}>
             <span className={STYLES.iconBadge}>
@@ -92,12 +87,15 @@ function UltimoPedidoCard() {
 
             <div className="min-w-0 flex-1">
               <p className={STYLES.mobileDate}>
-                Tu último pedido · {formatearFecha(pedido.fecha)}
+                <span className="min-[430px]:hidden">Fecha: {fechaFormateada}</span>
+                <span className="hidden min-[430px]:inline">Tu último pedido · {fechaFormateada}</span>
               </p>
               <p className={STYLES.desktopMeta}>Tu último pedido</p>
-              <p className={STYLES.desktopMeta}>{formatearFecha(pedido.fecha)}</p>
+              <p className={STYLES.desktopMeta}>{fechaFormateada}</p>
 
-              <p className={STYLES.productsText}>{resumirProductos(pedido)}</p>
+              <p className={STYLES.productsText} title={resumen}>
+                {resumen}
+              </p>
             </div>
           </div>
 
