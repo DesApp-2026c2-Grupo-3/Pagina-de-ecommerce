@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ChevronDown, CircleAlert, MapPin, X, Trash2 } from 'lucide-react'
+import { ChevronDown, CircleAlert, MapPin, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useZona } from '../../context/ZonaContext'
 
