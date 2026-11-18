@@ -78,6 +78,7 @@ app.use('/parametros', require('./routes/parametroRoutes'));
 app.use('/repartidor', authRepartidorRoutes);
 app.use('/repartidor/pedidos', pedidoRepartidorRoutes);
 app.use('/repartidor/viajes', viajeRepartidorRoutes);
+app.use('/repartidor/notificaciones', require('./routes/repartidor/notificacionRepartidorRoutes'));
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
 async function iniciarServidor() {

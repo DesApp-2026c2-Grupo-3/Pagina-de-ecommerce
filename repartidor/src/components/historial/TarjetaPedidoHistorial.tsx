@@ -29,7 +29,7 @@ export default function TarjetaPedidoHistorial({ pedido }: Props) {
       {/* Encabezado */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Pedido #{pedido.id}
           </p>
 

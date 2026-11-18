@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { MapPin, Phone, X } from "lucide-react";
-import { obtenerInsumos, obtenerProductos } from "../services/productoService";
 import { obtenerPedidoPorId } from "../services/pedidoService";
 import { formatearFechaHora } from "../utils/pedidoEstado";
 import SeguimientoPedidoAdmin from "./SeguimientoPedidoAdmin";
@@ -38,10 +37,6 @@ export default function DetallePedidoModal({
   onClose,
 }: PropsDetallePedidoModal) {
   const [pedido, setPedido] = useState<PedidoCompleto | null>(null);
-  const [productos, setProductos] = useState<Map<number, ProductoCatalogo>>(
-    new Map(),
-  );
-  const [insumos, setInsumos] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState("");
   // Mientras está abierto, la página de atrás no se mueve (cerrado = sin pedido elegido)
   useBloquearScroll(pedidoId !== null);
@@ -52,26 +47,12 @@ export default function DetallePedidoModal({
     setPedido(null);
     setError("");
 
-    Promise.all([
-      obtenerPedidoPorId(pedidoId),
-      // Si el catálogo no carga, el detalle se muestra igual, con ids en lugar de nombres
-      obtenerProductos().catch(() => []),
-      obtenerInsumos().catch(() => []),
-    ])
-      .then(([detalle, prods, ins]) => {
+    // El detalle ya trae `catalogo` con los nombres, recetas y grupos que usa este pedido:
+    // no hace falta pedir el catálogo completo (GET /admin/productos es solo del MASTER)
+    obtenerPedidoPorId(pedidoId)
+      .then((detalle: PedidoCompleto) => {
         if (cancelado) return;
         setPedido(detalle);
-        setProductos(
-          new Map((prods as ProductoCatalogo[]).map((p) => [p.id, p])),
-        );
-        setInsumos(
-          new Map(
-            (ins as { id: number; nombre: string }[]).map((i) => [
-              i.id,
-              i.nombre,
-            ]),
-          ),
-        );
       })
       .catch(
         (err) =>
@@ -95,6 +76,14 @@ export default function DetallePedidoModal({
   }, [pedidoId, onClose]);
 
   if (pedidoId === null) return null;
+
+  // Si el catálogo no viene, el detalle se muestra igual, con ids en lugar de nombres
+  const productos = new Map<number, ProductoCatalogo>(
+    (pedido?.catalogo?.productos ?? []).map((p) => [p.id, p]),
+  );
+  const insumos = new Map<number, string>(
+    (pedido?.catalogo?.insumos ?? []).map((i) => [i.id, i.nombre]),
+  );
 
   const nombreProducto = (id: number) =>
     productos.get(id)?.nombre ?? `Producto #${id}`;

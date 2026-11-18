@@ -12,6 +12,7 @@ jest.mock('../../src/models', () => {
     },
     Admin: { findAll: jest.fn() },
     Usuario: { findAll: jest.fn() },
+    Repartidor: { findAll: jest.fn() },
   };
 });
 
@@ -22,6 +23,7 @@ const {
   NotificacionDestinatario,
   Admin,
   Usuario,
+  Repartidor,
 } = require('../../src/models');
 const notificacionRepository = require('../../src/notifications/notificacionRepository');
 
@@ -189,6 +191,64 @@ describe('guardar', () => {
     expect(filas).toEqual(expect.arrayContaining([
       { destinatarioTipo: 'cliente', destinatarioId: 7, notificacionId: '10' },
       { destinatarioTipo: 'cliente', destinatarioId: 8, notificacionId: '10' },
+    ]));
+  });
+
+  test('persiste repartidores directos y los activos de una sucursal, sin duplicados', async () => {
+    Notificacion.create.mockResolvedValue({
+      id: '20',
+      tipo: 'viaje.asignado',
+      version: 1,
+      datos: { viajeId: 4 },
+      destinos: { repartidores: [7, 7], repartidoresSucursal: [2] },
+      ocurridoEn: FECHA,
+    });
+    Repartidor.findAll.mockResolvedValue([{ id: 7 }, { id: 9 }]);
+    NotificacionDestinatario.bulkCreate.mockResolvedValue([]);
+
+    await notificacionRepository.guardar({
+      tipo: 'viaje.asignado',
+      datos: { viajeId: 4 },
+      destinos: { repartidores: [7, 7], repartidoresSucursal: [2] },
+      ocurridoEn: FECHA,
+    });
+
+    expect(Repartidor.findAll).toHaveBeenCalledWith({
+      where: { sucursalId: { [Op.in]: [2] }, activo: true },
+      attributes: ['id'],
+      transaction: 'tx',
+    });
+
+    const filas = NotificacionDestinatario.bulkCreate.mock.calls[0][0];
+    expect(filas).toHaveLength(2);
+    expect(filas).toEqual(expect.arrayContaining([
+      { destinatarioTipo: 'repartidor', destinatarioId: 7, notificacionId: '20' },
+      { destinatarioTipo: 'repartidor', destinatarioId: 9, notificacionId: '20' },
+    ]));
+  });
+
+  test('un repartidor y un cliente con el mismo id son destinatarios distintos', async () => {
+    Notificacion.create.mockResolvedValue({
+      id: '21',
+      tipo: 'x',
+      version: 1,
+      datos: {},
+      destinos: { repartidores: [7], clientes: [7] },
+      ocurridoEn: FECHA,
+    });
+    NotificacionDestinatario.bulkCreate.mockResolvedValue([]);
+
+    await notificacionRepository.guardar({
+      tipo: 'x',
+      datos: {},
+      destinos: { repartidores: [7], clientes: [7] },
+      ocurridoEn: FECHA,
+    });
+
+    expect(Repartidor.findAll).not.toHaveBeenCalled();
+    expect(NotificacionDestinatario.bulkCreate.mock.calls[0][0]).toEqual(expect.arrayContaining([
+      { destinatarioTipo: 'cliente', destinatarioId: 7, notificacionId: '21' },
+      { destinatarioTipo: 'repartidor', destinatarioId: 7, notificacionId: '21' },
     ]));
   });
 

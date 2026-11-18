@@ -21,10 +21,25 @@ export interface ViajeCreado {
   estado: EstadoViaje
 }
 
-export interface RespuestaIniciarViaje {
+// POST /repartidor/viajes
+export interface RespuestaTomarPedidos {
   mensaje: string
   viaje: ViajeCreado
   pedidoIds: number[]
+}
+
+// DELETE /repartidor/viajes/pedidos/:pedidoId
+export interface RespuestaQuitarPedido {
+  mensaje: string
+  pedidoId: number
+  pedidosRestantes: number
+  viajeEliminado: boolean
+}
+
+// PATCH /repartidor/viajes/confirmar-recepcion
+export interface RespuestaConfirmarRecepcion {
+  mensaje: string
+  recepcionConfirmada: boolean
 }
 
 export interface RespuestaCambioEstadoViaje {

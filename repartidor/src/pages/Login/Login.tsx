@@ -2,9 +2,17 @@
 import { Bike, PackageCheck, MapPin } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import LoginForm from '../../components/login/LoginForm'
+import type { MotivoCierreSesion } from '../../types/sesion.types'
+
+const MENSAJES_CIERRE: Record<MotivoCierreSesion, string> = {
+  desactivado: 'Tu cuenta fue desactivada. Consultá con tu sucursal.',
+  baja: 'Tu cuenta fue dada de baja.',
+  asistencia: 'Tu cuenta quedó inactiva porque tu viaje pasó a otro repartidor después de pedir asistencia. Un administrador de tu sucursal la tiene que reactivar.',
+  expirada: 'Tu sesión terminó. Iniciá sesión de nuevo.',
+}
 
 export default function Login() {
-  const { login } = useAuth()
+  const { iniciarSesion, motivoCierre } = useAuth()
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-orange-100 via-orange-50 to-white p-4 sm:p-6">
@@ -16,10 +24,10 @@ export default function Login() {
       <div className="relative grid w-full max-w-4xl overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-2xl shadow-orange-200/40 md:grid-cols-2">
 
         {/* Panel informativo: solo escritorio */}
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 p-9 text-white md:flex">
+        <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-orange-700 via-orange-700 to-orange-800 p-9 text-white md:flex">
 
           <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full border-[30px] border-white/10" />
-          <div className="pointer-events-none absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-orange-400/30 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-orange-600/30 blur-2xl" />
 
           <div className="relative z-10">
             <div className="mb-9 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/15 shadow-lg backdrop-blur-sm">
@@ -37,7 +45,7 @@ export default function Login() {
               </span>
             </h1>
 
-            <p className="mt-5 max-w-sm text-sm leading-7 text-white/85">
+            <p className="mt-5 max-w-sm text-sm leading-7 text-white">
               Accedé a tus pedidos, organizá tus entregas y mantené el control
               de cada recorrido.
             </p>
@@ -50,7 +58,7 @@ export default function Login() {
               <p className="text-sm font-bold">
                 Tus entregas, organizadas
               </p>
-              <p className="mt-1 text-xs text-orange-100">
+              <p className="mt-1 text-xs text-white">
                 Todo lo que necesitás en un solo lugar.
               </p>
             </div>
@@ -72,14 +80,14 @@ export default function Login() {
               <p className="font-extrabold text-slate-800">
                 Panel de repartidores
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Gestión de entregas
               </p>
             </div>
           </div>
 
           <div className="mb-8">
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">
               Acceso al sistema
             </p>
 
@@ -92,10 +100,19 @@ export default function Login() {
             </p>
           </div>
 
-          <LoginForm onSubmit={login} />
+          {motivoCierre && (
+            <p
+              role="alert"
+              className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+            >
+              {MENSAJES_CIERRE[motivoCierre]}
+            </p>
+          )}
+
+          <LoginForm onSubmit={iniciarSesion} />
 
           <div className="mt-8 border-t border-orange-100 pt-5 text-center">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Acceso exclusivo para repartidores registrados.
             </p>
           </div>

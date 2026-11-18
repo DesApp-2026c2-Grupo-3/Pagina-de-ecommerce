@@ -7,11 +7,13 @@ const {
   NotificacionDestinatario,
   Admin,
   Usuario,
+  Repartidor,
 } = require('../models');
 const { codificarCursor, decodificarCursor } = require('./cursor');
 
 const DESTINATARIO_CLIENTE = 'cliente';
 const DESTINATARIO_ADMIN = 'admin';
+const DESTINATARIO_REPARTIDOR = 'repartidor';
 const LIMITE_POR_DEFECTO = 50;
 const ROLES_ADMIN_VALIDOS = new Set(['MASTER', 'ADMIN']);
 
@@ -144,6 +146,23 @@ async function resolverDestinatarios(destinos = {}, transaction) {
     });
 
     clientes.forEach((cliente) => agregar(DESTINATARIO_CLIENTE, cliente.id));
+  }
+
+  idsUnicos(destinos.repartidores).forEach((id) => agregar(DESTINATARIO_REPARTIDOR, id));
+
+  const sucursalesRepartidor = idsUnicos(destinos.repartidoresSucursal);
+  if (sucursalesRepartidor.length > 0) {
+    // Repartidor es paranoid: los dados de baja quedan afuera sin filtrarlos acá
+    const repartidores = await Repartidor.findAll({
+      where: {
+        sucursalId: { [Op.in]: sucursalesRepartidor },
+        activo: true,
+      },
+      attributes: ['id'],
+      transaction,
+    });
+
+    repartidores.forEach((repartidor) => agregar(DESTINATARIO_REPARTIDOR, repartidor.id));
   }
 
   return [...destinatarios.values()];

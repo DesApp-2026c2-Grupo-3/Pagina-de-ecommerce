@@ -1,4 +1,5 @@
 
+import { useId } from 'react'
 import { Search, CalendarDays, Filter, RotateCcw } from 'lucide-react'
 
 interface Props {
@@ -22,6 +23,11 @@ export default function FiltrosHistorial({
   setFechaDesde,
   setFechaHasta,
 }: Props) {
+  // v1.12: cada campo con su etiqueta asociada (Lighthouse)
+  const idBusqueda = useId()
+  const idDesde = useId()
+  const idHasta = useId()
+
   const limpiarFiltros = () => {
     setFiltroEstado('todos')
     setBusqueda('')
@@ -61,7 +67,7 @@ export default function FiltrosHistorial({
           type="button"
           onClick={limpiarFiltros}
           disabled={!hayFiltrosActivos}
-          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-orange-600 transition hover:bg-orange-50 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-xs md:min-h-0 font-semibold text-orange-700 transition hover:bg-orange-50 hover:text-orange-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <RotateCcw size={14} />
           Limpiar filtros
@@ -80,9 +86,10 @@ export default function FiltrosHistorial({
               key={opcion.valor}
               type="button"
               onClick={() => setFiltroEstado(opcion.valor)}
-              className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+              aria-pressed={filtroEstado === opcion.valor}
+              className={`min-h-11 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
                 filtroEstado === opcion.valor
-                  ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                  ? 'border-orange-700 bg-orange-700 text-white shadow-md shadow-orange-700/20'
                   : 'border-orange-100 bg-orange-50/50 text-slate-600 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700'
               }`}
             >
@@ -94,7 +101,7 @@ export default function FiltrosHistorial({
 
       {/* Búsqueda */}
       <div className="mb-6">
-        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
+        <label htmlFor={idBusqueda} className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
           Buscar viaje
         </label>
 
@@ -102,6 +109,7 @@ export default function FiltrosHistorial({
           <Search size={18} className="shrink-0 text-orange-500" />
 
           <input
+            id={idBusqueda}
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
@@ -122,11 +130,12 @@ export default function FiltrosHistorial({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">
+            <label htmlFor={idDesde} className="mb-2 block text-sm font-medium text-slate-600">
               Desde
             </label>
 
             <input
+              id={idDesde}
               type="date"
               value={fechaDesde}
               max={fechaHasta || undefined}
@@ -136,11 +145,12 @@ export default function FiltrosHistorial({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">
+            <label htmlFor={idHasta} className="mb-2 block text-sm font-medium text-slate-600">
               Hasta
             </label>
 
             <input
+              id={idHasta}
               type="date"
               value={fechaHasta}
               min={fechaDesde || undefined}

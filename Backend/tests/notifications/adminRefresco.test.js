@@ -80,6 +80,26 @@ test('no falla si Socket.io todavía no está inicializado', async () => {
     expect(await emitirRefrescoAdmin({ dominio: 'stock', sucursalId: 2 })).toBe(false);
 });
 
+test('acepta el dominio viajes con su recurso viajeId', async () => {
+    const io = crearIo();
+    getIo.mockReturnValue(io);
+
+    const emitido = await emitirRefrescoAdmin({
+        dominio: 'viajes',
+        accion: 'estado_cambiado',
+        sucursalId: 2,
+        recursos: { viajeId: 4 },
+    });
+
+    expect(emitido).toBe(true);
+    expect(io.emit).toHaveBeenCalledWith('admin:refresco', expect.objectContaining({
+        dominio: 'viajes',
+        accion: 'estado_cambiado',
+        sucursalId: 2,
+        recursos: { viajeId: 4 },
+    }));
+});
+
 test('normaliza solo recursos enteros positivos', () => {
     expect(normalizarRecursos({
         insumoId: '2',

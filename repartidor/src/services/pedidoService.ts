@@ -1,23 +1,20 @@
 import { apiFetch } from './httpClient'
-import type { Pedido } from '../types/pedido.types'
+import type {
+  Pedido,
+  RespuestaEntregarPedido,
+  RespuestaRetirarPedido,
+} from '../types/pedido.types'
 
-export const obtenerPedidosDisponibles = async (): Promise<Pedido[]> => {
-  return apiFetch<Pedido[]>('/repartidor/pedidos/disponibles')
-}
+export const obtenerPedidosDisponibles = () =>
+  apiFetch<Pedido[]>('/repartidor/pedidos/disponibles')
 
-export const actualizarEstadoPedido = ( pedidoId: number, estado: 'En camino' | 'Entregado' ) => {
-  return apiFetch<{
-    mensaje: string
-    pedido: {
-      id: number
-      estado: string
-    }
-    viajeFinalizado: boolean
-  }>(`/repartidor/pedidos/${pedidoId}/estado`, {
+// D-07: retirar del local no cambia el estado; el pedido sale "En camino" al iniciar el viaje
+export const retirarPedido = (pedidoId: number) =>
+  apiFetch<RespuestaRetirarPedido>(`/repartidor/pedidos/${pedidoId}/retirar`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ estado }),
   })
-}
+
+export const entregarPedido = (pedidoId: number) =>
+  apiFetch<RespuestaEntregarPedido>(`/repartidor/pedidos/${pedidoId}/entregar`, {
+    method: 'PATCH',
+  })

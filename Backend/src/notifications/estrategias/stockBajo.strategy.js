@@ -8,7 +8,6 @@ module.exports = Object.freeze({
     tipo: 'stock.bajo',
     version: 1,
     audiencias: ['admin'],
-    paraAdministradores: true,
 
     construir(payload) {
         if (!esObjeto(payload)) {

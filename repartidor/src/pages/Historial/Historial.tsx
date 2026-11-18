@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react'
 import { ArrowUp, History, Search } from 'lucide-react'
 
-import { obtenerHistorialViajes } from '../../services/viajeService'
-import type { ViajeHistorial } from '../../types/viaje.types'
-
+import { useHistorialViajes } from '../../hooks/useHistorialViajes'
 import FiltrosHistorial from '../../components/historial/FiltrosHistorial'
 import TarjetaViajeHistorial from '../../components/historial/TarjetaViajeHistorial'
 
 import { filtrarViajes } from '../../utils/historial.utils'
 
 export default function Historial() {
-  const [viajes, setViajes] = useState<ViajeHistorial[]>([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  const { viajes, cargando, error } = useHistorialViajes()
 
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -33,24 +29,6 @@ export default function Historial() {
     }
   }, [])
 
-  useEffect(() => {
-    const cargarHistorial = async () => {
-      try {
-        setCargando(true)
-        setError('')
-
-        const datos = await obtenerHistorialViajes()
-        setViajes(datos)
-      } catch {
-        setError('No se pudo cargar el historial de viajes.')
-      } finally {
-        setCargando(false)
-      }
-    }
-
-    cargarHistorial()
-  }, [])
-
   const viajesFiltrados = filtrarViajes(
     viajes,
     filtroEstado,
@@ -64,7 +42,7 @@ export default function Historial() {
   }
 
   if (error) {
-    return <p className="text-red-600">{error}</p>
+    return <p className="text-red-700">{error}</p>
   }
 
   return (
@@ -152,7 +130,7 @@ export default function Historial() {
 
       {mostrarVolverArriba && (
         <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-orange-600 text-white shadow-lg shadow-orange-500/30 transition-all duration-200 hover:-translate-y-1 hover:bg-orange-700 hover:shadow-xl"
+        className="fixed bottom-[calc(var(--alto-nav-inferior)+1.5rem)] right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-orange-600 text-white shadow-lg shadow-orange-500/30 transition-all duration-200 hover:-translate-y-1 hover:bg-orange-700 hover:shadow-xl"
         aria-label="Volver arriba" title="Volver arriba">
           <ArrowUp size={22} />
         </button>

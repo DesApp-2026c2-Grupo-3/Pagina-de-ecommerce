@@ -8,16 +8,17 @@ import {
   Phone,
   ExternalLink,
   ChevronDown,
+  CheckCircle2,
 } from 'lucide-react'
 
 import type { Pedido } from '../../types/pedido.types'
+import Boton from '../ui/Boton'
 
 interface TarjetaPedidoViajeProps {
   pedido: Pedido
-  onActualizarEstado: (
-    pedidoId: number,
-    estado: 'En camino' | 'Entregado'
-  ) => void
+  // D-07: retirar del local (no cambia el estado) y entregar al cliente son acciones distintas
+  onRetirar: (pedidoId: number) => void
+  onEntregar: (pedidoId: number) => void
   procesando: boolean
   puedeRetirar: boolean
   puedeEntregar: boolean
@@ -27,7 +28,8 @@ interface TarjetaPedidoViajeProps {
 
 export default function TarjetaPedidoViaje({
   pedido,
-  onActualizarEstado,
+  onRetirar,
+  onEntregar,
   procesando,
   puedeRetirar,
   puedeEntregar,
@@ -36,6 +38,9 @@ export default function TarjetaPedidoViaje({
 }: TarjetaPedidoViajeProps) {
   const fecha = new Date(pedido.fecha)
   const direccion = pedido.Direccion
+  const listoParaRetirar = pedido.estado === 'Listo para retirar'
+  const retirado = listoParaRetirar && pedido.retiradoEn !== null
+  const etiquetaEstado = retirado ? 'Retirado' : pedido.estado
   const telefono = pedido.Usuario.telefono
 
   const [mostrarProductos, setMostrarProductos] = useState(false)
@@ -71,13 +76,13 @@ export default function TarjetaPedidoViaje({
 
       {/* Encabezado del pedido */}
       <div className="grid grid-cols-2 items-center gap-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
           Pedido #{pedido.id}
         </p>
 
         <div className="flex justify-end">
           <span className="rounded-full border border-orange-200 bg-orange-50 px-4 py-1 text-xs font-bold text-orange-700">
-            {pedido.estado}
+            {etiquetaEstado}
           </span>
         </div>
 
@@ -127,7 +132,7 @@ export default function TarjetaPedidoViaje({
                       <p className="text-sm font-semibold text-slate-800">
                         {detalle.Producto.nombre}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-600">
                         Cantidad: {detalle.cantidad}
                       </p>
                     </div>
@@ -160,7 +165,7 @@ export default function TarjetaPedidoViaje({
             {telefono && (
               <a
                 href={`tel:${telefono}`}
-                className="mt-1 inline-flex items-center gap-2 font-medium text-orange-600 transition hover:text-orange-700"
+                className="mt-1 inline-flex min-h-11 items-center gap-2 font-medium text-orange-700 transition hover:text-orange-800 md:min-h-0"
               >
                 <Phone size={14} />
                 {telefono}
@@ -183,13 +188,13 @@ export default function TarjetaPedidoViaje({
                   {direccion.piso ? `, ${direccion.piso}` : ''}
                 </p>
 
-                <p className="mt-1 text-slate-500">
+                <p className="mt-1 text-slate-600">
                   {direccion.localidad}
                   {direccion.provincia ? `, ${direccion.provincia}` : ''}
                 </p>
 
                 {direccion.alias && (
-                  <p className="mt-1 text-xs font-medium text-slate-400">
+                  <p className="mt-1 text-xs font-medium text-slate-600">
                     {direccion.alias}
                   </p>
                 )}
@@ -208,7 +213,7 @@ export default function TarjetaPedidoViaje({
                     href={urlMaps}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 inline-flex items-center gap-2 font-bold text-orange-600 transition hover:text-orange-700"
+                    className="mt-1 inline-flex min-h-11 items-center gap-2 font-bold text-orange-700 transition hover:text-orange-800 md:mt-3 md:min-h-0"
                   >
                     <ExternalLink size={15} />
                     Abrir en Google Maps
@@ -216,7 +221,7 @@ export default function TarjetaPedidoViaje({
                 )}
               </>
             ) : (
-              <p className="pt-1 text-slate-400">
+              <p className="pt-1 text-slate-600">
                 Dirección no disponible
               </p>
             )}
@@ -224,7 +229,7 @@ export default function TarjetaPedidoViaje({
         </div>
 
         {/* Fecha */}
-        <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="flex items-center gap-3 text-sm text-slate-600">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50">
             <Clock size={18} className="text-orange-600" />
           </div>
@@ -252,33 +257,48 @@ export default function TarjetaPedidoViaje({
       )}
 
       {/* Acciones del repartidor */}
-      {pedido.estado === 'Listo para retirar' && (
-        <button
-          onClick={() => onActualizarEstado(pedido.id, 'En camino')}
-          disabled={procesando || !puedeRetirar}
-          className="mt-5 w-full rounded-xl bg-orange-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-orange-500/20 transition-all hover:bg-orange-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-        >
-          {procesando ? 'Procesando...' : 'Retirar pedido'}
-        </button>
+      {listoParaRetirar && !retirado && (
+        <div className="mt-5">
+          <Boton
+            anchoCompleto
+            onClick={() => onRetirar(pedido.id)}
+            disabled={!puedeRetirar}
+            cargando={procesando}
+            textoCargando="Retirando…"
+          >
+            Retirar pedido
+          </Boton>
+        </div>
       )}
 
-      {pedido.estado === 'Listo para retirar' && puedeQuitar && (
-        <button
-          onClick={() => onQuitarPedido?.(pedido.id)}
-          className="mt-3 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-bold text-red-600 transition hover:border-red-300 hover:bg-red-50"
-        >
-          Quitar del viaje
-        </button>
+      {retirado && (
+        <p className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+          <CheckCircle2 size={17} />
+          Retirado del local
+        </p>
+      )}
+
+      {listoParaRetirar && !retirado && puedeQuitar && (
+        <div className="mt-3">
+          <Boton variante="peligroSuave" anchoCompleto onClick={() => onQuitarPedido?.(pedido.id)} disabled={procesando}>
+            Quitar del viaje
+          </Boton>
+        </div>
       )}
 
       {pedido.estado === 'En camino' && (
-        <button
-          onClick={() => onActualizarEstado(pedido.id, 'Entregado')}
-          disabled={procesando || !puedeEntregar}
-          className="mt-5 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-        >
-          {procesando ? 'Procesando...' : 'Confirmar entrega'}
-        </button>
+        <div className="mt-5">
+          <Boton
+            variante="exito"
+            anchoCompleto
+            onClick={() => onEntregar(pedido.id)}
+            disabled={!puedeEntregar}
+            cargando={procesando}
+            textoCargando="Entregando…"
+          >
+            Confirmar entrega
+          </Boton>
+        </div>
       )}
     </article>
   )

@@ -46,7 +46,7 @@ export default function TarjetaViajeHistorial({ viaje }: Props) {
         {/* Encabezado */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">
+            <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
               Historial de viaje
             </p>
 
@@ -104,11 +104,11 @@ export default function TarjetaViajeHistorial({ viaje }: Props) {
           <div className="rounded-xl border border-red-100 bg-red-50/70 p-3">
             <XCircle size={19} className="text-red-500" />
 
-            <p className="mt-2 text-2xl font-extrabold text-red-600">
+            <p className="mt-2 text-2xl font-extrabold text-red-700">
               {cancelados}
             </p>
 
-            <p className="text-xs font-medium text-red-600">
+            <p className="text-xs font-medium text-red-700">
               Cancelados
             </p>
           </div>

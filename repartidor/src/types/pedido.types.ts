@@ -36,8 +36,29 @@ export interface Pedido {
   fecha: string
   total: number | string
   estado: string
+  // D-07: cuándo lo retiró el repartidor del local (el estado no cambia hasta iniciar el viaje)
+  retiradoEn: string | null
   observaciones: string | null
   Usuario: ClientePedido
   Direccion: DireccionPedido | null
   DetallePedidos: DetallePedido[]
+}
+// PATCH /repartidor/pedidos/:pedidoId/retirar
+export interface RespuestaRetirarPedido {
+  mensaje: string
+  pedido: {
+    id: number
+    estado: string
+    retiradoEn: string
+  }
+}
+
+// PATCH /repartidor/pedidos/:pedidoId/entregar
+export interface RespuestaEntregarPedido {
+  mensaje: string
+  pedido: {
+    id: number
+    estado: string
+  }
+  viajeFinalizado: boolean
 }

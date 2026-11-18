@@ -42,9 +42,31 @@ test('un master sin sucursal entra a la sala global y a la sala de su rol', () =
     ]);
 });
 
+test('un repartidor entra a sus salas personal, de tipo, de rol y de repartidores de su sucursal', () => {
+    expect(salasDeIdentidad({
+        tipo: 'repartidor',
+        id: 7,
+        rol: 'REPARTIDOR',
+        sucursalId: 2,
+    })).toEqual([
+        'user:repartidor:7',
+        'role:repartidor',
+        'role:REPARTIDOR',
+        'repartidor:sucursal:2',
+    ]);
+});
+
+test('un repartidor nunca entra a la sala de clientes de su sucursal', () => {
+    const salas = salasDeIdentidad({ tipo: 'repartidor', id: 7, rol: 'REPARTIDOR', sucursalId: 2 });
+
+    expect(salas).not.toContain('sucursal:2');
+    expect(salas).not.toContain('admin:sucursal:2');
+});
+
 test('expone los nombres de sala usados por el backend', () => {
     expect(SALAS.pedido(45)).toBe('pedido:45');
     expect(SALAS.sucursal(2)).toBe('sucursal:2');
     expect(SALAS.rol('MASTER')).toBe('role:MASTER');
     expect(SALAS.adminGlobal()).toBe('admin:global');
+    expect(SALAS.repartidorSucursal(2)).toBe('repartidor:sucursal:2');
 });

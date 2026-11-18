@@ -21,7 +21,6 @@ test('rechaza un tipo de estrategia duplicado', () => {
         tipo: 'pedido.creado',
         version: 1,
         audiencias: ['admin'],
-        paraAdministradores: true,
         construir: () => ({ datos: {}, destinos: {} }),
     }), { virtual: true });
 

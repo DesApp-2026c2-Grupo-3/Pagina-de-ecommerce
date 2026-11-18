@@ -22,12 +22,26 @@ jest.mock('../../../src/models', () => ({
     Direccion: {},
     DetallePedido: {},
     Producto: {},
+    historialDeTiemposPedido: {
+        create: jest.fn(),
+    },
+}));
+
+jest.mock('../../../src/notifications/handlers/viajeHandlers', () => ({
+    notificarPedidosTomados: jest.fn(),
+    notificarViajeIniciado: jest.fn(),
+    notificarPedidoQuitado: jest.fn(),
+    notificarRecepcionConfirmada: jest.fn(),
+    notificarAsistenciaSolicitada: jest.fn(),
 }));
 
 const {
     Viaje,
     Pedido,
+    historialDeTiemposPedido,
 } = require('../../../src/models');
+
+const avisos = require('../../../src/notifications/handlers/viajeHandlers');
 
 const {
     tomarPedidos,
@@ -172,7 +186,16 @@ describe('Controlador de viajes del repartidor', () => {
             );
 
             expect(transaction.commit).toHaveBeenCalled();
+            expect(avisos.notificarPedidosTomados).toHaveBeenCalledWith({ viajeId: 10, sucursalId: 1 });
             expect(res.status).toHaveBeenCalledWith(201);
+        });
+
+        test('no avisa nada si la toma falla', async () => {
+            Viaje.findOne.mockResolvedValue({ id: 99 });
+
+            await tomarPedidos(crearRequest([1, 2]), crearRes());
+
+            expect(avisos.notificarPedidosTomados).not.toHaveBeenCalled();
         });
     });
 
@@ -181,12 +204,19 @@ describe('Controlador de viajes del repartidor', () => {
     // ==========================================
 
     describe('iniciarViaje', () => {
-        function prepararViaje({
-            cantidadPedidos = 2,
-            pendientes = 0,
-        } = {}) {
-            Pedido.count.mockReset();
-            
+        function crearPedido(id, retiradoEn = new Date()) {
+            const pedido = {
+                id,
+                estado: 'Listo para retirar',
+                retiradoEn,
+                update: jest.fn().mockImplementation(async (cambios) => {
+                    Object.assign(pedido, cambios);
+                }),
+            };
+            return pedido;
+        }
+
+        function prepararViaje(pedidos = [crearPedido(1), crearPedido(2)]) {
             const viaje = {
                 id: 10,
                 estado: 'preparando',
@@ -194,15 +224,13 @@ describe('Controlador de viajes del repartidor', () => {
             };
 
             Viaje.findOne.mockResolvedValue(viaje);
-            Pedido.count
-                .mockResolvedValueOnce(cantidadPedidos)
-                .mockResolvedValueOnce(pendientes);
+            Pedido.findAll.mockResolvedValue(pedidos);
 
-            return viaje;
+            return { viaje, pedidos };
         }
 
         const crearRequest = () => ({
-            repartidor: { id: 3 },
+            repartidor: { id: 3, sucursalId: 1 },
         });
 
         test('devuelve 404 si no encuentra un viaje preparando', async () => {
@@ -218,42 +246,50 @@ describe('Controlador de viajes del repartidor', () => {
         });
 
         test('no permite iniciar un viaje sin pedidos', async () => {
-            prepararViaje({ cantidadPedidos: 0 });
+            prepararViaje([]);
 
-            const req = crearRequest();
             const res = crearRes();
 
-            await iniciarViaje(req, res);
+            await iniciarViaje(crearRequest(), res);
 
             expect(res.status).toHaveBeenCalledWith(409);
             expect(transaction.rollback).toHaveBeenCalled();
         });
 
-        test('no permite iniciar si quedan pedidos listos para retirar', async () => {
-            prepararViaje({
-                cantidadPedidos: 2,
-                pendientes: 1,
-            });
+        test('no permite iniciar si queda algún pedido sin retirar', async () => {
+            const { viaje, pedidos } = prepararViaje([crearPedido(1), crearPedido(2, null)]);
 
-            const req = crearRequest();
             const res = crearRes();
 
-            await iniciarViaje(req, res);
+            await iniciarViaje(crearRequest(), res);
 
             expect(res.status).toHaveBeenCalledWith(409);
+            expect(res.json).toHaveBeenCalledWith({
+                mensaje: 'Todavía tenés pedidos pendientes de retirar',
+            });
+            expect(pedidos[0].update).not.toHaveBeenCalled();
+            expect(viaje.update).not.toHaveBeenCalled();
+            expect(historialDeTiemposPedido.create).not.toHaveBeenCalled();
             expect(transaction.rollback).toHaveBeenCalled();
+            expect(avisos.notificarViajeIniciado).not.toHaveBeenCalled();
         });
 
-        test('inicia el viaje cuando todos los pedidos fueron retirados', async () => {
-            const viaje = prepararViaje({
-                cantidadPedidos: 2,
-                pendientes: 0,
-            });
+        test('pasa todos los pedidos a "En camino" con historial, en la misma transacción', async () => {
+            const { viaje, pedidos } = prepararViaje();
 
-            const req = crearRequest();
             const res = crearRes();
 
-            await iniciarViaje(req, res);
+            await iniciarViaje(crearRequest(), res);
+
+            for (const pedido of pedidos) {
+                expect(pedido.update).toHaveBeenCalledWith({ estado: 'En camino' }, { transaction });
+                expect(historialDeTiemposPedido.create).toHaveBeenCalledWith({
+                    pedidoId: pedido.id,
+                    estadoAnterior: 'Listo para retirar',
+                    estado: 'En camino',
+                    fecha: expect.any(Date),
+                }, { transaction });
+            }
 
             expect(viaje.update).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -263,8 +299,29 @@ describe('Controlador de viajes del repartidor', () => {
                 { transaction }
             );
 
+            // La hora de "En camino" de cada pedido es la de salida del viaje
+            const fechaSalida = viaje.update.mock.calls[0][0].fechaInicio;
+            historialDeTiemposPedido.create.mock.calls.forEach(([fila]) => {
+                expect(fila.fecha).toBe(fechaSalida);
+            });
+
             expect(transaction.commit).toHaveBeenCalled();
+            expect(avisos.notificarViajeIniciado).toHaveBeenCalledWith({ viaje, pedidos, sucursalId: 1 });
             expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        test('si falla un paso no se inicia nada', async () => {
+            prepararViaje();
+            historialDeTiemposPedido.create.mockRejectedValueOnce(new Error('Base caída'));
+
+            const res = crearRes();
+
+            await iniciarViaje(crearRequest(), res);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(transaction.rollback).toHaveBeenCalled();
+            expect(transaction.commit).not.toHaveBeenCalled();
+            expect(avisos.notificarViajeIniciado).not.toHaveBeenCalled();
         });
     });
 
@@ -273,7 +330,7 @@ describe('Controlador de viajes del repartidor', () => {
     // ==========================================
 
     describe('quitarPedidoDelViaje', () => {
-        function prepararViajeYPedido(estadoPedido = 'Listo para retirar') {
+        function prepararViajeYPedido(estadoPedido = 'Listo para retirar', retiradoEn = null) {
             const viaje = {
                 id: 10,
                 destroy: jest.fn(),
@@ -282,6 +339,7 @@ describe('Controlador de viajes del repartidor', () => {
             const pedido = {
                 id: 1,
                 estado: estadoPedido,
+                retiradoEn,
                 update: jest.fn(),
             };
 
@@ -328,10 +386,11 @@ describe('Controlador de viajes del repartidor', () => {
 
             expect(res.status).toHaveBeenCalledWith(404);
             expect(transaction.rollback).toHaveBeenCalled();
+            expect(avisos.notificarPedidoQuitado).not.toHaveBeenCalled();
         });
 
         test('no permite quitar un pedido que ya fue retirado', async () => {
-            prepararViajeYPedido('En camino');
+            prepararViajeYPedido('Listo para retirar', new Date());
 
             const req = crearRequest();
             const res = crearRes();
@@ -358,6 +417,7 @@ describe('Controlador de viajes del repartidor', () => {
             );
 
             expect(transaction.commit).toHaveBeenCalled();
+            expect(avisos.notificarPedidoQuitado).toHaveBeenCalledWith({ pedido, viajeId: 10, repartidorId: 3 });
             expect(res.status).toHaveBeenCalledWith(200);
         });
 
@@ -453,6 +513,7 @@ describe('Controlador de viajes del repartidor', () => {
 
             expect(res.status).toHaveBeenCalledWith(404);
             expect(transaction.rollback).toHaveBeenCalled();
+            expect(avisos.notificarRecepcionConfirmada).not.toHaveBeenCalled();
         });
 
         test('informa si la recepción ya estaba confirmada', async () => {
@@ -473,13 +534,15 @@ describe('Controlador de viajes del repartidor', () => {
             await confirmarRecepcion(req, res);
 
             expect(viaje.update).not.toHaveBeenCalled();
+            expect(avisos.notificarRecepcionConfirmada).not.toHaveBeenCalled();
             expect(transaction.commit).toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(200);
         });
 
-        test('confirma la recepción del viaje', async () => {
+        test('confirma la recepción y avisa al admin con el repartidor y la cantidad de pedidos (D-19)', async () => {
             const req = {
-                repartidor: { id: 3 },
+                repartidor: { id: 3, sucursalId: 1 },
+                identidad: { tipo: 'repartidor', id: 3, nombre: 'Ana Gómez', sucursalId: 1 },
             };
 
             const res = crearRes();
@@ -491,6 +554,7 @@ describe('Controlador de viajes del repartidor', () => {
             };
 
             Viaje.findOne.mockResolvedValue(viaje);
+            Pedido.count.mockResolvedValue(3);
 
             await confirmarRecepcion(req, res);
 
@@ -498,9 +562,30 @@ describe('Controlador de viajes del repartidor', () => {
                 { recepcionConfirmada: true },
                 { transaction }
             );
+            expect(Pedido.count).toHaveBeenCalledWith({ where: { viajeId: 10 }, transaction });
 
             expect(transaction.commit).toHaveBeenCalled();
+            expect(avisos.notificarRecepcionConfirmada).toHaveBeenCalledWith({
+                viaje,
+                repartidor: { id: 3, nombre: 'Ana Gómez', sucursalId: 1 },
+                cantidadPedidos: 3,
+            });
             expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        test('avisa recién después del commit', async () => {
+            const req = {
+                repartidor: { id: 3, sucursalId: 1 },
+                identidad: { tipo: 'repartidor', id: 3, nombre: 'Ana Gómez', sucursalId: 1 },
+            };
+
+            Viaje.findOne.mockResolvedValue({ id: 10, recepcionConfirmada: false, update: jest.fn() });
+            Pedido.count.mockResolvedValue(2);
+
+            await confirmarRecepcion(req, crearRes());
+
+            expect(transaction.commit.mock.invocationCallOrder[0])
+                .toBeLessThan(avisos.notificarRecepcionConfirmada.mock.invocationCallOrder[0]);
         });
     });
 
@@ -559,7 +644,8 @@ describe('Controlador de viajes del repartidor', () => {
 
     describe('solicitarAyuda', () => {
         const crearRequest = (body = {}) => ({
-            repartidor: { id: 3 },
+            repartidor: { id: 3, sucursalId: 1 },
+            identidad: { tipo: 'repartidor', id: 3, nombre: 'Juan Pérez' },
             body: {
                 motivo: 'Problema con el vehículo',
                 comentario: 'Tuve un inconveniente',
@@ -579,6 +665,30 @@ describe('Controlador de viajes del repartidor', () => {
             await solicitarAyuda(req, res);
 
             expect(res.status).toHaveBeenCalledWith(400);
+        });
+
+        test('rechaza un comentario de más de 150 caracteres (D-25)', async () => {
+            const req = crearRequest({ comentario: 'a'.repeat(151) });
+            const res = crearRes();
+
+            await solicitarAyuda(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                mensaje: 'El comentario debe tener como máximo 150 caracteres',
+            });
+        });
+
+        test('acepta un comentario de 150 caracteres justos', async () => {
+            const req = crearRequest({ comentario: 'a'.repeat(150) });
+            const res = crearRes();
+
+            Viaje.findOne.mockResolvedValue(null);
+
+            await solicitarAyuda(req, res);
+
+            // Pasa la validación: sigue con la búsqueda del viaje
+            expect(res.status).toHaveBeenCalledWith(404);
         });
 
         test('rechaza coordenadas fuera de rango', async () => {
@@ -631,6 +741,10 @@ describe('Controlador de viajes del repartidor', () => {
             );
 
             expect(transaction.commit).toHaveBeenCalled();
+            expect(avisos.notificarAsistenciaSolicitada).toHaveBeenCalledWith({
+                viaje,
+                repartidor: { id: 3, nombre: 'Juan Pérez', sucursalId: 1 },
+            });
             expect(res.status).toHaveBeenCalledWith(200);
         });
     });

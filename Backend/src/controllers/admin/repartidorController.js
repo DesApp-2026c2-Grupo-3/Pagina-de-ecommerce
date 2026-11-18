@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const { Repartidor, Sucursal, Viaje, Admin } = require('../../models');
 const { Op } = require('sequelize');
+const { revocarSesiones } = require('../../sockets/revocacion');
 
 const SUCURSAL = {
     model: Sucursal,
@@ -171,8 +172,10 @@ const actualizarRepartidor = async (req, res) => {
         const emailNormalizado = email?.trim().toLowerCase() ?? repartidor.email;
 
         // Comprobamos que el email no pertenezca a otro repartidor.
+        // paranoid: false → el email de un repartidor dado de baja queda reservado (R3)
         const repartidorConEseEmail = await Repartidor.findOne({
             where: { email: emailNormalizado },
+            paranoid: false,
         });
 
         if (
@@ -251,8 +254,10 @@ const crearRepartidor = async (req, res) => {
             return res.status(400).json({ code: errorSucursal });
         }
 
+        // paranoid: false → el email de un repartidor dado de baja queda reservado (R3)
         const repartidorExistente = await Repartidor.findOne({
             where: { email: emailNormalizado },
+            paranoid: false,
         });
 
         if (repartidorExistente) {
@@ -322,6 +327,9 @@ const desactivarRepartidor = async (req, res) => {
         }
 
         await repartidor.update({ activo: false });
+
+        // Corta en vivo la app del repartidor (D-18)
+        revocarSesiones({ tipo: 'repartidor', id: repartidor.id, motivo: 'desactivado' });
 
         return res.status(200).json({
             mensaje: 'Repartidor desactivado correctamente'
@@ -495,6 +503,9 @@ const darDeBajaRepartidor = async (req, res) => {
 
         await repartidor.update({ activo: false });
         await repartidor.destroy();
+
+        // Corta en vivo la app del repartidor (D-18)
+        revocarSesiones({ tipo: 'repartidor', id: repartidor.id, motivo: 'baja' });
 
         return res.status(200).json({
             mensaje: 'Repartidor dado de baja correctamente'

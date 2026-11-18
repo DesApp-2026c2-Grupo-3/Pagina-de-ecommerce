@@ -2,15 +2,23 @@
 import type { Pedido } from '../../types/pedido.types'
 import { MapPin, Clock, UserRound, Package, ChevronDown } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { BORDE_POR_NIVEL, minutosDesde, nivelAntiguedad } from '../../utils/antiguedadPedido'
+import Boton from '../ui/Boton'
 
 interface TarjetaPedidoProps {
   pedido: Pedido
   seleccionado: boolean
   onSeleccionar: (id: number) => void
+  // Reloj compartido de la página (useAhora): define el color del borde
+  ahora: number
 }
 
-export default function TarjetaPedido({ pedido, seleccionado, onSeleccionar }: TarjetaPedidoProps) {
+export default function TarjetaPedido({ pedido, seleccionado, onSeleccionar, ahora }: TarjetaPedidoProps) {
   const fecha = new Date(pedido.fecha)
+  // D-15 v2: verde < 5 min, amarillo de 5 a 10, rojo desde 10. Solo cambia el borde.
+  const borde = BORDE_POR_NIVEL[nivelAntiguedad(pedido.fecha, ahora)]
+  const minutos = minutosDesde(pedido.fecha, ahora)
+  const antiguedad = minutos === null ? 'Hora desconocida' : `Hace ${minutos} min`
 
   const [mostrarProductos, setMostrarProductos] = useState(false)
 
@@ -45,16 +53,18 @@ export default function TarjetaPedido({ pedido, seleccionado, onSeleccionar }: T
   }, [])
 
   return (
-    <article className={`rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-      seleccionado
-        ? 'border-orange-400 ring-2 ring-orange-200'
-        : 'border-orange-100 hover:border-orange-200'
-    }`}>
+    <article
+      title={antiguedad}
+      aria-label={`Pedido #${pedido.id}, ${antiguedad.toLowerCase()}`}
+      className={`rounded-2xl border-2 ${borde} bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+        seleccionado ? 'ring-2 ring-orange-200' : ''
+      }`}
+    >
 
       {/* Encabezado */}
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
             Pedido #{pedido.id}
           </p>
           <h3 className="mt-1 text-xl font-extrabold text-slate-800">
@@ -84,7 +94,7 @@ export default function TarjetaPedido({ pedido, seleccionado, onSeleccionar }: T
               ref={botonProductosRef}
               type="button"
               onClick={() => setMostrarProductos(!mostrarProductos)}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-orange-50 px-2.5 py-1.5 text-xs font-semibold text-orange-700 transition hover:bg-orange-100"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-orange-50 px-2.5 py-1.5 text-xs font-semibold text-orange-700 transition hover:bg-orange-100 md:min-h-0"
             >
               <Package size={15} />
               {pedido.DetallePedidos.length} productos
@@ -147,7 +157,7 @@ export default function TarjetaPedido({ pedido, seleccionado, onSeleccionar }: T
         </div>
 
         {/* Fecha */}
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="flex items-center gap-2 text-xs text-slate-600">
           <Clock size={15} className="shrink-0 text-orange-500" />
           <span>
             {fecha.toLocaleDateString('es-AR')} ·{' '}
@@ -159,18 +169,17 @@ export default function TarjetaPedido({ pedido, seleccionado, onSeleccionar }: T
         </div>
       </div>
 
-      {/* Selección */}
-      <button
-        type="button"
-        onClick={() => onSeleccionar(pedido.id)}
-        className={`mt-5 w-full rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
-          seleccionado
-            ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20 hover:bg-orange-700'
-            : 'border border-orange-200 bg-orange-50 text-orange-700 hover:border-orange-300 hover:bg-orange-100'
-        }`}
-      >
-        {seleccionado ? 'Quitar de la seleccion' : 'Seleccionar pedido'}
-      </button>
+      {/* Selección: botón de alternar (aria-pressed) */}
+      <div className="mt-5">
+        <Boton
+          variante={seleccionado ? 'primaria' : 'secundaria'}
+          anchoCompleto
+          aria-pressed={seleccionado}
+          onClick={() => onSeleccionar(pedido.id)}
+        >
+          {seleccionado ? 'Quitar de la selección' : 'Seleccionar pedido'}
+        </Boton>
+      </div>
     </article>
   )
 }

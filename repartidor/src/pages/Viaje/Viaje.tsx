@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   RefreshCw,
   Truck,
@@ -12,146 +12,71 @@ import {
   Bike,
 } from 'lucide-react'
 
-import {
-  obtenerViajeActivo,
-  solicitarAyuda,
-  iniciarViaje,
-  quitarPedidoDelViaje,
-  confirmarRecepcion
-} from '../../services/viajeService'
-
-import type {
-  ViajeActivo,
-  SolicitudAsistencia,
-  SolicitudAsistenciaPayload,
-} from '../../types/viaje.types'
+import type { SolicitudAsistencia } from '../../types/viaje.types'
 
 import TarjetaPedidoViaje from '../../components/viaje/TarjetaPedidoViaje'
-import { actualizarEstadoPedido } from '../../services/pedidoService'
 import ModalQuitarPedido from '../../components/viaje/ModalQuitarPedido'
 import ModalSolicitudAyuda from '../../components/viaje/ModalSolicitudAyuda'
+import Boton from '../../components/ui/Boton'
+import BarraAccionFija from '../../components/ui/BarraAccionFija'
+import { useViajeActivo } from '../../hooks/useViajeActivo'
+import { useAvisoAccion } from '../../hooks/useAvisoAccion'
 
-const obtenerUbicacionActual = (): Promise<{
-  latitud: number
-  longitud: number
-}> => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Tu navegador no permite obtener la ubicación.'))
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (posicion) => {
-        resolve({
-          latitud: posicion.coords.latitude,
-          longitud: posicion.coords.longitude,
-        })
-      },
-      (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            reject(new Error('Debés permitir el acceso a tu ubicación para solicitar asistencia.'))
-            break
-          case error.POSITION_UNAVAILABLE:
-            reject(new Error('No se pudo determinar tu ubicación actual.'))
-            break
-          case error.TIMEOUT:
-            reject(new Error('Se agotó el tiempo para obtener tu ubicación. Intentá nuevamente.'))
-            break
-          default:
-            reject(new Error('Ocurrió un error al obtener tu ubicación.'))
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    )
-  })
-}
+const mensajeDe = (error: unknown, porDefecto: string) =>
+  error instanceof Error ? error.message : porDefecto
 
 export default function Viaje() {
-  const [viaje, setViaje] = useState<ViajeActivo | null>(null)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  const {
+    viaje,
+    cargando,
+    error,
+    recargar: cargarViaje,
+    retirar,
+    entregar,
+    quitar,
+    iniciar,
+    confirmarRecepcion,
+    pedirAyuda,
+  } = useViajeActivo()
+  const aviso = useAvisoAccion()
 
   const [pedidoProcesando, setPedidoProcesando] = useState<number | null>(null)
-  const [errorAccion, setErrorAccion] = useState('')
 
   const [modalAyuda, setModalAyuda] = useState(false)
   const [enviandoAyuda, setEnviandoAyuda] = useState(false)
   const [errorAyuda, setErrorAyuda] = useState('')
 
   const [iniciandoViaje, setIniciandoViaje] = useState(false)
-  const [errorInicio, setErrorInicio] = useState('')
 
   const [pedidoAQuitar, setPedidoAQuitar] = useState<number | null>(null)
   const [quitandoPedido, setQuitandoPedido] = useState(false)
   const [errorQuitar, setErrorQuitar] = useState('')
 
   const [confirmandoRecepcion, setConfirmandoRecepcion] = useState(false)
-  const [errorRecepcion, setErrorRecepcion] = useState('')
 
-  const cargarViaje = useCallback(async () => {
-    try {
-      setCargando(true)
-      setError('')
-
-      const datos = await obtenerViajeActivo()
-      setViaje(datos)
-    } catch {
-      setError('No se pudo obtener la información del viaje.')
-    } finally {
-      setCargando(false)
-    }
-  }, [])
-
-  const cambiarEstadoPedido = async (
-    pedidoId: number,
-    estado: 'En camino' | 'Entregado'
-  ) => {
+  // Plan UX, v1.6: las acciones que salen bien no se anuncian (la pantalla ya cambia);
+  // los errores sí, con un toast. Los de los modales se muestran dentro del modal.
+  const accionSobrePedido = async (pedidoId: number, ejecutar: (id: number) => Promise<void>, fallo: string) => {
     try {
       setPedidoProcesando(pedidoId)
-      setErrorAccion('')
-
-      await actualizarEstadoPedido(pedidoId, estado)
-
-      const datos = await obtenerViajeActivo()
-      setViaje(datos)
+      await ejecutar(pedidoId)
     } catch (error) {
-      setErrorAccion(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo actualizar el estado del pedido.'
-      )
+      aviso.error(fallo, error)
     } finally {
       setPedidoProcesando(null)
     }
   }
 
+  const manejarRetirar = (pedidoId: number) => accionSobrePedido(pedidoId, retirar, 'No se pudo retirar el pedido')
+  const manejarEntregar = (pedidoId: number) =>
+    accionSobrePedido(pedidoId, entregar, 'No se pudo registrar la entrega')
+
   const manejarConfirmarRecepcion = async () => {
     try {
       setConfirmandoRecepcion(true)
-      setErrorRecepcion('')
-
-      const respuesta = await confirmarRecepcion()
-
-      setViaje((actual) =>
-        actual
-          ? {
-              ...actual,
-             recepcionConfirmada: respuesta.recepcionConfirmada,
-            }
-          : actual
-      )
+      await confirmarRecepcion()
     } catch (error) {
-      setErrorRecepcion(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo confirmar la recepción de los pedidos.'
-      )
+      aviso.error('No se pudo confirmar la recepción', error)
     } finally {
       setConfirmandoRecepcion(false)
     }
@@ -168,17 +93,10 @@ export default function Viaje() {
     try {
       setQuitandoPedido(true)
       setErrorQuitar('')
-
-      await quitarPedidoDelViaje(pedidoAQuitar)
-
+      await quitar(pedidoAQuitar)
       setPedidoAQuitar(null)
-      await cargarViaje()
     } catch (error) {
-      setErrorQuitar(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo quitar el pedido del viaje.'
-      )
+      setErrorQuitar(mensajeDe(error, 'No se pudo quitar el pedido del viaje.'))
     } finally {
       setQuitandoPedido(false)
     }
@@ -187,17 +105,9 @@ export default function Viaje() {
   const manejarInicioViaje = async () => {
     try {
       setIniciandoViaje(true)
-      setErrorInicio('')
-
-      await iniciarViaje()
-
-      await cargarViaje()
+      await iniciar()
     } catch (error) {
-      setErrorInicio(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo iniciar el viaje.'
-      )
+      aviso.error('No se pudo iniciar el viaje', error)
     } finally {
       setIniciandoViaje(false)
     }
@@ -207,34 +117,18 @@ export default function Viaje() {
     try {
       setEnviandoAyuda(true)
       setErrorAyuda('')
-
-      const ubicacion = await obtenerUbicacionActual()
-
-      const payload: SolicitudAsistenciaPayload = {
-        ...datos,
-        ...ubicacion,
-      }
-
-      const respuesta = await solicitarAyuda(payload)
-
-      setViaje((actual) =>
-        actual ? { ...actual, ...respuesta.viaje } : actual
-      )
-
+      await pedirAyuda(datos)
       setModalAyuda(false)
     } catch (error) {
-      setErrorAyuda(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo enviar la solicitud de asistencia.'
-      )
+      setErrorAyuda(mensajeDe(error, 'No se pudo enviar la solicitud de asistencia.'))
     } finally {
       setEnviandoAyuda(false)
     }
   }
 
+  // D-07: se puede salir cuando todos los pedidos fueron retirados del local
   const todosRetirados =
-    viaje?.Pedidos.every((pedido) => pedido.estado === 'En camino') ?? false
+    viaje?.Pedidos.every((pedido) => pedido.retiradoEn !== null) ?? false
 
   const tieneUbicacionAsistencia =
     viaje?.latitudAsistencia != null &&
@@ -248,17 +142,13 @@ export default function Viaje() {
     ? `https://www.google.com/maps?q=${viaje.latitudAsistencia},${viaje.longitudAsistencia}`
     : null
 
-  useEffect(() => {
-    cargarViaje()
-  }, [cargarViaje])
-
   if (cargando) {
     return (
       <div className="flex min-h-[350px] flex-col items-center justify-center gap-4">
         <div className="rounded-2xl bg-orange-100 p-4">
           <Truck className="animate-pulse text-orange-500" size={32} />
         </div>
-        <p className="text-sm font-medium text-slate-500">
+        <p className="text-sm font-medium text-slate-600">
           Cargando información de tu viaje...
         </p>
       </div>
@@ -278,13 +168,11 @@ export default function Viaje() {
 
         <p className="mt-2 text-sm text-red-600">{error}</p>
 
-        <button
-          onClick={cargarViaje}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-        >
-          <RefreshCw size={16} />
-          Intentar nuevamente
-        </button>
+        <div className="mt-5 flex justify-center">
+          <Boton icono={RefreshCw} onClick={cargarViaje}>
+            Intentar nuevamente
+          </Boton>
+        </div>
       </div>
     )
   }
@@ -339,7 +227,7 @@ export default function Viaje() {
       descripcion: 'Retirá todos tus pedidos para comenzar el recorrido.',
       etiqueta: 'En preparación',
       icono: <Clock3 size={20} />,
-      color: 'text-blue-600',
+      color: 'text-blue-700',
       fondo: 'bg-blue-500/10',
       punto: 'bg-blue-400',
     },
@@ -357,7 +245,7 @@ export default function Viaje() {
       descripcion: 'Administración está revisando tu solicitud.',
       etiqueta: 'Requiere asistencia',
       icono: <AlertTriangle size={20} />,
-      color: 'text-amber-500',
+      color: 'text-amber-800',
       fondo: 'bg-amber-500/10',
       punto: 'bg-amber-400',
     },
@@ -366,7 +254,7 @@ export default function Viaje() {
       descripcion: 'Este viaje fue cancelado por administración.',
       etiqueta: 'Cancelado',
       icono: <AlertTriangle size={20} />,
-      color: 'text-red-500',
+      color: 'text-red-700',
       fondo: 'bg-red-500/10',
       punto: 'bg-red-400',
     },
@@ -375,7 +263,7 @@ export default function Viaje() {
       descripcion: 'Completaste todas las entregas de este recorrido.',
       etiqueta: 'Finalizado',
       icono: <CheckCircle2 size={20} />,
-      color: 'text-emerald-600',
+      color: 'text-emerald-700',
       fondo: 'bg-emerald-700/10',
       punto: 'bg-emerald-600',
   },
@@ -384,7 +272,7 @@ export default function Viaje() {
     descripcion: 'Información de tu recorrido.',
     etiqueta: viaje.estado,
     icono: <Truck size={20} />,
-    color: 'text-orange-300',
+    color: 'text-orange-700',
     fondo: 'bg-orange-500/10',
     punto: 'bg-orange-400',
   }
@@ -397,7 +285,7 @@ export default function Viaje() {
         <div>
           <div className="mb-1 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-orange-500" />
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-600">
+            <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
               Panel de repartidor
             </p>
           </div>
@@ -406,21 +294,14 @@ export default function Viaje() {
             Mi viaje
           </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600">
             Seguimiento y administración de tus pedidos asignados.
           </p>
         </div>
 
-        <button
-          onClick={cargarViaje}
-          className="group flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600"
-        >
-          <RefreshCw
-            size={17}
-            className="transition-transform group-hover:rotate-180"
-          />
+        <Boton variante="secundaria" icono={RefreshCw} onClick={cargarViaje}>
           Actualizar
-        </button>
+        </Boton>
       </section>
 
       
@@ -494,29 +375,23 @@ export default function Viaje() {
             <h3 className="text-lg font-extrabold text-slate-900">
               Pedidos del viaje
             </h3>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-600">
               Gestioná cada pedido de forma individual.
             </p>
           </div>
 
-          <span className="rounded-xl bg-orange-50 px-3 py-2 text-sm font-bold text-orange-600">
+          <span className="rounded-xl bg-orange-50 px-3 py-2 text-sm font-bold text-orange-700">
             {viaje.Pedidos.length} en total
           </span>
         </div>
-
-        {errorAccion && (
-          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
-            <AlertTriangle className="mt-0.5 shrink-0 text-red-500" size={18} />
-            <p className="text-sm text-red-600">{errorAccion}</p>
-          </div>
-        )}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {viaje.Pedidos.map((pedido) => (
             <TarjetaPedidoViaje
               key={pedido.id}
               pedido={pedido}
-              onActualizarEstado={cambiarEstadoPedido}
+              onRetirar={manejarRetirar}
+              onEntregar={manejarEntregar}
               procesando={pedidoProcesando === pedido.id}
               puedeRetirar={viaje.estado === 'preparando'}
               puedeEntregar={viaje.estado === 'activo' && viaje.recepcionConfirmada}
@@ -526,18 +401,18 @@ export default function Viaje() {
           ))}
         </div>
 
-        {pedidoAQuitar !== null && (
-          <ModalQuitarPedido
-            pedidoId={pedidoAQuitar}
-            procesando={quitandoPedido}
-            error={errorQuitar}
-            onCancelar={() => {
-              setPedidoAQuitar(null)
-              setErrorQuitar('')
-            }}
-            onConfirmar={confirmarQuitarPedido}
-          />
-        )}
+        {/* Siempre montado: al cerrarse, el navegador devuelve el foco al botón que lo abrió */}
+        <ModalQuitarPedido
+          abierto={pedidoAQuitar !== null}
+          pedidoId={pedidoAQuitar}
+          procesando={quitandoPedido}
+          error={errorQuitar}
+          onCancelar={() => {
+            setPedidoAQuitar(null)
+            setErrorQuitar('')
+          }}
+          onConfirmar={confirmarQuitarPedido}
+        />
       </section>
 
       {/* Acciones e información */}
@@ -552,7 +427,7 @@ export default function Viaje() {
               <h3 className="font-extrabold text-slate-900">
                 Información del recorrido
               </h3>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Estado actual y acciones disponibles.
               </p>
             </div>
@@ -576,47 +451,45 @@ export default function Viaje() {
                     Prepará tus pedidos
                   </h4>
                   <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                    Retirá todos los pedidos de la sucursal. Una vez que
-                    estén en camino, vas a poder iniciar tu recorrido.
+                    Retirá todos los pedidos de la sucursal. Cuando los
+                    tengas todos, vas a poder iniciar tu recorrido.
                   </p>
                 </div>
               </div>
             </div>
 
 
-              {errorInicio && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                  {errorInicio}
-                </div>
-              )}
-
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 text-sm">
                   {todosRetirados ? (
                     <>
-                      <CheckCircle2 className="text-emerald-500" size={19} />
+                      <CheckCircle2 className="text-emerald-600" size={19} />
                       <span className="font-medium text-emerald-700">
                         Todos los pedidos fueron retirados.
                       </span>
                     </>
                   ) : (
                     <>
-                      <Clock3 className="text-amber-500" size={19} />
-                      <span className="text-slate-500">
+                      <Clock3 className="text-amber-600" size={19} />
+                      <span className="text-slate-600">
                         Todavía tenés pedidos por retirar.
                       </span>
                     </>
                   )}
                 </div>
 
-                <button
-                  onClick={manejarInicioViaje}
-                  disabled={!todosRetirados || iniciandoViaje}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition hover:-translate-y-0.5 hover:from-orange-600 hover:to-orange-700 hover:shadow-orange-500/30 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                >
-                  <Truck size={18} />
-                  {iniciandoViaje ? 'Iniciando...' : 'Iniciar viaje'}
-                </button>
+                {/* En el celular este botón vive en la barra fija de abajo */}
+                <div className="hidden md:block">
+                  <Boton
+                    icono={Truck}
+                    onClick={manejarInicioViaje}
+                    disabled={!todosRetirados}
+                    cargando={iniciandoViaje}
+                    textoCargando="Iniciando…"
+                  >
+                    Iniciar viaje
+                  </Boton>
+                </div>
               </div>
             </>
           )}
@@ -644,7 +517,7 @@ export default function Viaje() {
                     verificar que recibiste todos correctamente.
                     </p>
 
-                    <p className="mt-2 text-xs text-amber-700">
+                    <p className="mt-2 text-xs text-amber-800">
                     La ubicación corresponde al momento en que se solicitó asistencia.
                     Debés confirmar la recepción antes de continuar con las entregas.
                     </p>
@@ -662,25 +535,18 @@ export default function Viaje() {
                     </a>
                   )}
 
-                  <button onClick={manejarConfirmarRecepcion}
-                  disabled={confirmandoRecepcion}
-                  className="inline-flex items-center justify-center gap-2
-                  rounded-xl bg-amber-600 px-5 py-3 text-sm font-bold text-white
-                  shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed
-                  disabled:opacity-50">
-                    <CheckCircle2 size={18} />
-                    {confirmandoRecepcion
-                      ? 'Confirmando recepción...'
-                      : 'Confirmar recepción'}
-                  </button>
-                </div>
-
-                {errorRecepcion && (
-                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 
-                  text-sm text-red-600">
-                    {errorRecepcion}
+                  {/* En el celular este botón vive en la barra fija de abajo */}
+                  <div className="hidden md:block">
+                    <Boton
+                      icono={CheckCircle2}
+                      onClick={manejarConfirmarRecepcion}
+                      cargando={confirmandoRecepcion}
+                      textoCargando="Confirmando…"
+                    >
+                      Confirmar recepción
+                    </Boton>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -705,20 +571,20 @@ export default function Viaje() {
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-600">
                   ¿Tuviste algún inconveniente durante el recorrido?
                 </p>
 
-                <button
+                <Boton
+                  variante="peligro"
+                  icono={AlertTriangle}
                   onClick={() => {
                     setErrorAyuda('')
                     setModalAyuda(true)
                   }}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/15 transition hover:-translate-y-0.5 hover:bg-red-700"
                 >
-                  <AlertTriangle size={18} />
                   Solicitar asistencia
-                </button>
+                </Boton>
               </div>
             </>
           )}
@@ -741,13 +607,13 @@ export default function Viaje() {
                   </p>
 
                   {viaje.comentarioAsistencia && (
-                    <p className="mt-2 text-sm leading-relaxed text-amber-800">
+                    <p className="mt-2 text-sm leading-relaxed text-amber-800 [overflow-wrap:anywhere]">
                       <strong>Comentario:</strong>{' '}
                       {viaje.comentarioAsistencia}
                     </p>
                   )}
 
-                  <div className="mt-4 flex items-center gap-2 border-t border-amber-200 pt-3 text-xs font-medium text-amber-700">
+                  <div className="mt-4 flex items-center gap-2 border-t border-amber-200 pt-3 text-xs font-medium text-amber-800">
                     <Clock3 size={15} />
                     Esperá a que administración revise tu solicitud.
                   </div>
@@ -758,14 +624,49 @@ export default function Viaje() {
         </div>
       </section>
 
-      {/* Modal de asistencia */}
-      {modalAyuda && (
-        <ModalSolicitudAyuda
-          enviando={enviandoAyuda}
-          error={errorAyuda}
-          onCerrar={() => setModalAyuda(false)}
-          onConfirmar={enviarSolicitudAyuda}
-        />
+      {/* Modal de asistencia (siempre montado, igual que el de quitar) */}
+      <ModalSolicitudAyuda
+        abierto={modalAyuda}
+        enviando={enviandoAyuda}
+        error={errorAyuda}
+        onCerrar={() => setModalAyuda(false)}
+        onConfirmar={enviarSolicitudAyuda}
+      />
+
+      {/* Acción principal en el celular: barra fija encima de la navegación (plan UX, 7.5).
+          Hija directa de la página para que "sticky" la acompañe al desplazarse. */}
+      {viaje.estado === 'preparando' && (
+        <BarraAccionFija
+          enEscritorio="oculta"
+          ayuda={todosRetirados ? undefined : 'Retirá todos los pedidos para poder iniciar el viaje.'}
+        >
+          <Boton
+            tamano="lg"
+            anchoCompleto
+            icono={Truck}
+            onClick={manejarInicioViaje}
+            disabled={!todosRetirados}
+            cargando={iniciandoViaje}
+            textoCargando="Iniciando…"
+          >
+            Iniciar viaje
+          </Boton>
+        </BarraAccionFija>
+      )}
+
+      {viaje.estado === 'activo' && !viaje.recepcionConfirmada && (
+        <BarraAccionFija enEscritorio="oculta">
+          <Boton
+            tamano="lg"
+            anchoCompleto
+            icono={CheckCircle2}
+            onClick={manejarConfirmarRecepcion}
+            cargando={confirmandoRecepcion}
+            textoCargando="Confirmando…"
+          >
+            Confirmar recepción
+          </Boton>
+        </BarraAccionFija>
       )}
     </div>
   )

@@ -210,11 +210,12 @@ const obtenerPedidosPorUsuario = async (req, res) => {
            // A cada pedido en curso se le agrega su hora estimada de llegada (se corrige sola si hay demoras)
            const parametros = await obtenerParametros();
            const respuesta = pedidos.map((pedido) => {
+               // D-07: el estado guardado es el que ve el cliente ("En camino" recién al iniciar el viaje)
                const datos = pedido.toJSON();
                const distancia = distanciaEntre(pedido.Direccion, pedido.Sucursal);
                datos.estimacion = distancia === null ? null : estimarLlegada({
                    fecha: pedido.fecha,
-                   estado: pedido.estado,
+                   estado: datos.estado,
                    historial: datos.historialDeTiemposPedidos,
                    unidades: contarUnidades(datos.DetallePedidos ?? []),
                    distanciaKm: distancia,

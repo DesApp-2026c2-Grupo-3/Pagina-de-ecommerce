@@ -18,6 +18,7 @@ const {
 } = require('../../../src/models');
 
 const bcrypt = require('bcrypt');
+const { revocarSesiones } = require('../../../src/sockets/revocacion');
 
 jest.mock('../../../src/models', () => ({
     Repartidor: {
@@ -44,6 +45,10 @@ jest.mock('../../../src/models', () => ({
 
 jest.mock('bcrypt', () => ({
     hash: jest.fn(),
+}));
+
+jest.mock('../../../src/sockets/revocacion', () => ({
+    revocarSesiones: jest.fn(),
 }));
 
 function crearRes() {
@@ -396,6 +401,20 @@ describe('crearRepartidor', () => {
         });
     });
 
+    test('el email de un repartidor dado de baja queda reservado (R3)', async () => {
+        Sucursal.findByPk.mockResolvedValue({ id: 2, activa: true });
+        Repartidor.findOne.mockResolvedValue({ id: 10, deletedAt: new Date() });
+
+        const res = crearRes();
+
+        await crearRepartidor(crearRequest({ body: bodyValido }), res);
+
+        // paranoid: false → la búsqueda incluye a los dados de baja
+        expect(Repartidor.findOne).toHaveBeenCalledWith(expect.objectContaining({ paranoid: false }));
+        expect(Repartidor.create).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(409);
+    });
+
     test('devuelve 500 si ocurre un error al crear', async () => {
         Sucursal.findByPk.mockRejectedValue(new Error('Error de base de datos'));
 
@@ -523,6 +542,7 @@ describe('actualizarRepartidor', () => {
 
         await actualizarRepartidor(req, res);
 
+        expect(Repartidor.findOne).toHaveBeenCalledWith(expect.objectContaining({ paranoid: false }));
         expect(res.status).toHaveBeenCalledWith(409);
         expect(res.json).toHaveBeenCalledWith({
             code: 'email-en-uso',
@@ -628,7 +648,26 @@ describe('desactivarRepartidor', () => {
         await desactivarRepartidor(req, res);
 
         expect(repartidor.update).toHaveBeenCalledWith({ activo: false });
+        expect(revocarSesiones).toHaveBeenCalledWith({
+            tipo: 'repartidor',
+            id: 1,
+            motivo: 'desactivado',
+        });
         expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    test('no corta la sesión si no se pudo guardar la desactivación', async () => {
+        const repartidor = prepararRepartidor();
+        repartidor.update.mockRejectedValue(new Error('Error de base de datos'));
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        const req = crearRequest({ params: { id: 1 } });
+        const res = crearRes();
+
+        await desactivarRepartidor(req, res);
+
+        expect(revocarSesiones).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(500);
     });
 
     test('devuelve 404 si no existe', async () => {
@@ -687,6 +726,7 @@ describe('desactivarRepartidor', () => {
         await desactivarRepartidor(req, res);
 
         expect(repartidor.update).not.toHaveBeenCalled();
+        expect(revocarSesiones).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(400);
     });
 
@@ -972,7 +1012,7 @@ describe('darDeBajaRepartidor', () => {
         return repartidor;
     }
 
-    test('da de baja permanentemente un repartidor', async () => {
+    test('da de baja con borrado lógico: la fila queda con deletedAt y activo = false', async () => {
         const repartidor = prepararRepartidor();
 
         const req = crearRequest({ params: { id: 1 } });
@@ -982,6 +1022,11 @@ describe('darDeBajaRepartidor', () => {
 
         expect(repartidor.update).toHaveBeenCalledWith({ activo: false });
         expect(repartidor.destroy).toHaveBeenCalled();
+        expect(revocarSesiones).toHaveBeenCalledWith({
+            tipo: 'repartidor',
+            id: 1,
+            motivo: 'baja',
+        });
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith({
             mensaje: 'Repartidor dado de baja correctamente',
@@ -1033,7 +1078,22 @@ describe('darDeBajaRepartidor', () => {
 
         expect(repartidor.update).not.toHaveBeenCalled();
         expect(repartidor.destroy).not.toHaveBeenCalled();
+        expect(revocarSesiones).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(409);
+    });
+
+    test('no corta la sesión si no se pudo guardar la baja', async () => {
+        const repartidor = prepararRepartidor();
+        repartidor.destroy.mockRejectedValue(new Error('Error de base de datos'));
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        const req = crearRequest({ params: { id: 1 } });
+        const res = crearRes();
+
+        await darDeBajaRepartidor(req, res);
+
+        expect(revocarSesiones).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(500);
     });
 
     test('devuelve 500 si ocurre un error', async () => {

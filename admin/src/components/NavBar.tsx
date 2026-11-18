@@ -15,6 +15,8 @@ import { useAuth } from '../context/AuthContext'
 import { enlacesDe, type Enlace } from '../config/menu'
 import { useLogoutAdmin } from '../hooks/useLogoutAdmin'
 import NotificacionCampana from './notificaciones/NotificacionCampana'
+import { hayModalAbierto, suscribirModales } from '../hooks/useBloquearScroll'
+import { useHayModalAbierto } from '../hooks/useHayModalAbierto'
 
 interface NavBarProps {
   menuAbierto: boolean
@@ -81,6 +83,16 @@ interface Leyenda {
 export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false)
   const { administrador } = useAuth()
+
+  // D-23: con un modal abierto el menú no se puede abrir, y si estaba abierto (celular) se cierra
+  const modalAbierto = useHayModalAbierto()
+  useEffect(
+    () =>
+      suscribirModales(() => {
+        if (hayModalAbierto()) setMenuMovilAbierto(false)
+      }),
+    [],
+  )
   const { salir, saliendo } = useLogoutAdmin()
 
   const navRef = useRef<HTMLElement>(null)
@@ -192,6 +204,7 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
       </div>
 
       <button type="button" onClick={() => setMenuAbierto(!menuAbierto)}
+        disabled={modalAbierto}
         aria-label={menuAbierto ? 'Contraer menú' : 'Expandir menú'}
         aria-expanded={menuAbierto}
         title={menuAbierto ? 'Contraer menú' : 'Expandir menú'}
@@ -422,10 +435,12 @@ export default function Navbar({ menuAbierto, setMenuAbierto } : NavBarProps) {
     
     {/* Botón y panel lateral para celular */}
     <div className="md:hidden">
+      {/* D-23: z-[45] queda sobre el fondo del menú (z-40) y debajo de los modales (z-50) */}
       <button type="button" onClick={() => setMenuMovilAbierto(!menuMovilAbierto)}
         aria-label={menuMovilAbierto ? 'Cerrar menú' : 'Abrir menú'}
         aria-expanded={menuMovilAbierto}
-        className={`fixed top-1/2 z-[60] flex h-16 w-7 -translate-y-1/2 items-center justify-center
+        hidden={modalAbierto}
+        className={`fixed top-1/2 z-[45] flex h-16 w-7 -translate-y-1/2 items-center justify-center
           border border-orange-500 bg-gray-900 text-white shadow-lg
           transition-[left] duration-200 md:hidden
           ${ menuMovilAbierto ? 'left-72 rounded-r-xl' : 'left-0 rounded-r-xl border-l-0'}`}>

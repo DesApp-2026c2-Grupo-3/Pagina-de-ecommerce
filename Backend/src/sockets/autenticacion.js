@@ -2,6 +2,9 @@
 
 const { resolverIdentidad } = require('../services/authService');
 
+// Única validación: la misma de REST (resolverIdentidad). Acá solo se filtra el tipo.
+const TIPOS_PERMITIDOS = new Set(['admin', 'cliente', 'repartidor']);
+
 function errorSocket(code) {
     const error = new Error(code);
     error.data = { code };
@@ -18,7 +21,7 @@ async function autenticarSocket(socket, next) {
     try {
         const identidad = await resolverIdentidad(token);
 
-        if (!identidad || !['admin', 'cliente'].includes(identidad.tipo)) {
+        if (!identidad || !TIPOS_PERMITIDOS.has(identidad.tipo)) {
             return next(errorSocket('AUTH_INVALID'));
         }
 

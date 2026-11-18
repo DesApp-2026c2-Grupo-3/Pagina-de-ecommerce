@@ -14,6 +14,17 @@ const {
 } = require('../../../src/models');
 
 const { Op } = require('sequelize');
+const { notificarViajeReasignado } = require('../../../src/notifications/handlers/viajeHandlers');
+
+jest.mock('../../../src/notifications/handlers/viajeHandlers', () => ({
+    notificarViajeReasignado: jest.fn(),
+}));
+
+jest.mock('../../../src/sockets/revocacion', () => ({
+    revocarSesiones: jest.fn(),
+}));
+
+const { revocarSesiones } = require('../../../src/sockets/revocacion');
 
 jest.mock('../../../src/models', () => ({
     Viaje: {
@@ -24,7 +35,9 @@ jest.mock('../../../src/models', () => ({
             transaction: jest.fn(),
         },
     },
-    Pedido: {},
+    Pedido: {
+        count: jest.fn(),
+    },
     Repartidor: {
         findByPk: jest.fn(),
     },
@@ -94,6 +107,7 @@ function crearRepartidor(overrides = {}) {
         apellido: 'Pérez',
         sucursalId: 2,
         activo: true,
+        update: jest.fn(),
         ...overrides,
     };
 }
@@ -203,13 +217,15 @@ describe('obtenerViajesPorSucursal', () => {
             include: [
                 {
                     model: Repartidor,
-                    attributes: ['id', 'nombre', 'apellido'],
+                    // R2/R6: también los repartidores dados de baja, con su deletedAt
+                    attributes: ['id', 'nombre', 'apellido', 'deletedAt'],
                     where: { sucursalId: 8 },
                     required: true,
+                    paranoid: false,
                 },
                 {
                     model: Pedido,
-                    attributes: ['id', 'fecha', 'estado', 'total'],
+                    attributes: ['id', 'fecha', 'estado', 'total', 'retiradoEn'],
                     include: [
                         {
                             model: Usuario,
@@ -562,14 +578,25 @@ describe('reasignarViaje', () => {
             status: 409,
             mensaje: 'El repartidor seleccionado ya tiene un viaje en curso',
         });
+        expect(notificarViajeReasignado).not.toHaveBeenCalled();
     });
 
     test('reasigna correctamente el viaje al nuevo repartidor', async () => {
     const viaje = prepararBase();
+    Pedido.count.mockResolvedValue(2);
 
     const res = crearRes();
 
     await reasignarViaje(reqValida(), res);
+
+    // Después del commit: el nuevo recibe el viaje y el anterior lo pierde
+    expect(notificarViajeReasignado).toHaveBeenCalledWith({
+        viaje,
+        anteriorId: 3,
+        nuevoId: 5,
+        sucursalId: 2,
+        cantidadPedidos: 2,
+    });
 
     expect(viaje.update).toHaveBeenCalledWith(
         {
@@ -596,8 +623,54 @@ describe('reasignarViaje', () => {
                 apellido: 'Pérez',
             },
         },
+        repartidorAnterior: {
+            id: 3,
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            activo: false,
+        },
     });
 });
+
+    test('D-24: quien pidió la asistencia queda inactivo y se le cierra la sesión', async () => {
+        configurarTransaccion();
+        Admin.findByPk.mockResolvedValue(adminMaster);
+        const viaje = crearViaje();
+        Viaje.findByPk.mockResolvedValue(viaje);
+        const anterior = crearRepartidor({ id: 3, nombre: 'Ana', apellido: 'Gómez', sucursalId: 2 });
+        Repartidor.findByPk
+            .mockResolvedValueOnce(anterior)
+            .mockResolvedValueOnce(crearRepartidor({ id: 5, sucursalId: 2 }));
+        Viaje.findOne.mockResolvedValue(null);
+        Pedido.count.mockResolvedValue(2);
+
+        const res = crearRes();
+        await reasignarViaje(reqValida(), res);
+
+        expect(anterior.update).toHaveBeenCalledWith({ activo: false }, { transaction: expect.anything() });
+        expect(revocarSesiones).toHaveBeenCalledWith({ tipo: 'repartidor', id: 3, motivo: 'asistencia' });
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            repartidorAnterior: { id: 3, nombre: 'Ana', apellido: 'Gómez', activo: false },
+        }));
+    });
+
+    test('D-24: si la reasignación no procede, nadie queda inactivo ni se cierra ninguna sesión', async () => {
+        configurarTransaccion();
+        Admin.findByPk.mockResolvedValue(adminMaster);
+        Viaje.findByPk.mockResolvedValue(crearViaje());
+        const anterior = crearRepartidor({ id: 3, sucursalId: 2 });
+        Repartidor.findByPk
+            .mockResolvedValueOnce(anterior)
+            .mockResolvedValueOnce(crearRepartidor({ id: 5, sucursalId: 2 }));
+        Viaje.findOne.mockResolvedValue({ id: 99 });
+
+        const res = crearRes();
+        await reasignarViaje(reqValida(), res);
+
+        expect(res.status).toHaveBeenCalledWith(409);
+        expect(anterior.update).not.toHaveBeenCalled();
+        expect(revocarSesiones).not.toHaveBeenCalled();
+    });
 
     test('devuelve 500 si ocurre un error durante la transacción', async () => {
         Viaje.sequelize.transaction.mockRejectedValue(
@@ -616,6 +689,7 @@ describe('reasignarViaje', () => {
         expect(res.json).toHaveBeenCalledWith({
             mensaje: 'Error al reasignar el viaje',
         });
+        expect(notificarViajeReasignado).not.toHaveBeenCalled();
 
         expect(consoleSpy).toHaveBeenCalled();
     });

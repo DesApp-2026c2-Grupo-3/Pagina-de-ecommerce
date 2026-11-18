@@ -102,6 +102,18 @@ const autenticarCualquiera = async (req, res, next) => {
     return next();
 };
 
+// Va después de autenticarCualquiera. Deja pasar al dueño del recurso o a un administrador
+// (ADMIN o MASTER). obtenerId(req) dice de qué usuario es el recurso (por defecto, el :id de la URL).
+// Un repartidor nunca es dueño de un perfil de cliente.
+const esPropietarioOAdmin = (obtenerId = (req) => req.params.id) => (req, res, next) => {
+    const { identidad } = req;
+
+    if (identidad?.tipo === 'admin') return next();
+    if (identidad?.tipo === 'cliente' && identidad.id === Number(obtenerId(req))) return next();
+
+    return res.status(403).json({ mensaje: 'No tenés permiso sobre este usuario' });
+};
+
 // Solo el administrador general
 const soloMaster = (req, res, next) => {
     if (req.admin?.rol === 'MASTER') return next();
@@ -131,6 +143,7 @@ module.exports = {
     autenticarUsuario,
     autenticarAdmin,
     autenticarCualquiera,
+    esPropietarioOAdmin,
     soloMaster,
     deSuSucursal,
 };

@@ -4,6 +4,7 @@ export type DominioRefresco =
   | 'productos'
   | 'sucursales'
   | 'reportes'
+  | 'viajes'
 
 export type AccionRefresco =
   | 'creado'
@@ -15,6 +16,7 @@ export interface RecursosRefresco {
   insumoId?: number
   pedidoId?: number
   productoId?: number
+  viajeId?: number
 }
 
 export interface EventoRefrescoAdmin {
