@@ -26,12 +26,14 @@ export default function Historial() {
     cargarHistorial()
   }, [])
 
-  const formatearFecha = (fecha: string) => {
+  const formatearFecha = (fecha: string | null) => {
+    if (!fecha) return 'Sin fecha'
     return new Date(fecha).toLocaleString('es-AR', {
       dateStyle: 'short',
       timeStyle: 'short',
     })
   }
+
 
   if (cargando) {
     return <p className="text-slate-500">Cargando historial...</p>

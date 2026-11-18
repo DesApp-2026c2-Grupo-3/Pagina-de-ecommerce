@@ -10,47 +10,6 @@ import ModalQuitarPedido from '../../components/viaje/ModalQuitarPedido'
 
 import  ModalSolicitudAyuda  from '../../components/viaje/ModalSolicitudAyuda'
 
-const obtenerUbicacionActual = (): Promise<{
-  latitud: number
-  longitud: number
-}> => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Tu navegador no permite obtener la ubicación.'))
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (posicion) => {
-        resolve({
-          latitud: posicion.coords.latitude,
-          longitud: posicion.coords.longitude,
-        })
-      },
-      (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            reject(new Error('Debés permitir el acceso a tu ubicación para solicitar asistencia.'))
-            break
-          case error.POSITION_UNAVAILABLE:
-            reject(new Error('No se pudo determinar tu ubicación actual.'))
-            break
-          case error.TIMEOUT:
-            reject(new Error('Se agotó el tiempo para obtener tu ubicación. Intentá nuevamente.'))
-            break
-          default:
-            reject(new Error('Ocurrió un error al obtener tu ubicación.'))
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    )
-  })
-}
-
 export default function Viaje() {
   const [viaje, setViaje] = useState<ViajeActivo | null>(null)
   const [cargando, setCargando] = useState(true)
