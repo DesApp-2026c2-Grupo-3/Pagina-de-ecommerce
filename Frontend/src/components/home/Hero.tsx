@@ -20,13 +20,14 @@ function Hero() {
 
   const primerNombre = capitalizarPrimerNombre(user?.name)
   const eyebrowSucursal = zona ? `Pedís desde ${zona.sucursalNombre}` : undefined
+  const nombreLargo = primerNombre.length > 10
 
   const slides: CarouselSlide[] = [
     {
       id: 1,
-      eyebrow: eyebrowSucursal,
-      title: isAuthenticated
-        ? `Hola, ${primerNombre}. ¿Qué se te antoja hoy?`
+      eyebrow: nombreLargo ? undefined : eyebrowSucursal, 
+      title: isAuthenticated 
+        ? (nombreLargo ? `${primerNombre}. ¿Qué se te antoja hoy?` : `Hola, ${primerNombre}. ¿Qué se te antoja hoy?`)
         : 'La hamburguesa que amás, en la puerta de tu casa',
       nombraUsuario: true,
       highlight: isAuthenticated ? 'antoja' : 'amás',

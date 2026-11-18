@@ -47,8 +47,9 @@ function BottomNav() {
     { label: isAuthenticated ? 'Mi cuenta' : 'Ingresar', to: isAuthenticated ? '/cuenta' : '/login', Icono: UserRound },
   ]
 
-  return (
-    <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 px-4 pb-4 lg:hidden">
+    return (
+    <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 px-4 pb-4 md:hidden">
+
       <div className="mx-auto grid max-w-md grid-cols-5 items-center rounded-full border-2 border-white/10 bg-brand-dark shadow-[0_10px_30px_rgba(26,20,20,0.45)]">
         {izquierda.map((tab) => (
           <TabLink key={tab.to} {...tab} />
