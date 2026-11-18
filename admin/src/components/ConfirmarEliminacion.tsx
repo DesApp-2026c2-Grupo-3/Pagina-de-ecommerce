@@ -1,3 +1,5 @@
+import { useBloquearScroll } from '../hooks/useBloquearScroll'
+
 interface ConfirmarEliminacionProps {
   abierto: boolean
   mensaje: string
@@ -16,6 +18,7 @@ export default function ConfirmarEliminacion({
   onConfirmar,
   onCancelar,
 }: ConfirmarEliminacionProps) {
+  useBloquearScroll(abierto)
 
   if (!abierto) {
     return null

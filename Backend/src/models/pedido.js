@@ -31,6 +31,8 @@ module.exports = (sequelize, DataTypes) => {
     // Envío cobrado (aparte de "total", que es solo productos) y tiempo de entrega prometido
     costoEnvio: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
     minutosEstimados: { type: DataTypes.INTEGER, allowNull: true },
+    // D-07: cuándo lo retiró el repartidor del local (el estado no cambia hasta iniciar el viaje)
+    retiradoEn: { type: DataTypes.DATE, allowNull: true },
   }, {
     sequelize,
     modelName: 'Pedido',

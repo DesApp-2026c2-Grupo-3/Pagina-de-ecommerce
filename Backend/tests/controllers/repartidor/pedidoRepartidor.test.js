@@ -20,6 +20,11 @@ jest.mock('../../../src/models', () => ({
     },
 }));
 
+jest.mock('../../../src/notifications/handlers/viajeHandlers', () => ({
+    notificarPedidoRetirado: jest.fn(),
+    notificarPedidoEntregado: jest.fn(),
+}));
+
 const {
     Pedido,
     Viaje,
@@ -27,8 +32,14 @@ const {
 } = require('../../../src/models');
 
 const {
+    notificarPedidoRetirado,
+    notificarPedidoEntregado,
+} = require('../../../src/notifications/handlers/viajeHandlers');
+
+const {
     obtenerPedidosDisponibles,
-    actualizarEstadoPedido,
+    retirarPedido,
+    entregarPedido,
 } = require('../../../src/controllers/repartidor/pedidoRepartidorController');
 
 function crearRes() {
@@ -121,226 +132,235 @@ describe('Controlador de pedidos del repartidor', () => {
         });
     });
 
+    function crearPedido(datos = {}) {
+        const pedido = {
+            id: 10,
+            sucursalId: 2,
+            viajeId: 5,
+            estado: 'Listo para retirar',
+            retiradoEn: null,
+            ...datos,
+            update: jest.fn().mockImplementation(async (cambios) => {
+                Object.assign(pedido, cambios);
+            }),
+        };
+        return pedido;
+    }
+
+    function crearViaje(datos = {}) {
+        const viaje = {
+            id: 5,
+            estado: 'preparando',
+            recepcionConfirmada: true,
+            ...datos,
+            update: jest.fn().mockImplementation(async (cambios) => {
+                Object.assign(viaje, cambios);
+            }),
+        };
+        return viaje;
+    }
+
+    const crearReq = (pedidoId = '10') => ({
+        params: { pedidoId },
+        repartidor: { id: 3, sucursalId: 2 },
+    });
+
     // ==========================================
-    // ACTUALIZAR ESTADO DEL PEDIDO
+    // RETIRAR (D-07)
     // ==========================================
 
-    describe('actualizarEstadoPedido', () => {
-        function prepararActualizacion({
-            estadoPedido = 'Listo para retirar',
-            estadoViaje = 'preparando',
-            recepcionConfirmada = true,
-        } = {}) {
-            const pedido = {
-                id: 10,
-                estado: estadoPedido,
-                update: jest.fn().mockImplementation(async ({ estado }) => {
-                    pedido.estado = estado;
-                }),
-            };
-
-            const viaje = {
-                id: 5,
-                estado: estadoViaje,
-                recepcionConfirmada,
-                update: jest.fn(),
-            };
-
-            Viaje.findOne.mockResolvedValue(viaje);
+    describe('retirarPedido', () => {
+        test('registra el retiro sin cambiar el estado', async () => {
+            const pedido = crearPedido();
+            Viaje.findOne.mockResolvedValue(crearViaje());
             Pedido.findOne.mockResolvedValue(pedido);
-            Pedido.count.mockResolvedValue(1);
-
-            return { pedido, viaje };
-        }
-
-        function crearRequest(estado = 'En camino') {
-            return {
-                params: {
-                    pedidoId: 10,
-                },
-                body: {
-                    estado,
-                },
-                repartidor: {
-                    id: 3,
-                },
-            };
-        }
-
-        test('devuelve 404 si el repartidor no tiene un viaje activo', async () => {
-            const req = crearRequest();
             const res = crearRes();
 
+            await retirarPedido(crearReq(), res);
+
+            expect(Viaje.findOne).toHaveBeenCalledWith(expect.objectContaining({
+                where: { repartidorId: 3, estado: 'preparando' },
+            }));
+            expect(pedido.update).toHaveBeenCalledWith(
+                { retiradoEn: expect.any(Date) },
+                { transaction }
+            );
+            expect(pedido.estado).toBe('Listo para retirar');
+            expect(historialDeTiemposPedido.create).not.toHaveBeenCalled();
+            expect(transaction.commit).toHaveBeenCalled();
+            expect(notificarPedidoRetirado).toHaveBeenCalledWith({ pedido });
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        test('retirar dos veces responde 409', async () => {
+            Viaje.findOne.mockResolvedValue(crearViaje());
+            Pedido.findOne.mockResolvedValue(crearPedido({ retiradoEn: new Date() }));
+            const res = crearRes();
+
+            await retirarPedido(crearReq(), res);
+
+            expect(res.status).toHaveBeenCalledWith(409);
+            expect(transaction.rollback).toHaveBeenCalled();
+            expect(notificarPedidoRetirado).not.toHaveBeenCalled();
+        });
+
+        test('sin un viaje en preparación responde 409', async () => {
             Viaje.findOne.mockResolvedValue(null);
-
-            await actualizarEstadoPedido(req, res);
-
-            expect(transaction.rollback).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({
-                mensaje: 'No tenés un viaje activo',
-            });
-        });
-
-        test('devuelve 404 si el pedido no pertenece al viaje', async () => {
-            const req = crearRequest();
             const res = crearRes();
 
-            Viaje.findOne.mockResolvedValue({
-                id: 5,
-                estado: 'preparando',
-            });
+            await retirarPedido(crearReq(), res);
 
+            expect(res.status).toHaveBeenCalledWith(409);
+            expect(Pedido.findOne).not.toHaveBeenCalled();
+        });
+
+        test('un pedido que no es de su viaje responde 404', async () => {
+            Viaje.findOne.mockResolvedValue(crearViaje());
             Pedido.findOne.mockResolvedValue(null);
+            const res = crearRes();
 
-            await actualizarEstadoPedido(req, res);
+            await retirarPedido(crearReq(), res);
 
-            expect(transaction.rollback).toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({
-                mensaje: 'El pedido no pertenece a tu viaje activo',
-            });
         });
 
-        test('no permite retirar pedidos si el viaje ya está activo', async () => {
-            prepararActualizacion({
-                estadoPedido: 'Listo para retirar',
-                estadoViaje: 'activo',
-            });
-
-            const req = crearRequest('En camino');
+        test('un pedido que ya no está "Listo para retirar" responde 409', async () => {
+            Viaje.findOne.mockResolvedValue(crearViaje());
+            Pedido.findOne.mockResolvedValue(crearPedido({ estado: 'Cancelado' }));
             const res = crearRes();
 
-            await actualizarEstadoPedido(req, res);
+            await retirarPedido(crearReq(), res);
 
-            expect(transaction.rollback).toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(409);
-            expect(res.json).toHaveBeenCalledWith({
-                mensaje: 'Solo podés retirar pedidos mientras preparás el viaje',
-            });
         });
 
-        test('no permite entregar pedidos si el viaje todavía está preparando', async () => {
-            prepararActualizacion({
-                estadoPedido: 'En camino',
-                estadoViaje: 'preparando',
-            });
-
-            const req = crearRequest('Entregado');
+        test('un id inválido responde 400 sin abrir transacción', async () => {
             const res = crearRes();
 
-            await actualizarEstadoPedido(req, res);
+            await retirarPedido(crearReq('abc'), res);
 
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(Pedido.sequelize.transaction).not.toHaveBeenCalled();
+        });
+
+        test('un error inesperado responde 500 y deshace la transacción', async () => {
+            Viaje.findOne.mockRejectedValue(new Error('Base caída'));
+            const res = crearRes();
+
+            await retirarPedido(crearReq(), res);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error al retirar el pedido' });
             expect(transaction.rollback).toHaveBeenCalled();
+        });
+    });
+
+    // ==========================================
+    // ENTREGAR
+    // ==========================================
+
+    describe('entregarPedido', () => {
+        function prepararEntrega({ viaje = {}, pedido = {}, pendientes = 1 } = {}) {
+            const v = crearViaje({ estado: 'activo', ...viaje });
+            const p = crearPedido({ estado: 'En camino', retiradoEn: new Date(), ...pedido });
+            Viaje.findOne.mockResolvedValue(v);
+            Pedido.findOne.mockResolvedValue(p);
+            Pedido.count.mockResolvedValue(pendientes);
+            return { viaje: v, pedido: p };
+        }
+
+        test('entrega el pedido, registra el historial y avisa', async () => {
+            const { viaje, pedido } = prepararEntrega();
+            const res = crearRes();
+
+            await entregarPedido(crearReq(), res);
+
+            expect(pedido.update).toHaveBeenCalledWith({ estado: 'Entregado' }, { transaction });
+            expect(historialDeTiemposPedido.create).toHaveBeenCalledWith(expect.objectContaining({
+                pedidoId: 10,
+                estadoAnterior: 'En camino',
+                estado: 'Entregado',
+            }), { transaction });
+            expect(viaje.update).not.toHaveBeenCalled();
+            expect(notificarPedidoEntregado).toHaveBeenCalledWith({ pedido, estadoAnterior: 'En camino' });
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ viajeFinalizado: false }));
+        });
+
+        test('cierra el viaje al entregar el último pedido', async () => {
+            const { viaje } = prepararEntrega({ pendientes: 0 });
+            const res = crearRes();
+
+            await entregarPedido(crearReq(), res);
+
+            expect(viaje.update).toHaveBeenCalledWith(
+                { estado: 'finalizado', fechaFin: expect.any(Date) },
+                { transaction }
+            );
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ viajeFinalizado: true }));
+        });
+
+        test('sin recepción confirmada responde 409 (viaje reasignado)', async () => {
+            prepararEntrega({ viaje: { recepcionConfirmada: false } });
+            const res = crearRes();
+
+            await entregarPedido(crearReq(), res);
+
             expect(res.status).toHaveBeenCalledWith(409);
-            expect(res.json).toHaveBeenCalledWith({
-                mensaje: 'Primero debés iniciar el viaje para entregar pedidos',
-            });
-        });
-
-        test('no permite entregar si no se confirmó la recepción', async () => {
-            prepararActualizacion({
-                estadoPedido: 'En camino',
-                estadoViaje: 'activo',
-                recepcionConfirmada: false,
-            });
-
-            const req = crearRequest('Entregado');
-            const res = crearRes();
-
-            await actualizarEstadoPedido(req, res);
-
-            expect(transaction.rollback).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(403);
             expect(res.json).toHaveBeenCalledWith({
                 mensaje: 'Primero tenés que confirmar que recibiste todos los pedidos',
             });
+            expect(notificarPedidoEntregado).not.toHaveBeenCalled();
         });
 
-        test('rechaza una transición de estado inválida', async () => {
-            prepararActualizacion({
-                estadoPedido: 'Listo para retirar',
-                estadoViaje: 'preparando',
-            });
-
-            const req = crearRequest('Entregado');
+        test.each(['preparando', 'requiere asistencia'])('con el viaje "%s" responde 409', async (estado) => {
+            prepararEntrega({ viaje: { estado } });
             const res = crearRes();
 
-            await actualizarEstadoPedido(req, res);
+            await entregarPedido(crearReq(), res);
 
+            expect(res.status).toHaveBeenCalledWith(409);
+            expect(Pedido.findOne).not.toHaveBeenCalled();
+        });
+
+        test('sin viaje en curso responde 404', async () => {
+            Viaje.findOne.mockResolvedValue(null);
+            const res = crearRes();
+
+            await entregarPedido(crearReq(), res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+        });
+
+        test('un pedido ya entregado responde 409', async () => {
+            prepararEntrega({ pedido: { estado: 'Entregado' } });
+            const res = crearRes();
+
+            await entregarPedido(crearReq(), res);
+
+            expect(res.status).toHaveBeenCalledWith(409);
+            expect(historialDeTiemposPedido.create).not.toHaveBeenCalled();
+        });
+
+        test('un pedido que no es de su viaje responde 404', async () => {
+            prepararEntrega();
+            Pedido.findOne.mockResolvedValue(null);
+            const res = crearRes();
+
+            await entregarPedido(crearReq(), res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+        });
+
+        test('un error inesperado responde 500 y deshace la transacción', async () => {
+            prepararEntrega();
+            historialDeTiemposPedido.create.mockRejectedValueOnce(new Error('Base caída'));
+            const res = crearRes();
+
+            await entregarPedido(crearReq(), res);
+
+            expect(res.status).toHaveBeenCalledWith(500);
             expect(transaction.rollback).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({
-                mensaje: 'No se puede cambiar el pedido de "Listo para retirar" a "Entregado"',
-            });
-        });
-
-        test('actualiza el pedido y registra el cambio en el historial', async () => {
-            const { pedido } = prepararActualizacion();
-
-            const req = crearRequest('En camino');
-            const res = crearRes();
-
-            await actualizarEstadoPedido(req, res);
-
-            expect(pedido.update).toHaveBeenCalledWith(
-                { estado: 'En camino' },
-                { transaction }
-            );
-
-            expect(historialDeTiemposPedido.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    pedidoId: 10,
-                    estadoAnterior: 'Listo para retirar',
-                    estado: 'En camino',
-                }),
-                { transaction }
-            );
-
-            expect(transaction.commit).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                mensaje: 'Estado del pedido actualizado correctamente',
-                pedido: {
-                    id: 10,
-                    estado: 'En camino',
-                },
-                viajeFinalizado: false,
-            });
-        });
-
-        test('finaliza el viaje cuando todos los pedidos están terminados', async () => {
-            const { pedido, viaje } = prepararActualizacion({
-                estadoPedido: 'En camino',
-                estadoViaje: 'activo',
-            });
-
-            Pedido.count.mockResolvedValue(0);
-
-            const req = crearRequest('Entregado');
-            const res = crearRes();
-
-            await actualizarEstadoPedido(req, res);
-
-            expect(pedido.update).toHaveBeenCalled();
-            expect(viaje.update).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    estado: 'finalizado',
-                    fechaFin: expect.any(Date),
-                }),
-                { transaction }
-            );
-
-            expect(transaction.commit).toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                mensaje: 'Estado del pedido actualizado correctamente',
-                pedido: {
-                    id: 10,
-                    estado: 'Entregado',
-                },
-                viajeFinalizado: true,
-            });
+            expect(notificarPedidoEntregado).not.toHaveBeenCalled();
         });
     });
 });

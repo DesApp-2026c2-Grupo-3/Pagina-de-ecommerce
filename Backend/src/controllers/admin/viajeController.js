@@ -8,6 +8,8 @@ const {
 } = require('../../models');
 
 const { Op } = require('sequelize');
+const { notificarViajeReasignado } = require('../../notifications/handlers/viajeHandlers');
+const { revocarSesiones } = require('../../sockets/revocacion');
 
 // El MASTER puede consultar cualquier sucursal;
 // el administrador común, solamente la propia.
@@ -49,19 +51,24 @@ const obtenerViajesPorSucursal = async (req, res) => {
             include: [
                 {
                     model: Repartidor,
-                    attributes: ['id', 'nombre', 'apellido'],
+                    // R2 (D-16 v2): el historial incluye a los repartidores dados de baja;
+                    // deletedAt le permite al panel marcarlos (R6)
+                    attributes: ['id', 'nombre', 'apellido', 'deletedAt'],
                     where: {
                         sucursalId: sucursal.id,
                     },
                     required: true,
+                    paranoid: false,
                 },
                 {
                     model: Pedido,
+                    // retiradoEn (D-07): el panel marca qué pedidos ya salieron del local
                     attributes: [
                         'id',
                         'fecha',
                         'estado',
                         'total',
+                        'retiradoEn',
                     ],
                     include: [
                         {
@@ -99,6 +106,9 @@ const reasignarViaje = async (req, res) => {
         }
 
         const nuevoRepartidorId = Number(repartidorId);
+
+        // Datos para avisar después del commit (solo si la reasignación salió bien)
+        let aviso = null;
 
         const resultado = await Viaje.sequelize.transaction(async (transaction) => {
             // Verificar que el administrador exista.
@@ -213,6 +223,8 @@ const reasignarViaje = async (req, res) => {
                 };
             }
 
+            const anteriorId = viaje.repartidorId;
+
             // Reasignar el viaje existente.
             await viaje.update(
                 {
@@ -222,6 +234,23 @@ const reasignarViaje = async (req, res) => {
                 },
                 { transaction }
             );
+
+            // D-24: quien pidió la asistencia queda inactivo hasta que un admin lo reactive.
+            // Así no vuelve a aparecer como opción si el viaje necesita otra asistencia.
+            await repartidorActual.update({ activo: false }, { transaction });
+
+            const cantidadPedidos = await Pedido.count({
+                where: { viajeId: viaje.id },
+                transaction,
+            });
+
+            aviso = {
+                viaje,
+                anteriorId,
+                nuevoId: nuevoRepartidor.id,
+                sucursalId,
+                cantidadPedidos,
+            };
 
             return {
                 status: 200,
@@ -236,8 +265,21 @@ const reasignarViaje = async (req, res) => {
                         apellido: nuevoRepartidor.apellido,
                     },
                 },
+                // D-24: el panel avisa que quedó inactivo
+                repartidorAnterior: {
+                    id: repartidorActual.id,
+                    nombre: repartidorActual.nombre,
+                    apellido: repartidorActual.apellido,
+                    activo: false,
+                },
             };
         });
+
+        if (aviso) {
+            await notificarViajeReasignado(aviso);
+            // D-24 / D-18: se le cierra la sesión en vivo, con un motivo propio
+            revocarSesiones({ tipo: 'repartidor', id: aviso.anteriorId, motivo: 'asistencia' });
+        }
 
         return res.status(resultado.status).json(resultado);
 

@@ -4,22 +4,28 @@ const { getIo } = require('../../sockets');
 const { SALAS } = require('../../sockets/salas');
 const registro = require('../registroEstrategias');
 
-function salasDeNotificacion(destinos = {}, tipo = null) {
-    const salas = new Set();
-    const admiteAdministradores = tipo === null
-        ? true
-        : registro.tipoParaAdministradores(tipo);
+// Cada clave de `destinos` pertenece a una o más audiencias y se traduce a salas (D-05).
+// Una notificación solo llega a las salas de las audiencias que declara su estrategia.
+const DESTINOS = [
+    { clave: 'clientes', audiencias: ['cliente'], sala: (id) => SALAS.usuario('cliente', id) },
+    { clave: 'administradores', audiencias: ['admin'], sala: (id) => SALAS.usuario('admin', id) },
+    { clave: 'administradoresSucursal', audiencias: ['admin'], sala: SALAS.adminSucursal },
+    { clave: 'clientesSucursal', audiencias: ['cliente'], sala: SALAS.sucursal },
+    // A la sala de un pedido se suscriben su cliente y los admins de la sucursal
+    { clave: 'pedidos', audiencias: ['cliente', 'admin'], sala: SALAS.pedido },
+    { clave: 'roles', audiencias: ['admin'], sala: SALAS.rol },
+    { clave: 'repartidores', audiencias: ['repartidor'], sala: (id) => SALAS.usuario('repartidor', id) },
+    { clave: 'repartidoresSucursal', audiencias: ['repartidor'], sala: SALAS.repartidorSucursal },
+];
 
-    (destinos.clientes ?? []).forEach((id) => salas.add(SALAS.usuario('cliente', id)));
-    if (admiteAdministradores) {
-        (destinos.administradores ?? []).forEach((id) => salas.add(SALAS.usuario('admin', id)));
-        (destinos.administradoresSucursal ?? []).forEach((id) => salas.add(SALAS.adminSucursal(id)));
+function salasDeNotificacion(destinos = {}, tipo) {
+    const audiencias = new Set(registro.audienciasDe(tipo));
+    const salas = new Set();
+
+    for (const { clave, audiencias: delDestino, sala } of DESTINOS) {
+        if (!delDestino.some((audiencia) => audiencias.has(audiencia))) continue;
+        (destinos[clave] ?? []).forEach((valor) => salas.add(sala(valor)));
     }
-    (destinos.clientesSucursal ?? []).forEach((id) => salas.add(SALAS.sucursal(id)));
-    (destinos.pedidos ?? []).forEach((id) => salas.add(SALAS.pedido(id)));
-    (destinos.roles ?? []).forEach((rol) => {
-        if (admiteAdministradores || rol !== 'admin') salas.add(SALAS.rol(rol));
-    });
 
     return [...salas];
 }

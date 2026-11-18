@@ -10,17 +10,16 @@ jest.mock('bcrypt', () => ({
     compare: jest.fn(),
 }));
 
-jest.mock('jsonwebtoken', () => ({
-    sign: jest.fn(),
+jest.mock('../../../src/services/authService', () => ({
+    firmarTokenRepartidor: jest.fn(),
 }));
 
 const { Repartidor } = require('../../../src/models');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const { firmarTokenRepartidor } = require('../../../src/services/authService');
 
 const {
     login,
-    logout,
     obtenerSesion,
 } = require('../../../src/controllers/repartidor/authRepartidorController');
 
@@ -29,7 +28,6 @@ function crearRes() {
     res.status = jest.fn().mockReturnValue(res);
     res.json = jest.fn().mockReturnValue(res);
     res.cookie = jest.fn().mockReturnValue(res);
-    res.clearCookie = jest.fn().mockReturnValue(res);
     return res;
 }
 
@@ -51,10 +49,7 @@ beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    process.env.SECRET_JWT_REPARTIDOR = 'secreto-de-prueba';
-    process.env.NODE_ENV = 'test';
-
-    jwt.sign.mockReturnValue('token-falso');
+    firmarTokenRepartidor.mockReturnValue('token-falso');
 });
 
 afterEach(() => {
@@ -62,7 +57,7 @@ afterEach(() => {
 });
 
 describe('login', () => {
-    test('inicia sesión correctamente y establece la cookie', async () => {
+    test('inicia sesión y devuelve el token y el repartidor, sin cookie', async () => {
         Repartidor.findOne.mockResolvedValue(repartidorBase);
         bcrypt.compare.mockResolvedValue(true);
 
@@ -88,32 +83,20 @@ describe('login', () => {
             'password-hasheada'
         );
 
-        expect(jwt.sign).toHaveBeenCalledWith(
-            { id: 1, sucursalId: 2 },
-            'secreto-de-prueba',
-            { expiresIn: '7d' }
-        );
-
-        expect(res.cookie).toHaveBeenCalledWith(
-            'repartidor_token',
-            'token-falso',
-            expect.objectContaining({
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: false,
-            })
-        );
-
+        expect(firmarTokenRepartidor).toHaveBeenCalledWith(repartidorBase);
+        expect(res.cookie).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(200);
 
         expect(res.json).toHaveBeenCalledWith({
-            id: 1,
-            nombre: 'Juan',
-            apellido: 'Pérez',
-            email: 'juan@gmail.com',
-            sucursalId: 2,
-            Sucursal: repartidorBase.Sucursal,
+            token: 'token-falso',
+            repartidor: {
+                id: 1,
+                nombre: 'Juan',
+                apellido: 'Pérez',
+                email: 'juan@gmail.com',
+                sucursalId: 2,
+                Sucursal: repartidorBase.Sucursal,
+            },
         });
     });
 
@@ -153,7 +136,7 @@ describe('login', () => {
         });
 
         expect(bcrypt.compare).not.toHaveBeenCalled();
-        expect(jwt.sign).not.toHaveBeenCalled();
+        expect(firmarTokenRepartidor).not.toHaveBeenCalled();
     });
 
     test('responde 401 si el repartidor está inactivo', async () => {
@@ -197,8 +180,7 @@ describe('login', () => {
             code: 'email-password-incorrectos',
         });
 
-        expect(jwt.sign).not.toHaveBeenCalled();
-        expect(res.cookie).not.toHaveBeenCalled();
+        expect(firmarTokenRepartidor).not.toHaveBeenCalled();
     });
 
     test('responde 500 si ocurre un error en la consulta', async () => {
@@ -216,44 +198,6 @@ describe('login', () => {
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({
             mensaje: 'Error al iniciar sesión',
-        });
-    });
-});
-
-describe('logout', () => {
-    test('cierra la sesión y limpia la cookie', async () => {
-        const res = crearRes();
-
-        await logout({}, res);
-
-        expect(res.clearCookie).toHaveBeenCalledWith(
-            'repartidor_token',
-            expect.objectContaining({
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: false,
-            })
-        );
-
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Sesión cerrada',
-        });
-    });
-
-    test('responde 500 si ocurre un error al cerrar sesión', async () => {
-        const res = crearRes();
-
-        res.clearCookie.mockImplementation(() => {
-            throw new Error('Error al limpiar cookie');
-        });
-
-        await logout({}, res);
-
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Error al cerrar sesión',
         });
     });
 });

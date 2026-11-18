@@ -4,6 +4,7 @@ import { Bike } from "lucide-react";
 import MensajeVacio from "../../components/MensajeVacio";
 import { obtenerRepartidoresDisponibles } from "../../services/repartidorService";
 import type { RepartidorDisponible } from "../../types/repartidor.types";
+import { useBloquearScroll } from "../../hooks/useBloquearScroll";
 
 interface Props {
   viajeId: number;
@@ -17,6 +18,9 @@ export default function ModalReasignarRepartidor({viajeId, onClose, onSelecciona
   const [seleccionado, setSeleccionado] = useState<number | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+
+  // Se monta solo cuando está abierto
+  useBloquearScroll(true);
 
   useEffect(() => {
     let cancelado = false;

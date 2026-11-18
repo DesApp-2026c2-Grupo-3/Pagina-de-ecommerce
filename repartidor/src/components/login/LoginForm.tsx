@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { Eye, EyeOff, LockKeyhole, Mail, LoaderCircle } from 'lucide-react'
 
 interface LoginFormProps {
@@ -10,6 +10,8 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
   const [password, setPassword] = useState('')
   const [mostrarPassword, setMostrarPassword] = useState(false)
   const [cargando, setCargando] = useState(false)
+  const idEmail = useId()
+  const idPassword = useId()
   const [error, setError] = useState('')
 
   const manejarSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -40,14 +42,15 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
   return (
     <form onSubmit={manejarSubmit} className="w-full space-y-5">
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-700">
+        <label htmlFor={idEmail} className="mb-2 block text-sm font-semibold text-slate-700">
           Correo electrónico
         </label>
 
         <div className="relative">
-          <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" aria-hidden="true" />
 
           <input
+            id={idEmail}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -59,14 +62,15 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-700">
+        <label htmlFor={idPassword} className="mb-2 block text-sm font-semibold text-slate-700">
           Contraseña
         </label>
 
         <div className="relative">
-          <LockKeyhole className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <LockKeyhole className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" aria-hidden="true" />
 
           <input
+            id={idPassword}
             type={mostrarPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -78,7 +82,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
           <button
             type="button"
             onClick={() => setMostrarPassword(!mostrarPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+            className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
             aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
           >
             {mostrarPassword ? (
@@ -91,7 +95,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
@@ -99,7 +103,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
       <button
         type="submit"
         disabled={cargando}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 font-semibold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-700 py-3.5 font-semibold text-white shadow-lg shadow-orange-700/20 transition hover:bg-orange-800 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {cargando ? (
           <>

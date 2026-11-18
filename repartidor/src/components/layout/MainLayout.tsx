@@ -1,89 +1,74 @@
+import { useCallback, useState } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
 
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Bike, ClipboardList, History, LogOut, MapPinned } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useNotificaciones } from '../../context/notificaciones/NotificacionContext'
+import { useEstadoConexion } from '../../hooks/useEstadoConexion'
+import { useTituloNoLeidas } from '../../hooks/useTituloNoLeidas'
+import { useAvisosEnVivo } from '../../hooks/useAvisosEnVivo'
+import { useAvisoPedidosNuevos } from '../../hooks/useAvisoPedidosNuevos'
+import { usePedidosParaTomar } from '../../hooks/usePedidosParaTomar'
+import EncabezadoApp from './EncabezadoApp'
+import NavegacionSuperior from './NavegacionSuperior'
+import NavegacionInferior from './NavegacionInferior'
+import FranjaConexion from '../conexion/FranjaConexion'
+import ContenedorToasts from '../toasts/ContenedorToasts'
 
-const enlaces = [
-  { nombre: 'Inicio', ruta: '/', icono: Bike },
-  { nombre: 'Pedidos', ruta: '/pedidos', icono: ClipboardList },
-  { nombre: 'Mi viaje', ruta: '/viaje', icono: MapPinned },
-  { nombre: 'Historial', ruta: '/historial', icono: History },
-]
-
+// Solo compone: encabezado (con la franja de conexión y la campana), navegación, contenido y toasts
 export default function MainLayout() {
-  const { repartidor, logout } = useAuth()
+  const { repartidor, cerrarSesion } = useAuth()
+  const { estado, franja } = useEstadoConexion()
+  const { noLeidas } = useNotificaciones()
   const navigate = useNavigate()
+  const [avisosAbiertos, setAvisosAbiertos] = useState(false)
 
-  const manejarLogout = async () => {
-    await logout()
+  const alternarAvisos = useCallback(() => setAvisosAbiertos((abiertos) => !abiertos), [])
+  const abrirAvisos = useCallback(() => setAvisosAbiertos(true), [])
+  const cerrarAvisos = useCallback(() => setAvisosAbiertos(false), [])
+
+  useTituloNoLeidas(noLeidas)
+  // Tocar la acción de un toast lleva a otra pantalla: si la bandeja estaba abierta, se cierra
+  useAvisosEnVivo(cerrarAvisos)
+  // Pedidos para tomar (v1.7): contador en la pestaña Pedidos y toast agrupado, sin campana
+  const pedidosParaTomar = usePedidosParaTomar()
+  useAvisoPedidosNuevos({ puedeTomar: pedidosParaTomar !== null, repartidorId: repartidor?.id ?? null })
+
+  // Sin cookie no hay nada que cerrar en el servidor: el cierre es local
+  const manejarSalir = () => {
+    cerrarSesion()
     navigate('/login', { replace: true })
   }
 
   return (
     <div className="min-h-screen bg-orange-50/60">
-      {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20">
-              <Bike size={23} />
-            </div>
-
-            <div>
-              <h1 className="font-bold text-slate-900">Repartidor</h1>
-              <p className="text-xs text-slate-500">Panel de entregas</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold text-slate-800">
-                {repartidor?.nombre} {repartidor?.apellido}
-              </p>
-              <p className="text-xs text-slate-500">
-                Sucursal {repartidor?.Sucursal?.nombre ?? `Sucursal #${repartidor?.sucursalId}`}
-              </p>
-            </div>
-
-            <button
-              onClick={manejarLogout}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-              title="Cerrar sesión"
-            >
-              <LogOut size={18} />
-              <span className="hidden sm:inline">Salir</span>
-            </button>
-          </div>
-        </div>
+      <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-md">
+        <EncabezadoApp
+          repartidor={repartidor}
+          conexion={estado}
+          noLeidas={noLeidas}
+          avisosAbiertos={avisosAbiertos}
+          onAlternarAvisos={alternarAvisos}
+          onCerrarAvisos={cerrarAvisos}
+          onSalir={manejarSalir}
+        />
+        <FranjaConexion franja={franja} />
       </header>
 
-      {/* Navbar */}
-      <nav className="border-b border-orange-100 bg-white">
-        <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6">
-          {enlaces.map(({ nombre, ruta, icono: Icono }) => (
-            <NavLink
-              key={ruta}
-              to={ruta}
-              end={ruta === '/'}
-              className={({ isActive }) =>
-                `flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition ${
-                  isActive
-                    ? 'border-orange-500 bg-orange-50/70 text-orange-700'
-                    : 'border-transparent text-slate-500 hover:bg-orange-50/50 hover:text-orange-700'
-                }`
-              }
-            >
-              <Icono size={18} />
-              {nombre}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+      <NavegacionSuperior pedidosParaTomar={pedidosParaTomar} />
 
-      {/* Contenido */}
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+      {/* Abajo deja lugar a la barra inferior del celular */}
+      <main className="mx-auto max-w-7xl px-4 pt-6 pb-[calc(var(--alto-nav-inferior)+1.5rem)] sm:px-6 sm:pt-8 md:pb-8">
         <Outlet />
       </main>
+
+      <NavegacionInferior
+        noLeidas={noLeidas}
+        pedidosParaTomar={pedidosParaTomar}
+        avisosAbiertos={avisosAbiertos}
+        onAbrirAvisos={abrirAvisos}
+      />
+
+      <ContenedorToasts />
     </div>
   )
 }

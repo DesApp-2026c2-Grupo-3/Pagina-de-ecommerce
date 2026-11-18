@@ -4,11 +4,16 @@ const registro = require('../../src/notifications/registroEstrategias');
 
 test('descubre todas las estrategias del directorio', () => {
     expect(registro.tiposRegistrados()).toEqual([
+        'pedido.cancelado_en_viaje',
         'pedido.creado',
         'pedido.estado_cambiado',
         'stock.bajo',
         'sucursal.cerrada',
         'sucursal.modificada_por_admin',
+        'viaje.asignado',
+        'viaje.asistencia_tomada',
+        'viaje.reasignado',
+        'viaje.requiere_asistencia',
     ]);
 });
 
@@ -18,6 +23,8 @@ test('deriva la bandeja de administradores', () => {
         'stock.bajo',
         'sucursal.cerrada',
         'sucursal.modificada_por_admin',
+        'viaje.asistencia_tomada',
+        'viaje.requiere_asistencia',
     ]);
 });
 
@@ -29,11 +36,29 @@ test('deriva la bandeja de clientes', () => {
     ]);
 });
 
-test('expone la audiencia de administradores por tipo', () => {
-    expect(registro.tipoParaAdministradores('pedido.creado')).toBe(true);
-    expect(registro.tipoParaAdministradores('sucursal.modificada_por_admin')).toBe(true);
-    expect(registro.tipoParaAdministradores('pedido.estado_cambiado')).toBe(false);
-    expect(registro.tipoParaAdministradores('desconocido')).toBe(false);
+test('expone las audiencias de cada tipo', () => {
+    expect(registro.audienciasDe('pedido.creado')).toEqual(['admin', 'cliente']);
+    expect(registro.audienciasDe('sucursal.modificada_por_admin')).toEqual(['admin']);
+    expect(registro.audienciasDe('pedido.estado_cambiado')).toEqual(['cliente']);
+    expect(registro.audienciasDe('desconocido')).toEqual([]);
+});
+
+test('ninguna estrategia declara la propiedad paraAdministradores', () => {
+    for (const tipo of registro.tiposRegistrados()) {
+        expect(registro.obtenerEstrategia(tipo)).not.toHaveProperty('paraAdministradores');
+    }
+});
+
+test('deriva la bandeja del repartidor', () => {
+    expect(registro.tiposInbox('repartidor')).toEqual([
+        'pedido.cancelado_en_viaje',
+        'viaje.asignado',
+        'viaje.reasignado',
+    ]);
+});
+
+test('una audiencia desconocida no tiene bandeja', () => {
+    expect(registro.tiposInbox('otra')).toEqual([]);
 });
 
 test('devuelve null para tipos no registrados', () => {

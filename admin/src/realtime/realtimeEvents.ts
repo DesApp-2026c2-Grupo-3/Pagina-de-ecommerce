@@ -13,6 +13,7 @@ const DOMINIOS: DominioRefresco[] = [
   'productos',
   'sucursales',
   'reportes',
+  'viajes',
 ]
 
 const ACCIONES: AccionRefresco[] = [
@@ -22,7 +23,7 @@ const ACCIONES: AccionRefresco[] = [
   'estado_cambiado',
 ]
 
-const CLAVES_RECURSO = ['insumoId', 'pedidoId', 'productoId'] as const
+const CLAVES_RECURSO = ['insumoId', 'pedidoId', 'productoId', 'viajeId'] as const
 
 function esRegistro(valor: unknown): valor is Registro {
   return typeof valor === 'object' && valor !== null && !Array.isArray(valor)

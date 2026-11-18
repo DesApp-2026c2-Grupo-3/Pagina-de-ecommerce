@@ -17,6 +17,7 @@ import {
 import { useToast } from '../../context/ToastContext'
 import { useStockEnTiempoReal } from '../../hooks/useStockEnTiempoReal'
 import { useStockDeepLink } from '../../hooks/useStockDeepLink'
+import { useBloquearScroll } from '../../hooks/useBloquearScroll'
 import Paginacion from '../../components/Paginacion'
 import { filtrarStock } from '../../utils/stock/filtrarStock'
 import type { ItemStock, Movimiento } from '../../types/stock.types'
@@ -135,6 +136,9 @@ export default function StockSucursal() {
 
   // Reportar baja
   const [reportandoBaja, setReportandoBaja] = useState(false)
+
+  // Cualquiera de los modales de la pantalla abierto (D-23)
+  useBloquearScroll(alerta.length > 0 || aAumentar !== null || aDefinirMinimo !== null || reportandoBaja)
   const [baja, setBaja] = useState({ stockId: '', cantidad: '', motivo: '', detalle: '' })
   const [errorBaja, setErrorBaja] = useState('')
 

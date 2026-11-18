@@ -4,14 +4,14 @@ const { randomUUID } = require('crypto');
 const { getIo } = require('../sockets');
 const { SALAS } = require('../sockets/salas');
 
-const DOMINIOS = new Set(['stock', 'pedidos', 'productos', 'sucursales', 'reportes']);
+const DOMINIOS = new Set(['stock', 'pedidos', 'productos', 'sucursales', 'reportes', 'viajes']);
 const ACCIONES = new Set(['creado', 'actualizado', 'eliminado', 'estado_cambiado']);
 
 function normalizarRecursos(recursos) {
     if (!recursos || typeof recursos !== 'object' || Array.isArray(recursos)) return undefined;
 
     const normalizados = {};
-    for (const clave of ['insumoId', 'pedidoId', 'productoId']) {
+    for (const clave of ['insumoId', 'pedidoId', 'productoId', 'viajeId']) {
         const valor = Number(recursos[clave]);
         if (Number.isInteger(valor) && valor > 0) normalizados[clave] = valor;
     }

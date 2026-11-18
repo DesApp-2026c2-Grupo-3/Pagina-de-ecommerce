@@ -21,7 +21,7 @@ const accesos = [
     icono: ClipboardList,
     color: 'from-orange-500 to-amber-400',
     fondo: 'bg-orange-50',
-    texto: 'text-orange-600',
+    texto: 'text-orange-700',
     numero: '01',
   },
   {
@@ -32,7 +32,7 @@ const accesos = [
     icono: MapPinned,
     color: 'from-orange-500 to-amber-400',
     fondo: 'bg-orange-50',
-    texto: 'text-orange-600',
+    texto: 'text-orange-700',
     numero: '02',
   },
   {
@@ -43,7 +43,7 @@ const accesos = [
     icono: History,
     color: 'from-orange-500 to-amber-400',
     fondo: 'bg-orange-50',
-    texto: 'text-orange-600',
+    texto: 'text-orange-700',
     numero: '03',
   },
 ]
@@ -88,7 +88,7 @@ export default function Inicio() {
       <section>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-600">
+            <p className="text-xs font-bold uppercase tracking-widest text-orange-700">
               Centro de operaciones
             </p>
             <h3 className="mt-1 text-2xl font-black tracking-tight text-slate-900">
@@ -96,7 +96,7 @@ export default function Inicio() {
             </h3>
           </div>
 
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-500">
             Elegí una sección para continuar
           </p>
         </div>
@@ -113,9 +113,13 @@ export default function Inicio() {
                   <Icono size={27} strokeWidth={1.8} />
                 </div>
 
-                <span className="text-3xl font-black tracking-tighter text-slate-100 transition group-hover:text-orange-100">
-                  {numero}
-                </span>
+                {/* Número decorativo (v1.13): va como contenido generado y oculto para el lector de pantalla,
+                    porque es pura decoración y no tiene que cumplir contraste (WCAG 1.4.3). */}
+                <span
+                  aria-hidden="true"
+                  data-numero={numero}
+                  className="text-3xl font-black tracking-tighter text-slate-100 transition before:content-[attr(data-numero)] group-hover:text-orange-100"
+                />
               </div>
 
               <p className={`mt-7 text-[10px] font-extrabold tracking-[0.18em] ${texto}`}>
@@ -131,7 +135,7 @@ export default function Inicio() {
               </p>
 
               <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
-                <span className="text-sm font-bold text-slate-700 transition group-hover:text-orange-600">
+                <span className="text-sm font-bold text-slate-700 transition group-hover:text-orange-700">
                   Explorar sección
                 </span>
 

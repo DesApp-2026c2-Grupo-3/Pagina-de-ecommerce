@@ -1,8 +1,7 @@
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 const { Repartidor } = require('../../models');
+const { firmarTokenRepartidor } = require('../../services/authService');
 
 const login = async (req, res) => {
     try {
@@ -35,54 +34,24 @@ const login = async (req, res) => {
             });
         }
 
-        const SECRET_JWT_REPARTIDOR = process.env.SECRET_JWT_REPARTIDOR;
+        const token = firmarTokenRepartidor(repartidor);
 
-        const token = jwt.sign(
-            {
+        return res.status(200).json({
+            token,
+            repartidor: {
                 id: repartidor.id,
-                sucursalId: repartidor.sucursalId
+                nombre: repartidor.nombre,
+                apellido: repartidor.apellido,
+                email: repartidor.email,
+                sucursalId: repartidor.sucursalId,
+                Sucursal: repartidor.Sucursal,
             },
-            SECRET_JWT_REPARTIDOR,
-            { expiresIn: '7d' }
-        );
-
-        return res.cookie('repartidor_token', token, {
-            httpOnly: true,
-            sameSite: 'lax',
-            path: '/',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        }).status(200).json({
-            id: repartidor.id,
-            nombre: repartidor.nombre,
-            apellido: repartidor.apellido,
-            email: repartidor.email,
-            sucursalId: repartidor.sucursalId,
-            Sucursal: repartidor.Sucursal
         });
 
     } catch (error) {
         console.error('Error al loguear repartidor:', error.message);
         return res.status(500).json({
             mensaje: 'Error al iniciar sesión'
-        });
-    }
-};
-
-const logout = async (req, res) => {
-    try {
-        return res.clearCookie('repartidor_token', {
-            httpOnly: true,
-            sameSite: 'lax',
-            path: '/',
-            secure: process.env.NODE_ENV === 'production'
-        }).status(200).json({
-            mensaje: 'Sesión cerrada'
-        });
-    } catch (error) {
-        console.error('Error al cerrar sesión:', error.message);
-        return res.status(500).json({
-            mensaje: 'Error al cerrar sesión'
         });
     }
 };
@@ -113,4 +82,4 @@ const obtenerSesion = async (req, res) => {
     }
 };
 
-module.exports = { login, logout, obtenerSesion };
+module.exports = { login, obtenerSesion };

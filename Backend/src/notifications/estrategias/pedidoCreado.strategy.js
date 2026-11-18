@@ -7,7 +7,6 @@ module.exports = Object.freeze({
     tipo: 'pedido.creado',
     version: 1,
     audiencias: ['admin', 'cliente'],
-    paraAdministradores: true,
 
     construir(payload) {
         if (!esObjeto(payload) || !esObjeto(payload.pedido)) {

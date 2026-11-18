@@ -1,5 +1,6 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Bike, Package, Clock, AlertTriangle, ChevronUp, ChevronDown, MapPin } from "lucide-react";
 import MensajeVacio from "../../components/MensajeVacio";
 import Paginacion from "../../components/Paginacion";
@@ -11,6 +12,12 @@ import type { SucursalOpcion } from "../../types/pedido.types";
 import type { Viaje } from "../../types/viaje.types";
 import DetallePedidoModal from "../../components/DetallePedidoModal";
 import ModalReasignarRepartidor from "../../components/viajes/ModalReasignarRepartidor"; 
+import { useViajesEnTiempoReal } from "../../hooks/useViajesEnTiempoReal";
+import { leerIdPositivo } from "../../utils/navegacion/leerIdPositivo";
+import { PARAM_SUCURSAL } from "../../utils/navegacion/parametros";
+
+// D-22: el cartel de reasignación se cierra solo
+const DURACION_CARTEL_REASIGNACION_MS = 8000;
 
 const POR_PAGINA = 8;
 
@@ -21,6 +28,14 @@ function formatearFechaHora(valor: string | null) {
     timeZone: "America/Argentina/Buenos_Aires",
     dateStyle: "short",
     timeStyle: "short",
+  });
+}
+
+function formatearHora(valor: string) {
+  return new Date(valor).toLocaleTimeString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -59,8 +74,13 @@ export default function Viajes() {
   const esMaster = administrador?.rol === "MASTER";
 
   const [sucursales, setSucursales] = useState<SucursalOpcion[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sucursalEnlace = leerIdPositivo(searchParams.get(PARAM_SUCURSAL));
+
   const [sucursalId, setSucursalId] = useState<number | null>(
-    administrador?.sucursalId ?? null,
+    esMaster
+      ? sucursalEnlace ?? administrador?.sucursalId ?? null
+      : administrador?.sucursalId ?? null,
   );
 
   const [detalleId, setDetalleId] = useState<number | null>(null);
@@ -100,6 +120,21 @@ export default function Viajes() {
       });
   }, [esMaster]);
 
+  // Una notificación de asistencia trae ?sucursal=: el MASTER salta a esa sucursal.
+  // El parámetro se consume para que otra notificación igual vuelva a funcionar.
+  useEffect(() => {
+    if (!searchParams.has(PARAM_SUCURSAL)) return;
+
+    if (esMaster && sucursalEnlace !== null) {
+      setSucursalId(sucursalEnlace);
+      setPaginaActual(1);
+    }
+
+    const siguientes = new URLSearchParams(searchParams);
+    siguientes.delete(PARAM_SUCURSAL);
+    setSearchParams(siguientes, { replace: true });
+  }, [esMaster, sucursalEnlace, searchParams, setSearchParams]);
+
   // Cargamos los viajes de la sucursal seleccionada.
   useEffect(() => {
     if (sucursalId === null) return;
@@ -131,6 +166,29 @@ export default function Viajes() {
       cancelado = true;
     };
   }, [sucursalId]);
+
+  // Refresco en vivo: recarga sin spinner para no perder el scroll ni los desplegables
+  const sucursalVigenteRef = useRef(sucursalId);
+  useEffect(() => {
+    sucursalVigenteRef.current = sucursalId;
+  }, [sucursalId]);
+
+  const recargarViajes = useCallback(async () => {
+    if (sucursalId === null) return;
+
+    const lista = await obtenerViajesPorSucursal(sucursalId);
+    // Si mientras tanto se eligió otra sucursal, esta respuesta ya no aplica
+    if (sucursalVigenteRef.current !== sucursalId) return;
+
+    setViajes(lista);
+    setErrorCarga("");
+  }, [sucursalId]);
+
+  useViajesEnTiempoReal({
+    sucursalId,
+    pausado: cargando || reasignando,
+    onRefrescar: recargarViajes,
+  });
 
   const conReinicio = (cambiar: (valor: string) => void) => (
     valor: string,
@@ -173,7 +231,20 @@ export default function Viajes() {
     ? sucursales.find((s) => s.id === sucursalId)?.nombre
     : administrador?.sucursal?.nombre;
 
+  // D-22: el cartel de una reasignación se cierra solo a los pocos segundos
+  useEffect(() => {
+    if (!mensajeReasignacion) return;
+    const temporizador = window.setTimeout(
+      () => setMensajeReasignacion(""),
+      DURACION_CARTEL_REASIGNACION_MS
+    );
+    return () => window.clearTimeout(temporizador);
+  }, [mensajeReasignacion]);
+
   function abrirReasignacion(viajeId: number) {
+    // D-22: al empezar otra reasignación se descartan los carteles de la anterior
+    setMensajeReasignacion("");
+    setErrorReasignacion("");
     setViajeReasignacionId(viajeId);
   }
 
@@ -185,10 +256,12 @@ export default function Viajes() {
     setMensajeReasignacion("");
 
     try {
-      await reasignarViaje(viajeReasignacionId, repartidorId);
+      const { viaje, repartidorAnterior } = await reasignarViaje(viajeReasignacionId, repartidorId);
 
+      // D-22 / D-24: a quién pasó el viaje y que el anterior quedó inactivo
       setMensajeReasignacion(
-        `El viaje #${viajeReasignacionId} fue reasignado correctamente.`
+        `Viaje #${viaje.id} reasignado a ${viaje.Repartidor.nombre} ${viaje.Repartidor.apellido}. ` +
+        `${repartidorAnterior.nombre} ${repartidorAnterior.apellido} quedó inactivo hasta que lo reactives desde Repartidores.`
       );
 
       setViajeReasignacionId(null);
@@ -225,7 +298,7 @@ export default function Viajes() {
       </div>
 
       {mensajeReasignacion && (
-        <div className="mb-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-700">
+        <div role="status" className="mb-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-700">
           {mensajeReasignacion}
         </div>
         )
@@ -338,6 +411,16 @@ export default function Viajes() {
                         <span className="font-medium text-gray-800">
                           {nombreRepartidor(viaje)}
                         </span>
+
+                        {/* D-16 v2: el viaje se conserva aunque el repartidor ya no esté */}
+                        {viaje.Repartidor?.deletedAt && (
+                          <span
+                            title={`Dado de baja el ${formatearFechaHora(viaje.Repartidor.deletedAt)}`}
+                            className="rounded-md bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700"
+                          >
+                            Dado de baja
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -368,9 +451,18 @@ export default function Viajes() {
                                     </p>
                                 </div>
 
-                                <span className="text-xs font-medium text-gray-600">
-                                    {pedido.estado}
-                                </span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {/* D-07: retirado del local pero el viaje todavía no salió */}
+                                    {pedido.retiradoEn && pedido.estado === "Listo para retirar" && (
+                                        <span className="rounded-md bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                                            Retirado {formatearHora(pedido.retiradoEn)}
+                                        </span>
+                                    )}
+
+                                    <span className="text-xs font-medium text-gray-600">
+                                        {pedido.estado}
+                                    </span>
+                                </div>
 
 
                                 <button type="button" onClick={() => setDetalleId(pedido.id)}
@@ -417,7 +509,7 @@ export default function Viajes() {
                               <p className="text-xs font-medium text-gray-500">
                                 Comentario del repartidor
                               </p>
-                              <p className="text-sm text-gray-800">
+                              <p className="text-sm text-gray-800 [overflow-wrap:anywhere]">
                                 {viaje.comentarioAsistencia?.trim() ||
                                     "El repartidor no agregó comentarios."}
                               </p>

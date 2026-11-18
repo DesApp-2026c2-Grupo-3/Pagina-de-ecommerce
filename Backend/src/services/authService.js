@@ -1,8 +1,9 @@
 const { verificarToken, firmarToken } = require('../utils/jwt');
-const { Usuario, Admin } = require('../models');
+const { Usuario, Admin, Repartidor } = require('../models');
 
 const DURACION_CLIENTE = '7d';
 const DURACION_ADMIN = '4h';
+const DURACION_REPARTIDOR = '12h'; // un turno largo
 
 class ErrorAuth extends Error {
     constructor(codigo) {
@@ -18,6 +19,13 @@ function firmarTokenCliente(usuario) {
 
 function firmarTokenAdmin(admin) {
     return firmarToken({ sub: admin.id, tipo: 'admin', rol: admin.rol }, DURACION_ADMIN);
+}
+
+function firmarTokenRepartidor(repartidor) {
+    return firmarToken(
+        { sub: repartidor.id, tipo: 'repartidor', rol: 'REPARTIDOR' },
+        DURACION_REPARTIDOR
+    );
 }
 
 async function resolverIdentidad(token) {
@@ -69,6 +77,25 @@ async function resolverIdentidad(token) {
         };
     }
 
+    if (payload.tipo === 'repartidor') {
+        // Repartidor es paranoid: findByPk no encuentra a los dados de baja
+        const repartidor = await Repartidor.findByPk(payload.sub, {
+            attributes: ['id', 'nombre', 'apellido', 'sucursalId', 'activo'],
+        });
+
+        if (!repartidor || !repartidor.activo) {
+            throw new ErrorAuth('AUTH_INVALID');
+        }
+
+        return {
+            tipo: 'repartidor',
+            id: repartidor.id,
+            rol: 'REPARTIDOR',
+            sucursalId: repartidor.sucursalId,
+            nombre: `${repartidor.nombre} ${repartidor.apellido}`,
+        };
+    }
+
     throw new ErrorAuth('AUTH_INVALID');
 }
 
@@ -76,5 +103,6 @@ module.exports = {
     ErrorAuth,
     firmarTokenCliente,
     firmarTokenAdmin,
+    firmarTokenRepartidor,
     resolverIdentidad,
 };

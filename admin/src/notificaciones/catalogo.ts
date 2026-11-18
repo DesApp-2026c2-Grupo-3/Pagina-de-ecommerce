@@ -38,11 +38,32 @@ export interface DatosSucursalModificadaPorAdmin {
   cambios: BloqueSucursal[]
 }
 
+export interface DatosViajeRequiereAsistencia {
+  viajeId: number
+  repartidorId: number
+  repartidorNombre: string
+  sucursalId: number
+  motivo: string
+  comentario: string | null
+  solicitadaEn: string
+}
+
+export interface DatosViajeAsistenciaTomada {
+  viajeId: number
+  repartidorId: number
+  repartidorNombre: string
+  sucursalId: number
+  cantidadPedidos: number
+  tomadaEn: string
+}
+
 export interface CatalogoNotificaciones {
   'pedido.creado': DatosPedidoCreado
   'sucursal.cerrada': DatosSucursalCerrada
   'stock.bajo': DatosStockBajo
   'sucursal.modificada_por_admin': DatosSucursalModificadaPorAdmin
+  'viaje.requiere_asistencia': DatosViajeRequiereAsistencia
+  'viaje.asistencia_tomada': DatosViajeAsistenciaTomada
 }
 
 export type TipoNotificacion = keyof CatalogoNotificaciones
