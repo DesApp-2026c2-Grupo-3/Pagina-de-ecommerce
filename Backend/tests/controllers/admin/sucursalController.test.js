@@ -15,7 +15,12 @@ jest.mock('../../../src/notifications/handlers/sucursalHandlers', () => ({
     notificarSucursalModificadaPorAdmin: jest.fn(),
 }));
 
+jest.mock('../../../src/notifications/clienteRefresco', () => ({
+    emitirRefrescoCliente: jest.fn(),
+}));
+
 const models = require('../../../src/models');
+const { emitirRefrescoCliente } = require('../../../src/notifications/clienteRefresco');
 const { DIAS_SEMANA } = require('../../../src/utils/horarioSucursal');
 const {
     notificarSucursalCerrada,
@@ -477,5 +482,56 @@ describe('cambiarEstadoSucursal', () => {
         await cambiarEstadoSucursal({ params: { id: '2' }, body: { activa: true } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('refresco de la zona de los clientes (plan de clientes, C-6)', () => {
+    test('cambiar la ubicación pide recargar las sucursales', async () => {
+        Sucursal.findByPk.mockResolvedValue(sucursalCompleta());
+        Sucursal.findOne.mockResolvedValue(null);
+
+        await editarSucursal({
+            params: { id: '2' },
+            body: { ...bodyCompleto, latitud: -34.7 },
+            identidad: identidadMaster,
+        }, crearRes());
+
+        expect(emitirRefrescoCliente).toHaveBeenCalledWith({
+            dominio: 'sucursal', accion: 'actualizado', sucursalId: 2,
+        });
+    });
+
+    test('cambiar solo el nombre no refresca la zona', async () => {
+        Sucursal.findByPk.mockResolvedValue(sucursalCompleta());
+        Sucursal.findOne.mockResolvedValue(null);
+
+        await editarSucursal({
+            params: { id: '2' },
+            body: { ...bodyCompleto, nombre: 'Morón Centro' },
+            identidad: identidadAdmin(2),
+        }, crearRes());
+
+        expect(emitirRefrescoCliente).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        [true, false],
+        [false, true],
+    ])('pasar de activa=%s a activa=%s pide recargar las sucursales', async (antes, despues) => {
+        Sucursal.findByPk.mockResolvedValue(sucursalDeLaBase({ activa: antes }));
+
+        await cambiarEstadoSucursal({ params: { id: '2' }, body: { activa: despues } }, crearRes());
+
+        expect(emitirRefrescoCliente).toHaveBeenCalledWith({
+            dominio: 'sucursal', accion: 'estado_cambiado', sucursalId: 2,
+        });
+    });
+
+    test('dejarla como estaba no refresca', async () => {
+        Sucursal.findByPk.mockResolvedValue(sucursalDeLaBase({ activa: true }));
+
+        await cambiarEstadoSucursal({ params: { id: '2' }, body: { activa: true } }, crearRes());
+
+        expect(emitirRefrescoCliente).not.toHaveBeenCalled();
     });
 });

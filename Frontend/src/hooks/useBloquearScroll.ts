@@ -2,38 +2,27 @@ import { useEffect } from 'react'
 
 // Cuántos modales hay abiertos ahora (puede haber uno encima de otro)
 let abiertos = 0
-let anterior = { htmlOverflow: '', bodyOverflow: '', bodyPadding: '' }
+let overflowAnterior = ''
 
 // Mientras "activo" sea true, la página de atrás no se mueve: el scroll queda solo para el modal.
-// Bloquea <html> y <body>, porque según los estilos el scroll de la página puede estar en cualquiera
-// de los dos (en la tienda está en <html>). Compensa el ancho de la barra para que no salte.
+// En la tienda el scroll de la página vive en <html> (index.css), así que se bloquea solo <html>.
+// No se toca <body>: con overflow hidden pasaría a ser un contenedor de scroll y el encabezado
+// sticky se despegaría si la página ya estaba scrolleada (plan de clientes, 36.2 y C-1).
 export function useBloquearScroll(activo: boolean) {
   useEffect(() => {
     if (!activo) return
 
     const html = document.documentElement
-    const body = document.body
 
     if (abiertos === 0) {
-      const anchoBarra = window.innerWidth - html.clientWidth
-      anterior = {
-        htmlOverflow: html.style.overflow,
-        bodyOverflow: body.style.overflow,
-        bodyPadding: body.style.paddingRight,
-      }
+      overflowAnterior = html.style.overflow
       html.style.overflow = 'hidden'
-      body.style.overflow = 'hidden'
-      if (anchoBarra > 0) body.style.paddingRight = `${anchoBarra}px`
     }
     abiertos++
 
     return () => {
       abiertos--
-      if (abiertos === 0) {
-        html.style.overflow = anterior.htmlOverflow
-        body.style.overflow = anterior.bodyOverflow
-        body.style.paddingRight = anterior.bodyPadding
-      }
+      if (abiertos === 0) html.style.overflow = overflowAnterior
     }
   }, [activo])
 }

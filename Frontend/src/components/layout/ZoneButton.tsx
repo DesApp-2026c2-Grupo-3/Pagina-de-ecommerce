@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ChevronDown, CircleAlert, MapPin, X } from 'lucide-react'
+import { ChevronDown, CircleAlert, MapPin, Store, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useZona } from '../../context/ZonaContext'
 
@@ -28,12 +28,16 @@ function marcarAvisoVisto() {
 
 // Dónde recibe el pedido: define la sucursal y su stock
 function ZoneButton() {
-  const { zona, sucursalCerrada, selectorAbierto, abrirSelector } = useZona()
+  const { zona, sucursalCerrada, sucursalDesactivada, selectorAbierto, abrirSelector, descartarAvisoReemplazo } = useZona()
+  // Fuera de horario («cerrada ahora») o desactivada por el panel (RN-04, RN-46)
+  const estadoCierre = sucursalDesactivada ? 'está desactivada' : 'está cerrada ahora'
   const { user } = useAuth()
   const { pathname } = useLocation()
   const [popover, setPopover] = useState<PopoverZona>(null)
   const [avisoCierreDescartado, setAvisoCierreDescartado] = useState(false)
   const popoverId = useId()
+  // La zona pasó sola a otra sucursal porque la suya se desactivó (DC-12): se avisa hasta que lo cierre
+  const mostrarReemplazo = Boolean(zona?.sucursalAnterior) && !selectorAbierto && !SIN_AVISO.includes(pathname)
   const sucursalAnteriorRef = useRef(zona?.sucursalId)
   const estabaCerradaRef = useRef(sucursalCerrada)
 
@@ -140,14 +144,14 @@ function ZoneButton() {
         title={
           zona
             ? sucursalCerrada
-              ? `${zona.sucursalNombre} está cerrada ahora`
+              ? `${zona.sucursalNombre} ${estadoCierre}`
               : `Pedís desde ${zona.sucursalNombre}`
             : 'Elegí dónde recibir tu pedido'
         }
         aria-label={
           zona
             ? sucursalCerrada
-              ? `${zona.sucursalNombre} está cerrada ahora. Ver opciones`
+              ? `${zona.sucursalNombre} ${estadoCierre}. Ver opciones`
               : `Pedís desde ${zona.sucursalNombre}. Cambiar dirección`
             : 'Elegir dirección de entrega'
         }
@@ -197,7 +201,46 @@ function ZoneButton() {
         </div>
       )}
 
-      {popover === 'cerrada' && (
+      {mostrarReemplazo && zona && (
+        <div
+          id={popoverId}
+          role="status"
+          aria-live="polite"
+          className="fixed left-4 right-4 top-20 z-40 rounded-2xl border-2 border-brand-dark bg-brand-cream p-3 text-brand-dark shadow-sticker sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-80"
+        >
+          <div className="flex items-start gap-2.5">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-red text-white">
+              <Store className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold">Ahora pedís desde {zona.sucursalNombre}</p>
+              <p className="mt-1 text-xs font-semibold leading-snug text-brand-muted">
+                {zona.sucursalAnterior} está desactivada. Revisá tu carrito: algunos productos pueden no estar disponibles en esta sucursal.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={descartarAvisoReemplazo}
+              aria-label="Cerrar aviso"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-brand-muted hover:text-brand-red"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              descartarAvisoReemplazo()
+              abrirSelector()
+            }}
+            className="mt-3 w-full rounded-full border-2 border-brand-dark px-4 py-2 text-sm font-bold transition-colors hover:bg-brand-dark hover:text-brand-cream"
+          >
+            Elegir otra sucursal o dirección
+          </button>
+        </div>
+      )}
+
+      {popover === 'cerrada' && !mostrarReemplazo && (
         <div
           id={popoverId}
           role="alert"
@@ -208,9 +251,11 @@ function ZoneButton() {
               <CircleAlert className="h-4 w-4" strokeWidth={2.8} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">{zona?.sucursalNombre ?? 'La sucursal'} está cerrada ahora</p>
+              <p className="text-sm font-bold">{zona?.sucursalNombre ?? 'La sucursal'} {estadoCierre}</p>
               <p className="mt-1 text-xs font-semibold leading-snug text-brand-cream/80">
-                Fuera de horario de atención. No se pueden generar pedidos por ahora.
+                {sucursalDesactivada
+                  ? 'Ninguna otra sucursal llega a tu dirección. Elegí otra dirección.'
+                  : 'Fuera de horario de atención. No se pueden generar pedidos por ahora.'}
               </p>
             </div>
             <button

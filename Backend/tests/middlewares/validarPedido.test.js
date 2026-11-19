@@ -11,7 +11,6 @@ describe('validarPedido', () => {
     test('deja en req.body los datos ya limpios', () => {
         const req = {
             body: {
-                usuarioId: '1',
                 direccionId: '3',
                 sucursalId: '2',
                 productos: [{ productoId: '10', cantidad: '2' }],
@@ -32,7 +31,6 @@ describe('validarPedido', () => {
     test('responde 400 con el mensaje del error', () => {
         const req = {
             body: {
-                usuarioId: 1,
                 direccionId: 3,
                 productos: [{ productoId: 10, cantidad: 1 }],
             },

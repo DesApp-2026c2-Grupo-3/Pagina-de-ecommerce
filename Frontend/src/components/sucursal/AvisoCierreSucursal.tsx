@@ -10,6 +10,8 @@ interface Props {
   textoAccion?: string
   mostrarEnMobile?: boolean
   conBoton?: boolean
+  // Desactivada por el panel (RN-04), no fuera de horario
+  desactivada?: boolean
 }
 
 const STYLES = {
@@ -31,11 +33,14 @@ function AvisoCierreSucursal({
   textoAccion = 'Cambiar dirección',
   mostrarEnMobile = false,
   conBoton = false,
+  desactivada = false,
 }: Props) {
   const { abrirSelector } = useZona()
   const tooltipId = useId()
 
-  const mensaje = `${motivo ? `${motivo}. ` : 'Está fuera del horario de atención. '}No se pueden generar pedidos por ahora.`
+  const mensaje = desactivada
+    ? 'Ninguna otra sucursal llega a tu dirección. Elegí otra dirección.'
+    : `${motivo ? `${motivo}. ` : 'Está fuera del horario de atención. '}No se pueden generar pedidos por ahora.`
   const accion = onAccion ?? abrirSelector
   const visibilidadClass = mostrarEnMobile ? 'flex' : 'hidden md:flex'
 
@@ -45,7 +50,9 @@ function AvisoCierreSucursal({
         <CircleAlert className="h-3.5 w-3.5 lg:h-4 lg:w-4" strokeWidth={2.6} />
       </span>
 
-      <p className={STYLES.text}>{sucursal ?? 'La sucursal'} está cerrada ahora</p>
+      <p className={STYLES.text}>
+        {sucursal ?? 'La sucursal'} {desactivada ? 'está desactivada' : 'está cerrada ahora'}
+      </p>
 
       {conBoton && (
         <button type="button" onClick={accion} className={STYLES.actionBtn}>

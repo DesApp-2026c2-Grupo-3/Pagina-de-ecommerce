@@ -91,45 +91,32 @@ describe('mapearNotificacion', () => {
   })
 })
 
-describe('estados internos local/repartidor', () => {
-  test('descarta un aviso de "Listo para retirar" (el cliente no ve ese estado)', () => {
-    const notificacion = mapearNotificacion(
-      payload({
-        datos: {
-          pedidoId: 50,
-          usuarioId: 7,
-          sucursalId: 2,
-          estadoAnterior: 'En proceso',
-          estado: 'Listo para retirar',
-          total: 5000,
-          fecha: '2026-01-01T10:00:00.000Z',
-        },
-      }),
-    )
-
-    expect(notificacion).toBeNull()
+describe('catálogo de notificaciones', () => {
+  test('descarta un tipo que no está en el catálogo', () => {
+    expect(mapearNotificacion(payload({ tipo: 'pedido.inventado' }))).toBeNull()
   })
 
-  test('si se cancela desde "Listo para retirar", el detalle muestra "En proceso"', () => {
-    const notificacion = mapearNotificacion(
-      payload({
-        datos: {
-          pedidoId: 50,
-          usuarioId: 7,
-          sucursalId: 2,
-          estadoAnterior: 'Listo para retirar',
-          estado: 'Cancelado',
-          total: 5000,
-          fecha: '2026-01-01T10:00:00.000Z',
-        },
-      }),
-    )
+  test('cada tipo del catálogo crea su aviso', () => {
+    expect(mapearNotificacion(payload({ tipo: 'pedido.creado' }))?.tipo).toBe('pedido.creado')
+    expect(
+      mapearNotificacion(
+        payload({ tipo: 'sucursal.cerrada', datos: { sucursalId: 2, sucursalNombre: 'Centro' } }),
+      )?.tipo,
+    ).toBe('sucursal.cerrada')
+  })
 
-    if (!notificacion || notificacion.tipo === 'sucursal.cerrada') {
-      throw new Error('Se esperaba una notificación de pedido')
-    }
+  test('el detalle del cambio de estado muestra el estado anterior tal como llega', () => {
+    const notificacion = mapearNotificacion(payload())
+    if (!notificacion) throw new Error('Se esperaba una notificación')
+
     expect(fabricaNotificacionesCliente.describir(notificacion).detalle).toBe(
-      'Antes estaba en En proceso',
+      'Antes estaba en pendiente',
     )
+  })
+
+  test('descarta datos de pedido incompletos', () => {
+    expect(
+      mapearNotificacion(payload({ datos: { pedidoId: 50, estado: 'En proceso' } })),
+    ).toBeNull()
   })
 })

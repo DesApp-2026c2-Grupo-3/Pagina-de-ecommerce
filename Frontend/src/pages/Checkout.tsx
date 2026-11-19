@@ -44,7 +44,7 @@ const estaEnCurso = (o: Order) => !["entregado", "cancelado"].includes(o.estado.
 function Checkout() {
   const { user, isAuthenticated } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
-  const { zona, elegirUbicacion, opcionesSucursal } = useZona();
+  const { zona, elegirUbicacion, opcionesSucursal, sucursalDesactivada, abrirSelector } = useZona();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -167,7 +167,7 @@ function Checkout() {
     if (!cercana?.dentroDeZona || unidades === 0) return;
 
     let cancelado = false;
-    cotizarEnvio(user.id, elegida.id, cercana.sucursal.id, unidades)
+    cotizarEnvio(elegida.id, cercana.sucursal.id, unidades)
       .then((datos) => { if (!cancelado) setCotizacionGuardada({ clave: `${elegida.id}|${unidades}|${zona?.sucursalId}`, datos }); })
       .catch(() => { /* sin cotización se muestra "Elegí tu dirección"; el backend calcula el envío igual */ });
     return () => { cancelado = true; };
@@ -176,7 +176,7 @@ function Checkout() {
   // Cuenta los pedidos en curso del cliente para avisar antes de confirmar
   useEffect(() => {
     if (!user) return;
-    getHistorialPedidos(user.id)
+    getHistorialPedidos()
       .then((pedidos) => setPedidosEnCurso(pedidos.filter(estaEnCurso).length))
       .catch(() => setPedidosEnCurso(0));
   }, [user]);
@@ -203,9 +203,10 @@ function Checkout() {
   const estadoPedido = masCercana
     ? estadoSucursal(masCercana.sucursal.horario, masCercana.sucursal.zona_horaria)
     : null;
-  const sucursalCerrada = estadoPedido
+  // Con la sucursal de la zona desactivada no se pide a ninguna hasta que el cliente elija otra (RN-04)
+  const sucursalCerrada = sucursalDesactivada || (estadoPedido
     ? !estadoPedido.abierta
-    : Boolean(zona && zona.sucursalAbierta === false);
+    : Boolean(zona && zona.sucursalAbierta === false));
 
   // El pedido se armó con el stock de la sucursal de la zona: esa sucursal tiene que llegar a la dirección
   const sucursalDistinta = Boolean(zona && masCercana && dentroDeZona && masCercana.sucursal.id !== zona.sucursalId);
@@ -259,7 +260,11 @@ function Checkout() {
       return;
     }
     if (sucursalCerrada) {
-      setError("La sucursal está cerrada en este horario. No se pueden generar pedidos por ahora.");
+      setError(
+        sucursalDesactivada
+          ? "La sucursal está desactivada y ninguna otra llega a tu dirección. Elegí otra dirección."
+          : "La sucursal está cerrada en este horario. No se pueden generar pedidos por ahora.",
+      );
       return;
     }
     if (limiteAlcanzado) {
@@ -285,7 +290,7 @@ function Checkout() {
     try {
       // La pantalla "Preparando tu pedido" dura al menos 3 segundos, aunque el backend responda antes
       const [order] = await Promise.all([
-        createOrder(user!.id, lineas, direccion.id, masCercana.sucursal.id, compraDirecta ? "" : observaciones),
+        createOrder(lineas, direccion.id, masCercana.sucursal.id, compraDirecta ? "" : observaciones),
         esperar(3000),
       ]);
       setProcesando({ fase: "listo", numero: order.id });
@@ -350,8 +355,9 @@ function Checkout() {
 
           {sucursalCerrada && (
             <AvisoCierreSucursal
-              sucursal={masCercana?.sucursal.nombre ?? zona?.sucursalNombre}
+              sucursal={sucursalDesactivada ? zona?.sucursalNombre : masCercana?.sucursal.nombre ?? zona?.sucursalNombre}
               motivo={estadoPedido?.motivo}
+              desactivada={sucursalDesactivada}
             />
           )}
 
@@ -511,6 +517,19 @@ function Checkout() {
                 <Link to="/direcciones" state={{ ...volverAlCheckout, editarId: direccion.id }} className="mt-1 inline-block font-bold underline">
                   Marcarla en el mapa →
                 </Link>
+              </Aviso>
+            ) : sucursalDesactivada && zona ? (
+              // RN-04 y DC-12: la sucursal de la zona está desactivada y ninguna otra activa llega a
+              // la dirección de la zona (si alguna llegara, la zona ya habría pasado a esa)
+              <Aviso variante="error" titulo={`${zona.sucursalNombre} está desactivada.`}>
+                <p className="mt-1">Ninguna otra sucursal llega a tu dirección. Elegí otra dirección.</p>
+                <button
+                  type="button"
+                  onClick={abrirSelector}
+                  className="mt-3 rounded-full bg-brand-dark px-4 py-2 font-bold text-brand-cream transition-transform hover:translate-y-0.5"
+                >
+                  Cambiar dirección
+                </button>
               </Aviso>
             ) : !masCercana ? (
               <p className="text-sm text-brand-muted">No hay sucursales disponibles.</p>
