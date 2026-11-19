@@ -76,6 +76,7 @@ export interface ProductoBackend {
   tamanios?: ProductoTamanio[]
   /** Solo combos: sus grupos elegibles. Si viene con elementos, el producto es un combo. */
   grupos?: ComboGrupo[]
+  productoPrincipalId?: number | null
 }
 
 export interface Category {

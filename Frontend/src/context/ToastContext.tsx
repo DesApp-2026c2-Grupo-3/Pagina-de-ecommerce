@@ -8,6 +8,7 @@ import {
 } from 'react'
 
 export type ToastVariante = 'exito' | 'alerta'
+export type ToastTema = 'dark' | 'light' | 'mostaza'
 
 export interface ToastAccion {
   label: string
@@ -17,6 +18,7 @@ export interface ToastAccion {
 export interface ToastOpciones {
   duracion?: number
   variante?: ToastVariante
+  tema?: ToastTema
   accion?: ToastAccion
 }
 
@@ -24,6 +26,7 @@ interface ToastState {
   id: number
   message: string
   variante: ToastVariante
+  tema: ToastTema
   accion?: ToastAccion
 }
 
@@ -57,6 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       }
 
       const variante = opciones.variante ?? 'exito'
+      const tema = opciones.tema ?? 'dark'
       const duracion =
         opciones.duracion ??
         (variante === 'alerta' ? DURACION_ALERTA : DURACION_EXITO)
@@ -65,6 +69,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         id: Date.now(),
         message,
         variante,
+        tema,
         accion: opciones.accion,
       })
 

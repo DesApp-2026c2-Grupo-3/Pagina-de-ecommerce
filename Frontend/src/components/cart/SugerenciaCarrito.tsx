@@ -11,11 +11,19 @@ const MAXIMO = 4
 // Cuántos productos del ranking de ventas se piden (alcanza para ordenar cada categoría)
 const TAMANIO_RANKING = 50
 
+// ==========================================
+// CONSTANTES DE ESTILO
+// ==========================================
+const seccionSugerenciasClase = 'mx-auto max-w-6xl px-4 pb-16'
+const tituloSugerenciasClase = 'mb-5 font-display text-2xl font-extrabold tracking-tight sm:mb-6 sm:text-3xl'
+const grillaSugerenciasClase = 'grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 md:grid-cols-4 lg:gap-5'
+
 // Las reglas, con los nombres normalizados (sin tildes ni mayúsculas) para comparar fácil
 const normalizarReglas = (reglas: Record<string, string[]>) =>
   new Map(Object.entries(reglas).map(([cat, lista]) => [normalizarNombre(cat), lista.map(normalizarNombre)]))
 const COMPLEMENTOS_N = normalizarReglas(COMPLEMENTOS)
 const INCLUYE_N = normalizarReglas(INCLUYE)
+
 // Todas las categorías que aparecen en las reglas
 const EN_REGLAS = new Set(
   [...COMPLEMENTOS_N, ...INCLUYE_N].flatMap(([categoria, lista]) => [categoria, ...lista]),
@@ -59,8 +67,7 @@ function SugerenciasCarrito() {
       })
   }, [sucursalId])
 
-  // Las reglas hablan de "Hamburguesas", pero los productos están en "Hamburguesas de carne", "de pollo"...:
-  // si la categoría del producto no figura en las reglas, se usa la de su categoría principal
+  // Si la categoría del producto no figura en las reglas, se usa la de su categoría principal
   const porId = new Map(categorias.map((c) => [c.id, c]))
   const categoriaDe = new Map(
     categorias.map((c) => {
@@ -113,8 +120,8 @@ function SugerenciasCarrito() {
   if (sugerencias.length === 0) return null
 
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-16">
-      <h2 className="mb-6 font-display text-3xl font-extrabold tracking-tight">
+    <section className={seccionSugerenciasClase}>
+      <h2 className={tituloSugerenciasClase}>
         {completando ? (
           <>
             Completá tu <span className="text-brand-red">pedido</span>
@@ -125,11 +132,14 @@ function SugerenciasCarrito() {
           </>
         )}
       </h2>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {sugerencias.map((producto) => (
-          <ProductCard key={producto.id} product={producto} />
+
+      <div className={grillaSugerenciasClase}>
+        {sugerencias.map((producto, indice) => (
+          <ProductCard key={producto.id} product={producto} indice={indice} compacta />
         ))}
       </div>
+
+
     </section>
   )
 }
