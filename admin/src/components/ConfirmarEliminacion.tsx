@@ -1,6 +1,11 @@
+import { useBloquearScroll } from '../hooks/useBloquearScroll'
+
 interface ConfirmarEliminacionProps {
   abierto: boolean
   mensaje: string
+  /** Por defecto "Confirmar suspension" y "Suspender", como hasta ahora */
+  titulo?: string
+  textoConfirmar?: string
   onConfirmar: () => void
   onCancelar: () => void
 }
@@ -8,9 +13,12 @@ interface ConfirmarEliminacionProps {
 export default function ConfirmarEliminacion({
   abierto,
   mensaje,
+  titulo = 'Confirmar suspension',
+  textoConfirmar = 'Suspender',
   onConfirmar,
   onCancelar,
 }: ConfirmarEliminacionProps) {
+  useBloquearScroll(abierto)
 
   if (!abierto) {
     return null
@@ -23,7 +31,7 @@ export default function ConfirmarEliminacion({
       p-6 w-full max-w-md mx-4">
 
         <h2 className="text-xl font-bold mb-3">
-          Confirmar suspension
+          {titulo}
         </h2>
 
         <p className="text-gray-600 mb-6">
@@ -45,7 +53,7 @@ export default function ConfirmarEliminacion({
             className="bg-danger hover:bg-danger-hover
             border border-black text-white px-4 py-2 rounded-md"
           >
-            Suspender
+            {textoConfirmar}
           </button>
         </div>
 

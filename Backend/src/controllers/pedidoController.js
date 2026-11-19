@@ -1,14 +1,16 @@
 const { Op } = require('sequelize');
 const { precioMasBarato } = require('../utils/combo');
-const { buscarPromo, vigenteHoy, aplicarDescuento } = require('../config/promociones');
-
-// Regla de negocio: pedidos en curso simultáneos por cliente
-const MAX_PEDIDOS_EN_CURSO = 2;
+const { vigenteHoy, aplicarDescuento } = require('../config/promociones');
+const { buscarPromo } = require('../utils/promociones');
+// Parámetros del negocio (máximo de pedidos en curso, radio, envío, tiempos): se editan desde el admin
+const { obtenerParametros } = require('../utils/parametros');
+const { calcularEnvio, minutosEstimados, estimarLlegada } = require('../utils/entrega');
 const {
     Pedido,
     DetallePedido,
     Producto,
     Usuario,
+    Calificacion,
     Direccion,
     Sucursal,
     RecetaInsumo,
@@ -23,6 +25,25 @@ const {
 const { distanciaKm } = require('../utils/distancia');
 const { pasoExtra } = require('../utils/disponibilidad');
 const { estadoSucursal } = require('../utils/horarioSucursal');
+const { notificarPedidoCreado } = require('../notifications/handlers/pedidoHandlers');
+const { notificarStockBajo } = require('../notifications/handlers/stockHandlers');
+const { emitirRefrescoAdmin } = require('../notifications/adminRefresco');
+const { cruzaMinimo, normalizarMinimo } = require('../utils/stockMinimo');
+
+
+   // Distancia en km entre la dirección del cliente y la sucursal (null si a alguna le falta la ubicación)
+   function distanciaEntre(direccion, sucursal) {
+       if (direccion?.latitud == null || direccion?.longitud == null || sucursal?.latitud == null || sucursal?.longitud == null) {
+           return null;
+       }
+       return distanciaKm(
+           { lat: Number(direccion.latitud), lng: Number(direccion.longitud) },
+           { lat: Number(sucursal.latitud), lng: Number(sucursal.longitud) }
+       );
+   }
+
+   // Unidades del pedido (para el tiempo de preparación)
+   const contarUnidades = (lineas) => lineas.reduce((suma, l) => suma + Number(l.cantidad || 0), 0);
 
 // Regla de negocio: 1 porción extra por ingrediente (checkbox)
 const EXTRA_MAX_INCREMENTO = 1;
@@ -39,7 +60,7 @@ const redondear = (n) => Math.round(n * 1000) / 1000;
 
 // Descuenta stock de un insumo en la sucursal, con lock de fila dentro de la transacción,
 // y lo registra en el historial como venta del pedido
-async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, pedidoId, t }) {
+async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, pedidoId, t, stockBajos }) {
     if (cantidad <= 0) return;
 
     const stock = await StockSucursal.findOne({
@@ -68,6 +89,45 @@ async function descontarStock({ insumoId, cantidad, sucursalId, nombreProducto, 
         cantidadNueva: nueva,
         pedidoId,
     }, { transaction: t });
+
+    const minimo = normalizarMinimo(stock.stockMinimo);
+
+    if (stockBajos instanceof Map && minimo !== null && nueva <= minimo) {
+        const clave = `${sucursalId}:${insumoId}`;
+        const existente = stockBajos.get(clave);
+
+        if (existente) {
+            existente.cantidad = nueva;
+        } else if (cruzaMinimo(anterior, nueva, minimo)) {
+            stockBajos.set(clave, {
+                sucursalId: Number(sucursalId),
+                insumoId: Number(insumoId),
+                cantidad: nueva,
+                stockMinimo: minimo,
+            });
+        }
+    }
+}
+
+async function notificarStockBajoDeVentas(stockBajos, sucursalNombre) {
+    const eventos = [...stockBajos.values()];
+    if (eventos.length === 0) return;
+
+    try {
+        const insumos = await Insumo.findAll({
+            where: { id: { [Op.in]: eventos.map((evento) => evento.insumoId) } },
+            attributes: ['id', 'nombre'],
+        });
+        const nombres = new Map(insumos.map((insumo) => [Number(insumo.id), insumo.nombre]));
+
+        await Promise.all(eventos.map((evento) => notificarStockBajo({
+            ...evento,
+            sucursalNombre,
+            insumoNombre: nombres.get(evento.insumoId) ?? '',
+        })));
+    } catch (error) {
+        console.error('No se pudieron publicar las alertas de stock:', error.message);
+    }
 }
 
 // Valida lo que el cliente eligió para un grupo del combo y calcula su recargo y su consumo de stock.
@@ -135,12 +195,36 @@ const obtenerPedidosPorUsuario = async (req, res) => {
                 model: historialDeTiemposPedido,
                 as: 'historialDeTiemposPedidos',
                 attributes: ['estado', 'fecha'],
-            }],
-            order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
-        });
+               }, {
+                   model: Calificacion,
+                   as: 'calificacion',
+                   attributes: ['id'],
+               }, {
+                   // Solo la ubicación: para calcular la hora estimada de llegada
+                   model: Direccion,
+                   attributes: ['latitud', 'longitud'],
+               }],
+               order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+           });
 
+           // A cada pedido en curso se le agrega su hora estimada de llegada (se corrige sola si hay demoras)
+           const parametros = await obtenerParametros();
+           const respuesta = pedidos.map((pedido) => {
+               // D-07: el estado guardado es el que ve el cliente ("En camino" recién al iniciar el viaje)
+               const datos = pedido.toJSON();
+               const distancia = distanciaEntre(pedido.Direccion, pedido.Sucursal);
+               datos.estimacion = distancia === null ? null : estimarLlegada({
+                   fecha: pedido.fecha,
+                   estado: datos.estado,
+                   historial: datos.historialDeTiemposPedidos,
+                   unidades: contarUnidades(datos.DetallePedidos ?? []),
+                   distanciaKm: distancia,
+                   parametros,
+               });
+               return datos;
+           });
 
-        res.status(200).json(pedidos);
+           res.status(200).json(respuesta);
     } catch (error) {
         console.error('Algo salió mal', error.message);
         res.status(500).json({ mensaje: 'Error del servidor' });
@@ -169,6 +253,39 @@ const obtenerPedidoId = async (req, res) => {
     };
 };
 
+const obtenerPedidoClienteId = async (req, res) => {
+    try {
+        const pedido = await Pedido.findOne({
+            where: {
+                id: req.params.id,
+                usuarioId: req.identidad.id,
+            },
+            include: [{
+                model: DetallePedido,
+                include: [{ model: Producto, paranoid: false }],
+            }, {
+                model: Sucursal,
+            }, {
+                model: historialDeTiemposPedido,
+                as: 'historialDeTiemposPedidos',
+                attributes: ['estado', 'fecha'],
+            }],
+            order: [[{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+        });
+
+        if (!pedido) {
+            return res.status(404).json({
+                mensaje: 'Pedido no encontrado',
+            });
+        }
+
+        return res.status(200).json(pedido);
+    } catch (error) {
+        console.error('No se pudo obtener el pedido del cliente:', error.message);
+        return res.status(500).json({ mensaje: 'Error al obtener el pedido' });
+    }
+};
+
 // Valida las líneas con promoId y devuelve Map(índice de línea -> descuento).
 // Reglas: la promo existe y vale hoy; cada producto pertenece a la promo; todos sus productos vienen,
 // en la misma proporción (la promo se pide k veces completa) y sin pasar el máximo por pedido.
@@ -183,31 +300,24 @@ async function validarPromociones(productos) {
     if (porPromo.size === 0) return descuentos;
 
     for (const [promoId, lineas] of porPromo) {
-        const promo = buscarPromo(promoId);
+        // La promo tiene que existir, estar activa (la arma el Admin-Master), tener todos sus productos y valer hoy
+        const promo = await buscarPromo(promoId);
         if (!promo || !vigenteHoy(promo)) {
             throw new ErrorPedido(400, 'Una de las promos de tu carrito ya no está vigente. Quitala y volvé a agregarla.');
         }
 
-        const ids = await Producto.findAll({
-            where: { nombre: { [Op.in]: promo.items.map((i) => i.nombre) } },
-            attributes: ['id', 'nombre'],
-        });
-        const itemPorId = new Map(
-            ids.map((p) => [p.id, promo.items.find((i) => i.nombre === p.nombre)])
-        );
-
         // Unidades pedidas de cada producto de la promo
         const unidades = new Map();
         for (const { linea, indice } of lineas) {
-            const item = itemPorId.get(Number(linea.productoId));
+            const item = promo.items.find((i) => i.productoId === Number(linea.productoId));
             if (!item) {
                 throw new ErrorPedido(400, `Un producto no corresponde a la promo "${promo.titulo}"`);
             }
-            unidades.set(item.nombre, (unidades.get(item.nombre) ?? 0) + Number(linea.cantidad));
+            unidades.set(item.productoId, (unidades.get(item.productoId) ?? 0) + Number(linea.cantidad));
             descuentos.set(indice, item.descuento);
         }
 
-        const veces = promo.items.map((i) => (unidades.get(i.nombre) ?? 0) / i.cantidad);
+        const veces = promo.items.map((i) => (unidades.get(i.productoId) ?? 0) / i.cantidad);
         const k = veces[0];
         if (!Number.isInteger(k) || k < 1 || veces.some((v) => v !== k)) {
             throw new ErrorPedido(400, `La promo "${promo.titulo}" tiene que pedirse completa`);
@@ -226,6 +336,7 @@ const crearPedido = async (req, res) => {
 
     try {
         const { usuarioId, productos, direccionId, sucursalId, observaciones } = req.body;
+        const parametros = await obtenerParametros(t);
         const usuario = await Usuario.findByPk(usuarioId);
 
         if (!usuario) {
@@ -239,7 +350,7 @@ const crearPedido = async (req, res) => {
                 estado: { [Op.notIn]: ['Entregado', 'Cancelado', 'entregado', 'cancelado'] },
             },
         });
-        if (enCurso >= MAX_PEDIDOS_EN_CURSO) {
+           if (enCurso >= parametros.maxPedidosEnCurso) {
             await t.rollback();
             return res.status(409).json({
                 mensaje: `Ya tenés ${enCurso} pedidos en curso. Esperá a que se entregue alguno para hacer otro.`
@@ -268,11 +379,9 @@ const crearPedido = async (req, res) => {
         if (direccion.latitud == null || direccion.longitud == null) {
             throw new ErrorPedido(400, 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.');
         }
-        const distancia = distanciaKm(
-            { lat: Number(direccion.latitud), lng: Number(direccion.longitud) },
-            { lat: Number(sucursal.latitud), lng: Number(sucursal.longitud) }
-        );
-        if (distancia > Number(sucursal.radioEntregaKm)) {
+           const distancia = distanciaEntre(direccion, sucursal);
+           // El radio es uno solo para todas las sucursales (Parámetros)
+           if (distancia > parametros.radioEntregaKm) {
             throw new ErrorPedido(400, `Tu dirección está fuera de la zona de entrega de ${sucursal.nombre}`);
         }
 
@@ -298,6 +407,7 @@ const crearPedido = async (req, res) => {
         let total = 0;
         // Subtotal de cada línea, para controlar la compra mínima de las promos
         const lineasCobradas = [];
+        const stockBajos = new Map();
         // Recorrer los productos recibidos
         for (const [indice, producto] of productos.entries()) {
 
@@ -320,6 +430,18 @@ const crearPedido = async (req, res) => {
                 throw new ErrorPedido(400, `El producto ${productoBD.nombre} no está disponible`);
             }
 
+            // Un combo usa la receta de su producto principal: tiene que existir y estar disponible
+            let idReceta = productoBD.id;
+            if (productoBD.productoPrincipalId) {
+                const principal = await Producto.findByPk(productoBD.productoPrincipalId, {
+                    attributes: ['id', 'disponible'],
+                    transaction: t,
+                });
+                if (!principal?.disponible) {
+                    throw new ErrorPedido(400, `${productoBD.nombre} no está disponible por el momento`);
+                }
+                idReceta = principal.id;
+            }
             // Si el producto tiene tamaños, el precio base es el del tamaño elegido
             const tamanios = productoBD.tamanios ?? [];
             let precioBase = Number(productoBD.precio);
@@ -344,7 +466,7 @@ const crearPedido = async (req, res) => {
             );
 
             const receta = await RecetaInsumo.findAll({
-                where: { productoId: producto.productoId },
+                where: { productoId: idReceta },
                 include: [Insumo],
                 transaction: t
             });
@@ -435,7 +557,8 @@ const crearPedido = async (req, res) => {
                     sucursalId,
                     nombreProducto: productoBD.nombre,
                     pedidoId: nuevoPedido.id,
-                    t
+                    t,
+                    stockBajos
                 });
             }
 
@@ -450,7 +573,8 @@ const crearPedido = async (req, res) => {
                         sucursalId,
                         nombreProducto: elegido.nombre,
                         pedidoId: nuevoPedido.id,
-                        t
+                        t,
+                        stockBajos
                     });
                 }
             }
@@ -472,6 +596,9 @@ const crearPedido = async (req, res) => {
                 cantidad: producto.cantidad,
                 precio: precioUnitario,
                 tamanioId: tamanioElegido ? tamanioElegido.tamanioId : null,
+                // Para los reportes de promociones: qué promo se usó y el precio sin descuento
+                promocionId: producto.promoId ? Number(producto.promoId) : null,
+                precioLista: producto.promoId ? precioLista : null,
                 personalizaciones,
                 combo: elecciones.length > 0
                     ? {
@@ -489,7 +616,7 @@ const crearPedido = async (req, res) => {
                 // Promos con compra mínima (ej: papas gratis): el resto del pedido tiene que llegar al mínimo
         const promosDelPedido = [...new Set(productos.map((p) => p.promoId).filter(Boolean))];
         for (const promoId of promosDelPedido) {
-            const promo = buscarPromo(promoId);
+            const promo = await buscarPromo(promoId);
             if (!promo?.compraMinima) continue;
             const resto = lineasCobradas
                 .filter((l) => l.promoId !== promoId)
@@ -500,8 +627,13 @@ const crearPedido = async (req, res) => {
             }
         }
         
-        await nuevoPedido.update({ total: total }, { transaction: t });
-
+           // Envío y tiempo estimado: los calcula el servidor (no se confía en lo que manda la tienda).
+           // "total" sigue siendo solo productos; el envío va aparte.
+           await nuevoPedido.update({
+               total,
+               costoEnvio: calcularEnvio(distancia, parametros),
+               minutosEstimados: minutosEstimados(contarUnidades(productos), distancia, parametros),
+           }, { transaction: t });
         // Registro inicial de la línea de tiempo: nace en el estado actual del pedido
         await historialDeTiemposPedido.create({
             pedidoId: nuevoPedido.id,
@@ -511,6 +643,21 @@ const crearPedido = async (req, res) => {
         }, { transaction: t });
 
         await t.commit();
+
+        await emitirRefrescoAdmin({
+            dominio: 'stock',
+            accion: 'actualizado',
+            sucursalId: sucursal.id,
+            recursos: { pedidoId: nuevoPedido.id },
+        });
+        await emitirRefrescoAdmin({
+            dominio: 'pedidos',
+            accion: 'creado',
+            sucursalId: sucursal.id,
+            recursos: { pedidoId: nuevoPedido.id },
+        });
+        await notificarPedidoCreado(nuevoPedido);
+        await notificarStockBajoDeVentas(stockBajos, sucursal.nombre);
 
         return res.status(201).json(nuevoPedido)
 
@@ -529,4 +676,46 @@ const crearPedido = async (req, res) => {
 };
 
 
-module.exports = { obtenerPedidos, obtenerPedidoId, crearPedido, obtenerPedidosPorUsuario };
+   // POST /pedido/cotizar  { usuarioId, direccionId, sucursalId, unidades }
+   // Antes de confirmar: cuánto sale el envío y en cuánto llega. No crea nada.
+   const cotizarEnvio = async (req, res) => {
+       try {
+           const { usuarioId, direccionId, sucursalId, unidades } = req.body ?? {};
+           const cantidad = Number(unidades);
+           if (!Number.isInteger(cantidad) || cantidad < 1) {
+               return res.status(400).json({ mensaje: 'La cantidad de productos no es válida' });
+           }
+
+           const direccion = await Direccion.findOne({ where: { id: direccionId, usuarioId } });
+           if (!direccion) return res.status(404).json({ mensaje: 'Dirección no encontrada' });
+
+           const sucursal = await Sucursal.findByPk(sucursalId);
+           if (!sucursal) return res.status(404).json({ mensaje: 'Sucursal no encontrada' });
+
+           const distancia = distanciaEntre(direccion, sucursal);
+           if (distancia === null) {
+               return res.status(400).json({ mensaje: 'Tu dirección no tiene ubicación en el mapa. Editala para completarla.' });
+           }
+
+           const parametros = await obtenerParametros();
+           return res.json({
+               distanciaKm: Math.round(distancia * 10) / 10,
+               dentroDelRadio: distancia <= parametros.radioEntregaKm,
+               radioEntregaKm: parametros.radioEntregaKm,
+               costoEnvio: calcularEnvio(distancia, parametros),
+               minutosEstimados: minutosEstimados(cantidad, distancia, parametros),
+           });
+       } catch (error) {
+           console.error('Error al cotizar el envío:', error.message);
+           return res.status(500).json({ mensaje: 'Error al calcular el envío' });
+       }
+   };
+
+   module.exports = {
+       obtenerPedidos,
+       obtenerPedidoId,
+       obtenerPedidoClienteId,
+       crearPedido,
+       obtenerPedidosPorUsuario,
+       cotizarEnvio,
+   };

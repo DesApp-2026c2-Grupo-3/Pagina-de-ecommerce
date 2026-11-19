@@ -18,7 +18,8 @@ const inactivo = 'text-brand-dark hover:bg-gradient-to-b from-red-100 to-red-200
 
 // Chips de categorías dentro de la barra blanca tipo sticker
 function CategoryFilter({ categorias, seleccionada, onSeleccionar }: Props) {
-  const opciones = [{ id: null, nombre: 'Todos' }, ...categorias]
+  // "Todos" va siempre al final
+  const opciones = [...categorias, { id: null, nombre: 'Todos' }]
   // La pista de "deslizá" se recuerda por usuario (invitado si no inició sesión)
   const { user } = useAuth()
   const idUsuario = user?.id ? String(user.id) : undefined

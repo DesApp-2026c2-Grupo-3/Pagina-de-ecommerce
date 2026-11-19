@@ -3,6 +3,7 @@ export interface CarouselSlide {
   eyebrow?: string
   title: string
   /** Palabra del título que se resalta en mostaza (debe aparecer tal cual en title) */
+  nombraUsuario?: boolean,
   highlight?: string
   description: string
   ctaLabel: string
@@ -10,4 +11,5 @@ export interface CarouselSlide {
   ctaVariant?: 'solid' | 'outline'
   /** Foto de fondo: es la protagonista del slide */
   backgroundImage: string
+  transparentesEnMovil?: boolean
 }

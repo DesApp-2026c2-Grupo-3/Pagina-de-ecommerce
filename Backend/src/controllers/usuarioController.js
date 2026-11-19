@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { Usuario, Sucursal, TokenRecuperacion } = require('../models')
 
 const { enviarCorreoRecuperacion } = require('../services/emailServices');
+const { firmarTokenCliente } = require('../services/authService');
 
 // Hash de relleno: se usa en el login cuando el email no existe,
 // para que la respuesta tarde lo mismo y no revele qué emails están registrados.
@@ -69,7 +70,14 @@ const login = async(req,res) =>{
             return res.status(401).json({ code: "email-password-incorrectos" });
         }
 
-        return res.status(200).json({id: user.id,nombre: user.nombre, email: user.email})
+        const token = firmarTokenCliente(user);
+
+        return res.status(200).json({
+            id: user.id,
+            nombre: user.nombre,
+            email: user.email,
+            token,
+        })
     }catch(error){
         console.error('Error al loguear:', error.message);
         return res.status(500).json({ mensaje:'Error al loguear' })
@@ -202,11 +210,15 @@ const restablecerPassword = async (req, res) => {
 };
 
 
+// Datos públicos del perfil (nunca la contraseña)
+const ATRIBUTOS_PERFIL = ['id', 'nombre', 'apellido', 'email', 'telefono', 'dni', 'fechaNacimiento', 'sucursalId'];
+const INCLUIR_SUCURSAL = [{ model: Sucursal, attributes: ['id', 'nombre', 'localidad'] }];
+
 const obtenerUsuarioPorId = async (req, res) => {
     try {
         const usuario = await Usuario.findByPk(req.params.id, {
-            attributes: ['id', 'nombre', 'apellido', 'email', 'telefono', 'dni', 'fechaNacimiento', 'sucursalId'],
-            include: [{ model: Sucursal, attributes: ['id', 'nombre', 'localidad'] }],
+            attributes: ATRIBUTOS_PERFIL,
+            include: INCLUIR_SUCURSAL,
         });
 
         if (!usuario) {
@@ -217,6 +229,26 @@ const obtenerUsuarioPorId = async (req, res) => {
     } catch (error) {
         console.error('Algo salió mal', error.message);
         res.status(500).json({ mensaje: 'Error del servidor' });
+    }
+};
+
+// GET /usuario/me (requiere autenticarUsuario)
+// El id sale del token, nunca de la URL: sirve para revalidar la sesión del cliente.
+const obtenerMiUsuario = async (req, res) => {
+    try {
+        const usuario = await Usuario.findByPk(req.usuario.id, {
+            attributes: ATRIBUTOS_PERFIL,
+            include: INCLUIR_SUCURSAL,
+        });
+
+        if (!usuario) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+        }
+
+        return res.status(200).json(usuario);
+    } catch (error) {
+        console.error('Algo salió mal', error.message);
+        return res.status(500).json({ mensaje: 'Error del servidor' });
     }
 };
 
@@ -313,4 +345,4 @@ const actualizarUsuario = async (req, res) => {
     }
 };
 
-module.exports = { verUsuarios, crearUsuario, login, solicitarRecuperacion, restablecerPassword, obtenerUsuarioPorId, actualizarUsuario, actualizarSucursalPredeterminada };
+module.exports = { verUsuarios, crearUsuario, login, solicitarRecuperacion, restablecerPassword, obtenerUsuarioPorId, obtenerMiUsuario, actualizarUsuario, actualizarSucursalPredeterminada };

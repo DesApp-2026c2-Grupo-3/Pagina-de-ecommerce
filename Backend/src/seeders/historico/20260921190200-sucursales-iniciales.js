@@ -12,7 +12,9 @@ function horarioAbierto() {
 function horarioAbiertoLunesAViernes() {
   const horario = structuredClone(HORARIO_POR_DEFECTO);
   horario.sabado.abierto = false;
+  horario.sabado.turnos = [];
   horario.domingo.abierto = false;
+  horario.domingo.turnos = [];
   return JSON.stringify(horario);
 }
 

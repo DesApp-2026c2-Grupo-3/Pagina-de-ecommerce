@@ -22,9 +22,11 @@ jest.mock('../../src/models', () => {
 
 // El precio de referencia del recargo sale de la base: en el test se calcula con los productos de abajo
 jest.mock('../../src/utils/combo', () => ({ precioMasBarato: jest.fn() }));
+jest.mock('../../src/utils/parametros', () => ({ obtenerParametros: jest.fn() }));
 
 const models = require('../../src/models');
 const { precioMasBarato } = require('../../src/utils/combo');
+const { obtenerParametros } = require('../../src/utils/parametros');
 const { crearPedido } = require('../../src/controllers/pedidoController');
 
 const { Pedido, DetallePedido, Producto, Usuario, Sucursal, RecetaInsumo, ComboGrupo, StockSucursal, Direccion } = models;
@@ -90,6 +92,17 @@ function pedidoCon(items) {
 beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    obtenerParametros.mockResolvedValue({
+        maxPedidosEnCurso: 2,
+        radioEntregaKm: 10,
+        envioBase: 1200,
+        envioPorKm: 300,
+        preparacionBaseMin: 10,
+        preparacionPorProductoMin: 2,
+        viajeMinPorKm: 4,
+        margenDemoraMin: 5,
+    });
 
     Usuario.findByPk.mockResolvedValue({ id: 1 });
     Sucursal.findByPk.mockResolvedValue(sucursal);

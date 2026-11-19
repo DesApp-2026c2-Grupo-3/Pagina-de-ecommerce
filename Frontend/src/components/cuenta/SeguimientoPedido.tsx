@@ -1,12 +1,16 @@
-import { PASOS_SEGUIMIENTO, pasoActual, normalizarEstado } from '../../config/pedidoEstados'
+import { PASOS_SEGUIMIENTO, pasoActual, normalizarEstado, esEstadoInterno } from '../../config/pedidoEstados'
 
 type Registro = { estado: string; fecha: string }
 
-// Hora de cada paso según el historial (si un estado se repite, gana el último)
+// Hora de cada paso según el historial (si un estado se repite, gana el último).
+// Los estados internos (p. ej. "Listo para retirar") no pisan la hora de "En proceso".
 function horasPorPaso(historial: Registro[], fechaPedido?: string) {
   const horas = new Map<string, string>()
   if (fechaPedido) horas.set('Pendiente', fechaPedido) // el pedido nace en Pendiente
-  for (const r of historial) horas.set(normalizarEstado(r.estado), r.fecha)
+  for (const r of historial) {
+    if (esEstadoInterno(r.estado)) continue
+    horas.set(normalizarEstado(r.estado), r.fecha)
+  }
   return horas
 }
 

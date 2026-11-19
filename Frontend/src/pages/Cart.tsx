@@ -15,7 +15,6 @@ import ConfirmarEliminarModal from "../components/cart/ConfirmarEliminacionModal
 import type { CartItem } from "../types/cart";
 import type { Promo } from "../types/promo";
 import { getPromociones } from "../services/promotionService";
-import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
@@ -33,6 +32,7 @@ function Cart() {
     setObservaciones(valor);
     try { sessionStorage.setItem('observacionesPedido', valor) } catch { /* sin storage */ }
   }
+
   // Se puede editar si tiene tamaños o ingredientes para quitar o agregar
   const esEditable = (item: CartItem) =>
     Boolean(
@@ -84,7 +84,7 @@ function Cart() {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-brand-cream">
-        <PageHeader titulo="Tu carrito" />
+        <PageHeader titulo={<>Tu <span className="text-brand-red">carrito</span></>} />        
         <div className="mx-auto -mt-12 max-w-md px-4 pb-16">
           <div className="flex flex-col items-center gap-4 rounded-[2rem] border-2 border-brand-dark bg-white p-8 text-center shadow-sticker">
             <span className="relative grid h-24 w-24 -rotate-6 place-items-center rounded-3xl border-2 border-brand-dark bg-brand-mustard shadow-sticker">
@@ -142,9 +142,8 @@ function Cart() {
             <button
               type="button"
               onClick={() => setMostrarModalVaciar(true)}
-              className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-red-600 bg-stone-100
-               px-5 text-sm font-bold shadow-[4px_4px_0px_#c556a0] transition-transform hover:translate-y-0.5
-               hover:bg-stone-500 hover:text-red-300"
+              className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border-2 border-brand-dark bg-brand-red
+               px-5 text-sm font-bold text-white shadow-[4px_4px_0_var(--color-brand-dark)] transition-transform hover:translate-y-0.5"
             >
               <Trash2 className="h-4 w-4" />
               Vaciar carrito
@@ -160,26 +159,6 @@ function Cart() {
               onEditar={esEditable(item) ? () => setEditando(item) : undefined}
             />
           ))}
-
-          <div className="mx-auto w-full max-w-lg rounded-2xl border-2 border-brand-dark bg-white p-3">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
-              <label htmlFor="observaciones" className={CLASE_LABEL}>
-                Notas para la cocina (opcional)
-              </label>
-
-              <span className="shrink-0 text-xs text-brand-muted">
-                {observaciones.length}/100
-              </span>
-            </div>
-
-              <textarea id="observaciones" value={observaciones}
-              onChange={(e) => cambiarObservaciones(e.target.value)}
-              maxLength={100}
-              placeholder="Ej.: sin cebolla, bien cocida..."
-              rows={2}
-              className={`${CLASE_INPUT} w-full resize-none`}/>
-            </div>
-
           </div>
 
         <ResumenCarrito
@@ -189,6 +168,8 @@ function Cart() {
           deshabilitado={sucursalCerrada || faltantes.length > 0}
           motivo={sucursalCerrada ? undefined : textoFaltante}
           onConfirmar={handleCheckout}
+          nota={observaciones}
+          onCambiarNota={cambiarObservaciones}
         />
       </div>
 

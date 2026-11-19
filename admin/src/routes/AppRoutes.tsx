@@ -2,9 +2,14 @@ import { Route, Routes } from 'react-router-dom'
 import Home from '../pages/Home'
 import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../components/AdminLayout'
+import { NotificacionProvider } from '../context/notificaciones/NotificacionProvider'
+import { RealtimeProvider } from '../context/realtime/RealtimeProvider'
 import Productos from '../pages/Productos/Productos'
 import NuevoProducto from '../pages/Productos/NuevoProducto'
 import EditarProducto from '../pages/Productos/EditarProducto'
+import Promociones from '../pages/Promociones/Promociones'
+import NuevaPromocion from '../pages/Promociones/NuevaPromocion'
+import EditarPromocion from '../pages/Promociones/EditarPromocion'
 import Categorias from '../pages/Categorias/Categorias'
 import NuevaCategoria from '../pages/Categorias/NuevaCategoria'
 import EditarCategoria from '../pages/Categorias/EditarCategoria'
@@ -20,10 +25,16 @@ import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
 import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
 import Reportes from '../pages/Reportes/Reportes'
+import Calificaciones from '../pages/Calificaciones/Calificaciones'
 import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos'
 import ProductosMenosVendidos from '../components/reportes/ProductosMenosVendidos'
 import ProductosMayorFacturacion from '../components/reportes/ProductosMayorFacturacion'
 import ProductosSinStock from '../components/reportes/ProductosSinStock'
+import Repartidores from '../pages/Repartidores/Repartidores'
+import NuevoRepartidor from '../pages/Repartidores/NuevoRepartidor'
+import EditarRepartidor from '../pages/Repartidores/EditarRepartidor'
+import Viajes from '../pages/Viajes/Viajes'
+import Parametros from '../pages/Parametros/Parametros'
 
 export default function AppRoutes() {
   return (
@@ -33,13 +44,18 @@ export default function AppRoutes() {
       <Route
         element={
           <ProtectedRoute>
-            <AdminLayout />
+            <RealtimeProvider>
+              <NotificacionProvider>
+                <AdminLayout />
+              </NotificacionProvider>
+            </RealtimeProvider>
           </ProtectedRoute>
         }
       >
         <Route path="/admin" element={<Reportes />} />
         <Route path="/admin/reportes" element={<Reportes />} />
         <Route path="/admin/pedidos" element={<Pedidos />} />
+        <Route path="/admin/calificaciones" element={<Calificaciones />} />
         <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
         <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
         <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />
@@ -51,12 +67,17 @@ export default function AppRoutes() {
           <Route path="/admin/productos/nuevo" element={<NuevoProducto />} />
           <Route path="/admin/productos/editar/:id" element={<EditarProducto />} />
 
+          <Route path="/admin/promociones" element={<Promociones />} />
+          <Route path="/admin/promociones/nueva" element={<NuevaPromocion />} />
+          <Route path="/admin/promociones/editar/:id" element={<EditarPromocion />} />
+
           <Route path="/admin/categorias" element={<Categorias />} />
           <Route path="/admin/categorias/nueva" element={<NuevaCategoria />} />
           <Route path="/admin/categorias/editar/:id" element={<EditarCategoria />} />
 
           <Route path="/admin/insumos" element={<Insumos />} />
 
+          <Route path="/admin/parametros" element={<Parametros />} />
           <Route path="/admin/administradores" element={<Administradores />} />
           <Route path="/admin/administradores/nuevo" element={<NuevoAdministrador />} />
           <Route path="/admin/administradores/editar/:id" element={<EditarAdministrador />} />
@@ -69,6 +90,12 @@ export default function AppRoutes() {
         <Route element={<SoloSuSucursal />}>
           <Route path="/admin/sucursales/editar/:id" element={<EditarSucursal />} />
           <Route path="/admin/sucursales/:id/stock" element={<Stock />} />
+
+          <Route path="/admin/repartidores" element={<Repartidores />} />
+          <Route path="/admin/viajes" element={<Viajes />} />
+          <Route path="/admin/repartidores/editar/:id" element={<EditarRepartidor />}/>
+          <Route path="/admin/repartidores/nuevo" element={<NuevoRepartidor />} />
+          
         </Route>
       </Route>
 

@@ -6,9 +6,11 @@ jest.mock('../../src/models', () => ({
         create: jest.fn(),
         update: jest.fn(),
     },
+    Usuario: { findByPk: jest.fn() },
+    sequelize: { transaction: jest.fn() },
 }));
 
-const { Direccion } = require('../../src/models');
+const { Direccion, Usuario } = require('../../src/models');
 const {
     obtenerDireccionesPorUsuario,
     crearDireccion,
@@ -39,6 +41,7 @@ beforeEach(() => {
     jest.clearAllMocks();
     // Evita que los console.error de los casos de error ensucien la salida
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    Usuario.findByPk.mockResolvedValue({ id: 1 });
 });
 
 describe('obtenerDireccionesPorUsuario', () => {

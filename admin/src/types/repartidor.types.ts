@@ -1,0 +1,30 @@
+export interface SucursalRepartidor {
+  id: number
+  nombre: string
+}
+
+export interface Repartidor {
+  id: number
+  nombre: string
+  apellido: string
+  email: string
+  sucursalId: number
+  activo: boolean
+  createdAt: string
+  sucursal?: SucursalRepartidor
+  tieneViajeEnCurso: boolean
+}
+
+export interface PayloadRepartidor {
+  nombre: string
+  apellido: string
+  email: string
+  password: string
+  sucursalId: number
+}
+
+export interface RepartidorDisponible {
+  id: number
+  nombre: string
+  apellido: string
+}

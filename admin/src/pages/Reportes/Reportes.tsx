@@ -10,6 +10,10 @@ import {
 
 import ReportesProductos from "../../components/reportes/ReportesProductos";
 import ReportesPedidos from "../../components/reportes/ReportesPedidos";
+import "../../components/reportes/efectos/reportes.css";
+import ReportesClientes from "../../components/reportes/ReportesCliente";
+import ReportesSucursales from "../../components/reportes/ReportesSucursales";
+import ReportesPromociones from "../../components/reportes/ReportesPromociones";
 
 type SeccionReporte = "productos" | "sucursales" | "pedidos" | "clientes" | "promociones";
 
@@ -46,9 +50,9 @@ export default function Reportes() {
     useState<SeccionReporte>("productos");
 
   return (
-    <section className="space-y-6 p-8">
-      <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+    <section className="mx-auto max-w-7xl space-y-6 p-4 sm:p-8">      
+    <header className="rep-subir">        
+  <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
           Análisis del negocio
         </p>
 
@@ -63,8 +67,8 @@ export default function Reportes() {
 
       <nav
         aria-label="Secciones de reportes"
-        className="flex flex-wrap gap-2 border-b border-gray-200 pb-3"
-      >
+        className="-mx-4 flex gap-2 overflow-x-auto border-b border-gray-200 px-4 pb-3 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"      
+        >
         {secciones.map(({ id, nombre, icono: Icono }) => {
           const activa = seccionActiva === id;
 
@@ -74,7 +78,7 @@ export default function Reportes() {
               type="button"
               onClick={() => setSeccionActiva(id)}
               aria-pressed={activa}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition ${                
                 activa
                   ? "bg-orange-500 text-white shadow-sm"
                   : "text-gray-600 hover:bg-orange-50 hover:text-orange-700"
@@ -92,44 +96,21 @@ export default function Reportes() {
       )}
 
       {seccionActiva === "sucursales" && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <Store className="mx-auto text-gray-400" size={32} />
-          <h2 className="mt-3 font-semibold text-gray-900">
-            Reportes de sucursales
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Esta sección estará disponible cuando implementemos sus reportes.
-          </p>
-        </div>
+        <ReportesSucursales />
+      )}
+
+      {seccionActiva === "clientes" && (
+        <ReportesClientes />
       )}
 
       {seccionActiva === "pedidos" && (
         <ReportesPedidos />
       )}
 
-      {seccionActiva === "clientes" && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <ShoppingCart className="mx-auto text-gray-400" size={32} />
-          <h2 className="mt-3 font-semibold text-gray-900">
-            Reportes de ventas
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Esta sección estará disponible cuando implementemos sus reportes.
-          </p>
-        </div>
+      {seccionActiva === "promociones" && (
+        <ReportesPromociones />
       )}
 
-      {seccionActiva === "promociones" && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <ShoppingCart className="mx-auto text-gray-400" size={32} />
-          <h2 className="mt-3 font-semibold text-gray-900">
-            Reportes de ventas
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Esta sección estará disponible cuando implementemos sus reportes.
-          </p>
-        </div>
-      )}
     </section>
   );
 }

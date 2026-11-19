@@ -1,0 +1,275 @@
+import type {
+  AccionNotificaciones,
+  EstadoNotificaciones,
+  EventoNotificacionLeida,
+  Notificacion,
+} from '../../types/notificacion.types'
+
+export const estadoInicial: EstadoNotificaciones = {
+  items: [],
+  noLeidas: null,
+  siguienteCursor: null,
+  cargandoInicial: true,
+  cargandoMas: false,
+  marcandoTodas: false,
+  error: null,
+  hayMas: false,
+  noLeidasAlMarcarTodas: null,
+  marcaMarcarTodas: null,
+}
+
+function ordenar(items: Notificacion[]): Notificacion[] {
+  return [...items].sort((a, b) => {
+    const fecha = new Date(b.ocurridoEn).getTime() - new Date(a.ocurridoEn).getTime()
+    return fecha !== 0 ? fecha : b.id - a.id
+  })
+}
+
+function fusionar(
+  actuales: Notificacion[],
+  nuevos: Notificacion[],
+): Notificacion[] {
+  const mapa = new Map<number, Notificacion>()
+
+  for (const item of actuales) mapa.set(item.id, item)
+
+  for (const item of nuevos) {
+    const existente = mapa.get(item.id)
+
+    if (!existente) {
+      mapa.set(item.id, item)
+      continue
+    }
+
+    if (!existente.leida && item.leida) {
+      mapa.set(item.id, {
+        ...existente,
+        leida: true,
+        leidaEn: item.leidaEn ?? existente.leidaEn,
+      })
+    }
+  }
+
+  return ordenar([...mapa.values()])
+}
+
+function conLectura(
+  item: Notificacion,
+  leida: boolean,
+  leidaEn: string | null,
+): Notificacion {
+  return {
+    ...item,
+    leida,
+    leidaEn,
+  }
+}
+
+function aplicarLeida(
+  items: Notificacion[],
+  id: number,
+  leida: boolean,
+  leidaEn: string | null,
+): Notificacion[] {
+  return items.map((item) =>
+    item.id === id ? conLectura(item, leida, leidaEn) : item,
+  )
+}
+
+function marcarHasta(
+  items: Notificacion[],
+  leidaEn: string,
+  hasta: string,
+): Notificacion[] {
+  const limite = new Date(hasta).getTime()
+
+  return items.map((item) => {
+    const ocurrido = new Date(item.ocurridoEn).getTime()
+    if (item.leida || ocurrido > limite) return item
+    return conLectura(item, true, leidaEn)
+  })
+}
+
+function aplicarEventoLeida(
+  estado: EstadoNotificaciones,
+  evento: EventoNotificacionLeida,
+): EstadoNotificaciones {
+  if ('todas' in evento) {
+    const items = marcarHasta(estado.items, evento.leidaEn, evento.leidaEn)
+
+    return {
+      ...estado,
+      items,
+      noLeidas: items.filter((item) => !item.leida).length,
+    }
+  }
+
+  const item = estado.items.find((candidato) => candidato.id === evento.notificacionId)
+  if (!item) return estado
+
+  const estabaNoLeida = !item.leida
+
+  return {
+    ...estado,
+    items: aplicarLeida(
+      estado.items,
+      item.id,
+      true,
+      item.leidaEn ?? evento.leidaEn,
+    ),
+    noLeidas: estabaNoLeida && estado.noLeidas !== null
+      ? Math.max(0, estado.noLeidas - 1)
+      : estado.noLeidas,
+  }
+}
+
+export function notificacionReducer(
+  estado: EstadoNotificaciones,
+  accion: AccionNotificaciones,
+): EstadoNotificaciones {
+  switch (accion.type) {
+    case 'CARGA_INICIAL_INICIO':
+      return {
+        ...estado,
+        cargandoInicial: true,
+        error: null,
+      }
+
+    case 'CARGA_INICIAL_OK':
+      return {
+        ...estado,
+        items: fusionar(estado.items, accion.items),
+        noLeidas: accion.noLeidas,
+        siguienteCursor: accion.siguienteCursor,
+        cargandoInicial: false,
+        error: null,
+        hayMas: accion.siguienteCursor !== null,
+      }
+
+    case 'CARGA_INICIAL_ERROR':
+      return {
+        ...estado,
+        cargandoInicial: false,
+        error: accion.mensaje,
+      }
+
+    case 'CARGA_MAS_INICIO':
+      return {
+        ...estado,
+        cargandoMas: true,
+        error: null,
+      }
+
+    case 'CARGA_MAS_OK':
+      return {
+        ...estado,
+        items: fusionar(estado.items, accion.items),
+        siguienteCursor: accion.siguienteCursor,
+        cargandoMas: false,
+        error: null,
+        hayMas: accion.siguienteCursor !== null,
+      }
+
+    case 'CARGA_MAS_ERROR':
+      return {
+        ...estado,
+        cargandoMas: false,
+        error: accion.mensaje,
+      }
+
+    case 'CURSOR_DESCARTADO':
+      return {
+        ...estado,
+        siguienteCursor: null,
+        hayMas: false,
+        cargandoMas: false,
+        error: null,
+      }
+
+    case 'NUEVA_NOTIFICACION': {
+      const existente = estado.items.some((item) => item.id === accion.notificacion.id)
+
+      return {
+        ...estado,
+        items: fusionar(estado.items, [accion.notificacion]),
+        noLeidas: !existente && estado.noLeidas !== null
+          ? estado.noLeidas + 1
+          : estado.noLeidas,
+      }
+    }
+
+    case 'LECTURA_LOCAL_OPTIMISTA': {
+      const item = estado.items.find((candidato) => candidato.id === accion.id)
+      if (!item || item.leida) return estado
+
+      return {
+        ...estado,
+        items: aplicarLeida(estado.items, accion.id, true, accion.marca),
+        noLeidas: estado.noLeidas === null
+          ? null
+          : Math.max(0, estado.noLeidas - 1),
+      }
+    }
+
+    case 'LECTURA_LOCAL_REVERTIR': {
+      const item = estado.items.find((candidato) => candidato.id === accion.id)
+      if (!item || !item.leida || item.leidaEn !== accion.marca) return estado
+
+      return {
+        ...estado,
+        items: aplicarLeida(estado.items, accion.id, false, null),
+        noLeidas: estado.noLeidas === null
+          ? null
+          : estado.noLeidas + 1,
+      }
+    }
+
+    case 'LECTURA_REMOTA':
+      return aplicarEventoLeida(estado, accion.evento)
+
+    case 'MARCAR_TODAS_INICIO':
+      return {
+        ...estado,
+        marcandoTodas: true,
+        error: null,
+        noLeidasAlMarcarTodas: estado.noLeidas,
+        marcaMarcarTodas: accion.marca,
+      }
+
+    case 'MARCAR_TODAS_OK': {
+      const hasta = estado.marcaMarcarTodas ?? accion.leidaEn
+      const items = marcarHasta(estado.items, accion.leidaEn, hasta)
+
+      return {
+        ...estado,
+        items,
+        noLeidas: items.filter((item) => !item.leida).length,
+        marcandoTodas: false,
+        error: null,
+        noLeidasAlMarcarTodas: null,
+        marcaMarcarTodas: null,
+      }
+    }
+
+    case 'MARCAR_TODAS_ERROR':
+      return {
+        ...estado,
+        marcandoTodas: false,
+        error: accion.mensaje,
+        noLeidasAlMarcarTodas: null,
+        marcaMarcarTodas: null,
+      }
+
+    case 'CONTADOR_ACTUALIZADO':
+      return {
+        ...estado,
+        noLeidas: accion.noLeidas,
+      }
+
+    case 'ERROR_ACTUALIZADO':
+      return {
+        ...estado,
+        error: accion.mensaje,
+      }
+  }
+}

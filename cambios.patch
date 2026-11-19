@@ -1,0 +1,3656 @@
+diff --git a/Backend/src/config/calificaciones.js b/Backend/src/config/calificaciones.js
+new file mode 100644
+index 0000000..2a44769
+--- /dev/null
++++ b/Backend/src/config/calificaciones.js
+@@ -0,0 +1,14 @@
++// Reglas de las calificaciones
++
++// Se puede calificar un pedido entregado hasta esta cantidad de días después de hecho
++const DIAS_PARA_CALIFICAR = 7;
++// Máximo del comentario
++const MAX_COMENTARIO = 300;
++
++const MS_DIA = 24 * 60 * 60 * 1000;
++
++/** true si el pedido hecho en `fechaPedido` todavía se puede calificar */
++const dentroDelPlazo = (fechaPedido, ahora = new Date()) =>
++    ahora.getTime() - new Date(fechaPedido).getTime() <= DIAS_PARA_CALIFICAR * MS_DIA;
++
++module.exports = { DIAS_PARA_CALIFICAR, MAX_COMENTARIO, dentroDelPlazo };
+\ No newline at end of file
+diff --git a/Backend/src/config/categoriasEstilo.js b/Backend/src/config/categoriasEstilo.js
+new file mode 100644
+index 0000000..079191a
+--- /dev/null
++++ b/Backend/src/config/categoriasEstilo.js
+@@ -0,0 +1,11 @@
++// Cómo se ve cada categoría en las tarjetas del Home. Los valores son los que entiende el front:
++// los íconos son los del set de BurgerFast y los fondos, los tres colores de la marca.
++// Si una categoría no tiene ícono o fondo cargado, el front usa el que corresponde a su nombre.
++const ICONOS_CATEGORIA = [
++    'hamburguesa', 'combo', 'papas', 'nuggets', 'aro', 'bebida', 'postre', 'ensalada',
++    'sinTacc', 'desayuno', 'cafe', 'comboCafe', 'sandwich', 'torta', 'salsa', 'generico',
++];
++
++const FONDOS_CATEGORIA = ['mostaza', 'rojo', 'arena'];
++
++module.exports = { ICONOS_CATEGORIA, FONDOS_CATEGORIA };
+diff --git a/Backend/src/controllers/admin/calificacionController.js b/Backend/src/controllers/admin/calificacionController.js
+new file mode 100644
+index 0000000..da2d82e
+--- /dev/null
++++ b/Backend/src/controllers/admin/calificacionController.js
+@@ -0,0 +1,72 @@
++const { Admin, Calificacion, Usuario, Sucursal } = require('../../models');
++
++const ESTADOS = ['PENDIENTE', 'APROBADA', 'OCULTA'];
++
++// El master ve todas; el admin de sucursal, solo las de su sucursal.
++// Devuelve el filtro a aplicar, o null si el admin no existe.
++async function filtroDelAdmin(req) {
++    const admin = await Admin.findByPk(req.usuario.id);
++    if (!admin) return null;
++    return admin.sucursalId !== null ? { sucursalId: admin.sucursalId } : {};
++}
++
++// GET /admin/calificaciones?estado=PENDIENTE → la lista para moderar, de la más nueva a la más vieja
++const obtenerCalificaciones = async (req, res) => {
++    try {
++        const where = await filtroDelAdmin(req);
++        if (!where) return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
++
++        const { estado } = req.query;
++        if (estado) {
++            if (!ESTADOS.includes(estado)) return res.status(400).json({ mensaje: 'El estado no es válido' });
++            where.estado = estado;
++        }
++
++        const calificaciones = await Calificacion.findAll({
++            where,
++            include: [
++                { model: Usuario, as: 'usuario', attributes: ['nombre'] },
++                { model: Sucursal, as: 'sucursal', attributes: ['nombre'] },
++            ],
++            order: [['createdAt', 'DESC']],
++        });
++
++        return res.json(calificaciones.map((c) => ({
++            id: c.id,
++            nombre: c.usuario?.nombre ?? 'Cliente',
++            puntaje: c.puntaje,
++            comentario: c.comentario,
++            fecha: c.createdAt,
++            estado: c.estado,
++            sucursal: c.sucursal?.nombre ?? 'Sin sucursal',
++        })));
++    } catch (error) {
++        console.error('Error al obtener las calificaciones:', error.message);
++        return res.status(500).json({ mensaje: 'Error al obtener las calificaciones' });
++    }
++};
++
++// PATCH /admin/calificaciones/:id/estado  { estado: 'APROBADA' | 'OCULTA' }
++const cambiarEstado = async (req, res) => {
++    try {
++        const where = await filtroDelAdmin(req);
++        if (!where) return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
++
++        const { estado } = req.body;
++        if (estado !== 'APROBADA' && estado !== 'OCULTA') {
++            return res.status(400).json({ mensaje: 'El estado debe ser APROBADA u OCULTA' });
++        }
++
++        // El filtro evita que un admin de sucursal modere calificaciones de otra sucursal
++        const calificacion = await Calificacion.findOne({ where: { ...where, id: req.params.id } });
++        if (!calificacion) return res.status(404).json({ mensaje: 'Calificación no encontrada' });
++
++        await calificacion.update({ estado });
++        return res.json({ mensaje: estado === 'APROBADA' ? 'Calificación aprobada' : 'Calificación oculta', id: calificacion.id, estado });
++    } catch (error) {
++        console.error('Error al cambiar el estado de la calificación:', error.message);
++        return res.status(500).json({ mensaje: 'Error al cambiar el estado' });
++    }
++};
++
++module.exports = { obtenerCalificaciones, cambiarEstado };
+\ No newline at end of file
+diff --git a/Backend/src/controllers/admin/categoriaController.js b/Backend/src/controllers/admin/categoriaController.js
+index edf05b9..7cfc7a0 100644
+--- a/Backend/src/controllers/admin/categoriaController.js
++++ b/Backend/src/controllers/admin/categoriaController.js
+@@ -1,9 +1,56 @@
+-const { Categoria, Producto } = require("../../models");
++const { literal } = require('sequelize');
++const { Categoria, Producto, sequelize } = require("../../models");
++
++// Por el orden que defina el master (a igual orden, la más vieja primero)
++const ORDEN_CATEGORIAS = [['orden', 'ASC'], ['id', 'ASC']];
++const PASO_ORDEN = 10;
++
++const CANTIDAD_PRODUCTOS = literal(
++    '(SELECT COUNT(*)::int FROM "Productos" p WHERE p."categoriaId" = "Categoria"."id" AND p."deletedAt" IS NULL)'
++);
++
++// Ícono y color solo se tocan si llegan (null los devuelve a los que corresponden al nombre)
++const estiloDe = (body) => ({
++    ...(body.icono !== undefined ? { icono: body.icono } : {}),
++    ...(body.fondo !== undefined ? { fondo: body.fondo } : {}),
++});
++
++// Orden de una categoría nueva: al final de sus hermanas
++const siguienteOrden = async (categoriaPadreId) => {
++    const ultimo = await Categoria.max('orden', { where: { categoriaPadreId } });
++    return (Number(ultimo) || 0) + PASO_ORDEN;
++};
++
++// Un solo nivel: la categoría padre tiene que ser principal y no tener productos propios.
++// Devuelve el motivo del rechazo, o null si está bien.
++const motivoPadreInvalido = async (categoriaPadreId, idActual) => {
++    if (categoriaPadreId === null || categoriaPadreId === undefined) return null;
++    if (idActual !== null && Number(categoriaPadreId) === Number(idActual)) {
++        return 'Una categoría no puede ser su propia categoría padre';
++    }
++
++    const padre = await Categoria.findByPk(categoriaPadreId);
++    if (!padre) return 'La categoría padre no existe';
++    if (padre.categoriaPadreId !== null) {
++        return `"${padre.nombre}" ya depende de otra categoría: solo se permite un nivel`;
++    }
++    if (await Producto.count({ where: { categoriaId: padre.id } }) > 0) {
++        return `"${padre.nombre}" tiene productos: pasalos a otra categoría antes de usarla como padre`;
++    }
++    if (idActual !== null && await Categoria.count({ where: { categoriaPadreId: idActual } }) > 0) {
++        return 'Esta categoría tiene subcategorías, así que no puede depender de otra';
++    }
++    return null;
++};
+ 
+ const obtenerCategorias = async (req, res) => {
+     try {
+-        // Siempre por id: sin orden explícito, Postgres puede devolverlas en otro orden después de un UPDATE
+-        const categoria = await Categoria.findAll({ order: [['id', 'ASC']] });
++        // Siempre con orden explícito: sin él, Postgres puede devolverlas en otro orden después de un UPDATE
++        // cantidadProductos: el panel la usa para mostrar el Home como lo ve el cliente (sin categorías vacías)
++        const categoria = await Categoria.findAll({
++            attributes: { include: [[CANTIDAD_PRODUCTOS, 'cantidadProductos']] },
++            order: ORDEN_CATEGORIAS
++        });
+         return res.json(categoria);
+     } catch (error) {
+         console.error(error);
+@@ -13,10 +60,20 @@ const obtenerCategorias = async (req, res) => {
+ 
+ const crearCategoria = async (req, res) => {
+     try {
+-        const { nombre } = req.body;
++        const { nombre, categoriaPadreId = null } = req.body;
++
++        const motivo = await motivoPadreInvalido(categoriaPadreId, null);
++        if (motivo) {
++            return res.status(400).json({ mensaje: motivo });
++        }
++
++        const orden = req.body.orden ?? await siguienteOrden(categoriaPadreId);
+ 
+         const nuevaCategoria = await Categoria.create({
+-            nombre
++            nombre,
++            categoriaPadreId,
++            orden,
++            ...estiloDe(req.body)
+         });
+ 
+         return res.status(201).json({
+@@ -40,11 +97,21 @@ const editarCategoriaPorId = async (req, res) => {
+             return res.status(404).json({ mensaje: 'Categoria no encontrada' });
+         }
+ 
+-        const { nombre } = req.body;
++        const { nombre, categoriaPadreId, orden } = req.body;
+ 
+-        const categoriaActualizada = await categoria.update({
+-            nombre
+-        });
++        // Solo se cambia lo que llega: editar el nombre no mueve la categoría de lugar
++        const cambios = { nombre };
++        if (categoriaPadreId !== undefined) {
++            const motivo = await motivoPadreInvalido(categoriaPadreId, categoria.id);
++            if (motivo) {
++                return res.status(400).json({ mensaje: motivo });
++            }
++            cambios.categoriaPadreId = categoriaPadreId;
++        }
++        if (orden !== undefined) cambios.orden = orden;
++        Object.assign(cambios, estiloDe(req.body));
++
++        const categoriaActualizada = await categoria.update(cambios);
+ 
+         return res.status(200).json({
+             mensaje: "Categoria editada con éxito",
+@@ -67,6 +134,12 @@ const eliminarCategorias = async (req, res) => {
+             return res.status(404).json({ mensaje: 'Categoria no encontrada' });
+         }
+ 
++        if (await Categoria.count({ where: { categoriaPadreId: categoria.id } }) > 0) {
++            return res.status(400).json({
++                mensaje: 'La categoría tiene subcategorías: eliminalas o movelas antes'
++            });
++        }
++
+         await categoria.destroy();
+ 
+         return res.status(200).json({ mensaje: "Categoria eliminada con éxito" });
+@@ -142,20 +215,32 @@ const habilitarCategoria = async (req, res) => {
+ 
+ const obtenerCategoriasCliente = async (req, res) => {
+     try {
++        // Lista plana (con categoriaPadreId y orden) de las categorías activas que tienen productos,
++        // más las principales que no tienen productos propios pero sí en alguna de sus hijas (Cafetería)
+         const categorias = await Categoria.findAll({
+             where: {
+                 activo: true
+             },
+-            include: [{
+-                model: Producto,
+-                as: 'productos',
+-                required: true,
+-                attributes: []
+-            }],
+-            order: [['id', 'ASC']]
++            attributes: {
++                include: [[
++                    literal('(SELECT COUNT(*) FROM "Productos" p WHERE p."categoriaId" = "Categoria"."id" AND p."deletedAt" IS NULL)'),
++                    'cantidadProductos'
++                ]]
++            },
++            order: ORDEN_CATEGORIAS,
++            raw: true
+         });
+ 
+-        return res.json(categorias);
++        const conProductos = new Set(categorias.filter((c) => Number(c.cantidadProductos) > 0).map((c) => c.id));
++        const padresConProductosEnHijas = new Set(
++            categorias.filter((c) => c.categoriaPadreId !== null && conProductos.has(c.id)).map((c) => c.categoriaPadreId)
++        );
++
++        return res.json(
++            categorias
++                .filter((c) => conProductos.has(c.id) || padresConProductosEnHijas.has(c.id))
++                .map(({ cantidadProductos, ...categoria }) => categoria)
++        );
+     } catch (error) {
+         console.error(error);
+         return res.status(500).json({
+@@ -164,12 +249,43 @@ const obtenerCategoriasCliente = async (req, res) => {
+     }
+ };
+ 
++// PATCH /admin/categorias/orden  { ids: [3, 1, 2] } → deja las categorías en ese orden (10, 20, 30...)
++const ordenarCategorias = async (req, res) => {
++    try {
++        const { ids } = req.body ?? {};
++        const validos = Array.isArray(ids)
++            && ids.length > 0
++            && ids.every((id) => Number.isInteger(id) && id > 0)
++            && new Set(ids).size === ids.length;
++        if (!validos) {
++            return res.status(400).json({ mensaje: 'Mandá la lista de categorías, sin repetir, en el orden deseado' });
++        }
++
++        const existentes = await Categoria.findAll({ where: { id: ids }, attributes: ['id'] });
++        if (existentes.length !== ids.length) {
++            return res.status(404).json({ mensaje: 'Alguna de las categorías no existe' });
++        }
++
++        await sequelize.transaction(async (transaction) => {
++            for (const [indice, id] of ids.entries()) {
++                await Categoria.update({ orden: (indice + 1) * PASO_ORDEN }, { where: { id }, transaction });
++            }
++        });
++
++        return res.status(200).json({ mensaje: 'Orden actualizado' });
++    } catch (error) {
++        console.error(error);
++        return res.status(500).json({ mensaje: 'Error al ordenar las categorías' });
++    }
++};
++
+ module.exports = {
+     obtenerCategorias,
++    ordenarCategorias,
+     crearCategoria,
+     eliminarCategorias,
+     editarCategoriaPorId,
+     deshabilitarCategoria,
+     habilitarCategoria,
+     obtenerCategoriasCliente
+-};
+\ No newline at end of file
++};
+diff --git a/Backend/src/controllers/calificacionController.js b/Backend/src/controllers/calificacionController.js
+new file mode 100644
+index 0000000..f39863b
+--- /dev/null
++++ b/Backend/src/controllers/calificacionController.js
+@@ -0,0 +1,76 @@
++const { Op } = require('sequelize');
++const { Pedido, Calificacion, Usuario } = require('../models');
++const { dentroDelPlazo, DIAS_PARA_CALIFICAR } = require('../config/calificaciones');
++
++// Cuántas calificaciones se muestran en el inicio
++const CANTIDAD_EN_INICIO = 6;
++
++// Los pedidos viejos pueden tener el estado en minúscula: se compara sin importar mayúsculas
++const estaEntregado = (pedido) => String(pedido.estado).toLowerCase() === 'entregado';
++
++// POST /calificaciones → califica un pedido entregado (una sola vez por pedido).
++// Queda PENDIENTE hasta que un admin la apruebe.
++const crearCalificacion = async (req, res) => {
++    try {
++        const { usuarioId, pedidoId, puntaje, comentario } = req.body;
++
++        const pedido = await Pedido.findByPk(pedidoId);
++        // 404 genérico si el pedido es de otro cliente: no se confirma que existe
++        if (!pedido || Number(pedido.usuarioId) !== Number(usuarioId)) {
++            return res.status(404).json({ mensaje: 'Pedido no encontrado' });
++        }
++        if (!estaEntregado(pedido)) {
++            return res.status(400).json({ mensaje: 'Solo podés calificar pedidos que ya recibiste' });
++        }
++        if (!dentroDelPlazo(pedido.fecha)) {
++            return res.status(400).json({ mensaje: `El plazo para calificar este pedido venció (${DIAS_PARA_CALIFICAR} días)` });
++        }
++
++        try {
++            await Calificacion.create({
++                pedidoId: pedido.id,
++                usuarioId: pedido.usuarioId,
++                sucursalId: pedido.sucursalId ?? null,
++                puntaje,
++                comentario: comentario || null,
++            });
++        } catch (error) {
++            // La base no permite dos calificaciones para el mismo pedido
++            if (error.name === 'SequelizeUniqueConstraintError') {
++                return res.status(409).json({ mensaje: 'Ya calificaste este pedido' });
++            }
++            throw error;
++        }
++
++        return res.status(201).json({ mensaje: '¡Gracias por tu calificación!' });
++    } catch (error) {
++        console.error('Error al crear la calificación:', error.message);
++        return res.status(500).json({ mensaje: 'Error al guardar la calificación' });
++    }
++};
++
++// GET /calificaciones/recientes → las últimas aprobadas con comentario, para el inicio.
++// Solo el nombre del cliente: el apellido nunca sale del servidor.
++const obtenerRecientes = async (req, res) => {
++    try {
++        const calificaciones = await Calificacion.findAll({
++            where: { estado: 'APROBADA', comentario: { [Op.ne]: null } },
++            include: [{ model: Usuario, as: 'usuario', attributes: ['nombre'] }],
++            order: [['createdAt', 'DESC']],
++            limit: CANTIDAD_EN_INICIO,
++        });
++
++        return res.json(calificaciones.map((c) => ({
++            id: c.id,
++            nombre: c.usuario?.nombre ?? 'Cliente',
++            puntaje: c.puntaje,
++            comentario: c.comentario,
++            fecha: c.createdAt,
++        })));
++    } catch (error) {
++        console.error('Error al obtener las calificaciones recientes:', error.message);
++        return res.status(500).json({ mensaje: 'Error al obtener las calificaciones' });
++    }
++};
++
++module.exports = { crearCalificacion, obtenerRecientes };
+\ No newline at end of file
+diff --git a/Backend/src/controllers/pedidoController.js b/Backend/src/controllers/pedidoController.js
+index f1d29f3..dd0b6c4 100644
+--- a/Backend/src/controllers/pedidoController.js
++++ b/Backend/src/controllers/pedidoController.js
+@@ -10,6 +10,7 @@ const {
+     DetallePedido,
+     Producto,
+     Usuario,
++    Calificacion,
+     Direccion,
+     Sucursal,
+     RecetaInsumo,
+@@ -136,6 +137,10 @@ const obtenerPedidosPorUsuario = async (req, res) => {
+                 model: historialDeTiemposPedido,
+                 as: 'historialDeTiemposPedidos',
+                 attributes: ['estado', 'fecha'],
++            }, {
++                model: Calificacion,
++                as: 'calificacion',
++                attributes: ['id'],
+             }],
+             order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+         });
+diff --git a/Backend/src/main.js b/Backend/src/main.js
+index 925c793..b852639 100644
+--- a/Backend/src/main.js
++++ b/Backend/src/main.js
+@@ -57,6 +57,7 @@ app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
+ app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
+ app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
+ app.use('/admin/promociones', require('./routes/admin/promocionRoutes'));
++app.use('/admin/calificaciones', require('./routes/admin/calificacionRoutes'));
+ app.use('/admin/reportes', require('./routes/admin/reportesRoutes'));
+ app.use('/admin/repartidores', repartidorRoutes);
+ app.use('/admin/viajes', require('./routes/admin/viajeRoutes'));
+@@ -71,6 +72,7 @@ app.use('/geo', require('./routes/geo'));
+ app.use('/tamanios', require('./routes/tamanioRoutes'));
+ app.use('/categorias', require('./routes/categoriaRoutes'));
+ app.use('/promociones', require('./routes/promocionRoutes'));
++app.use('/calificaciones', require('./routes/calificacionRoutes'));
+ 
+ app.use('/repartidor', authRepartidorRoutes);
+ app.use('/repartidor/pedidos', pedidoRepartidorRoutes);
+diff --git a/Backend/src/middleware/validarCalificacion.js b/Backend/src/middleware/validarCalificacion.js
+new file mode 100644
+index 0000000..6052233
+--- /dev/null
++++ b/Backend/src/middleware/validarCalificacion.js
+@@ -0,0 +1,13 @@
++const { crearCalificacionSchema } = require('../schemas/calificacion.schema');
++const validar = (schema) => (req, res, next) => {
++    const { value, error } = schema.validate(req.body);
++    if (error) {
++        return res.status(400).json({ code: error.details[0].message });
++    }
++    req.body = value;
++    next();
++};
++
++module.exports = {
++    validarCrearCalificacion: validar(crearCalificacionSchema),
++};
+diff --git a/Backend/src/migrations/20261031120000-crear-calificaciones.js b/Backend/src/migrations/20261031120000-crear-calificaciones.js
+new file mode 100644
+index 0000000..b8f1d6d
+--- /dev/null
++++ b/Backend/src/migrations/20261031120000-crear-calificaciones.js
+@@ -0,0 +1,53 @@
++'use strict';
++
++// Calificaciones de los clientes: una por pedido entregado, con puntaje de 1 a 5 y comentario opcional.
++// sucursalId se copia del pedido para poder filtrar y promediar por sucursal sin armar joins.
++module.exports = {
++  async up(queryInterface, Sequelize) {
++    await queryInterface.sequelize.transaction(async (transaction) => {
++      await queryInterface.createTable('Calificaciones', {
++        id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
++        pedidoId: {
++          type: Sequelize.INTEGER,
++          allowNull: false,
++          unique: true, // una sola calificación por pedido
++          references: { model: 'Pedidos', key: 'id' },
++          onUpdate: 'CASCADE',
++          onDelete: 'CASCADE',
++        },
++        usuarioId: {
++          type: Sequelize.INTEGER,
++          allowNull: false,
++          references: { model: 'Usuarios', key: 'id' },
++          onUpdate: 'CASCADE',
++          onDelete: 'CASCADE',
++        },
++        sucursalId: {
++          type: Sequelize.INTEGER,
++          allowNull: true,
++          references: { model: 'Sucursals', key: 'id' },
++          onUpdate: 'CASCADE',
++          onDelete: 'SET NULL',
++        },
++        puntaje: { type: Sequelize.INTEGER, allowNull: false },
++        comentario: { type: Sequelize.STRING(300), allowNull: true },
++        createdAt: { type: Sequelize.DATE, allowNull: false },
++        updatedAt: { type: Sequelize.DATE, allowNull: false },
++      }, { transaction });
++
++      await queryInterface.addConstraint('Calificaciones', {
++        fields: ['puntaje'],
++        type: 'check',
++        name: 'calificacion_puntaje_entre_1_y_5',
++        where: { puntaje: { [Sequelize.Op.between]: [1, 5] } },
++        transaction,
++      });
++      await queryInterface.addIndex('Calificaciones', ['sucursalId'], { transaction });
++      await queryInterface.addIndex('Calificaciones', ['createdAt'], { transaction });
++    });
++  },
++
++  async down(queryInterface) {
++    await queryInterface.dropTable('Calificaciones');
++  },
++};
+diff --git a/Backend/src/migrations/20261101120000-categorias-jerarquia.js b/Backend/src/migrations/20261101120000-categorias-jerarquia.js
+new file mode 100644
+index 0000000..7b0d5ad
+--- /dev/null
++++ b/Backend/src/migrations/20261101120000-categorias-jerarquia.js
+@@ -0,0 +1,34 @@
++'use strict';
++
++// Categorías con un nivel de anidación y orden propio. Las principales son los botones del menú
++// (y las tarjetas del Home); sus hijas, el submenú (ej: Hamburguesas → de carne, de pollo, veganas).
++//
++//  - categoriaPadreId: la categoría de la que cuelga (null = categoría principal). Solo un nivel.
++//  - orden: orden en que se muestran. Las existentes arrancan con el orden que ya tenían (por id, de a 10).
++module.exports = {
++  async up(queryInterface, Sequelize) {
++    await queryInterface.sequelize.transaction(async (transaction) => {
++      await queryInterface.addColumn('Categoria', 'categoriaPadreId', {
++        type: Sequelize.INTEGER,
++        allowNull: true,
++        references: { model: 'Categoria', key: 'id' },
++        onUpdate: 'CASCADE',
++        onDelete: 'RESTRICT',
++      }, { transaction });
++
++      await queryInterface.addColumn('Categoria', 'orden', {
++        type: Sequelize.INTEGER,
++        allowNull: false,
++        defaultValue: 0,
++      }, { transaction });
++
++      // El orden de hoy (por id) pasa a ser explícito, dejando lugar entre una y otra
++      await queryInterface.sequelize.query('UPDATE "Categoria" SET orden = id * 10', { transaction });
++    });
++  },
++
++  async down(queryInterface) {
++    await queryInterface.removeColumn('Categoria', 'orden');
++    await queryInterface.removeColumn('Categoria', 'categoriaPadreId');
++  },
++};
+diff --git a/Backend/src/migrations/20261101130000-categorias-icono-fondo.js b/Backend/src/migrations/20261101130000-categorias-icono-fondo.js
+new file mode 100644
+index 0000000..13fdb20
+--- /dev/null
++++ b/Backend/src/migrations/20261101130000-categorias-icono-fondo.js
+@@ -0,0 +1,18 @@
++'use strict';
++
++// Ícono y color de la tarjeta de cada categoría, editables desde el panel. Hasta ahora el front los
++// elegía por el NOMBRE de la categoría (si el master la renombraba, perdía el ícono).
++// null = sigue valiendo el que corresponde al nombre, así las categorías existentes no cambian.
++module.exports = {
++  async up(queryInterface, Sequelize) {
++    await queryInterface.sequelize.transaction(async (transaction) => {
++      await queryInterface.addColumn('Categoria', 'icono', { type: Sequelize.STRING(20), allowNull: true }, { transaction });
++      await queryInterface.addColumn('Categoria', 'fondo', { type: Sequelize.STRING(20), allowNull: true }, { transaction });
++    });
++  },
++
++  async down(queryInterface) {
++    await queryInterface.removeColumn('Categoria', 'fondo');
++    await queryInterface.removeColumn('Categoria', 'icono');
++  },
++};
+diff --git a/Backend/src/migrations/20261107120000-calificaciones-estado.js b/Backend/src/migrations/20261107120000-calificaciones-estado.js
+new file mode 100644
+index 0000000..a346101
+--- /dev/null
++++ b/Backend/src/migrations/20261107120000-calificaciones-estado.js
+@@ -0,0 +1,17 @@
++'use strict';
++
++// Moderación: solo las calificaciones APROBADAS se muestran en el inicio.
++// PENDIENTE = recién enviada, sin revisar · APROBADA = visible · OCULTA = no se muestra
++module.exports = {
++  async up(queryInterface, Sequelize) {
++    await queryInterface.addColumn('Calificaciones', 'estado', {
++      type: Sequelize.STRING(10),
++      allowNull: false,
++      defaultValue: 'PENDIENTE',
++    });
++  },
++
++  async down(queryInterface) {
++    await queryInterface.removeColumn('Calificaciones', 'estado');
++  },
++};
+\ No newline at end of file
+diff --git a/Backend/src/models/calificacion.js b/Backend/src/models/calificacion.js
+new file mode 100644
+index 0000000..fe2d1d3
+--- /dev/null
++++ b/Backend/src/models/calificacion.js
+@@ -0,0 +1,34 @@
++'use strict';
++const { Model } = require('sequelize');
++
++module.exports = (sequelize, DataTypes) => {
++  class Calificacion extends Model {
++    static associate(models) {
++      Calificacion.belongsTo(models.Pedido, { foreignKey: 'pedidoId', as: 'pedido' });
++      Calificacion.belongsTo(models.Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
++      Calificacion.belongsTo(models.Sucursal, { foreignKey: 'sucursalId', as: 'sucursal' });
++    }
++  }
++
++  Calificacion.init({
++    pedidoId: { type: DataTypes.INTEGER, allowNull: false, unique: true },
++    usuarioId: { type: DataTypes.INTEGER, allowNull: false },
++    sucursalId: { type: DataTypes.INTEGER, allowNull: true },
++    // De 1 a 5 estrellas
++    puntaje: { type: DataTypes.INTEGER, allowNull: false, validate: { min: 1, max: 5 } },
++    comentario: { type: DataTypes.STRING(300), allowNull: true },
++    // PENDIENTE (sin revisar), APROBADA (se muestra en el inicio) u OCULTA
++    estado: {
++      type: DataTypes.STRING(10),
++      allowNull: false,
++      defaultValue: 'PENDIENTE',
++      validate: { isIn: [['PENDIENTE', 'APROBADA', 'OCULTA']] },
++    },
++  }, {
++    sequelize,
++    modelName: 'Calificacion',
++    tableName: 'Calificaciones',
++  });
++
++  return Calificacion;
++};
+diff --git a/Backend/src/models/categoria.js b/Backend/src/models/categoria.js
+index 5ff2d7d..923e602 100644
+--- a/Backend/src/models/categoria.js
++++ b/Backend/src/models/categoria.js
+@@ -14,6 +14,9 @@ module.exports = (sequelize, DataTypes) => {
+         foreignKey: 'categoriaId',
+         as: 'productos'
+       });
++      // Un nivel de anidación: "Cafetería" tiene como hijas a Café y Menú Café
++      Categoria.belongsTo(models.Categoria, { foreignKey: 'categoriaPadreId', as: 'padre' });
++      Categoria.hasMany(models.Categoria, { foreignKey: 'categoriaPadreId', as: 'hijas' });
+     }
+     
+   }
+@@ -27,10 +30,30 @@ module.exports = (sequelize, DataTypes) => {
+     type: DataTypes.BOOLEAN,
+     allowNull: false,
+     defaultValue: true
+-  }
++  },
++    // null = categoría principal; si no, la categoría de la que cuelga (un solo nivel)
++    categoriaPadreId: {
++      type: DataTypes.INTEGER,
++      allowNull: true
++    },
++    // Orden en que se muestran (de menor a mayor)
++    orden: {
++      type: DataTypes.INTEGER,
++      allowNull: false,
++      defaultValue: 0
++    },
++    // Ícono y color de la tarjeta del Home (null = el que corresponde al nombre)
++    icono: {
++      type: DataTypes.STRING(20),
++      allowNull: true
++    },
++    fondo: {
++      type: DataTypes.STRING(20),
++      allowNull: true
++    }
+   }, {
+     sequelize,
+     modelName: 'Categoria',
+   });
+   return Categoria;
+-};
+\ No newline at end of file
++};
+diff --git a/Backend/src/models/pedido.js b/Backend/src/models/pedido.js
+index 6a6ff0d..5e36f33 100644
+--- a/Backend/src/models/pedido.js
++++ b/Backend/src/models/pedido.js
+@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
+     Pedido.belongsTo(models.Direccion, { foreignKey: 'direccionId' });
+     Pedido.belongsTo(models.Sucursal, { foreignKey: 'sucursalId' });
+     Pedido.belongsTo(models.Viaje, { foreignKey: 'viajeId'});
++    Pedido.hasOne(models.Calificacion, { foreignKey: 'pedidoId', as: 'calificacion' });
+   }
+   }
+   Pedido.init({
+diff --git a/Backend/src/routes/admin/calificacionRoutes.js b/Backend/src/routes/admin/calificacionRoutes.js
+new file mode 100644
+index 0000000..e4060a9
+--- /dev/null
++++ b/Backend/src/routes/admin/calificacionRoutes.js
+@@ -0,0 +1,12 @@
++const { Router } = require('express');
++const router = Router();
++
++const calificacionController = require('../../controllers/admin/calificacionController');
++const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
++const { esIdValido } = require('../../middleware/esIdValido');
++
++// El master ve todas las sucursales; el admin de sucursal, solo la suya (lo resuelve el controlador)
++router.get('/', esAdminJwt, calificacionController.obtenerCalificaciones);
++router.patch('/:id/estado', esAdminJwt, esIdValido, calificacionController.cambiarEstado);
++
++module.exports = router;
+\ No newline at end of file
+diff --git a/Backend/src/routes/admin/categoriaRoutes.js b/Backend/src/routes/admin/categoriaRoutes.js
+index 2c42137..0e5ee46 100644
+--- a/Backend/src/routes/admin/categoriaRoutes.js
++++ b/Backend/src/routes/admin/categoriaRoutes.js
+@@ -10,6 +10,7 @@ const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
+ 
+ router.get('/', esAdminJwt, categoriaController.obtenerCategorias);
+ router.post('/nueva', esMasterJwt, validarCategoria, categoriaController.crearCategoria);
++router.patch('/orden', esMasterJwt, categoriaController.ordenarCategorias);
+ router.patch('/editar/:id', esMasterJwt, validarCategoria, esIdValido, categoriaController.editarCategoriaPorId);
+ router.delete('/eliminar/:id', esMasterJwt, esIdValido, categoriaController.eliminarCategorias);
+ router.patch('/:id/deshabilitar', esMasterJwt, esIdValido, categoriaController.deshabilitarCategoria);
+diff --git a/Backend/src/routes/calificacionRoutes.js b/Backend/src/routes/calificacionRoutes.js
+new file mode 100644
+index 0000000..20df321
+--- /dev/null
++++ b/Backend/src/routes/calificacionRoutes.js
+@@ -0,0 +1,10 @@
++const { Router } = require('express');
++const router = Router();
++
++const calificacionController = require('../controllers/calificacionController');
++const { validarCrearCalificacion } = require('../middleware/validarCalificacion');
++
++router.get('/recientes', calificacionController.obtenerRecientes);
++router.post('/', validarCrearCalificacion, calificacionController.crearCalificacion);
++
++module.exports = router;
+\ No newline at end of file
+diff --git a/Backend/src/schemas/admin/adminCategoria.schema.js b/Backend/src/schemas/admin/adminCategoria.schema.js
+index 906717c..44f9d0b 100644
+--- a/Backend/src/schemas/admin/adminCategoria.schema.js
++++ b/Backend/src/schemas/admin/adminCategoria.schema.js
+@@ -1,4 +1,5 @@
+ const Joi = require('joi');
++const { ICONOS_CATEGORIA, FONDOS_CATEGORIA } = require('../../config/categoriasEstilo');
+ 
+ const categoriaSchema = Joi.object({
+     nombre: Joi.string()
+@@ -15,9 +16,31 @@ const categoriaSchema = Joi.object({
+             'string.max': 'El nombre no puede superar los 20 caracteres',
+             'string.pattern.base': 'El nombre solo puede contener letras, números y espacios',
+             'any.required': 'El nombre de la categoría es obligatorio'
+-        })
++        }),
++    // null o sin enviar = categoría principal; un solo nivel de anidación
++    categoriaPadreId: Joi.number().integer().positive().allow(null).messages({
++        'number.base': 'La categoría padre no es válida',
++        'number.integer': 'La categoría padre no es válida',
++        'number.positive': 'La categoría padre no es válida'
++    }),
++    // Orden en que se muestra (de menor a mayor); sin enviar queda al final
++    orden: Joi.number().integer().min(0).max(100000).messages({
++        'number.base': 'El orden debe ser un número',
++        'number.integer': 'El orden debe ser un número entero',
++        'number.min': 'El orden no puede ser negativo',
++        'number.max': 'El orden no puede superar 100000'
++    }),
++    // Ícono y color de la tarjeta del Home; null = el que corresponde al nombre
++    icono: Joi.string().valid(...ICONOS_CATEGORIA).allow(null).messages({
++        'any.only': 'El ícono elegido no es válido',
++        'string.base': 'El ícono elegido no es válido'
++    }),
++    fondo: Joi.string().valid(...FONDOS_CATEGORIA).allow(null).messages({
++        'any.only': 'El color elegido no es válido',
++        'string.base': 'El color elegido no es válido'
++    })
+ });
+ 
+ module.exports = {
+     categoriaSchema
+-};
+\ No newline at end of file
++};
+diff --git a/Backend/src/schemas/calificacion.schema.js b/Backend/src/schemas/calificacion.schema.js
+new file mode 100644
+index 0000000..3da3ada
+--- /dev/null
++++ b/Backend/src/schemas/calificacion.schema.js
+@@ -0,0 +1,33 @@
++const Joi = require('joi');
++const { MAX_COMENTARIO } = require('../config/calificaciones');
++
++const idSchema = (nombre) =>
++    Joi.number().integer().positive().required().messages({
++        'number.base': `${nombre} no es válido`,
++        'number.integer': `${nombre} no es válido`,
++        'number.positive': `${nombre} no es válido`,
++        'any.required': `${nombre} es obligatorio`
++    });
++
++const puntaje = Joi.number().integer().min(1).max(5).required().messages({
++    'number.base': 'Elegí de 1 a 5 estrellas',
++    'number.integer': 'Elegí de 1 a 5 estrellas',
++    'number.min': 'Elegí de 1 a 5 estrellas',
++    'number.max': 'Elegí de 1 a 5 estrellas',
++    'any.required': 'Elegí de 1 a 5 estrellas'
++});
++
++// El comentario es opcional: vacío o sin enviar es lo mismo
++const comentario = Joi.string().trim().max(MAX_COMENTARIO).allow('', null).messages({
++    'string.base': 'El comentario debe ser un texto',
++    'string.max': `El comentario no puede superar los ${MAX_COMENTARIO} caracteres`
++});
++
++const crearCalificacionSchema = Joi.object({
++    usuarioId: idSchema('El usuario'),
++    pedidoId: idSchema('El pedido'),
++    puntaje,
++    comentario
++});
++
++module.exports = { crearCalificacionSchema};
+diff --git a/Backend/src/seeders/20261025140000-subir-imagenes-cloudinary.js b/Backend/src/seeders/20261025140000-subir-imagenes-cloudinary.js
+index 0c2815c..0b4bd25 100644
+--- a/Backend/src/seeders/20261025140000-subir-imagenes-cloudinary.js
++++ b/Backend/src/seeders/20261025140000-subir-imagenes-cloudinary.js
+@@ -7,12 +7,13 @@
+ //   con un nombre fijo (ej: productos/hamburguesas-fast-classic), así no se duplica si se corre de nuevo.
+ // - Si dos productos usan la misma foto, se sube una sola vez y los dos apuntan a ella.
+ // - Solo toca productos sin imagenPublicId: los que ya están en Cloudinary no se procesan otra vez.
++// - Si la imagen ya está en Cloudinary (mismo nombre), no se vuelve a subir: solo se usa su URL.
+ // - Si falta un archivo, ese producto queda con su ruta local y se avisa al final.
+ // - Necesita las credenciales de Cloudinary en Backend/.env.
+ 
+ const fs = require('fs');
+ const path = require('path');
+-const { cloudinaryConfigurado } = require('../config/cloudinary');
++const { cloudinary, cloudinaryConfigurado } = require('../config/cloudinary');
+ const { CARPETA_PRODUCTOS, subirImagenProducto } = require('../utils/imagenesCloudinary');
+ 
+ const CARPETA_PUBLICA = path.join(__dirname, '../../../Frontend/public');
+@@ -27,6 +28,16 @@ const aNombreCloudinary = (ruta) =>
+     .replace(/[^a-z0-9]+/g, '-')
+     .replace(/^-+|-+$/g, '');
+ 
++// Si la imagen ya está en Cloudinary (de una corrida anterior), devuelve su URL sin volver a subirla
++async function buscarEnCloudinary(publicId) {
++  try {
++    const recurso = await cloudinary.api.resource(publicId);
++    return { url: recurso.secure_url, publicId: recurso.public_id };
++  } catch {
++    return null; // no existe (o no se pudo consultar): se sube
++  }
++}
++
+ module.exports = {
+   async up(queryInterface) {
+     if (!cloudinaryConfigurado()) {
+@@ -50,15 +61,23 @@ module.exports = {
+       let subida = subidas.get(producto.imagen);
+ 
+       if (!subida) {
+-        const archivo = path.join(CARPETA_PUBLICA, producto.imagen);
+-        if (!fs.existsSync(archivo)) {
+-          faltantes.push(`${producto.nombre} (${producto.imagen})`);
+-          continue;
+-        }
+         const nombre = aNombreCloudinary(producto.imagen.replace(/^\/imagenes\//, ''));
+-        subida = await subirImagenProducto(fs.readFileSync(archivo), { publicId: `${CARPETA_PRODUCTOS}/${nombre}` });
++        const publicId = `${CARPETA_PRODUCTOS}/${nombre}`;
++
++        // Primero se busca en Cloudinary: si ya está, no se comprime ni se sube de nuevo
++        subida = await buscarEnCloudinary(publicId);
++
++        if (!subida) {
++          const archivo = path.join(CARPETA_PUBLICA, producto.imagen);
++          if (!fs.existsSync(archivo)) {
++            faltantes.push(`${producto.nombre} (${producto.imagen})`);
++            continue;
++          }
++          subida = await subirImagenProducto(fs.readFileSync(archivo), { publicId });
++          console.log(`  ↑ ${producto.imagen}`);
++        }
++
+         subidas.set(producto.imagen, subida);
+-        console.log(`  ↑ ${producto.imagen}`);
+       }
+ 
+       await sequelize.query(
+diff --git a/Backend/src/seeders/20261101120000-arbol-de-categorias.js b/Backend/src/seeders/20261101120000-arbol-de-categorias.js
+new file mode 100644
+index 0000000..5302cfb
+--- /dev/null
++++ b/Backend/src/seeders/20261101120000-arbol-de-categorias.js
+@@ -0,0 +1,123 @@
++'use strict';
++
++// Arma el árbol de categorías del menú. Las categorías principales son los botones del catálogo y sus
++// hijas, el submenú. Cada producto queda en UNA categoría final (una que no tiene hijas).
++// "Todos" no se guarda: el front lo agrega siempre al final.
++//
++//   Combos          → Combos de carne · Combos de pollo · Combos veganos
++//   Hamburguesas    → Hamburguesas de carne · Hamburguesas de pollo · Hamburguesas veganas
++//   Para acompañar  → Papas Fritas · Nuggets · Ensaladas
++//   Bebidas         (sin submenú)
++//   Cafetería       → Café · Desayunos y meriendas (antes "Menú Café")
++//   Postres         (sin submenú, y sin tamaños)
++//
++// También saca las salsas: sus productos quedan con borrado lógico (los pedidos viejos los siguen
++// mostrando) y la categoría, deshabilitada.
++//
++// Se corre DESPUÉS de las semillas del catálogo (catalogo-definitivo y restaurar-menu-y-salsas).
++
++// El orden de la lista es el orden de los botones. `icono` es el de la tarjeta del inicio.
++const ARBOL = [
++  { nombre: 'Combos', icono: 'combo', hijas: ['Combos de carne', 'Combos de pollo', 'Combos veganos'] },
++  { nombre: 'Hamburguesas', icono: 'hamburguesa', hijas: ['Hamburguesas de carne', 'Hamburguesas de pollo', 'Hamburguesas veganas'] },
++  { nombre: 'Para acompañar', icono: 'papas', hijas: ['Papas Fritas', 'Nuggets', 'Ensaladas'] },
++  { nombre: 'Bebidas', icono: 'bebida', hijas: [] },
++  { nombre: 'Cafetería', icono: 'cafe', hijas: ['Café', 'Desayunos y meriendas'] },
++  { nombre: 'Postres', icono: 'postre', hijas: [] },
++];
++
++// Categorías que solo cambian de nombre (sus productos no se mueven)
++const RENOMBRAR = { 'Menú Café': 'Desayunos y meriendas' };
++
++// Productos que no van a la primera hija. El resto de los productos de Combos y de Hamburguesas
++// va a la primera hija (la de carne).
++const PRODUCTOS_A_MOVER = {
++  'Combos de pollo': ['Combo Crispy Crack', 'Combo Crispy Ranch'],
++  'Combos veganos': ['Combo Seed Vicious'],
++  'Hamburguesas de pollo': ['Crispy Crack', 'Crispy Ranch'],
++  'Hamburguesas veganas': ['Seed Vicious'],
++};
++
++module.exports = {
++  async up(queryInterface) {
++    const { sequelize } = queryInterface;
++    await sequelize.transaction(async (transaction) => {
++      const q = async (sql, replacements = {}) => (await sequelize.query(sql, { replacements, transaction }))[0];
++      const idDe = async (nombre) => (await q('SELECT id FROM "Categoria" WHERE nombre = :nombre LIMIT 1', { nombre }))[0]?.id ?? null;
++
++      // Devuelve el id de la categoría; si no existe, la crea
++      const asegurar = async (nombre) => {
++        const id = await idDe(nombre);
++        if (id) return id;
++        const [nueva] = await q(
++          `INSERT INTO "Categoria" (nombre, activo, orden, "createdAt", "updatedAt")
++           VALUES (:nombre, true, 0, NOW(), NOW()) RETURNING id`,
++          { nombre }
++        );
++        return nueva.id;
++      };
++
++      // 1. Renombrar
++      for (const [anterior, nuevo] of Object.entries(RENOMBRAR)) {
++        if (!(await idDe(nuevo))) {
++          await q('UPDATE "Categoria" SET nombre = :nuevo, "updatedAt" = NOW() WHERE nombre = :anterior', { anterior, nuevo });
++        }
++      }
++
++      // 2. Armar el árbol: principales y sus hijas, con su orden
++      for (const [i, { nombre, icono, hijas }] of ARBOL.entries()) {
++        const padreId = await asegurar(nombre);
++        await q(
++          `UPDATE "Categoria" SET "categoriaPadreId" = NULL, orden = :orden, icono = :icono, activo = true, "updatedAt" = NOW()
++           WHERE id = :id`,
++          { id: padreId, orden: (i + 1) * 10, icono }
++        );
++
++        for (const [j, hija] of hijas.entries()) {
++          const hijaId = await asegurar(hija);
++          await q(
++            `UPDATE "Categoria" SET "categoriaPadreId" = :padreId, orden = :orden, activo = true, "updatedAt" = NOW()
++             WHERE id = :id`,
++            { id: hijaId, padreId, orden: (j + 1) * 10 }
++          );
++        }
++      }
++
++      // 3. Mover productos puntuales a su hija
++      for (const [categoria, productos] of Object.entries(PRODUCTOS_A_MOVER)) {
++        await q(
++          'UPDATE "Productos" SET "categoriaId" = :categoriaId, "updatedAt" = NOW() WHERE nombre IN (:productos)',
++          { categoriaId: await idDe(categoria), productos }
++        );
++      }
++
++      // 4. Una categoría con hijas no tiene productos propios: los que quedaron van a la primera hija
++      for (const { nombre, hijas } of ARBOL) {
++        if (hijas.length === 0) continue;
++        await q(
++          'UPDATE "Productos" SET "categoriaId" = :primera, "updatedAt" = NOW() WHERE "categoriaId" = :padre',
++          { primera: await idDe(hijas[0]), padre: await idDe(nombre) }
++        );
++      }
++
++      // 5. Salsas afuera
++      const salsas = await idDe('Salsas');
++      if (salsas) {
++        await q('UPDATE "Productos" SET "deletedAt" = NOW() WHERE "categoriaId" = :id AND "deletedAt" IS NULL', { id: salsas });
++        await q('UPDATE "Categoria" SET activo = false, "categoriaPadreId" = NULL, "updatedAt" = NOW() WHERE id = :id', { id: salsas });
++      }
++
++      // 6. Postres: se piden de una sola medida (sin selector de tamaño)
++      const postres = await idDe('Postres');
++      if (postres) {
++        await q(
++          'DELETE FROM "ProductoTamanios" WHERE "productoId" IN (SELECT id FROM "Productos" WHERE "categoriaId" = :id)',
++          { id: postres }
++        );
++      }
++    });
++  },
++
++  // No se deshace: para volver atrás, recreá la base y corré las semillas de nuevo
++  async down() {},
++};
+diff --git a/Frontend/src/components/calificaciones/CalificarPedidoModal.tsx b/Frontend/src/components/calificaciones/CalificarPedidoModal.tsx
+new file mode 100644
+index 0000000..be78027
+--- /dev/null
++++ b/Frontend/src/components/calificaciones/CalificarPedidoModal.tsx
+@@ -0,0 +1,124 @@
++import { useState } from 'react'
++import { Star } from 'lucide-react'
++import Modal from '../Modal'
++import { CLASE_INPUT, CLASE_LABEL } from '../ui/formulario'
++import { calificarPedido } from '../../services/calificacionService'
++
++const MAX_COMENTARIO = 300
++
++const FRASES = ['Muy malo', 'Podría mejorar', 'Estuvo bien', 'Muy bueno', '¡Excelente!']
++
++const BOTON =
++  'inline-flex min-h-11 items-center justify-center rounded-full border-2 border-brand-dark px-5 text-sm font-bold shadow-sticker transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0'
++
++interface CalificarPedidoModalProps {
++  pedidoId: number
++  fecha: string
++  usuarioId: number
++  /** La calificación se guardó: la tarjeta del pedido oculta el botón */
++  onCalificado: () => void
++  /** Se cierra el modal (✕, Esc, "Cancelar" o "Listo") */
++  onCerrar: () => void
++}
++
++// Calificar un pedido entregado: estrellas (obligatorias) y un comentario opcional
++export default function CalificarPedidoModal({ pedidoId, fecha, usuarioId, onCalificado, onCerrar }: CalificarPedidoModalProps) {
++  const [puntaje, setPuntaje] = useState(0)
++  const [vista, setVista] = useState(0) // estrella sobre la que está el mouse
++  const [comentario, setComentario] = useState('')
++  const [enviando, setEnviando] = useState(false)
++  const [error, setError] = useState('')
++  const [enviado, setEnviado] = useState(false)
++
++  const fechaTexto = new Date(fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })
++  const mostrado = vista || puntaje
++
++  async function enviar() {
++    if (puntaje === 0 || enviando) return
++    setEnviando(true)
++    setError('')
++    try {
++      await calificarPedido(usuarioId, pedidoId, puntaje, comentario)
++      setEnviado(true)
++      onCalificado()
++    } catch (err) {
++      setError(err instanceof Error ? err.message : 'No se pudo enviar tu calificación. Probá de nuevo.')
++    } finally {
++      setEnviando(false)
++    }
++  }
++
++  if (enviado) {
++    return (
++      <Modal isOpen onClose={onCerrar} title="¡Gracias!" tamanio="sm">
++        <p className="text-sm">Tu opinión nos ayuda a mejorar cada pedido.</p>
++        <div className="mt-6 flex justify-end">
++          <button type="button" onClick={onCerrar} className={`${BOTON} bg-brand-mustard`}>
++            Listo
++          </button>
++        </div>
++      </Modal>
++    )
++  }
++
++  return (
++    <Modal isOpen onClose={onCerrar} title="¿Cómo estuvo tu pedido?" subtitle={`Pedido #${pedidoId} del ${fechaTexto}`}>
++      <div role="radiogroup" aria-label="Puntaje" className="flex justify-center gap-1" onMouseLeave={() => setVista(0)}>
++        {[1, 2, 3, 4, 5].map((n) => (
++          <button
++            key={n}
++            type="button"
++            role="radio"
++            aria-checked={puntaje === n}
++            aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`}
++            onClick={() => setPuntaje(n)}
++            onMouseEnter={() => setVista(n)}
++            className="rounded p-1 transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2"
++          >
++            <Star
++              className={`h-10 w-10 ${n <= mostrado ? 'fill-brand-mustard text-brand-dark' : 'fill-white text-brand-dark/40'}`}
++              strokeWidth={1.75}
++            />
++          </button>
++        ))}
++      </div>
++      <p className="mt-1 h-5 text-center text-sm font-semibold" aria-live="polite">
++        {mostrado ? FRASES[mostrado - 1] : ''}
++      </p>
++
++      <div className="mt-4">
++        <div className="mb-1 flex items-center justify-between">
++          <label htmlFor="comentario-calificacion" className={CLASE_LABEL}>
++            Contanos más (opcional)
++          </label>
++          <span className="text-xs text-brand-muted">
++            {comentario.length}/{MAX_COMENTARIO}
++          </span>
++        </div>
++        <textarea
++          id="comentario-calificacion"
++          value={comentario}
++          onChange={(e) => setComentario(e.target.value)}
++          maxLength={MAX_COMENTARIO}
++          rows={3}
++          placeholder="¿Qué te gustó? ¿Qué podemos mejorar?"
++          className={`${CLASE_INPUT} w-full resize-none`}
++        />
++        <p className="mt-1 text-xs text-brand-muted">
++          Tu nombre, tus estrellas y tu comentario podrán mostrarse en nuestra página.
++        </p>
++      </div>
++
++      {error && <p role="alert" className="mt-3 text-sm font-medium text-red-700">{error}</p>}
++
++      <div className="mt-6 flex flex-wrap justify-end gap-2">
++        <button type="button" onClick={onCerrar} className={`${BOTON} bg-white`}>
++          Cancelar
++        </button>
++        <button type="button" onClick={enviar} disabled={puntaje === 0 || enviando} className={`${BOTON} bg-brand-mustard`}>
++          {enviando ? 'Enviando...' : 'Enviar'}
++        </button>
++      </div>
++    </Modal>
++  )
++}
+\ No newline at end of file
+diff --git a/Frontend/src/components/cart/SugerenciaCarrito.tsx b/Frontend/src/components/cart/SugerenciaCarrito.tsx
+index cefcb0f..a1d3928 100644
+--- a/Frontend/src/components/cart/SugerenciaCarrito.tsx
++++ b/Frontend/src/components/cart/SugerenciaCarrito.tsx
+@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
+ import { useCart } from '../../context/CartContext'
+ import { useZona } from '../../context/ZonaContext'
+ import { getCategories, getMasPedidos, getProducts } from '../../services/productService'
+-import { esCategoriaOculta, normalizarNombre } from '../../config/gruposCatalogo'
++import { normalizarNombre } from '../../config/gruposCatalogo'
+ import { COMPLEMENTOS, INCLUYE } from '../../config/sugerencias'
+ import ProductCard from '../home/ProductCard'
+-import type { ProductoBackend } from '../../types/product'
++import type { Category, ProductoBackend } from '../../types/product'
+ 
+ const MAXIMO = 4
+ // Cuántos productos del ranking de ventas se piden (alcanza para ordenar cada categoría)
+@@ -16,6 +16,10 @@ const normalizarReglas = (reglas: Record<string, string[]>) =>
+   new Map(Object.entries(reglas).map(([cat, lista]) => [normalizarNombre(cat), lista.map(normalizarNombre)]))
+ const COMPLEMENTOS_N = normalizarReglas(COMPLEMENTOS)
+ const INCLUYE_N = normalizarReglas(INCLUYE)
++// Todas las categorías que aparecen en las reglas
++const EN_REGLAS = new Set(
++  [...COMPLEMENTOS_N, ...INCLUYE_N].flatMap(([categoria, lista]) => [categoria, ...lista]),
++)
+ 
+ // Toma de a uno por lista (papa, bebida, papa, bebida...) hasta llegar al máximo
+ function intercalar<T>(listas: T[][], maximo: number): T[] {
+@@ -39,7 +43,7 @@ function SugerenciasCarrito() {
+ 
+   const [catalogo, setCatalogo] = useState<ProductoBackend[]>([])
+   const [ranking, setRanking] = useState<number[]>([])
+-  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
++  const [categorias, setCategorias] = useState<Category[]>([])
+ 
+   useEffect(() => {
+     Promise.all([getMasPedidos(sucursalId, TAMANIO_RANKING), getProducts(sucursalId), getCategories()])
+@@ -55,13 +59,20 @@ function SugerenciasCarrito() {
+       })
+   }, [sucursalId])
+ 
+-  const categoriaDe = new Map(categorias.map((c) => [c.id, normalizarNombre(c.nombre)]))
+-  // Las categorías ocultas (salsas) no se venden: nunca se sugieren
+-  const ocultas = new Set(categorias.filter((c) => esCategoriaOculta(c.nombre)).map((c) => c.id))
++  // Las reglas hablan de "Hamburguesas", pero los productos están en "Hamburguesas de carne", "de pollo"...:
++  // si la categoría del producto no figura en las reglas, se usa la de su categoría principal
++  const porId = new Map(categorias.map((c) => [c.id, c]))
++  const categoriaDe = new Map(
++    categorias.map((c) => {
++      const propia = normalizarNombre(c.nombre)
++      const padre = c.categoriaPadreId != null ? porId.get(c.categoriaPadreId) : undefined
++      return [c.id, EN_REGLAS.has(propia) || !padre ? propia : normalizarNombre(padre.nombre)]
++    }),
++  )
+   const enCarrito = new Set(items.map((i) => i.product.id))
+ 
+-  // Lo que se puede sugerir: disponible en la sucursal, visible y que no esté ya en el carrito
+-  const disponibles = catalogo.filter((p) => p.disponible && !ocultas.has(p.categoriaId) && !enCarrito.has(p.id))
++  // Lo que se puede sugerir: disponible en la sucursal y que no esté ya en el carrito
++  const disponibles = catalogo.filter((p) => p.disponible && !enCarrito.has(p.id))
+ 
+   // Orden por ventas: primero los del ranking (en su orden), después el resto
+   const posicion = new Map(ranking.map((id, i) => [id, i]))
+diff --git a/Frontend/src/components/catalogo/CategoryFilter.tsx b/Frontend/src/components/catalogo/CategoryFilter.tsx
+index d87751f..b46e4a3 100644
+--- a/Frontend/src/components/catalogo/CategoryFilter.tsx
++++ b/Frontend/src/components/catalogo/CategoryFilter.tsx
+@@ -18,7 +18,8 @@ const inactivo = 'text-brand-dark hover:bg-gradient-to-b from-red-100 to-red-200
+ 
+ // Chips de categorías dentro de la barra blanca tipo sticker
+ function CategoryFilter({ categorias, seleccionada, onSeleccionar }: Props) {
+-  const opciones = [{ id: null, nombre: 'Todos' }, ...categorias]
++  // "Todos" va siempre al final
++  const opciones = [...categorias, { id: null, nombre: 'Todos' }]
+   // La pista de "deslizá" se recuerda por usuario (invitado si no inició sesión)
+   const { user } = useAuth()
+   const idUsuario = user?.id ? String(user.id) : undefined
+diff --git a/Frontend/src/components/catalogo/SubcategoriaFilter.tsx b/Frontend/src/components/catalogo/SubcategoriaFilter.tsx
+index 9a0f5ee..f92ad12 100644
+--- a/Frontend/src/components/catalogo/SubcategoriaFilter.tsx
++++ b/Frontend/src/components/catalogo/SubcategoriaFilter.tsx
+@@ -12,7 +12,8 @@ const inactivo = 'bg-white text-brand-dark hover:bg-brand-sand'
+ // Botones de subcategoría (Carne vacuna / Pollo / Veggie...). Bajan de línea en vez de deslizarse,
+ // así en el celular se ven todos de una vez.
+ function SubcategoriaFilter({ subgrupos, seleccionado, onSeleccionar }: Props) {
+-  const opciones = [{ slug: null, nombre: 'Todo' }, ...subgrupos]
++  // "Todos" va siempre al final
++  const opciones = [...subgrupos, { slug: null, nombre: 'Todos' }]
+   return (
+     <div role="group" aria-label="Subcategorías" className="mt-4 flex flex-wrap gap-2">
+       {opciones.map((s) => {
+diff --git a/Frontend/src/components/cuenta/PedidoCard.tsx b/Frontend/src/components/cuenta/PedidoCard.tsx
+index f1535b8..b8d82bf 100644
+--- a/Frontend/src/components/cuenta/PedidoCard.tsx
++++ b/Frontend/src/components/cuenta/PedidoCard.tsx
+@@ -1,5 +1,6 @@
+ import { useState } from 'react'
+-import { ChevronDown } from 'lucide-react'
++import { ChevronDown, Star } from 'lucide-react'
++import CalificarPedidoModal from '../calificaciones/CalificarPedidoModal'
+ import type { Order } from '../../types/order'
+ import { ESTILO_ESTADO, normalizarEstado } from '../../config/pedidoEstados'
+ import { formatearFechaHora } from '../../utils/fechas'
+@@ -7,10 +8,19 @@ import { formatearPrecio } from '../../utils/precio'
+ import { diaYMes, resumenItems } from '../../utils/pedidos'
+ import BotonRepetirPedido from '../BotonRepetirPedido'
+ 
++// Se puede calificar hasta 7 días después del pedido (la misma regla que el backend)
++const DIAS_PARA_CALIFICAR = 7
++const MS_DIA = 24 * 60 * 60 * 1000
+ // Un pedido del historial: fecha al costado, resumen, total y acciones. "Detalle" despliega los productos.
+ function PedidoCard({ pedido }: { pedido: Order }) {
+   const [abierto, setAbierto] = useState(false)
+   const estado = normalizarEstado(pedido.estado)
++  const [calificada, setCalificada] = useState(Boolean(pedido.calificacion))
++  const [calificando, setCalificando] = useState(false)
++  const puedeCalificar =
++    estado === 'Entregado' &&
++    !calificada &&
++    Date.now() - new Date(pedido.fecha).getTime() <= DIAS_PARA_CALIFICAR * MS_DIA
+   const { dia, mes } = diaYMes(pedido.fecha)
+ 
+   return (
+@@ -47,6 +57,17 @@ function PedidoCard({ pedido }: { pedido: Order }) {
+           Detalle
+           <ChevronDown className={`h-4 w-4 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+         </button>
++                {puedeCalificar && (
++          <button
++            type="button"
++            onClick={() => setCalificando(true)}
++            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-brand-mustard px-4 text-sm font-bold transition-transform hover:translate-y-0.5"
++          >
++            <Star className="h-4 w-4" />
++            Calificar
++          </button>
++        )}
++        {calificada && <span className="text-sm font-bold text-brand-muted">✓ Calificado</span>}
+       </div>
+ 
+       {abierto && (
+@@ -75,6 +96,15 @@ function PedidoCard({ pedido }: { pedido: Order }) {
+           )}
+           </div>
+         )}
++              {calificando && (
++        <CalificarPedidoModal
++          pedidoId={pedido.id}
++          fecha={pedido.fecha}
++          usuarioId={pedido.usuarioId}
++          onCalificado={() => setCalificada(true)}
++          onCerrar={() => setCalificando(false)}
++        />
++      )}
+     </article>
+   )
+ }
+diff --git a/Frontend/src/components/home/CategoriasRow.tsx b/Frontend/src/components/home/CategoriasRow.tsx
+index bf3580e..9447a7f 100644
+--- a/Frontend/src/components/home/CategoriasRow.tsx
++++ b/Frontend/src/components/home/CategoriasRow.tsx
+@@ -1,8 +1,7 @@
+ import { useEffect, useState } from 'react'
+ import { Link } from 'react-router-dom'
+ import { getCategories } from '../../services/productService'
+-import { estiloCategoria, type IconoCategoria } from '../../config/categorias'
+-import { esCategoriaOculta, grupoDeCategoria } from '../../config/gruposCatalogo'
++import { estiloDeCategoria, type IconoCategoria } from '../../config/categorias'
+ import CategoryIcon from '../icons/CategoryIcon'
+ import FilaDeslizable from '../ui/FilaDeslizable'
+ import type { Category } from '../../types/product'
+@@ -17,24 +16,16 @@ interface Acceso {
+   fondo: string
+ }
+ 
+-// Café y Menú Café se muestran como una sola tarjeta "Cafetería" que abre ese grupo del catálogo
+-const GRUPO_UNIDO = 'cafeteria'
+-
+-function accesos(categorias: Category[]): Acceso[] {
+-  const lista: Acceso[] = []
+-  for (const categoria of categorias) {
+-    // Las salsas no van en el menú (se ofrecen en el carrito)
+-    if (esCategoriaOculta(categoria.nombre)) continue
+-    const grupo = grupoDeCategoria(categoria.nombre)
+-    if (grupo?.slug === GRUPO_UNIDO) {
+-      if (!lista.some((a) => a.clave === GRUPO_UNIDO)) {
+-        lista.push({ clave: GRUPO_UNIDO, nombre: grupo.nombre, to: `/catalogo?grupo=${GRUPO_UNIDO}`, icono: 'desayuno', fondo: 'bg-brand-mustard' })
+-      }
+-      continue
+-    }
+-    lista.push({ clave: String(categoria.id), nombre: categoria.nombre, to: `/catalogo?categoria=${categoria.id}`, ...estiloCategoria(categoria.nombre) })
+-  }
+-  return lista
++// Una tarjeta por categoría principal, en el orden que manda el backend. Las categorías hijas no tienen tarjeta propia.
++export function accesos(categorias: Category[]): Acceso[] {
++  return categorias
++    .filter((categoria) => categoria.categoriaPadreId == null)
++    .map((categoria) => ({
++      clave: String(categoria.id),
++      nombre: categoria.nombre,
++      to: `/catalogo?categoria=${categoria.id}`,
++      ...estiloDeCategoria(categoria),
++    }))
+ }
+ 
+ // "Elegí por antojo": acceso directo al catálogo filtrado por categoría
+diff --git a/Frontend/src/components/home/MasPedidosSection.tsx b/Frontend/src/components/home/MasPedidosSection.tsx
+index f585f89..21df56a 100644
+--- a/Frontend/src/components/home/MasPedidosSection.tsx
++++ b/Frontend/src/components/home/MasPedidosSection.tsx
+@@ -1,7 +1,6 @@
+ import { useEffect, useState } from 'react'
+ import { useZona } from '../../context/ZonaContext'
+-import { getCategories, getMasPedidos, getProducts } from '../../services/productService'
+-import { esCategoriaOculta } from '../../config/gruposCatalogo'
++import { getMasPedidos, getProducts } from '../../services/productService'
+ import ProductCard from './ProductCard'
+ import type { ProductoBackend } from '../../types/product'
+ 
+@@ -12,15 +11,14 @@ function MasPedidosSection() {
+   const [productos, setProductos] = useState<ProductoBackend[]>([])
+ 
+   useEffect(() => {
+-    Promise.all([getMasPedidos(sucursalId), getProducts(sucursalId), getCategories()])
+-      .then(([ranking, catalogo, categorias]) => {
++    // El ranking puede traer productos que ya no están en el catálogo: se descartan al cruzarlo con los productos
++    Promise.all([getMasPedidos(sucursalId), getProducts(sucursalId)])
++      .then(([ranking, catalogo]) => {
+         const porId = new Map(catalogo.map((p) => [p.id, p]))
+-        // Las salsas se piden desde el carrito: no entran al ranking
+-        const ocultas = new Set(categorias.filter((c) => esCategoriaOculta(c.nombre)).map((c) => c.id))
+         setProductos(
+           ranking
+             .map((r) => porId.get(r.productoId))
+-            .filter((p): p is ProductoBackend => Boolean(p?.disponible) && !ocultas.has(p!.categoriaId)),
++            .filter((p): p is ProductoBackend => Boolean(p?.disponible)),
+         )
+       })
+       .catch(() => setProductos([]))
+@@ -51,4 +49,4 @@ function MasPedidosSection() {
+   )
+ }
+ 
+-export default MasPedidosSection
+\ No newline at end of file
++export default MasPedidosSection
+diff --git a/Frontend/src/components/home/OpinionesSection.tsx b/Frontend/src/components/home/OpinionesSection.tsx
+new file mode 100644
+index 0000000..7436300
+--- /dev/null
++++ b/Frontend/src/components/home/OpinionesSection.tsx
+@@ -0,0 +1,73 @@
++import { useEffect, useState } from 'react'
++import { Quote, Star } from 'lucide-react'
++import { getCalificacionesRecientes } from '../../services/calificacionService'
++import { formatearFechaHora } from '../../utils/fechas'
++import type { CalificacionPublica } from '../../types/calificacion'
++
++// "Lo que dicen nuestros clientes": las últimas calificaciones aprobadas por un admin
++function OpinionesSection() {
++  const [opiniones, setOpiniones] = useState<CalificacionPublica[]>([])
++
++  useEffect(() => {
++    getCalificacionesRecientes()
++      .then(setOpiniones)
++      .catch(() => setOpiniones([])) // si falla, la sección simplemente no se muestra
++  }, [])
++
++  // Sin opiniones aprobadas no se muestra nada
++  if (opiniones.length === 0) return null
++
++  return (
++    <section className="bg-brand-sand/50 px-4 py-16 text-brand-dark sm:py-20">
++      <div className="mx-auto max-w-7xl">
++        <div className="mb-12 text-center">
++          <p className="text-sm font-bold uppercase tracking-wider text-brand-muted">Opiniones reales</p>
++          <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
++            Lo que dicen <span className="text-brand-red">nuestros clientes</span>
++          </h2>
++        </div>
++
++        {/* flex-wrap + justify-center: las tarjetas van una al lado de la otra y siempre quedan centradas */}
++        <ul className="flex flex-wrap justify-center gap-8">
++          {opiniones.map((o, i) => (
++            <li
++              key={o.id}
++              className={`relative flex w-full max-w-sm flex-col gap-4 rounded-[1.75rem] border-2 border-brand-dark bg-white p-7 pt-9 shadow-sticker transition-transform duration-300 hover:rotate-0 sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] ${
++                i % 2 === 0 ? '-rotate-1' : 'rotate-1'
++              }`}
++            >
++              {/* Comillas "pegadas" sobre el borde de la tarjeta */}
++              <span className="absolute -top-5 left-6 grid h-10 w-10 place-items-center rounded-full border-2 border-brand-dark bg-brand-mustard">
++                <Quote className="h-5 w-5 fill-brand-dark text-brand-dark" />
++              </span>
++
++              <div className="flex gap-0.5" aria-label={`${o.puntaje} de 5 estrellas`}>
++                {[1, 2, 3, 4, 5].map((n) => (
++                  <Star
++                    key={n}
++                    className={`h-5 w-5 ${n <= o.puntaje ? 'fill-brand-mustard text-brand-dark' : 'fill-white text-brand-dark/30'}`}
++                    strokeWidth={1.75}
++                  />
++                ))}
++              </div>
++
++              <p className="flex-1 break-words text-lg leading-relaxed">{o.comentario}</p>
++
++              <div className="flex items-center gap-3 border-t-2 border-dashed border-brand-sand pt-4">
++                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-red font-display text-lg font-extrabold text-white">
++                  {o.nombre.charAt(0).toUpperCase()}
++                </span>
++                <div className="min-w-0">
++                  <p className="truncate font-display text-lg font-extrabold leading-tight">{o.nombre}</p>
++                  <p className="text-xs text-brand-muted">{formatearFechaHora(o.fecha)}</p>
++                </div>
++              </div>
++            </li>
++          ))}
++        </ul>
++      </div>
++    </section>
++  )
++}
++
++export default OpinionesSection
+\ No newline at end of file
+diff --git a/Frontend/src/config/categorias.ts b/Frontend/src/config/categorias.ts
+index 7f5c253..e416739 100644
+--- a/Frontend/src/config/categorias.ts
++++ b/Frontend/src/config/categorias.ts
+@@ -36,11 +36,12 @@ const ESTILOS: Record<string, EstiloCategoria> = {
+   'sin tacc': { icono: 'sinTacc', fondo: 'bg-brand-red' },
+   'desayunos y meriendas': { icono: 'desayuno', fondo: 'bg-brand-mustard' },
+   // "Café" son las bebidas calientes (taza) y "Menú Café" las comidas (medialuna)
++  // "Cafetería" junta a las dos en el Home
++  cafeteria: { icono: 'desayuno', fondo: 'bg-brand-mustard' },
+   'cafe': { icono: 'desayuno', fondo: 'bg-brand-sand' },
+   'menu cafe': { icono: 'cafe', fondo: 'bg-brand-mustard' },
+-  'sandwich': {icono: 'sandwich', fondo: 'bg-brand-sand'},
+-  'torta': {icono: 'torta', fondo: 'bg-brand-sand'},
+-  salsas: { icono: 'salsa', fondo: 'bg-brand-red' },
++  'sandwich': { icono: 'sandwich', fondo: 'bg-brand-sand' },
++  'torta': { icono: 'torta', fondo: 'bg-brand-sand' },
+ }
+ 
+ const POR_DEFECTO: EstiloCategoria = { icono: 'generico', fondo: 'bg-brand-sand' }
+@@ -54,14 +55,36 @@ function normalizar(nombre: string) {
+     .toLowerCase()
+ }
+ 
+-// Categorías que van siempre al final del menú (nombre normalizado). El resto conserva el orden con que llega del backend.
+-const AL_FINAL = ['salsas']
++export function estiloCategoria(nombre: string): EstiloCategoria {
++  return ESTILOS[normalizar(nombre)] ?? POR_DEFECTO
++}
+ 
+-export function ordenarCategorias<T extends { nombre: string }>(categorias: T[]): T[] {
+-  const lugar = (c: T) => AL_FINAL.indexOf(normalizar(c.nombre)) + 1 // 0 = no va al final
+-  return [...categorias].sort((a, b) => lugar(a) - lugar(b))
++// Colores de fondo que puede elegir el master para una tarjeta o una sección (los de la marca)
++export const FONDOS: Record<string, string> = {
++  mostaza: 'bg-brand-mustard',
++  rojo: 'bg-brand-red',
++  arena: 'bg-brand-sand',
+ }
+ 
+-export function estiloCategoria(nombre: string): EstiloCategoria {
+-  return ESTILOS[normalizar(nombre)] ?? POR_DEFECTO
++const ICONOS_VALIDOS: Record<IconoCategoria, true> = {
++  hamburguesa: true, combo: true, papas: true, nuggets: true, aro: true, bebida: true, postre: true, ensalada: true,
++  sinTacc: true, desayuno: true, cafe: true, comboCafe: true, sandwich: true, torta: true, salsa: true, generico: true,
++}
++
++interface CategoriaConEstilo {
++  nombre: string
++  icono?: string | null
++  fondo?: string | null
++}
++
++/**
++ * Ícono y color de una categoría (o de una sección del menú): lo que eligió el master y,
++ * si no eligió, lo que corresponde a su nombre.
++ */
++export function estiloDeCategoria(categoria: CategoriaConEstilo): EstiloCategoria {
++  const porNombre = estiloCategoria(categoria.nombre)
++  return {
++    icono: categoria.icono && categoria.icono in ICONOS_VALIDOS ? (categoria.icono as IconoCategoria) : porNombre.icono,
++    fondo: (categoria.fondo && FONDOS[categoria.fondo]) || porNombre.fondo,
++  }
+ }
+\ No newline at end of file
+diff --git a/Frontend/src/config/gruposCatalogo.ts b/Frontend/src/config/gruposCatalogo.ts
+index 82d3873..3ccdc1b 100644
+--- a/Frontend/src/config/gruposCatalogo.ts
++++ b/Frontend/src/config/gruposCatalogo.ts
+@@ -1,216 +1,61 @@
+-// Cómo se organiza el menú del cliente.
+-// Es solo presentación: en la base (y en el admin) las categorías siguen siendo las mismas, y las
+-// subcategorías ("Carne vacuna", "Pastelería"...) no existen en la base: se arman acá, por nombre.
+-// Ojo: no fusionar categorías en la base. Los combos eligen sus opciones por categoría
+-// ("Acompañamiento" sale de Papas Fritas, "Una bebida" de Bebidas).
+-// Cuando el backend tenga subcategorías propias, alcanza con reemplazar este archivo.
++import type { Category, ProductoBackend } from '../types/product'
++
++// Cómo se arma el menú del catálogo: sale directo del árbol de categorías del backend.
++//  - Cada categoría principal (sin padre) es un botón del menú, en el orden que define el admin.
++//  - Sus subcategorías son el submenú. Si no tiene, no hay submenú (Bebidas, Postres).
++//  - "Todos" no es una categoría: los filtros lo agregan siempre al final.
+ 
+ export interface SubgrupoCatalogo {
+   slug: string
+-  /** Texto del botón y título de la sección */
+-  nombre: string
+-  /** Categoría del backend de la que toma el ícono y el color del título */
+-  estilo: string
+-  /** Categorías del backend cuyos productos entran (se comparan sin tildes ni mayúsculas) */
+-  categorias?: string[]
+-  /** Productos que entran por nombre, vengan de la categoría que vengan (gana sobre `categorias`) */
+-  productos?: string[]
++  categoria: Category
+ }
+ 
+ export interface GrupoCatalogo {
+-  id: number
+   slug: string
+-  nombre: string
+-  /** Categorías del backend que entran en el grupo */
+-  categorias: string[]
+-  /** Botones de subcategoría que se muestran arriba del grupo */
+-  subgrupos?: SubgrupoCatalogo[]
+-  /** Subgrupo donde caen los productos de `categorias` que ningún subgrupo reclama (productos nuevos del admin) */
+-  subgrupoPorDefecto?: string
+-  /** true = "Todo" se muestra dividido en secciones (una por subgrupo), sin paginación */
+-  porSecciones: boolean
++  categoria: Category
++  /** Vacío = sin submenú */
++  subgrupos: SubgrupoCatalogo[]
+ }
+ 
+-export const GRUPOS_CATALOGO: GrupoCatalogo[] = [
+-  // El orden del array es el orden de los botones ("Todos" va siempre primero)
+-  {
+-    id: 2,
+-    slug: 'combos',
+-    nombre: 'Combos',
+-    categorias: ['Combos'],
+-    subgrupos: [
+-      { slug: 'combo-carne-vacuna', nombre: 'Carne de Res', estilo: 'Combos', categorias: ['Combos', 'Combo'] },
+-      { slug: 'combo-pollo', nombre: 'Carne de Pollo  ', estilo: 'Combos', productos: ['Combo Crispy Crack', 'Combo Crispy Ranch'] },
+-      { slug: 'combo-veggie', nombre: 'Veggie', estilo: 'Combos', productos: ['Combo Seed Vicious'] },
+-    ],
+-    subgrupoPorDefecto: 'carne-vacuna',
+-    porSecciones: false,
+-  },
+-  {
+-    id: 1,
+-    slug: 'hamburguesas',
+-    nombre: 'Hamburguesas',
+-    categorias: ['Hamburguesas', 'Hamburguesa'],
+-    subgrupos: [
+-      { slug: 'carne-vacuna', nombre: 'Carne de Res', estilo: 'Hamburguesas', categorias: ['Hamburguesas', 'Hamburguesa'] },
+-      { slug: 'pollo', nombre: 'Carne de Pollo', estilo: 'Hamburguesas', productos: ['Crispy Crack', 'Crispy Ranch'] },
+-      { slug: 'veggie', nombre: 'Veggie', estilo: 'Hamburguesas', productos: ['Seed Vicious'] },
+-    ],
+-    subgrupoPorDefecto: 'carne-vacuna',
+-    porSecciones: false,
+-  },
+-  {
+-    id: 3,
+-    slug: 'para-acompanar',
+-    nombre: 'Para acompañar',
+-    categorias: ['Papas Fritas', 'Nuggets', 'Ensaladas'],
+-    subgrupos: [
+-      { slug: 'papas-fritas', nombre: 'Papas', estilo: 'Papas Fritas', categorias: ['Papas Fritas'] },
+-      { slug: 'nuggets', nombre: 'Nuggets', estilo: 'Nuggets', categorias: ['Nuggets'] },
+-      { slug: 'ensaladas', nombre: 'Ensaladas', estilo: 'Ensaladas', categorias: ['Ensaladas'] },
+-       {
+-        slug: 'otros',
+-        nombre: 'Otros',
+-        estilo: 'aro',
+-        // El Cheddar Fundido es una salsa en la base, pero acá se vende como pileta para mojar
+-        productos: ['Palitos de Muzzarela', 'Aros de Cebolla x8', 'Cheddar Fundido'],
+-      },
+-    ],
+-    subgrupoPorDefecto: 'papas-fritas',
+-    porSecciones: true,
+-  },
+-  {
+-    id: 5,
+-    slug: 'bebidas',
+-    nombre: 'Bebidas',
+-    categorias: ['Bebidas'],
+-     subgrupos: [
+-      {
+-        slug: 'gaseosas',
+-        nombre: 'Gaseosas',
+-        estilo: 'bebida',
+-        productos: ['Coca Cola', 'Sprite', 'Fanta'],
+-      },
+-      {
+-        slug: 'agua',
+-        nombre: 'Agua',
+-        estilo: 'bebida',
+-        productos: ['Agua Mineral'],
+-      },
+-    ],
+-    subgrupoPorDefecto: 'gaseosas',
+-    porSecciones: false,
+-  },
+-  {
+-    id: 4,
+-    slug: 'cafeteria',
+-    nombre: 'Cafetería',
+-    categorias: ['Café', 'Menú Café'],
+-    subgrupos: [
+-      { slug: 'bebidas-calientes', nombre: 'Cafés', estilo: 'Café', categorias: ['Café'] },
+-      {
+-        slug: 'clasicos',
+-        nombre: 'Clásicos',
+-        estilo: 'Menú Café',
+-        productos: ['Medialunas x2', 'Tostadas con Palta'],
+-      },
+-      {
+-        slug: 'sandwiches',
+-        nombre: 'Sandwiches',
+-        estilo: 'sandwich',
+-        productos: ['Tostado de Jamón y Queso', 'Desayuno Americano'],
+-      },
+-      {
+-        slug: 'pasteleria',
+-        nombre: 'Dulces',
+-        estilo: 'Torta',
+-        // Brownie y Cheesecake son de la categoría Postres: se muestran acá y también en Postres → Tortas
+-        productos: ['Hot Cakes', 'Muffin de Arándanos', 'Brownie con Helado', 'Cheesecake de Frutos Rojos', 'Donas Glaseadas x3'],
+-      },
+-    ],
+-    subgrupoPorDefecto: 'clasicos',
+-    porSecciones: true,
+-  },
+-  {
+-    id: 6,
+-    slug: 'postres',
+-    nombre: 'Postres',
+-    categorias: ['Postres'],
+-    subgrupos: [
+-      {
+-        slug: 'helados',
+-        nombre: 'Helados',
+-        estilo: 'Postres',
+-        productos: ['Helado Crunch', 'Helado Sundae', 'Batido de Vainilla'],
+-      },
+-      {
+-        slug: 'tortas',
+-        nombre: 'Tortas',
+-        estilo: 'torta',
+-        productos: ['Brownie con Helado', 'Cheesecake de Frutos Rojos'],
+-      },
+-    ],
+-    subgrupoPorDefecto: 'tortas',
+-    porSecciones: true,
+-  },
+-]
+-
+-/** Categorías que no se muestran en el menú: se ofrecen en otro lado (las salsas, en el carrito) */
+-export const CATEGORIAS_OCULTAS = ['Salsas']
+-
+-/** El catálogo arranca en Combos */
+-export const GRUPO_INICIAL = 2
+-
+ // "Menú Café" → "menu cafe"
+ export function normalizarNombre(nombre: string) {
+   return nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
+ }
+ 
+-const igual = (a: string, b: string) => normalizarNombre(a) === normalizarNombre(b)
+-
+-export function esCategoriaOculta(nombreCategoria: string) {
+-  return CATEGORIAS_OCULTAS.some((c) => igual(c, nombreCategoria))
+-}
+-
+-// Productos nombrados a mano en algún subgrupo: se ven en el menú aunque su categoría esté oculta
+-const NOMBRADOS = GRUPOS_CATALOGO.flatMap((g) => g.subgrupos ?? []).flatMap((s) => s.productos ?? [])
+-
+-/** Si un producto se muestra en el menú (y en la búsqueda) */
+-export function visibleEnMenu(nombreProducto: string, nombreCategoria: string) {
+-  return !esCategoriaOculta(nombreCategoria) || NOMBRADOS.some((n) => igual(n, nombreProducto))
+-}
+-
+-/** Grupo al que pertenece una categoría del backend (por nombre), si pertenece a alguno */
+-export function grupoDeCategoria(nombreCategoria: string): GrupoCatalogo | undefined {
+-  return GRUPOS_CATALOGO.find((g) => g.categorias.some((c) => igual(c, nombreCategoria)))
+-}
+-
+-/** Subgrupo que reúne a toda una categoría (ej: "Nuggets" → el botón Nuggets), si hay uno */
+-export function subgrupoDeCategoria(grupo: GrupoCatalogo, nombreCategoria: string): SubgrupoCatalogo | undefined {
+-  return grupo.subgrupos?.find((s) => s.categorias?.some((c) => igual(c, nombreCategoria)))
+-}
+-
+-/**
+- * Dónde cae un producto dentro de un grupo:
+- * - `pertenece`: si el producto se muestra en ese grupo.
+- * - `subgrupo`: el botón en el que aparece (si el grupo tiene subgrupos).
+- * Primero manda el nombre del producto, después su categoría, y por último el subgrupo por defecto.
+- */
+-export function ubicarEnGrupo(
+-  grupo: GrupoCatalogo,
+-  nombreProducto: string,
+-  nombreCategoria: string,
+-): { pertenece: boolean; subgrupo?: SubgrupoCatalogo } {
+-  const subgrupos = grupo.subgrupos
+-  const enCategoria = grupo.categorias.some((c) => igual(c, nombreCategoria))
+-  if (!subgrupos) return { pertenece: enCategoria }
+-
+-  const porNombre = subgrupos.find((s) => s.productos?.some((n) => igual(n, nombreProducto)))
+-  if (porNombre) return { pertenece: true, subgrupo: porNombre }
+-
+-  const porCategoria = subgrupos.find((s) => s.categorias?.some((c) => igual(c, nombreCategoria)))
+-  if (porCategoria) return { pertenece: true, subgrupo: porCategoria }
+-
+-  if (enCategoria) return { pertenece: true, subgrupo: subgrupos.find((s) => s.slug === grupo.subgrupoPorDefecto) }
+-  return { pertenece: false }
++// "Hamburguesas de pollo" → "hamburguesas-de-pollo" (es lo que va en la dirección: ?grupo=...&sub=...)
++export const aSlug = (nombre: string) =>
++  normalizarNombre(nombre).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
++
++/** Los grupos del menú: cada categoría principal con sus hijas (el backend ya las manda ordenadas) */
++export function armarGrupos(categorias: Category[]): GrupoCatalogo[] {
++  return categorias
++    .filter((c) => c.categoriaPadreId == null)
++    .map((principal) => ({
++      slug: aSlug(principal.nombre),
++      categoria: principal,
++      subgrupos: categorias
++        .filter((c) => c.categoriaPadreId === principal.id)
++        .map((hija) => ({ slug: aSlug(hija.nombre), categoria: hija })),
++    }))
++}
++
++/** true si el producto está en el grupo: en la categoría principal o en alguna de sus hijas */
++export function perteneceAlGrupo(grupo: GrupoCatalogo, producto: ProductoBackend) {
++  return (
++    producto.categoriaId === grupo.categoria.id ||
++    grupo.subgrupos.some((s) => s.categoria.id === producto.categoriaId)
++  )
++}
++
++/** Grupo (y subgrupo, si es una hija) de una categoría. Sirve para abrir el catálogo desde el Home (?categoria=3) */
++export function ubicarCategoria(
++  grupos: GrupoCatalogo[],
++  categoriaId: number,
++): { grupo: GrupoCatalogo; subgrupo?: SubgrupoCatalogo } | undefined {
++  for (const grupo of grupos) {
++    if (grupo.categoria.id === categoriaId) return { grupo }
++    const subgrupo = grupo.subgrupos.find((s) => s.categoria.id === categoriaId)
++    if (subgrupo) return { grupo, subgrupo }
++  }
++  return undefined
+ }
+diff --git a/Frontend/src/config/sugerencias.ts b/Frontend/src/config/sugerencias.ts
+index 1c0cda8..aced542 100644
+--- a/Frontend/src/config/sugerencias.ts
++++ b/Frontend/src/config/sugerencias.ts
+@@ -10,7 +10,7 @@ export const COMPLEMENTOS: Record<string, string[]> = {
+   Nuggets: ['Hamburguesas', 'Bebidas'],
+   Ensaladas: ['Bebidas', 'Postres'],
+   Café: ['Postres'],
+-  'Menú Café': ['Postres'],
++  'Desayunos y meriendas': ['Postres'],
+   Postres: ['Café'],
+   Bebidas: ['Hamburguesas', 'Papas Fritas'],
+ }
+diff --git a/Frontend/src/pages/Home.tsx b/Frontend/src/pages/Home.tsx
+index 57912d1..1ea3407 100644
+--- a/Frontend/src/pages/Home.tsx
++++ b/Frontend/src/pages/Home.tsx
+@@ -9,6 +9,7 @@ import ContactSection from '../components/home/ContactSection'
+ import TuSucursal from '../components/home/TuSucursal'
+ import { useAuth } from '../context/AuthContext'
+ import DestacadosRow from '../components/home/DestacadosRow'
++import OpinionesSection from '../components/home/OpinionesSection'
+ 
+ function Home() {
+   const { isAuthenticated } = useAuth()
+@@ -21,6 +22,7 @@ function Home() {
+       <PromoDestacadaBanner />
+       <MasPedidosSection />
+       <DestacadosRow />
++      <OpinionesSection />
+       <ComoFuncionaSection />
+       <TuSucursal />
+       <ContactSection />
+diff --git a/Frontend/src/pages/Products.tsx b/Frontend/src/pages/Products.tsx
+index de195c8..346b26f 100644
+--- a/Frontend/src/pages/Products.tsx
++++ b/Frontend/src/pages/Products.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useMemo, useState } from "react";
++import { useEffect, useMemo, useRef, useState } from "react";
+ import ProductCard from "../components/home/ProductCard";
+ import { getCategories, getProducts } from "../services/productService";
+ import type { Category, ProductoBackend } from "../types/product";
+@@ -8,17 +8,8 @@ import SubcategoriaFilter from "../components/catalogo/SubcategoriaFilter";
+ import Pagination from "../components/catalogo/Pagination";
+ import AvisoCierreSucursal from "../components/sucursal/AvisoCierreSucursal";
+ import CategoryIcon from "../components/icons/CategoryIcon";
+-import { estiloCategoria } from "../config/categorias";
+-import {
+-  GRUPO_INICIAL,
+-  GRUPOS_CATALOGO,
+-  grupoDeCategoria,
+-  subgrupoDeCategoria,
+-  ubicarEnGrupo,
+-  visibleEnMenu,
+-  type GrupoCatalogo,
+-  type SubgrupoCatalogo,
+-} from "../config/gruposCatalogo";
++import { estiloDeCategoria } from "../config/categorias";
++import { armarGrupos, perteneceAlGrupo, ubicarCategoria } from "../config/gruposCatalogo";
+ import { useZona } from "../context/ZonaContext";
+ import { useSearchParams } from "react-router-dom";
+ 
+@@ -29,37 +20,40 @@ const POR_PAGINA = 8;
+ const disponiblesPrimero = (a: ProductoBackend, b: ProductoBackend) =>
+   Number(b.disponible) - Number(a.disponible);
+ 
++// Ícono y color de una sección: los de su subcategoría o, si no tiene propios, los de su grupo
++function estiloDeSeccion(hija: Category, padre: Category) {
++  const propio = estiloDeCategoria(hija);
++  return propio.icono === "generico" ? estiloDeCategoria(padre) : propio;
++}
++
+ function Products() {
+   const [products, setProducts] = useState<ProductoBackend[]>([]);
+   const [categories, setCategories] = useState<Category[]>([]);
+   const [searchParams, setSearchParams] = useSearchParams();
+ 
+-  // ?grupo=cafeteria&sub=pasteleria → ese grupo y esa subcategoría. Sin nada → Combos.
++  // ?grupo=hamburguesas&sub=hamburguesas-de-pollo → ese grupo y esa subcategoría. ?grupo=todos → todo el menú.
+   // (?categoria=3, que usa el Home, se traduce a su grupo cuando llegan las categorías)
+-  const [grupoId, setGrupoId] = useState<number | null>(() => {
++  // null = "Todos"; undefined = sin elegir: se abre el primer grupo (el que el admin puso primero)
++  const [grupoSlug, setGrupoSlug] = useState<string | null | undefined>(() => {
+     const slug = searchParams.get("grupo");
+     if (slug === "todos") return null;
+-    return GRUPOS_CATALOGO.find((g) => g.slug === slug)?.id ?? GRUPO_INICIAL;
++    return slug ?? undefined;
+   });
+   const [subSlug, setSubSlug] = useState<string | null>(() => searchParams.get("sub"));
+ 
+-  function elegirGrupo(id: number | null, sub: string | null = null) {
+-    setGrupoId(id);
++  // El menú sale del árbol de categorías: las principales son los botones y sus hijas, el submenú
++  const grupos = useMemo(() => armarGrupos(categories), [categories]);
++
++  function elegirGrupo(slug: string | null, sub: string | null = null) {
++    setGrupoSlug(slug);
+     setSubSlug(sub);
+-    const slug = id === null ? "todos" : GRUPOS_CATALOGO.find((g) => g.id === id)?.slug;
+-    const params: Record<string, string> = {};
+-    if (slug) params.grupo = slug;
++    const params: Record<string, string> = { grupo: slug ?? "todos" };
+     if (sub) params.sub = sub;
+     setSearchParams(params, { replace: true });
+   }
+ 
+   function elegirSub(sub: string | null) {
+-    setSubSlug(sub);
+-    const slug = GRUPOS_CATALOGO.find((g) => g.id === grupoId)?.slug;
+-    const params: Record<string, string> = {};
+-    if (slug) params.grupo = slug;
+-    if (sub) params.sub = sub;
+-    setSearchParams(params, { replace: true });
++    elegirGrupo(grupo?.slug ?? null, sub);
+   }
+ 
+   const [search, setSearch] = useState("");
+@@ -76,76 +70,77 @@ function Products() {
+   }, [zona?.sucursalId]);
+ 
+   useEffect(() => {
+-    getCategories().then((cats) => {
+-      setCategories(cats);
+-      // Viene del Home con ?categoria=3: se abre el grupo que la contiene (y su botón, si tiene uno propio)
+-      const categoriaId = Number(searchParams.get("categoria"));
+-      const categoria = cats.find((c) => c.id === categoriaId);
+-      const grupo = categoria && grupoDeCategoria(categoria.nombre);
+-      if (categoria && grupo) {
+-        elegirGrupo(grupo.id, subgrupoDeCategoria(grupo, categoria.nombre)?.slug ?? null);
+-      }
+-    });
+-    // eslint-disable-next-line react-hooks/exhaustive-deps
++    getCategories().then(setCategories);
+   }, []);
+ 
++  // Viene del Home con ?categoria=3: se abre su grupo (y su subcategoría, si es una hija).
++  // El parámetro se guarda al abrir la página (después otros efectos reescriben la dirección y lo pierden)
++  // y se resuelve una sola vez, cuando ya llegaron las categorías.
++  const categoriaDelHome = useRef(searchParams.get("categoria"));
++  const categoriaDelHomeResuelta = useRef(false);
++  useEffect(() => {
++    if (categoriaDelHomeResuelta.current || grupos.length === 0) return;
++    categoriaDelHomeResuelta.current = true;
++    if (!categoriaDelHome.current) return;
++    const ubicacion = ubicarCategoria(grupos, Number(categoriaDelHome.current));
++    if (ubicacion) elegirGrupo(ubicacion.grupo.slug, ubicacion.subgrupo?.slug ?? null);
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [grupos]);
++
+   // Volver a la primera página si cambia cualquier filtro o la zona
+   useEffect(() => {
+     setPagina(1);
+-  }, [grupoId, subSlug, busqueda, zona?.sucursalId]);
++  }, [grupoSlug, subSlug, busqueda, zona?.sucursalId]);
+ 
+   useEffect(() => {
+     const timer = setTimeout(() => setBusqueda(search), 250);
+     return () => clearTimeout(timer);
+   }, [search]);
+ 
+-  const grupo: GrupoCatalogo | null = GRUPOS_CATALOGO.find((g) => g.id === grupoId) ?? null;
+-  const sub: SubgrupoCatalogo | null = grupo?.subgrupos?.find((s) => s.slug === subSlug) ?? null;
++  const categoriasListas = categories.length > 0;
++  // Hasta tener las categorías no se muestra nada
++  const visibles = useMemo(() => (categoriasListas ? products : []), [products, categoriasListas]);
++
++  // Solo los grupos que tienen algún producto
++  const gruposVisibles = useMemo(
++    () => grupos.filter((g) => visibles.some((p) => perteneceAlGrupo(g, p))),
++    [grupos, visibles],
++  );
++
++  const grupo =
++    (grupoSlug === undefined ? gruposVisibles[0] : gruposVisibles.find((g) => g.slug === grupoSlug)) ?? null;
++  // Solo las subcategorías que tienen algún producto
++  const subgrupos = grupo ? grupo.subgrupos.filter((s) => visibles.some((p) => p.categoriaId === s.categoria.id)) : [];
++  const sub = subgrupos.find((s) => s.slug === subSlug) ?? null;
++
+   const query = busqueda.trim().toLowerCase();
+   // Buscando, se busca en TODO el menú: no importa el grupo ni el botón en el que estés parado
+   const buscando = query !== "";
+ 
+-  // Id de categoría del backend → nombre
+-  const nombrePorId = useMemo(() => new Map(categories.map((c) => [c.id, c.nombre])), [categories]);
+-  const categoriasListas = categories.length > 0;
+-
+-  // Lo que se ve en el menú (las salsas no: se ofrecen en el carrito)
+-  const visibles = useMemo(
+-    () =>
+-      categoriasListas
+-        ? products.filter((p) => visibleEnMenu(p.nombre, nombrePorId.get(p.categoriaId) ?? ""))
+-        : [],
+-    [products, nombrePorId, categoriasListas],
++  // Los productos del grupo elegido (en "Todos", todos)
++  const delGrupo = useMemo(
++    () => (grupo ? visibles.filter((p) => perteneceAlGrupo(grupo, p)) : visibles),
++    [visibles, grupo],
+   );
+ 
+-  // Cada producto con el subgrupo en el que cae dentro del grupo elegido
+-  const delGrupo = useMemo(() => {
+-    if (!grupo) return visibles.map((product) => ({ product, subgrupo: undefined as SubgrupoCatalogo | undefined }));
+-    return visibles.flatMap((product) => {
+-      const ubicacion = ubicarEnGrupo(grupo, product.nombre, nombrePorId.get(product.categoriaId) ?? "");
+-      return ubicacion.pertenece ? [{ product, subgrupo: ubicacion.subgrupo }] : [];
+-    });
+-  }, [visibles, grupo, nombrePorId]);
+-
+   const filteredProducts = useMemo(() => {
+     const lista = buscando
+       ? visibles.filter((p) => p.nombre.toLowerCase().includes(query))
+-      : delGrupo.filter((e) => !sub || e.subgrupo?.slug === sub.slug).map((e) => e.product);
++      : sub
++        ? delGrupo.filter((p) => p.categoriaId === sub.categoria.id)
++        : delGrupo;
+     return [...lista].sort(disponiblesPrimero);
+   }, [buscando, visibles, delGrupo, sub, query]);
+ 
+-  // Los grupos con subcategorías muestran "Todo" en secciones (sin paginación), salvo que se esté buscando
+-  const enSecciones = Boolean(grupo?.porSecciones && grupo.subgrupos && !sub && !buscando);
++  // Un grupo con submenú, en "Todos", se muestra dividido en secciones (una por subcategoría), sin paginación
++  const enSecciones = Boolean(grupo && subgrupos.length > 0 && !sub && !buscando);
+   const secciones = enSecciones
+-    ? grupo!.subgrupos!
+-        .map((s) => ({
+-          ...s,
+-          productos: delGrupo
+-            .filter((e) => e.subgrupo?.slug === s.slug)
+-            .map((e) => e.product)
+-            .sort(disponiblesPrimero),
+-        }))
+-        .filter((s) => s.productos.length > 0)
++    ? subgrupos.map((s) => ({
++        slug: s.slug,
++        nombre: s.categoria.nombre,
++        estilo: estiloDeSeccion(s.categoria, grupo!.categoria),
++        productos: delGrupo.filter((p) => p.categoriaId === s.categoria.id).sort(disponiblesPrimero),
++      }))
+     : [];
+ 
+   const totalPaginas = Math.ceil(filteredProducts.length / POR_PAGINA);
+@@ -157,35 +152,21 @@ function Products() {
+     window.scrollTo(0, 0);
+   }
+ 
+-  // Los grupos, con la forma que espera el filtro de chips
+-  const gruposVisibles = useMemo(
+-  () =>
+-    GRUPOS_CATALOGO.filter((g) =>
+-      visibles.some((product) => {
+-        const categoria = nombrePorId.get(product.categoriaId) ?? "";
+-        return ubicarEnGrupo(g, product.nombre, categoria).pertenece;
+-      })
+-    ),
+-    [visibles, nombrePorId],
+-  );
+-
+-  const opcionesFiltro = gruposVisibles.map((g) => ({
+-    id: g.id,
+-    nombre: g.nombre,
+-  }));
+-
++  // Si el grupo de la dirección no existe (o no tiene productos en la zona), se abre el primero
+   useEffect(() => {
+-    if (grupoId !== null && !gruposVisibles.some((g) => g.id === grupoId)) {
+-      elegirGrupo(gruposVisibles[0]?.id ?? null);
++    // Hasta que no llegan los productos no se corrige nada (ni se toca la dirección)
++    if (visibles.length === 0) return;
++    if (grupoSlug && !gruposVisibles.some((g) => g.slug === grupoSlug)) {
++      elegirGrupo(gruposVisibles[0]?.slug ?? null);
+     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [gruposVisibles, grupoId]);
++  }, [gruposVisibles, grupoSlug]);
+ 
+   // Elegir un grupo con una búsqueda en curso la cierra y abre ese grupo
+   function elegirGrupoDesdeChips(id: number | null) {
+     setSearch("");
+     setBusqueda("");
+-    elegirGrupo(id);
++    elegirGrupo(gruposVisibles.find((g) => g.categoria.id === id)?.slug ?? null);
+   }
+ 
+   return (
+@@ -228,15 +209,19 @@ function Products() {
+         {/* Grupos: barra blanca montada sobre la banda. Con una búsqueda en curso ninguno queda marcado (-1) */}
+         <div className="-mt-9">
+           <CategoryFilter
+-            categorias={opcionesFiltro}
+-            seleccionada={buscando ? -1 : grupoId}
++            categorias={gruposVisibles.map((g) => g.categoria)}
++            seleccionada={buscando ? -1 : grupo?.categoria.id ?? null}
+             onSeleccionar={elegirGrupoDesdeChips}
+           />
+         </div>
+ 
+         {/* Subcategorías del grupo elegido */}
+-        {!buscando && grupo?.subgrupos && (
+-          <SubcategoriaFilter subgrupos={grupo.subgrupos} seleccionado={sub?.slug ?? null} onSeleccionar={elegirSub} />
++        {!buscando && subgrupos.length > 0 && (
++          <SubcategoriaFilter
++            subgrupos={subgrupos.map((s) => ({ slug: s.slug, nombre: s.categoria.nombre }))}
++            seleccionado={sub?.slug ?? null}
++            onSeleccionar={elegirSub}
++          />
+         )}
+ 
+         {buscando && (
+@@ -272,9 +257,9 @@ function Products() {
+           )
+         ) : enSecciones ? (
+           // ---------- Todo el grupo, en secciones: una por subcategoría ----------
+-          <div key={`${grupoId}`} className="mt-10 flex flex-col gap-12">
++          <div key={grupo?.slug} className="mt-10 flex flex-col gap-12">
+             {secciones.map((seccion) => {
+-              const estilo = estiloCategoria(seccion.estilo);
++              const estilo = seccion.estilo;
+               return (
+                 <section key={seccion.slug} aria-labelledby={`seccion-${seccion.slug}`}>
+                   <h2
+@@ -297,11 +282,11 @@ function Products() {
+             })}
+           </div>
+         ) : (
+-          // ---------- Grilla con paginación: Hamburguesas, Combos, Todos, una subcategoría o una búsqueda ----------
++          // ---------- Grilla con paginación: un grupo sin submenú, una subcategoría, Todos o una búsqueda ----------
+           <>
+             {/* La key cambia con cada filtro o página: la grilla se vuelve a armar */}
+             <div
+-              key={`${grupoId}-${subSlug}-${busqueda}-${pagina}`}
++              key={`${grupo?.slug}-${subSlug}-${busqueda}-${pagina}`}
+               className="bf-escalonado mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+             >
+               {mostrados.map((product, i) => (
+diff --git a/Frontend/src/services/calificacionService.ts b/Frontend/src/services/calificacionService.ts
+new file mode 100644
+index 0000000..64e9d3d
+--- /dev/null
++++ b/Frontend/src/services/calificacionService.ts
+@@ -0,0 +1,13 @@
++import { httpClient } from './httpClient'
++import type { CalificacionPublica } from '../types/calificacion'
++
++// Las últimas calificaciones aprobadas, para el inicio
++export const getCalificacionesRecientes = () =>
++  httpClient<CalificacionPublica[]>('/calificaciones/recientes')
++
++// Estrellas obligatorias; el comentario es opcional
++export const calificarPedido = (usuarioId: number, pedidoId: number, puntaje: number, comentario: string) =>
++  httpClient<{ mensaje: string }>('/calificaciones', {
++    method: 'POST',
++    body: JSON.stringify({ usuarioId, pedidoId, puntaje, comentario: comentario.trim() }),
++  })
+\ No newline at end of file
+diff --git a/Frontend/src/services/productService.ts b/Frontend/src/services/productService.ts
+index a91e495..1a16f08 100644
+--- a/Frontend/src/services/productService.ts
++++ b/Frontend/src/services/productService.ts
+@@ -1,6 +1,5 @@
+ import { httpClient } from './httpClient'
+ import type { Category, ProductIngredient, ProductoBackend } from '../types/product'
+-import { ordenarCategorias } from '../config/categorias'
+ 
+ // Así llega cada insumo de la receta en GET /productos/:id
+ interface IngredienteBackend {
+@@ -50,10 +49,9 @@ export const getProductoDetalle = async (id: number, sucursalId?: number | null)
+   }
+ }
+ 
++// Vienen ordenadas por el backend, en el orden que define el admin
+ export const getCategories = async (): Promise<Category[]> => {
+-  const categorias = await httpClient<Category[]>('/categorias')
+-  // "Salsas" siempre al final, sin importar el id con que se cargó
+-  return ordenarCategorias(categorias)
++  return httpClient<Category[]>('/categorias')
+ }
+ 
+ 
+diff --git a/Frontend/src/test/config/gruposCatalogo.test.ts b/Frontend/src/test/config/gruposCatalogo.test.ts
+deleted file mode 100644
+index 5b70009..0000000
+--- a/Frontend/src/test/config/gruposCatalogo.test.ts
++++ /dev/null
+@@ -1,65 +0,0 @@
+-import { describe, expect, it } from 'vitest'
+-import {
+-  GRUPOS_CATALOGO,
+-  grupoDeCategoria,
+-  subgrupoDeCategoria,
+-  ubicarEnGrupo,
+-  visibleEnMenu,
+-} from '../../config/gruposCatalogo'
+-
+-const grupo = (slug: string) => GRUPOS_CATALOGO.find((g) => g.slug === slug)!
+-const sub = (slug: string, producto: string, categoria: string) =>
+-  ubicarEnGrupo(grupo(slug), producto, categoria).subgrupo?.slug
+-
+-describe('gruposCatalogo', () => {
+-  it('ordena los botones: Combos, Hamburguesas, Para acompañar, Bebidas, Cafetería, Postres', () => {
+-    expect(GRUPOS_CATALOGO.map((g) => g.nombre)).toEqual([
+-      'Combos', 'Hamburguesas', 'Para acompañar', 'Bebidas', 'Cafetería', 'Postres',
+-    ])
+-  })
+-
+-  it('reparte las hamburguesas en carne vacuna, pollo y veggie', () => {
+-    expect(sub('hamburguesas', 'Fast Classic', 'Hamburguesas')).toBe('carne-vacuna')
+-    expect(sub('hamburguesas', 'Crispy Crack', 'Hamburguesas')).toBe('pollo')
+-    expect(sub('hamburguesas', 'Seed Vicious', 'Hamburguesas')).toBe('veggie')
+-  })
+-
+-  it('las bebidas ya no son parte de Para acompañar', () => {
+-    expect(ubicarEnGrupo(grupo('para-acompanar'), 'Coca Cola', 'Bebidas').pertenece).toBe(false)
+-    expect(grupoDeCategoria('Bebidas')?.slug).toBe('bebidas')
+-  })
+-
+-  it('Para acompañar: papas, nuggets, otros (con la pileta de cheddar) y ensaladas', () => {
+-    expect(sub('para-acompanar', 'Papas Cajún', 'Papas Fritas')).toBe('papas-fritas')
+-    expect(sub('para-acompanar', 'Nuggets de Pollo x10', 'Nuggets')).toBe('nuggets')
+-    expect(sub('para-acompanar', 'Aros de Cebolla x8', 'Nuggets')).toBe('otros')
+-    expect(sub('para-acompanar', 'Cheddar Fundido', 'Salsas')).toBe('otros')
+-    expect(sub('para-acompanar', 'Ensalada Mixta', 'Ensaladas')).toBe('ensaladas')
+-  })
+-
+-  it('Cafetería y Postres comparten Brownie y Cheesecake sin duplicar productos', () => {
+-    expect(sub('cafeteria', 'Brownie con Helado', 'Postres')).toBe('pasteleria')
+-    expect(sub('postres', 'Brownie con Helado', 'Postres')).toBe('tortas')
+-    expect(sub('cafeteria', 'Donas Glaseadas x3', 'Menú Café')).toBe('pasteleria')
+-    expect(ubicarEnGrupo(grupo('postres'), 'Donas Glaseadas x3', 'Menú Café').pertenece).toBe(false)
+-    expect(sub('postres', 'Batido de Vainilla', 'Postres')).toBe('helados')
+-  })
+-
+-  it('Cafetería: los productos sin botón propio caen en Clásicos', () => {
+-    expect(sub('cafeteria', 'Espresso', 'Café')).toBe('bebidas-calientes')
+-    expect(sub('cafeteria', 'Tostado de Jamón y Queso', 'Menú Café')).toBe('sandwiches')
+-    expect(sub('cafeteria', 'Hot Cakes', 'Menú Café')).toBe('clasicos')
+-  })
+-
+-  it('las salsas no se ven en el menú, salvo la pileta de cheddar', () => {
+-    expect(visibleEnMenu('Ketchup', 'Salsas')).toBe(false)
+-    expect(visibleEnMenu('Cheddar Fundido', 'Salsas')).toBe(true)
+-    expect(visibleEnMenu('Fast Classic', 'Hamburguesas')).toBe(true)
+-  })
+-
+-  it('una categoría con botón propio abre ese botón', () => {
+-    const g = grupoDeCategoria('Nuggets')!
+-    expect(subgrupoDeCategoria(g, 'Nuggets')?.slug).toBe('nuggets')
+-    expect(subgrupoDeCategoria(grupoDeCategoria('Café')!, 'Café')?.slug).toBe('bebidas-calientes')
+-  })
+-})
+diff --git a/Frontend/src/types/calificacion.ts b/Frontend/src/types/calificacion.ts
+new file mode 100644
+index 0000000..46251a0
+--- /dev/null
++++ b/Frontend/src/types/calificacion.ts
+@@ -0,0 +1,8 @@
++// Una calificación aprobada, tal como se muestra en el inicio (GET /calificaciones/recientes)
++export interface CalificacionPublica {
++  id: number
++  nombre: string
++  puntaje: number
++  comentario: string
++  fecha: string
++}
+\ No newline at end of file
+diff --git a/Frontend/src/types/order.ts b/Frontend/src/types/order.ts
+index 11c5b4a..6b4d265 100644
+--- a/Frontend/src/types/order.ts
++++ b/Frontend/src/types/order.ts
+@@ -23,4 +23,6 @@ export interface Order {
+   Sucursal:{id: number, nombre:string}
+   observaciones?: string | null;
+   historialDeTiemposPedidos?: { estado: string; fecha: string }[]
++  /** null si todavía no se calificó (lo manda el backend desde la Etapa 1) */
++  calificacion?: { id: number } | null
+ }
+\ No newline at end of file
+diff --git a/Frontend/src/types/product.ts b/Frontend/src/types/product.ts
+index fd716ba..1563a78 100644
+--- a/Frontend/src/types/product.ts
++++ b/Frontend/src/types/product.ts
+@@ -81,4 +81,11 @@ export interface ProductoBackend {
+ export interface Category {
+   id: number
+   nombre: string
++  /** null = categoría principal; si no, la categoría de la que cuelga (Café y Menú Café cuelgan de Cafetería) */
++  categoriaPadreId?: number | null
++  /** Orden en que se muestran (el backend ya las manda ordenadas) */
++  orden?: number
++  /** Ícono y color de la tarjeta del Home elegidos por el master (null = los que corresponden al nombre) */
++  icono?: string | null
++  fondo?: string | null
+ }
+diff --git a/admin/src/components/CamposCategoria.tsx b/admin/src/components/CamposCategoria.tsx
+new file mode 100644
+index 0000000..226a10f
+--- /dev/null
++++ b/admin/src/components/CamposCategoria.tsx
+@@ -0,0 +1,83 @@
++// Campos de la categoría que se comparten entre "Nueva" y "Editar": de quién depende y orden
++
++export interface ExtrasCategoria {
++  /** '' = categoría principal */
++  categoriaPadreId: string
++  /** '' = al final (solo al crear) */
++  orden: string
++}
++
++export const extrasVacios: ExtrasCategoria = { categoriaPadreId: '', orden: '' }
++
++export interface CategoriaOpcion {
++  id: number
++  nombre: string
++  categoriaPadreId?: number | null
++  orden?: number
++}
++
++// Lo que se manda al backend (el nombre va aparte)
++export function extrasAPedido(extras: ExtrasCategoria) {
++  return {
++    categoriaPadreId: extras.categoriaPadreId === '' ? null : Number(extras.categoriaPadreId),
++    ...(extras.orden !== '' ? { orden: Number(extras.orden) } : {}),
++  }
++}
++
++export function desdeCategoria(c: CategoriaOpcion): ExtrasCategoria {
++  return {
++    categoriaPadreId: c.categoriaPadreId ? String(c.categoriaPadreId) : '',
++    orden: c.orden !== undefined ? String(c.orden) : '',
++  }
++}
++
++interface CamposCategoriaProps {
++  categorias: CategoriaOpcion[]
++  /** La categoría que se está editando (no puede ser su propio padre) */
++  idActual?: number
++  valor: ExtrasCategoria
++  onChange: (valor: ExtrasCategoria) => void
++}
++
++export default function CamposCategoria({ categorias, idActual, valor, onChange }: CamposCategoriaProps) {
++  // Solo se puede colgar de una categoría principal
++  const posiblesPadres = categorias.filter((c) => !c.categoriaPadreId && c.id !== idActual)
++
++  return (
++    <>
++      <div className="mb-4">
++        <label htmlFor="categoria-padre" className="mb-2 block font-medium">Depende de (opcional)</label>
++        <select
++          id="categoria-padre"
++          value={valor.categoriaPadreId}
++          onChange={(e) => onChange({ ...valor, categoriaPadreId: e.target.value })}
++          className="w-full rounded border px-3 py-2"
++        >
++          <option value="">Ninguna (categoría principal)</option>
++          {posiblesPadres.map((c) => (
++            <option key={c.id} value={c.id}>{c.nombre}</option>
++          ))}
++        </select>
++        <p className="mt-1 text-sm text-gray-600">
++          Por ejemplo, Café y Desayunos y meriendas dependen de Cafetería, que se muestra como una sola tarjeta en el inicio.
++          La categoría principal no puede tener productos propios.
++        </p>
++      </div>
++
++      <div className="mb-4">
++        <label htmlFor="categoria-orden" className="mb-2 block font-medium">Orden (opcional)</label>
++        <input
++          id="categoria-orden"
++          type="number"
++          min={0}
++          max={100000}
++          value={valor.orden}
++          onChange={(e) => onChange({ ...valor, orden: e.target.value })}
++          placeholder="Al final"
++          className="w-full rounded border px-3 py-2"
++        />
++        <p className="mt-1 text-sm text-gray-600">De menor a mayor.</p>
++      </div>
++    </>
++  )
++}
+diff --git a/admin/src/components/EstrellasPromedio.tsx b/admin/src/components/EstrellasPromedio.tsx
+new file mode 100644
+index 0000000..0053a35
+--- /dev/null
++++ b/admin/src/components/EstrellasPromedio.tsx
+@@ -0,0 +1,37 @@
++import { Star } from 'lucide-react'
++
++// 3,6 → "3,6" (coma decimal, como se escribe en Argentina)
++export const formatearPromedio = (valor: number) =>
++  valor.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
++
++interface EstrellasPromedioProps {
++  /** Entre 0 y 5, con decimales. null = sin calificaciones */
++  valor: number | null
++  tamanio?: number
++}
++
++// Cinco estrellas grises con las amarillas encima, recortadas según el valor:
++// con 3,6 se ven tres estrellas llenas y la cuarta al 60 %
++export default function EstrellasPromedio({ valor, tamanio = 20 }: EstrellasPromedioProps) {
++  const acotado = Math.min(Math.max(valor ?? 0, 0), 5)
++  const fila = (clase: string) =>
++    [0, 1, 2, 3, 4].map((i) => <Star key={i} size={tamanio} className={`shrink-0 ${clase}`} />)
++
++  return (
++    <span
++      role="img"
++      aria-label={valor === null ? 'Sin calificaciones' : `${formatearPromedio(acotado)} de 5 estrellas`}
++      className="relative inline-flex shrink-0"
++      style={{ width: tamanio * 5 }}
++    >
++      <span className="flex" aria-hidden="true">{fila('fill-gray-200 text-gray-300')}</span>
++      <span
++        className="absolute inset-y-0 left-0 flex overflow-hidden"
++        style={{ width: `${(acotado / 5) * 100}%` }}
++        aria-hidden="true"
++      >
++        {fila('fill-yellow-400 text-yellow-500')}
++      </span>
++    </span>
++  )
++}
+diff --git a/admin/src/components/FormularioProducto.tsx b/admin/src/components/FormularioProducto.tsx
+index ab8e07b..c62539f 100644
+--- a/admin/src/components/FormularioProducto.tsx
++++ b/admin/src/components/FormularioProducto.tsx
+@@ -53,8 +53,12 @@ export interface DatosProducto {
+ interface Opcion {
+   id: number
+   nombre: string
++  categoriaPadreId?: number | null
+ }
+ 
++// Los productos van en categorías "hoja": una categoría principal con subcategorías (Cafetería) no tiene productos propios
++const sinCategoriasPadre = (lista: Opcion[]) => lista.filter((c) => !lista.some((o) => o.categoriaPadreId === c.id))
++
+ type TipoProducto = 'simple' | 'tamanios' | 'combo'
+ 
+ const TIPOS: { valor: TipoProducto; titulo: string; detalle: string }[] = [
+@@ -456,7 +460,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
+                 className={campo}
+               >
+                 <option value="">Seleccionar categoría</option>
+-                {categorias.map((c) => (
++                {sinCategoriasPadre(categorias).map((c) => (
+                   <option key={c.id} value={c.id}>
+                     {c.nombre}
+                   </option>
+@@ -711,7 +715,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
+                   aria-label={`Categoría del lugar ${i + 1}`}
+                 >
+                   <option value="">Elegir categoría</option>
+-                  {categorias.map((c) => (
++                  {sinCategoriasPadre(categorias).map((c) => (
+                     <option key={c.id} value={c.id}>
+                       {c.nombre}
+                     </option>
+diff --git a/admin/src/components/NavBar.tsx b/admin/src/components/NavBar.tsx
+index 99e254a..365f56b 100644
+--- a/admin/src/components/NavBar.tsx
++++ b/admin/src/components/NavBar.tsx
+@@ -5,7 +5,8 @@ import { LayoutDashboard, LogOut, ShoppingBag, Package,
+   Tags, Hamburger, Bike, type LucideIcon, Percent,
+   Route,
+   ChevronDown,
+-  ChevronUp,} from 'lucide-react'
++  ChevronUp,
++  Star,} from 'lucide-react'
+ import { useAuth } from '../context/AuthContext'
+ import { cerrarSesionService } from '../services/authService'
+ import { enlacesDe } from '../config/menu'
+@@ -19,6 +20,7 @@ interface NavBarProps {
+ const iconosPorEnlace: Record<string, LucideIcon> = {
+   Inicio: LayoutDashboard,
+   Pedidos: ShoppingBag,
++  Calificaciones: Star,
+   Productos: Package,
+   Sucursales: Store,
+   Reportes: ChartNoAxesCombined,
+diff --git a/admin/src/components/SeccionDesplegable.tsx b/admin/src/components/SeccionDesplegable.tsx
+new file mode 100644
+index 0000000..ac63b11
+--- /dev/null
++++ b/admin/src/components/SeccionDesplegable.tsx
+@@ -0,0 +1,82 @@
++import { useEffect, useState, type ReactNode } from 'react'
++import { ChevronDown } from 'lucide-react'
++
++interface SeccionDesplegableProps {
++  /** Identifica la sección para recordar si quedó abierta o cerrada (durante la sesión) */
++  id: string
++  titulo: string
++  descripcion?: string
++  /** Lo que se ve siempre, plegada o abierta: la vista previa */
++  vistaPrevia?: ReactNode
++  /** Una línea de resumen para cuando está plegada y no hay vista previa */
++  resumen?: string
++  abiertaPorDefecto?: boolean
++  /** Las opciones de edición: solo se ven con la sección abierta */
++  children: ReactNode
++}
++
++const clave = (id: string) => `seccion-abierta:${id}`
++
++function leer(id: string, porDefecto: boolean) {
++  try {
++    const guardado = sessionStorage.getItem(clave(id))
++    return guardado === null ? porDefecto : guardado === '1'
++  } catch {
++    return porDefecto
++  }
++}
++
++// Panel que se pliega para ocupar poco lugar: plegado deja a la vista la vista previa (o el resumen)
++// y un botón para abrir las opciones de edición.
++export default function SeccionDesplegable({
++  id,
++  titulo,
++  descripcion,
++  vistaPrevia,
++  resumen,
++  abiertaPorDefecto = false,
++  children,
++}: SeccionDesplegableProps) {
++  const [abierta, setAbierta] = useState(() => leer(id, abiertaPorDefecto))
++
++  useEffect(() => {
++    try {
++      sessionStorage.setItem(clave(id), abierta ? '1' : '0')
++    } catch {
++      // Sin almacenamiento: simplemente no se recuerda
++    }
++  }, [id, abierta])
++
++  const idContenido = `contenido-${id}`
++
++  return (
++    <section className="mb-6 rounded-lg border bg-white">
++      <header className="flex items-start justify-between gap-4 p-4">
++        <div className="min-w-0">
++          <h2 className="text-lg font-bold">{titulo}</h2>
++          {descripcion && <p className="mt-1 text-sm text-gray-600">{descripcion}</p>}
++          {!abierta && !vistaPrevia && resumen && <p className="mt-1 text-sm text-gray-500">{resumen}</p>}
++        </div>
++
++        <button
++          type="button"
++          onClick={() => setAbierta((a) => !a)}
++          aria-expanded={abierta}
++          aria-controls={idContenido}
++          className="inline-flex shrink-0 items-center gap-1 rounded border px-3 py-1.5 text-sm font-semibold transition-colors hover:bg-gray-50"
++        >
++          {abierta ? 'Plegar' : 'Editar'}
++          <ChevronDown size={16} className={`transition-transform ${abierta ? 'rotate-180' : ''}`} />
++        </button>
++      </header>
++
++      {vistaPrevia && <div className="px-4 pb-4">{vistaPrevia}</div>}
++
++      {abierta && (
++        <div id={idContenido} className="border-t p-4">
++          {children}
++        </div>
++      )}
++    </section>
++  )
++}
+diff --git a/admin/src/components/inicio/IconoCategoriaSvg.tsx b/admin/src/components/inicio/IconoCategoriaSvg.tsx
+new file mode 100644
+index 0000000..622cd67
+--- /dev/null
++++ b/admin/src/components/inicio/IconoCategoriaSvg.tsx
+@@ -0,0 +1,112 @@
++// Los mismos íconos que las tarjetas del sitio (Frontend/src/components/icons/CategoryIcon.tsx),
++// para que la vista previa del panel se vea igual. viewBox 48x48: "relleno" es la forma crema y "trazo", las líneas.
++export type IconoCategoria =
++  | 'hamburguesa'
++  | 'combo'
++  | 'papas'
++  | 'nuggets'
++  | 'aro'
++  | 'bebida'
++  | 'postre'
++  | 'ensalada'
++  | 'sinTacc'
++  | 'desayuno'
++  | 'cafe'
++  | 'comboCafe'
++  | 'sandwich'
++  | 'torta'
++  | 'salsa'
++  | 'generico'
++
++const ICONOS: Record<IconoCategoria, { relleno: string; trazo: string }> = {
++  hamburguesa: {
++    relleno: 'M8 22c0-9 7-14 16-14s16 5 16 14z',
++    trazo: 'M8 22c0-9 7-14 16-14s16 5 16 14zM6 28h36M10 34h28c0 3-3 6-6 6H16c-3 0-6-3-6-6zM18 14v1M26 13v1',
++  },
++  combo: {
++    relleno: 'M6 20h20l-2 20H8z',
++    trazo: 'M6 20h20l-2 20H8zM10 20l-1-8M22 20l1-10M28 26c0-6 4-9 9-9s9 3 9 9zM28 31h18',
++  },
++  papas: {
++    relleno: 'M10 22h28l-4 20H14z',
++    trazo: 'M10 22h28l-4 20H14zM16 22l-2-14M22 22V6M28 22l1-15M34 22l3-12',
++  },
++  nuggets: {
++    relleno: 'M12 18c4-8 18-8 22 0 6 2 6 12 0 14-4 8-18 8-22 0-6-2-6-12 0-14z',
++    trazo: 'M12 18c4-8 18-8 22 0 6 2 6 12 0 14-4 8-18 8-22 0-6-2-6-12 0-14zM18 22h1M26 28h1M22 18h1',
++  },
++  aro: {
++    relleno: 'M23 8c8.3 0 15 6.7 15 15s-6.7 15-15 15-15-6.7-15-15 6.7-15 15-15zm0 5.5c-5.2 0-9.5 4.3-9.5 9.5s4.3 9.5 9.5 9.5 9.5-4.3 9.5-9.5-4.3-9.5-9.5-9.5z',
++    trazo: 'M23 8c8.3 0 15 6.7 15 15s-6.7 15-15 15-15-6.7-15-15 6.7-15 15-15zm0 5.5c-5.2 0-9.5 4.3-9.5 9.5s4.3 9.5 9.5 9.5 9.5-4.3 9.5-9.5-4.3-9.5-9.5-9.5zM20 11h0.5M30 33h0.5M11 26h0.5',
++  }
++  ,
++  bebida: {
++    relleno: 'M13 14h22l-3 28H16z',
++    trazo: 'M13 14h22l-3 28H16zM11 14h26M26 14l4-10h6M15 24h18',
++  },
++  postre: {
++    relleno: 'M14 22h20l-4 20h-12z',
++    trazo: 'M14 22h20l-4 20h-12zM12 22c0-7 5-12 12-12s12 5 12 12zM24 10V6',
++  },
++  ensalada: {
++    relleno: 'M6 24h36c0 10-8 16-18 16S6 34 6 24z',
++    trazo: 'M6 24h36c0 10-8 16-18 16S6 34 6 24zM14 24c0-6 4-10 10-10M24 24c0-5 3-9 9-9M20 14l2-6',
++  },
++  sinTacc: {
++    relleno: 'M24 42a18 18 0 1 0 0-36 18 18 0 0 0 0 36z',
++    trazo: 'M24 42a18 18 0 1 0 0-36 18 18 0 0 0 0 36zM24 36V14M24 20c-3 0-5-2-5-5 3 0 5 2 5 5zM24 20c3 0 5-2 5-5-3 0-5 2-5 5zM24 28c-3 0-5-2-5-5 3 0 5 2 5 5zM24 28c3 0 5-2 5-5-3 0-5 2-5 5zM11 11l26 26',
++  },
++  desayuno: {
++    relleno: 'M8 18h26v14c0 6-5 10-10 10h-6c-5 0-10-4-10-10z',
++    trazo: 'M8 18h26v14c0 6-5 10-10 10h-6c-5 0-10-4-10-10zM34 22h3a5 5 0 0 1 0 10h-3M16 6c-2 3 2 5 0 8M24 6c-2 3 2 5 0 8',
++  },
++  cafe: {
++    relleno: 'M6 32c-1.5-6.5 4.5-12.5 10.5-15.5C21 14 26.5 13.5 31.5 16.5c6 3 12 9 10.5 15.5-1 4-6 3-10.5 1.5C27 32 23 31.5 17 33.5c-4.5 1.5-9.5 2.5-11-1.5z',
++    trazo: 'M6 32c-1.5-6.5 4.5-12.5 10.5-15.5C21 14 26.5 13.5 31.5 16.5c6 3 12 9 10.5 15.5-1 4-6 3-10.5 1.5C27 32 23 31.5 17 33.5c-4.5 1.5-9.5 2.5-11-1.5z M18.5 15.2c3 5.3 4 11.8 3.5 17.3 M29.5 15.2c-3 5.3-4 11.8-3.5 17.3 M10.5 21.5c4 3 7.5 7 11.5 11 M37.5 21.5c-4 3-7.5 7-11.5 11'
++  },
++  comboCafe: {
++    relleno: 'M8 12h20v11c0 4.5-4 7.5-8 7.5h-4c-4 0-8-3-8-7.5V12z M17 42c-1.3-5.3 3.8-10.2 8.6-12.7 3.7-2 8.3-2.5 12.4-.1 5 2.5 10 7.4 8.7 12.7-.8 3.3-5 2.5-8.7 1.2-4-1.2-7.3-1.6-12.3 0-3.7 1.2-7.9 2-9.1-1.1z',
++    trazo: 'M8 12h20v11c0 4.5-4 7.5-8 7.5h-4c-4 0-8-3-8-7.5V12zM28 15h2.5c2.2 0 4 1.8 4 4s-1.8 4-4 4H28M14 2c-1.5 2.2 1.5 3.7 0 6M20 2c-1.5 2.2 1.5 3.7 0 6 M17 42c-1.3-5.3 3.8-10.2 8.6-12.7 3.7-2 8.3-2.5 12.4-.1 5 2.5 10 7.4 8.7 12.7-.8 3.3-5 2.5-8.7 1.2-4-1.2-7.3-1.6-12.3 0-3.7 1.2-7.9 2-9.1-1.1z M27.3 28.2c2.5 4.3 3.3 9.7 2.9 14.2 M36.4 28.2c-2.5 4.3-3.3 9.7-2.9 14.2 M20.7 33.4c3.3 2.5 6.2 5.7 9.5 9 M43.3 33.4c-3.3 2.5-6.2 5.7-9.5 9'
++  },
++  sandwich: {
++    relleno: 'M4.15 20.2l14.65-11.85a3.5 3.5 0 0 1 4.4 0L37.85 20.2M3.5 20.2h35a1.75 1.75 0 0 1 1.75 1.75V25.4a1.75 1.75 0 0 1-1.75 1.75H3.5A1.75 1.75 0 0 1 1.75 25.4V21.95A1.75 1.75 0 0 1 3.5 20.2z',
++    trazo: 'M4.15 20.2l14.65-11.85a3.5 3.5 0 0 1 4.4 0L37.85 20.2 M36.75 27.2a1.75 1.75 0 0 1 1.75 1.75v3.5a1.75 1.75 0 0 1-1.75 1.75H27.56 M5.25 27.2a1.75 1.75 0 0 0-1.75 1.75v3.5a1.75 1.75 0 0 0 1.75 1.75h15.75 M11.67 27.2l10.73 8.05a3.5 3.5 0 0 0 4.9-.7l5.51-7.35 M3.5 20.2h35a1.75 1.75 0 0 1 1.75 1.75V25.4a1.75 1.75 0 0 1-1.75 1.75H3.5A1.75 1.75 0 0 1 1.75 25.4V21.95A1.75 1.75 0 0 1 3.5 20.2z'
++  },
++  torta: {
++    relleno: 'M6 21.6v14a1.75 1.75 0 0 0 1.75 1.75h28a1.75 1.75 0 0 0 1.75-1.75v-15.1c0-3.5-4.3-10.5-11.3-14a1.75 1.75 0 0 0-1.9.1L19 10.4L6 21.6z M16.5 12.25a3.5 3.5 0 1 1-3.5-3.5 3.5 3.5 0 0 1 3.5 3.5z',
++    trazo: 'M28.7 23.3H6 M28.7 30.3H6 M13.3 14.4l-5.9 4.4A3.5 3.5 0 0 0 6 21.6v14a1.75 1.75 0 0 0 1.75 1.75h28a1.75 1.75 0 0 0 1.75-1.75v-15.1c0-3.5-4.3-10.5-11.3-14a1.75 1.75 0 0 0-1.9.1L19 10.4 M16.5 12.25a3.5 3.5 0 1 1-3.5-3.5 3.5 3.5 0 0 1 3.5 3.5z'
++  },
++  salsa: {
++    relleno: 'M16 18h16v20c0 3-2 4-4 4h-8c-2 0-4-1-4-4z',
++    trazo: 'M16 18h16v20c0 3-2 4-4 4h-8c-2 0-4-1-4-4zM19 18v-6h10v6M22 12l2-6 2 6M16 28h16',
++  },
++  generico: {
++    relleno: 'M24 40a14 14 0 1 0 0-28 14 14 0 0 0 0 28z',
++    trazo: 'M24 40a14 14 0 1 0 0-28 14 14 0 0 0 0 28zM6 10v10c0 2 2 3 3 3s3-1 3-3V10M9 23v17M40 10c-3 0-4 4-4 9s1 6 4 6v15',
++  },
++}
++
++interface IconoCategoriaProps {
++  icono: IconoCategoria
++  tamanio?: number
++}
++
++export default function IconoCategoriaSvg({ icono, tamanio = 40 }: IconoCategoriaProps) {
++  const { relleno, trazo } = ICONOS[icono] ?? ICONOS.generico
++  return (
++    <svg
++      viewBox="0 0 48 48"
++      width={tamanio}
++      height={tamanio}
++      fill="none"
++      stroke="#1a1414"
++      strokeWidth={3}
++      strokeLinecap="round"
++      strokeLinejoin="round"
++      aria-hidden="true"
++    >
++      <path d={relleno} fill="#fff7e6" stroke="none" />
++      <path d={trazo} />
++    </svg>
++  )
++}
+diff --git a/admin/src/components/inicio/InicioCategorias.tsx b/admin/src/components/inicio/InicioCategorias.tsx
+new file mode 100644
+index 0000000..eb3cdb4
+--- /dev/null
++++ b/admin/src/components/inicio/InicioCategorias.tsx
+@@ -0,0 +1,261 @@
++import { useEffect, useMemo, useState } from 'react'
++import { ArrowDown, ArrowUp } from 'lucide-react'
++import SeccionDesplegable from '../SeccionDesplegable'
++import IconoCategoriaSvg from './IconoCategoriaSvg'
++import { useToast } from '../../context/ToastContext'
++import { actualizarCategoria, ordenarCategorias } from '../../services/categoriaService'
++import { colorDeFondo, estiloDeTarjeta, FONDOS, ICONOS } from '../../config/estiloCategoria'
++import type { CategoriaAdmin } from '../../types/categoria.types'
++
++// "" = automático (el que corresponde al nombre)
++interface Borrador {
++  nombre: string
++  icono: string
++  fondo: string
++}
++
++const desdeCategoria = (c: CategoriaAdmin): Borrador => ({ nombre: c.nombre, icono: c.icono ?? '', fondo: c.fondo ?? '' })
++
++const campo = 'rounded border bg-white px-2 py-1.5 text-sm'
++
++// Una categoría se ve en el Home si está activa y tiene productos (propios o en alguna de sus hijas)
++function seMuestra(c: CategoriaAdmin, todas: CategoriaAdmin[]) {
++  if (!c.activo) return false
++  return c.cantidadProductos > 0 || todas.some((h) => h.categoriaPadreId === c.id && h.activo && h.cantidadProductos > 0)
++}
++
++interface TarjetaProps {
++  nombre: string
++  icono: string
++  fondo: string
++}
++
++// La tarjeta del Home, a escala chica
++function Tarjeta({ nombre, icono, fondo }: TarjetaProps) {
++  const estilo = estiloDeTarjeta(nombre, icono || null, fondo || null)
++  return (
++    <div className="flex w-20 shrink-0 flex-col items-center gap-1.5 rounded-2xl border-2 border-[#1a1414] bg-white px-1 pb-2 pt-3 text-center text-[11px] font-bold leading-tight">
++      <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ backgroundColor: colorDeFondo(estilo.fondo) }}>
++        <IconoCategoriaSvg icono={estilo.icono} tamanio={30} />
++      </span>
++      <span className="break-words">{nombre || '—'}</span>
++    </div>
++  )
++}
++
++interface InicioCategoriasProps {
++  categorias: CategoriaAdmin[]
++  /** Se llama después de guardar, para volver a cargar la lista */
++  onGuardado: () => Promise<void>
++}
++
++// Categorías que forman la fila "Elegí por antojo" del inicio del sitio: las principales, en su orden.
++// La vista previa se ve siempre y se actualiza al editar; los cambios se guardan juntos.
++export default function InicioCategorias({ categorias, onGuardado }: InicioCategoriasProps) {
++  const { mostrarToast } = useToast()
++
++  // Las principales, como las ordena el backend
++  const principales = useMemo(() => categorias.filter((c) => c.categoriaPadreId === null), [categorias])
++  const firma = principales.map((c) => `${c.id}|${c.nombre}|${c.icono}|${c.fondo}|${c.activo}`).join(',')
++
++  const [ids, setIds] = useState<number[]>(() => principales.map((c) => c.id))
++  const [borradores, setBorradores] = useState<Record<number, Borrador>>({})
++  const [guardando, setGuardando] = useState(false)
++  const [error, setError] = useState('')
++
++  // Al recargar la lista (por ejemplo después de guardar) se vuelve a partir de lo guardado
++  useEffect(() => {
++    setIds(principales.map((c) => c.id))
++    setBorradores({})
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [firma])
++
++  const porId = useMemo(() => new Map(principales.map((c) => [c.id, c])), [principales])
++  const valorDe = (c: CategoriaAdmin): Borrador => borradores[c.id] ?? desdeCategoria(c)
++
++  const ordenCambio = ids.join(',') !== principales.map((c) => c.id).join(',')
++
++  const cambiadas = principales.filter((c) => {
++    const b = borradores[c.id]
++    if (!b) return false
++    const original = desdeCategoria(c)
++    return b.nombre.trim() !== original.nombre || b.icono !== original.icono || b.fondo !== original.fondo
++  })
++  const hayCambios = ordenCambio || cambiadas.length > 0
++
++  function cambiar(c: CategoriaAdmin, cambios: Partial<Borrador>) {
++    setBorradores((prev) => ({ ...prev, [c.id]: { ...valorDe(c), ...cambios } }))
++    setError('')
++  }
++
++  function mover(id: number, delta: -1 | 1) {
++    const posicion = ids.indexOf(id)
++    const destino = posicion + delta
++    if (destino < 0 || destino >= ids.length) return
++    const nuevo = [...ids]
++    ;[nuevo[posicion], nuevo[destino]] = [nuevo[destino], nuevo[posicion]]
++    setIds(nuevo)
++    setError('')
++  }
++
++  function descartar() {
++    setIds(principales.map((c) => c.id))
++    setBorradores({})
++    setError('')
++  }
++
++  async function guardar() {
++    for (const c of cambiadas) {
++      const nombre = borradores[c.id].nombre.trim()
++      if (nombre.length < 3 || nombre.length > 20) {
++        setError(`El nombre "${nombre || c.nombre}" debe tener entre 3 y 20 caracteres.`)
++        return
++      }
++    }
++
++    setGuardando(true)
++    setError('')
++    try {
++      for (const c of cambiadas) {
++        const b = borradores[c.id]
++        await actualizarCategoria(c.id, { nombre: b.nombre.trim(), icono: b.icono || null, fondo: b.fondo || null })
++      }
++      if (ordenCambio) await ordenarCategorias(ids)
++      mostrarToast('Inicio actualizado!')
++    } catch (err) {
++      setError(err instanceof Error ? err.message : 'No se pudieron guardar los cambios.')
++    } finally {
++      setGuardando(false)
++      // Se recarga siempre: si algo se guardó antes del error, la lista tiene que reflejarlo
++      await onGuardado()
++    }
++  }
++
++  const visibles = ids.map((id) => porId.get(id)).filter((c): c is CategoriaAdmin => Boolean(c) && seMuestra(c!, categorias))
++
++  const vistaPrevia = (
++    <div className="rounded-lg bg-[#fff7e6] p-3">
++      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Así se ve en el inicio</p>
++      {visibles.length === 0 ? (
++        <p className="text-sm text-gray-500">Todavía no hay categorías con productos para mostrar.</p>
++      ) : (
++        <div className="flex gap-2 overflow-x-auto pb-1">
++          {visibles.map((c) => {
++            const v = valorDe(c)
++            return <Tarjeta key={c.id} nombre={v.nombre.trim() || c.nombre} icono={v.icono} fondo={v.fondo} />
++          })}
++        </div>
++      )}
++    </div>
++  )
++
++  return (
++    <SeccionDesplegable
++      id="categorias-inicio"
++      titulo="Inicio del sitio"
++      descripcion="Las tarjetas “Elegí por antojo”: una por categoría principal, en este orden."
++      vistaPrevia={vistaPrevia}
++    >
++      <p className="mb-4 rounded bg-amber-50 p-3 text-sm text-amber-900">
++        Ojo: hasta que el menú sea editable, el catálogo agrupa los productos por el nombre de la categoría.
++        Si cambiás un nombre, avisá antes para ajustar el menú.
++      </p>
++
++      <ul className="flex flex-col gap-3">
++        {ids.map((id) => {
++          const c = porId.get(id)
++          if (!c) return null
++          const v = valorDe(c)
++          const hijas = categorias.filter((h) => h.categoriaPadreId === c.id)
++          const posicion = ids.indexOf(id)
++          return (
++            <li key={id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
++              <div className="flex flex-col">
++                <button
++                  type="button"
++                  onClick={() => mover(id, -1)}
++                  disabled={posicion <= 0}
++                  aria-label={`Subir ${c.nombre}`}
++                  className="rounded p-0.5 hover:bg-gray-100 disabled:opacity-30"
++                >
++                  <ArrowUp size={16} />
++                </button>
++                <button
++                  type="button"
++                  onClick={() => mover(id, 1)}
++                  disabled={posicion === ids.length - 1}
++                  aria-label={`Bajar ${c.nombre}`}
++                  className="rounded p-0.5 hover:bg-gray-100 disabled:opacity-30"
++                >
++                  <ArrowDown size={16} />
++                </button>
++              </div>
++
++              <input
++                type="text"
++                value={v.nombre}
++                maxLength={20}
++                onChange={(e) => cambiar(c, { nombre: e.target.value })}
++                aria-label={`Nombre de ${c.nombre}`}
++                className={`${campo} w-44`}
++              />
++
++              <select
++                value={v.icono}
++                onChange={(e) => cambiar(c, { icono: e.target.value })}
++                aria-label={`Ícono de ${c.nombre}`}
++                className={campo}
++              >
++                <option value="">Ícono automático</option>
++                {ICONOS.map((i) => (
++                  <option key={i.valor} value={i.valor}>{i.etiqueta}</option>
++                ))}
++              </select>
++
++              <select
++                value={v.fondo}
++                onChange={(e) => cambiar(c, { fondo: e.target.value })}
++                aria-label={`Color de ${c.nombre}`}
++                className={campo}
++              >
++                <option value="">Color automático</option>
++                {FONDOS.map((f) => (
++                  <option key={f.valor} value={f.valor}>{f.etiqueta}</option>
++                ))}
++              </select>
++
++              <div className="flex flex-wrap gap-2 text-xs">
++                {!c.activo && <span className="rounded-full bg-gray-200 px-2 py-0.5 font-semibold text-gray-600">Deshabilitada: no se muestra</span>}
++                {c.activo && !seMuestra(c, categorias) && (
++                  <span className="rounded-full bg-gray-200 px-2 py-0.5 font-semibold text-gray-600">Sin productos: no se muestra</span>
++                )}
++                {hijas.length > 0 && <span className="text-gray-600">Incluye: {hijas.map((h) => h.nombre).join(', ')}</span>}
++              </div>
++            </li>
++          )
++        })}
++      </ul>
++
++      {error && <p role="alert" className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
++
++      <div className="mt-4 flex flex-col justify-end gap-3 sm:flex-row">
++        <button
++          type="button"
++          onClick={descartar}
++          disabled={!hayCambios || guardando}
++          className="rounded border px-4 py-2 transition-colors hover:bg-gray-50 disabled:opacity-40"
++        >
++          Descartar cambios
++        </button>
++        <button
++          type="button"
++          onClick={guardar}
++          disabled={!hayCambios || guardando}
++          className="rounded border border-orange-300 bg-action px-4 py-2 text-white transition-colors hover:bg-action-hover disabled:opacity-40"
++        >
++          {guardando ? 'Guardando...' : 'Guardar cambios'}
++        </button>
++      </div>
++    </SeccionDesplegable>
++  )
++}
+diff --git a/admin/src/components/reportes/efectos/iconoPorCategoria.ts b/admin/src/components/reportes/efectos/iconoPorCategoria.ts
+index 0d25db3..81ede22 100644
+--- a/admin/src/components/reportes/efectos/iconoPorCategoria.ts
++++ b/admin/src/components/reportes/efectos/iconoPorCategoria.ts
+@@ -21,7 +21,7 @@ export function iconoPorCategoria(categoria: string | null | undefined): TipoIco
+   if (nombre.includes("papa")) return "papas";
+   if (nombre.includes("bebida") || nombre === "cafe") return "bebida";
+   if (nombre.includes("nugget")) return "nugget";
+-  if (nombre.includes("postre") || nombre.includes("menu cafe")) return "postre";
++  if (nombre.includes("postre") || nombre.includes("menu cafe") || nombre.includes("desayuno")) return "postre";
+ 
+   // Hamburguesas, Combos y cualquier categoría nueva
+   return "hamburguesa";
+diff --git a/admin/src/components/reportes/efectos/sugerenciaPorCategoria.ts b/admin/src/components/reportes/efectos/sugerenciaPorCategoria.ts
+index 3cc13d6..013a6e5 100644
+--- a/admin/src/components/reportes/efectos/sugerenciaPorCategoria.ts
++++ b/admin/src/components/reportes/efectos/sugerenciaPorCategoria.ts
+@@ -36,7 +36,7 @@ export function sugerenciaPorCategoria(
+   if (nombre.includes("nugget")) {
+     return "Probá un \"agregá nuggets\" a mitad de precio con cualquier hamburguesa.";
+   }
+-  if (nombre.includes("menu cafe")) {
++  if (nombre.includes("menu cafe") || nombre.includes("desayuno")) {
+     return "Sumalo de regalo en los desayunos durante una semana para que la gente lo pruebe.";
+   }
+   if (nombre === "cafe") {
+diff --git a/admin/src/config/estiloCategoria.ts b/admin/src/config/estiloCategoria.ts
+new file mode 100644
+index 0000000..fe0a019
+--- /dev/null
++++ b/admin/src/config/estiloCategoria.ts
+@@ -0,0 +1,76 @@
++import type { IconoCategoria } from '../components/inicio/IconoCategoriaSvg'
++
++// Ícono y color de las tarjetas del Home. Es lo mismo que decide el sitio (Frontend/src/config/categorias.ts):
++// lo que eligió el master y, si no eligió, lo que corresponde al nombre de la categoría.
++
++export const ICONOS: { valor: IconoCategoria; etiqueta: string }[] = [
++  { valor: 'hamburguesa', etiqueta: 'Hamburguesa' },
++  { valor: 'combo', etiqueta: 'Combo' },
++  { valor: 'papas', etiqueta: 'Papas' },
++  { valor: 'nuggets', etiqueta: 'Nuggets' },
++  { valor: 'aro', etiqueta: 'Aros' },
++  { valor: 'bebida', etiqueta: 'Bebida' },
++  { valor: 'postre', etiqueta: 'Postre' },
++  { valor: 'ensalada', etiqueta: 'Ensalada' },
++  { valor: 'sinTacc', etiqueta: 'Sin TACC' },
++  { valor: 'desayuno', etiqueta: 'Taza' },
++  { valor: 'cafe', etiqueta: 'Medialuna' },
++  { valor: 'comboCafe', etiqueta: 'Combo de cafetería' },
++  { valor: 'sandwich', etiqueta: 'Sandwich' },
++  { valor: 'torta', etiqueta: 'Torta' },
++  { valor: 'salsa', etiqueta: 'Salsa' },
++  { valor: 'generico', etiqueta: 'Genérico' },
++]
++
++export const FONDOS: { valor: string; etiqueta: string; color: string }[] = [
++  { valor: 'mostaza', etiqueta: 'Mostaza', color: '#ffb81c' },
++  { valor: 'rojo', etiqueta: 'Rojo', color: '#e4002b' },
++  { valor: 'arena', etiqueta: 'Arena', color: '#f3e3c7' },
++]
++
++interface Estilo {
++  icono: IconoCategoria
++  fondo: string
++}
++
++// Por nombre ("Menú Café" → "menu cafe")
++const POR_NOMBRE: Record<string, Estilo> = {
++  hamburguesa: { icono: 'hamburguesa', fondo: 'mostaza' },
++  hamburguesas: { icono: 'hamburguesa', fondo: 'mostaza' },
++  combos: { icono: 'combo', fondo: 'rojo' },
++  'combos de cafeteria': { icono: 'comboCafe', fondo: 'mostaza' },
++  'papas fritas': { icono: 'papas', fondo: 'mostaza' },
++  nuggets: { icono: 'nuggets', fondo: 'arena' },
++  bebidas: { icono: 'bebida', fondo: 'rojo' },
++  postres: { icono: 'postre', fondo: 'mostaza' },
++  ensaladas: { icono: 'ensalada', fondo: 'arena' },
++  'sin tacc': { icono: 'sinTacc', fondo: 'rojo' },
++  'desayunos y meriendas': { icono: 'desayuno', fondo: 'mostaza' },
++  cafeteria: { icono: 'desayuno', fondo: 'mostaza' },
++  cafe: { icono: 'desayuno', fondo: 'arena' },
++  aro: { icono: 'aro', fondo: 'arena' },
++  sandwich: { icono: 'sandwich', fondo: 'arena' },
++  torta: { icono: 'torta', fondo: 'arena' },
++  'menu cafe': { icono: 'cafe', fondo: 'mostaza' },
++  salsas: { icono: 'salsa', fondo: 'rojo' },
++}
++
++const POR_DEFECTO: Estilo = { icono: 'generico', fondo: 'arena' }
++
++const normalizar = (nombre: string) =>
++  nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
++
++export const estiloPorNombre = (nombre: string): Estilo => POR_NOMBRE[normalizar(nombre)] ?? POR_DEFECTO
++
++const iconosValidos = new Set<string>(ICONOS.map((i) => i.valor))
++
++/** Ícono y color con los que se ve una tarjeta: lo elegido, o lo que corresponde al nombre */
++export function estiloDeTarjeta(nombre: string, icono: string | null, fondo: string | null): Estilo {
++  const base = estiloPorNombre(nombre)
++  return {
++    icono: icono && iconosValidos.has(icono) ? (icono as IconoCategoria) : base.icono,
++    fondo: fondo && FONDOS.some((f) => f.valor === fondo) ? fondo : base.fondo,
++  }
++}
++
++export const colorDeFondo = (fondo: string) => FONDOS.find((f) => f.valor === fondo)?.color ?? '#f3e3c7'
+diff --git a/admin/src/config/menu.ts b/admin/src/config/menu.ts
+index 74aaa8b..f720720 100644
+--- a/admin/src/config/menu.ts
++++ b/admin/src/config/menu.ts
+@@ -12,6 +12,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
+     return [
+       { to: '/admin', label: 'Reportes', end: true },
+       { to: '/admin/pedidos', label: 'Pedidos' },
++      { to: '/admin/calificaciones', label: 'Calificaciones' },
+       { to: '/admin/viajes', label: 'Viajes' },
+       { to: '/admin/productos', label: 'Productos' },
+       { to: '/admin/promociones', label: 'Promociones' },
+@@ -29,6 +30,7 @@ export function enlacesDe(administrador: AdministradorSesion | null): Enlace[] {
+     ...(id
+       ? [
+           { to: '/admin/pedidos', label: 'Pedidos' },
++          { to: '/admin/calificaciones', label: 'Calificaciones' },
+           { to: '/admin/viajes', label: 'Viajes' },
+           { to: `/admin/sucursales/${id}/stock`, label: 'Stock' },
+           { to: `/admin/sucursales/editar/${id}`, label: 'Mi sucursal' },
+diff --git a/admin/src/pages/Calificaciones/Calificaciones.tsx b/admin/src/pages/Calificaciones/Calificaciones.tsx
+new file mode 100644
+index 0000000..2fc3d3a
+--- /dev/null
++++ b/admin/src/pages/Calificaciones/Calificaciones.tsx
+@@ -0,0 +1,142 @@
++import { useEffect, useState } from 'react'
++import { Check, EyeOff } from 'lucide-react'
++import EstrellasPromedio from '../../components/EstrellasPromedio'
++import { useAuth } from '../../context/AuthContext'
++import { cambiarEstadoCalificacion, obtenerCalificaciones } from '../../services/calificacionService'
++import type { CalificacionAdmin, EstadoCalificacion } from '../../types/calificacion.types'
++
++const PESTANIAS: { estado: EstadoCalificacion; etiqueta: string }[] = [
++  { estado: 'PENDIENTE', etiqueta: 'Pendientes' },
++  { estado: 'APROBADA', etiqueta: 'Aprobadas' },
++  { estado: 'OCULTA', etiqueta: 'Ocultas' },
++]
++
++const BOTON =
++  'inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50'
++
++const formatearFecha = (fecha: string) =>
++  new Date(fecha).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
++
++// Moderación: el admin decide qué calificaciones se muestran en el inicio de la tienda
++export default function Calificaciones() {
++  const { administrador } = useAuth()
++  const esMaster = administrador?.rol === 'MASTER'
++
++  const [estado, setEstado] = useState<EstadoCalificacion>('PENDIENTE')
++  const [calificaciones, setCalificaciones] = useState<CalificacionAdmin[]>([])
++  const [cargando, setCargando] = useState(true)
++  const [error, setError] = useState('')
++  const [procesando, setProcesando] = useState<number | null>(null) // id de la que se está guardando
++
++  // Cada vez que cambia la pestaña, se piden las calificaciones de ese estado
++  useEffect(() => {
++    let cancelado = false
++    setCargando(true)
++    setError('')
++    obtenerCalificaciones(estado)
++      .then((datos) => { if (!cancelado) setCalificaciones(datos) })
++      .catch((err) => { if (!cancelado) setError(err.message) })
++      .finally(() => { if (!cancelado) setCargando(false) })
++    return () => { cancelado = true }
++  }, [estado])
++
++  async function cambiarEstado(id: number, nuevo: 'APROBADA' | 'OCULTA') {
++    setProcesando(id)
++    setError('')
++    try {
++      await cambiarEstadoCalificacion(id, nuevo)
++      // Cambió de estado: ya no pertenece a esta pestaña
++      setCalificaciones((lista) => lista.filter((c) => c.id !== id))
++    } catch (err) {
++      setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado')
++    } finally {
++      setProcesando(null)
++    }
++  }
++
++  const etiquetaActual = PESTANIAS.find((p) => p.estado === estado)!.etiqueta
++
++  return (
++    <main className="p-8">
++      <div className="mb-6">
++        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">Opinión de los clientes</p>
++        <h1 className="text-3xl font-bold">Calificaciones</h1>
++        <p className="mt-2 text-gray-600">
++          {esMaster
++            ? 'Las calificaciones de todas las sucursales.'
++            : `Las calificaciones de tu sucursal${administrador?.sucursal ? `: ${administrador.sucursal.nombre}` : ''}.`}{' '}
++          En el inicio de la tienda se muestran las aprobadas que tienen comentario.
++        </p>
++      </div>
++
++      <div className="mb-6 flex gap-2">
++        {PESTANIAS.map((p) => (
++          <button
++            key={p.estado}
++            type="button"
++            onClick={() => setEstado(p.estado)}
++            className={`rounded-full border px-4 py-1.5 text-sm font-semibold ${
++              estado === p.estado ? 'border-orange-600 bg-orange-600 text-white' : 'bg-white hover:bg-gray-50'
++            }`}
++          >
++            {p.etiqueta}
++          </button>
++        ))}
++      </div>
++
++      {error && <p role="alert" className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}
++
++      {cargando ? (
++        <p className="text-gray-600">Cargando...</p>
++      ) : calificaciones.length === 0 ? (
++        <p className="rounded-lg border bg-white p-8 text-center text-gray-600">
++          No hay calificaciones {etiquetaActual.toLowerCase()}.
++        </p>
++      ) : (
++        <ul className="flex flex-col gap-3">
++          {calificaciones.map((c) => (
++            <li key={c.id} className="rounded-lg border bg-white p-5">
++              <div className="flex flex-wrap items-center justify-between gap-2">
++                <div className="flex items-center gap-3">
++                  <span className="font-semibold">{c.nombre}</span>
++                  <EstrellasPromedio valor={c.puntaje} tamanio={16} />
++                </div>
++                <span className="text-sm text-gray-500">
++                  {formatearFecha(c.fecha)}
++                  {esMaster && ` · ${c.sucursal}`}
++                </span>
++              </div>
++
++              <p className={`mt-2 break-words ${c.comentario ? '' : 'italic text-gray-400'}`}>
++                {c.comentario ?? 'Sin comentario'}
++              </p>
++
++              <div className="mt-4 flex gap-2">
++                {c.estado !== 'APROBADA' && (
++                  <button
++                    type="button"
++                    onClick={() => cambiarEstado(c.id, 'APROBADA')}
++                    disabled={procesando === c.id}
++                    className={`${BOTON} bg-green-600 hover:bg-green-700`}
++                  >
++                    <Check size={16} /> Aprobar
++                  </button>
++                )}
++                {c.estado !== 'OCULTA' && (
++                  <button
++                    type="button"
++                    onClick={() => cambiarEstado(c.id, 'OCULTA')}
++                    disabled={procesando === c.id}
++                    className={`${BOTON} bg-gray-600 hover:bg-gray-700`}
++                  >
++                    <EyeOff size={16} /> Ocultar
++                  </button>
++                )}
++              </div>
++            </li>
++          ))}
++        </ul>
++      )}
++    </main>
++  )
++}
+\ No newline at end of file
+diff --git a/admin/src/pages/Categorias/Categorias.tsx b/admin/src/pages/Categorias/Categorias.tsx
+index bec315a..d997ee0 100644
+--- a/admin/src/pages/Categorias/Categorias.tsx
++++ b/admin/src/pages/Categorias/Categorias.tsx
+@@ -7,21 +7,36 @@ import { useToast } from '../../context/ToastContext'
+ import MensajeVacio from '../../components/MensajeVacio'
+ import { deshabilitarCategoria, habilitarCategoria, obtenerCategorias } from '../../services/categoriaService';
+ import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categoriaService'
++import SeccionDesplegable from '../../components/SeccionDesplegable'
++import InicioCategorias from '../../components/inicio/InicioCategorias'
++import type { CategoriaAdmin } from '../../types/categoria.types'
+ 
+ interface Categoria {
+   id: number
+   nombre: string
+   activo: boolean
++  categoriaPadreId?: number | null
++}
++
++// Cada categoría principal seguida de sus hijas (Cafetería, y debajo Café y Menú Café)
++function enOrdenJerarquico(lista: CategoriaAdmin[]): CategoriaAdmin[] {
++  const ids = new Set(lista.map((c) => c.id))
++  const resultado: CategoriaAdmin[] = []
++  for (const c of lista) {
++    if (c.categoriaPadreId !== null && ids.has(c.categoriaPadreId)) continue
++    resultado.push(c, ...lista.filter((h) => h.categoriaPadreId === c.id))
++  }
++  return resultado
+ }
+ 
+ export default function Categorias() {
+   const navigate = useNavigate();
+   const [paginaActual, setPaginaActual] = useState(1);
+-  const categoriaPorPagina = 5;
++  const categoriaPorPagina = 10;
+   const [categoriaAEliminar, setCategoriaAEliminar] = useState<number | null>(null);
+   const { mostrarToast } = useToast();
+ 
+-  const [categorias, setCategorias] = useState<Categoria[]>([])
++  const [categorias, setCategorias] = useState<CategoriaAdmin[]>([])
+   const [filtroEstado, setFiltroEstado] = useState('todos')
+ 
+   const cambiarEstado = async (categoria: Categoria) => {
+@@ -76,7 +91,7 @@ export default function Categorias() {
+     cargarCategorias()
+   }, [])
+ 
+-  const filtradas = categorias.filter((categoria) => {
++  const filtradas = enOrdenJerarquico(categorias).filter((categoria) => {
+     if (filtroEstado === 'activas') return categoria.activo
+     if (filtroEstado === 'deshabilitadas') return !categoria.activo
+     return true
+@@ -129,6 +144,18 @@ export default function Categorias() {
+       </button>
+     </div>
+ 
++    <InicioCategorias
++      categorias={categorias}
++      onGuardado={async () => setCategorias(await obtenerCategorias())}
++    />
++
++    <SeccionDesplegable
++      id="categorias-lista"
++      titulo="Todas las categorías"
++      descripcion="El listado completo: crear, editar, habilitar o deshabilitar y eliminar."
++      resumen={`${categorias.length} categorías · ${categorias.filter((c) => !c.activo).length} deshabilitadas`}
++      abiertaPorDefecto
++    >
+     <div className="mb-4">
+       <label htmlFor="filtro-categoria" className="sr-only">
+         Filtrar categorías
+@@ -171,7 +198,15 @@ export default function Categorias() {
+         categoriasPagina.map((categoria: Categoria) => (
+           <tr key={categoria.id} className="border-t border-b">
+             <td className="px-4 py-4 sm:px-6">
++              {categoria.categoriaPadreId ? (
++                <span className="text-gray-500">↳ </span>
++              ) : null}
+               {categoria.nombre}
++              {categoria.categoriaPadreId ? (
++                <span className="ml-2 text-xs text-gray-500">
++                  en {categorias.find((c) => c.id === categoria.categoriaPadreId)?.nombre ?? 'otra categoría'}
++                </span>
++              ) : null}
+             </td>
+ 
+             <td className="px-4 py-4 sm:px-6">
+@@ -235,6 +270,7 @@ export default function Categorias() {
+       totalElementos={filtradas.length}
+       elementosPorPagina={categoriaPorPagina}
+       cambiarPagina={setPaginaActual} />
++    </SeccionDesplegable>
+   </main>
+   )
+ }
+\ No newline at end of file
+diff --git a/admin/src/pages/Categorias/EditarCategoria.tsx b/admin/src/pages/Categorias/EditarCategoria.tsx
+index f7d1428..3f70ae4 100644
+--- a/admin/src/pages/Categorias/EditarCategoria.tsx
++++ b/admin/src/pages/Categorias/EditarCategoria.tsx
+@@ -2,22 +2,24 @@ import { useParams, useNavigate } from "react-router-dom";
+ import { useState, useEffect } from "react";
+ import { useToast } from "../../context/ToastContext";
+ import { obtenerCategorias, actualizarCategoria } from "../../services/categoriaService";
++import CamposCategoria, {
++  desdeCategoria,
++  extrasAPedido,
++  extrasVacios,
++  type CategoriaOpcion,
++  type ExtrasCategoria,
++} from "../../components/CamposCategoria";
+ 
+ export default function EditarCategoria() {
+   const { id } = useParams();
+   const { mostrarToast } = useToast();
+   const navigate = useNavigate();
+ 
+-  const categoriasGuardadas = JSON.parse(
+-    localStorage.getItem("categorias") || "[]",
+-  );
+-
+-  const categoria = categoriasGuardadas.find(
+-    (categoria: { id: number }) => categoria.id === Number(id),
+-  );
+-
+-  const [nombre, setNombre] = useState(categoria?.nombre || "");
++  const [nombre, setNombre] = useState("");
++  const [extras, setExtras] = useState<ExtrasCategoria>(extrasVacios);
++  const [categorias, setCategorias] = useState<CategoriaOpcion[]>([]);
+   const [errorNombre, setErrorNombre] = useState("");
++  const [errorServidor, setErrorServidor] = useState("");
+ 
+   const guardarCambios = async (e: React.SubmitEvent) => {
+     e.preventDefault();
+@@ -34,12 +36,13 @@ export default function EditarCategoria() {
+     }
+     
+     try {
+-      await actualizarCategoria(Number(id), { nombre });
++      await actualizarCategoria(Number(id), { nombre, ...extrasAPedido(extras) });
+ 
+       mostrarToast("Categoria modificada!");
+       navigate("/admin/categorias");
+     } catch (error) {
+       console.error("Error al modificar categoria:", error);
++      setErrorServidor(error instanceof Error ? error.message : "No se pudo modificar la categoría.");
+     }
+   
+   };
+@@ -47,15 +50,14 @@ export default function EditarCategoria() {
+   useEffect(() => {
+   const cargarCategoria = async () => {
+     try {
+-      const categorias = await obtenerCategorias();
++      const lista: CategoriaOpcion[] = await obtenerCategorias();
++      setCategorias(lista);
+ 
+-      const categoria = categorias.find(
+-        (categoria: { id: number }) =>
+-          categoria.id === Number(id)
+-      );
++      const categoria = lista.find((c) => c.id === Number(id));
+ 
+       if (categoria) {
+         setNombre(categoria.nombre);
++        setExtras(desdeCategoria(categoria));
+       }
+     } catch (error) {
+       console.error("Error al cargar categoria:", error);
+@@ -76,10 +78,11 @@ export default function EditarCategoria() {
+           <input
+             type="text"
+             value={nombre}
+-            maxLength={15}
++            maxLength={20}
+             onChange={(e) => {
+               setNombre(e.target.value);
+               setErrorNombre("");
++              setErrorServidor("");
+             }}
+             className="w-full border rounded px-3 py-2"
+           />
+@@ -89,6 +92,20 @@ export default function EditarCategoria() {
+           <p className="text-red-600 text-sm m-1">{errorNombre}</p>
+         )}
+ 
++        <CamposCategoria
++          categorias={categorias}
++          idActual={Number(id)}
++          valor={extras}
++          onChange={(v) => {
++            setExtras(v);
++            setErrorServidor("");
++          }}
++        />
++
++        {errorServidor && (
++          <p role="alert" className="text-red-600 text-sm m-1">{errorServidor}</p>
++        )}
++
+         <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+           <button
+             type="button"
+diff --git a/admin/src/pages/Categorias/NuevaCategoria.tsx b/admin/src/pages/Categorias/NuevaCategoria.tsx
+index bb38fa5..ac48229 100644
+--- a/admin/src/pages/Categorias/NuevaCategoria.tsx
++++ b/admin/src/pages/Categorias/NuevaCategoria.tsx
+@@ -1,14 +1,29 @@
+-import { useState } from 'react'
++import { useEffect, useState } from 'react'
+ import { useNavigate } from 'react-router-dom'
+ import { useToast } from '../../context/ToastContext'
+-import { crearCategoria } from '../../services/categoriaService'
++import { crearCategoria, obtenerCategorias } from '../../services/categoriaService'
++import CamposCategoria, {
++  extrasAPedido,
++  extrasVacios,
++  type CategoriaOpcion,
++  type ExtrasCategoria,
++} from '../../components/CamposCategoria'
+ 
+ export default function NuevaCategoria() {
+   const [nombre, setNombre] = useState('')
++  const [extras, setExtras] = useState<ExtrasCategoria>(extrasVacios)
++  const [categorias, setCategorias] = useState<CategoriaOpcion[]>([])
+   const [errorNombre, setErrorNombre] = useState('');
++  const [errorServidor, setErrorServidor] = useState('')
+   const { mostrarToast } = useToast();
+   const navigate = useNavigate()
+ 
++  useEffect(() => {
++    obtenerCategorias()
++      .then(setCategorias)
++      .catch((error) => console.error('Error al cargar categorías:', error))
++  }, [])
++
+   const guardarCategoria = async (e: React.SubmitEvent) => {
+     e.preventDefault();
+ 
+@@ -24,12 +39,13 @@ export default function NuevaCategoria() {
+     }
+ 
+     try {
+-      await crearCategoria({ nombre })
++      await crearCategoria({ nombre, ...extrasAPedido(extras) })
+ 
+       mostrarToast('Categoria creada!')
+       navigate('/admin/categorias')
+     } catch (error) {
+       console.error('Error al crear categoria:', error)
++      setErrorServidor(error instanceof Error ? error.message : 'No se pudo crear la categoría.')
+     }
+   }
+ 
+@@ -48,8 +64,8 @@ export default function NuevaCategoria() {
+           <input
+             type="text"
+             value={nombre}
+-            maxLength={15}
+-            onChange={(e) => {setNombre(e.target.value); setErrorNombre('')}}
++            maxLength={20}
++            onChange={(e) => {setNombre(e.target.value); setErrorNombre(''); setErrorServidor('')}}
+             className="w-full border rounded px-3 py-2"
+             placeholder="Ej: Hamburguesas"
+           />
+@@ -61,6 +77,14 @@ export default function NuevaCategoria() {
+           </p>
+         )}
+ 
++        <CamposCategoria categorias={categorias} valor={extras} onChange={(v) => { setExtras(v); setErrorServidor('') }} />
++
++        {errorServidor && (
++          <p role="alert" className="text-red-600 text-sm m-1">
++            {errorServidor}
++          </p>
++        )}
++
+        <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+ 
+           <button
+diff --git a/admin/src/routes/AppRoutes.tsx b/admin/src/routes/AppRoutes.tsx
+index 13061cb..dd57860 100644
+--- a/admin/src/routes/AppRoutes.tsx
++++ b/admin/src/routes/AppRoutes.tsx
+@@ -23,6 +23,7 @@ import Insumos from '../pages/Insumos/Insumos'
+ import Pedidos from '../pages/pedidos/Pedidos'
+ import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
+ import Reportes from '../pages/Reportes/Reportes'
++import Calificaciones from '../pages/Calificaciones/Calificaciones'
+ import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos'
+ import ProductosMenosVendidos from '../components/reportes/ProductosMenosVendidos'
+ import ProductosMayorFacturacion from '../components/reportes/ProductosMayorFacturacion'
+@@ -47,6 +48,7 @@ export default function AppRoutes() {
+         <Route path="/admin" element={<Reportes />} />
+         <Route path="/admin/reportes" element={<Reportes />} />
+         <Route path="/admin/pedidos" element={<Pedidos />} />
++        <Route path="/admin/calificaciones" element={<Calificaciones />} />
+         <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
+         <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
+         <Route path="/admin/reportes/productos-mayor-facturacion" element={<ProductosMayorFacturacion />} />
+diff --git a/admin/src/services/calificacionService.ts b/admin/src/services/calificacionService.ts
+new file mode 100644
+index 0000000..b4c541f
+--- /dev/null
++++ b/admin/src/services/calificacionService.ts
+@@ -0,0 +1,20 @@
++import { apiFetch, API_URL } from './httpClient'
++import type { CalificacionAdmin, EstadoCalificacion } from '../types/calificacion.types'
++
++const API = `${API_URL}/admin/calificaciones`
++
++// El master ve todas las sucursales; el admin de sucursal, solo la suya (lo decide el backend)
++export async function obtenerCalificaciones(estado: EstadoCalificacion) {
++  return apiFetch<CalificacionAdmin[]>(`${API}?estado=${estado}`, {
++    mensajePorDefecto: 'Error al obtener las calificaciones',
++  })
++}
++
++export async function cambiarEstadoCalificacion(id: number, estado: 'APROBADA' | 'OCULTA') {
++  return apiFetch(`${API}/${id}/estado`, {
++    method: 'PATCH',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({ estado }),
++    mensajePorDefecto: 'Error al cambiar el estado',
++  })
++}
+\ No newline at end of file
+diff --git a/admin/src/services/categoriaService.ts b/admin/src/services/categoriaService.ts
+index c33b803..fc788b9 100644
+--- a/admin/src/services/categoriaService.ts
++++ b/admin/src/services/categoriaService.ts
+@@ -46,3 +46,13 @@ export async function habilitarCategoria(id: number) {
+     mensajePorDefecto: 'Error al habilitar la categoría',
+   })
+ }
++
++// Deja las categorías en el orden recibido (los ids, de la primera a la última)
++export async function ordenarCategorias(ids: number[]) {
++  return apiFetch(`${API}/orden`, {
++    method: 'PATCH',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({ ids }),
++    mensajePorDefecto: 'Error al ordenar las categorías',
++  })
++}
+diff --git a/admin/src/types/calificacion.types.ts b/admin/src/types/calificacion.types.ts
+new file mode 100644
+index 0000000..68156fe
+--- /dev/null
++++ b/admin/src/types/calificacion.types.ts
+@@ -0,0 +1,12 @@
++// Calificaciones de los clientes, como las devuelve /admin/calificaciones
++export type EstadoCalificacion = 'PENDIENTE' | 'APROBADA' | 'OCULTA'
++
++export interface CalificacionAdmin {
++  id: number
++  nombre: string
++  puntaje: number
++  comentario: string | null
++  fecha: string
++  estado: EstadoCalificacion
++  sucursal: string
++}
+\ No newline at end of file
+diff --git a/admin/src/types/categoria.types.ts b/admin/src/types/categoria.types.ts
+new file mode 100644
+index 0000000..a0261d8
+--- /dev/null
++++ b/admin/src/types/categoria.types.ts
+@@ -0,0 +1,15 @@
++// Categorías como las devuelve GET /admin/categorias
++
++export interface CategoriaAdmin {
++  id: number
++  nombre: string
++  activo: boolean
++  /** null = categoría principal (tarjeta del Home); si no, la categoría de la que cuelga */
++  categoriaPadreId: number | null
++  orden: number
++  /** Ícono y color de la tarjeta del Home (null = los que corresponden al nombre) */
++  icono: string | null
++  fondo: string | null
++  /** Productos que tiene (sin contar los eliminados) */
++  cantidadProductos: number
++}

@@ -1,12 +1,13 @@
 import { Timer } from 'lucide-react'
 import { etiquetaTamanio } from '../../config/combo'
-import { COSTO_ENVIO } from '../../config/compra'
 import { formatearPrecio } from '../../utils/precio'
 import type { CartItem } from '../../types/cart'
 
 interface Props {
   lineas: CartItem[]
   total: number
+  /** Envío calculado por el backend. null = todavía no se sabe (falta elegir la dirección) */
+  costoEnvio?: number | null
   onConfirmar: () => void
   deshabilitado: boolean
   cargando: boolean
@@ -17,8 +18,8 @@ interface Props {
 const separador = 'border-t-2 border-dashed border-brand-dark/20'
 
 // Columna derecha del checkout: qué se pide, el total y el botón para avanzar
-function ResumenPedido({ lineas, total, onConfirmar, deshabilitado, cargando, textoBoton = 'Confirmar pedido', demora }: Props) {
-  const totalConEnvio = COSTO_ENVIO === null ? total : total + COSTO_ENVIO
+function ResumenPedido({ lineas, total, costoEnvio = null, onConfirmar, deshabilitado, cargando, textoBoton = 'Confirmar pedido', demora }: Props) {
+  const totalConEnvio = costoEnvio === null ? total : total + costoEnvio
 
   return (
     <aside className="flex flex-col gap-5 rounded-[2rem] border-2 border-brand-dark bg-white p-7 shadow-[8px_8px_0_var(--color-brand-dark)]">
@@ -46,19 +47,18 @@ function ResumenPedido({ lineas, total, onConfirmar, deshabilitado, cargando, te
           <span>Subtotal</span>
           <span className="font-extrabold">{formatearPrecio(total)}</span>
         </div>
-        {/*
         <div className="flex justify-between">
           <span>Envío</span>
-          <span className="font-extrabold">{COSTO_ENVIO === null ? 'A calcular' : formatearPrecio(COSTO_ENVIO)}</span>
+          <span className="font-extrabold">
+            {costoEnvio === null ? 'Elegí tu dirección' : costoEnvio === 0 ? 'Gratis' : formatearPrecio(costoEnvio)}
+          </span>
         </div>
-        */}
       </div>
 
       <div className={`flex items-center justify-between gap-4 pt-5 ${separador}`}>
         <span className="text-xl font-extrabold">Total</span>
         <span className="font-display text-4xl font-extrabold tracking-tight">
           {formatearPrecio(totalConEnvio)}
-         {/*{COSTO_ENVIO === null && ' + envío'}*/}
         </span>
       </div>
 

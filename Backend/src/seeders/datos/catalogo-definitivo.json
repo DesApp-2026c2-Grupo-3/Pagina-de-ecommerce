@@ -33,39 +33,74 @@
    "numero": "1542",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.6136,
@@ -84,39 +119,74 @@
    "numero": "17845",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.6534,
@@ -135,39 +205,74 @@
    "numero": "890",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.6027,
@@ -186,39 +291,74 @@
    "numero": "432",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.6489,
@@ -237,39 +377,74 @@
    "numero": "2130",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.5427,
@@ -288,39 +463,74 @@
    "numero": "3305",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.5333,
@@ -339,39 +549,74 @@
    "numero": "2245",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.5627,
@@ -390,39 +635,74 @@
    "numero": "850",
    "horario": {
     "lunes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "martes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "miercoles": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "jueves": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "viernes": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "sabado": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     },
     "domingo": {
-     "apertura": "09:00",
-     "cierre": "23:00",
-     "abierto": true
+     "abierto": true,
+     "turnos": [
+      {
+       "apertura": "09:00",
+       "cierre": "23:00",
+       "cruzaMedianoche": false
+      }
+     ]
     }
    },
    "latitud": -34.6037,

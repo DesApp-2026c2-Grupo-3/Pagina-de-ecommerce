@@ -3,6 +3,7 @@ import { ImagePlus, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { obtenerCategorias } from '../services/categoriaService'
 import {
   obtenerInsumos,
+  obtenerProductos,
   obtenerTamanios,
   subirImagenProducto,
   descartarImagenProducto,
@@ -48,20 +49,25 @@ export interface DatosProducto {
   receta: FilaReceta[]
   tamanios: FilaTamanio[]
   grupos: FilaGrupo[]
+  // Solo combos: el producto que arma su receta (id como texto, '' = ninguno)
+  productoPrincipalId: string
 }
 
 interface Opcion {
   id: number
   nombre: string
+  categoriaPadreId?: number | null
 }
+
+// Los productos van en categorías "hoja": una categoría principal con subcategorías (Cafetería) no tiene productos propios
+const sinCategoriasPadre = (lista: Opcion[]) => lista.filter((c) => !lista.some((o) => o.categoriaPadreId === c.id))
 
 type TipoProducto = 'simple' | 'tamanios' | 'combo'
 
 const TIPOS: { valor: TipoProducto; titulo: string; detalle: string }[] = [
   { valor: 'simple', titulo: 'Simple', detalle: 'Hamburguesas, postres: un solo precio' },
   { valor: 'tamanios', titulo: 'Con tamaños', detalle: 'Papas, bebidas: regular, mediano y grande' },
-  { valor: 'combo', titulo: 'Combo', detalle: 'Con tamaños y lugares para elegir (papas, bebida)' },
-]
+  { valor: 'combo', titulo: 'Combo', detalle: 'Un producto principal y lugares para elegir (papas, bebida)' },]
 
 export const productoVacio: DatosProducto = {
   nombre: '',
@@ -74,6 +80,7 @@ export const productoVacio: DatosProducto = {
   categoriaId: '',
   receta: [],
   tamanios: [],
+  productoPrincipalId: '',
   grupos: [],
 }
 
@@ -96,6 +103,7 @@ export function desdeProducto(p: any): DatosProducto {
       esRemovible: Boolean(r.esRemovible),
       esAgregable: Boolean(r.esAgregable),
     })),
+    productoPrincipalId: p.productoPrincipalId ? String(p.productoPrincipalId) : '',
     tamanios: (p.tamanios ?? []).map((t: any) => ({ tamanioId: t.tamanioId })),
     grupos: (p.grupos ?? []).map((g: any) => ({
       nombre: g.nombre ?? '',
@@ -130,6 +138,7 @@ export function aPedido(d: DatosProducto) {
       etiqueta: null,
       factorStock: TAMANIOS_AUTO[t.tamanioId]?.factorStock ?? 1,
     })),
+    productoPrincipalId: d.productoPrincipalId ? Number(d.productoPrincipalId) : null,
     grupos: d.grupos.map((g, i) => ({
       nombre: g.nombre.trim(),
       categoriaId: Number(g.categoriaId),
@@ -164,6 +173,7 @@ function validar(d: DatosProducto, tipo: TipoProducto): string {
   }
 
   if (tipo === 'combo') {
+    if (d.productoPrincipalId === '') return 'Elegí el producto principal del combo.'
     if (d.grupos.length === 0) return 'Agregá al menos un lugar al combo (por ejemplo, Bebidas).'
     if (d.grupos.some((g) => g.categoriaId === '')) return 'Elegí la categoría de cada lugar del combo.'
     const categoriasDeLugares = d.grupos.map((g) => g.categoriaId)
@@ -228,6 +238,8 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
 
   const [categorias, setCategorias] = useState<Opcion[]>([])
   const [insumos, setInsumos] = useState<Opcion[]>([])
+    // Los productos que pueden ser principal de un combo
+  const [productos, setProductos] = useState<Opcion[]>([])
   // Alta rápida de un insumo nuevo, sin salir del producto (siempre en unidades)
   const [creandoInsumo, setCreandoInsumo] = useState(false)
   const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', precioComercial: '' })
@@ -235,10 +247,16 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
 
   // Carga las listas para los selects, y los tamaños que existen
   useEffect(() => {
-    Promise.all([obtenerCategorias(), obtenerInsumos(), obtenerTamanios()])
-      .then(([cats, ins, tams]) => {
+    Promise.all([obtenerCategorias(), obtenerInsumos(), obtenerTamanios(), obtenerProductos()])
+      .then(([cats, ins, tams, prods]) => {
         setCategorias(cats)
         setInsumos(ins)
+        // Un combo no puede ser el principal de otro combo
+        setProductos(
+          prods
+            .filter((p: any) => !p.productoPrincipalId && !(p.grupos?.length > 0))
+            .sort((a: Opcion, b: Opcion) => a.nombre.localeCompare(b.nombre)),
+        )
         setDatos((prev) => ({ ...prev, tamanios: tams.map((t: Opcion) => ({ tamanioId: t.id })) }))
       })
       .catch(() => setError('No se pudieron cargar las listas del formulario. Revisá que el backend esté funcionando.'))
@@ -323,6 +341,9 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     const aGuardar: DatosProducto = {
       ...datos,
       tamanios: tipo === 'simple' ? [] : datos.tamanios,
+            // Un combo no tiene receta propia (usa la del principal); el resto no tiene principal
+      receta: tipo === 'combo' ? [] : datos.receta,
+      productoPrincipalId: tipo === 'combo' ? datos.productoPrincipalId : '',
       grupos:
         tipo === 'combo'
           ? datos.grupos.map((g) => ({ ...g, nombre: nombreCategoria(g.categoriaId) || 'Opción' }))
@@ -456,7 +477,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                 className={campo}
               >
                 <option value="">Seleccionar categoría</option>
-                {categorias.map((c) => (
+                {sinCategoriasPadre(categorias).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre}
                   </option>
@@ -525,13 +546,36 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
         </div>
       </section>
 
-      {/* ---------- Receta (todos los tipos) ---------- */}
+      {/* ---------- Producto principal (solo combos): el combo usa su receta ---------- */}
+      {tipo === 'combo' && (
+        <section className={tarjeta}>
+          <h2 className="text-xl font-bold">Producto principal</h2>
+          <p className="mb-4 text-sm text-gray-600">
+            Lo que el combo trae siempre (por ejemplo, la hamburguesa o el café). El combo usa su receta: descuenta
+            su stock y se personaliza igual. Si el principal no está disponible, el combo tampoco.
+          </p>
+          <select
+            value={datos.productoPrincipalId}
+            onChange={(e) => cambiar('productoPrincipalId', e.target.value)}
+            className={campo}
+            aria-label="Producto principal"
+          >
+            <option value="">Elegir producto</option>
+            {productos.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            ))}
+          </select>
+        </section>
+      )}
+
+      {/* ---------- Receta (todo menos los combos) ---------- */}
+      {tipo !== 'combo' && (
       <section className={tarjeta}>
         <h2 className="text-xl font-bold">Receta</h2>
         <p className="mb-4 text-sm text-gray-600">
-          {tipo === 'combo'
-            ? 'Lo que el combo trae siempre (por ejemplo, la hamburguesa). Lo que elige el cliente va en "Lugares del combo".'
-            : `Los insumos que lleva, y cuántas unidades${tipo === 'tamanios' ? ' en el tamaño regular' : ''}. Con esto se descuenta el stock y el cliente puede personalizar.`}
+          {`Los insumos que lleva, y cuántas unidades${tipo === 'tamanios' ? ' en el tamaño regular' : ''}. Con esto se descuenta el stock y el cliente puede personalizar.`}
         </p>
 
         {datos.receta.length === 0 && (
@@ -684,6 +728,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
           </div>
         )}
       </section>
+      )}
 
       {/* ---------- Lugares del combo ---------- */}
       {tipo === 'combo' && (
@@ -711,7 +756,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                   aria-label={`Categoría del lugar ${i + 1}`}
                 >
                   <option value="">Elegir categoría</option>
-                  {categorias.map((c) => (
+                  {sinCategoriasPadre(categorias).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}
                     </option>

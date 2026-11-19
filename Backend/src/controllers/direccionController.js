@@ -1,5 +1,4 @@
-const { Direccion, sequelize } = require('../models');
-
+const { Direccion, Usuario, sequelize } = require('../models');
 // Campos que el usuario puede enviar al crear o editar una dirección
 const CAMPOS = [
     'alias',
@@ -41,6 +40,9 @@ const crearDireccion = async (req, res) => {
     try {
         const { predeterminada, usuarioId } = req.body;
 
+        if (!(await Usuario.findByPk(usuarioId, { attributes: ['id'] }))) {
+            return res.status(401).json({ mensaje: 'Tu sesión ya no es válida. Iniciá sesión de nuevo' });
+        }
         if (predeterminada) {
             await Direccion.update(
                 { predeterminada: false },

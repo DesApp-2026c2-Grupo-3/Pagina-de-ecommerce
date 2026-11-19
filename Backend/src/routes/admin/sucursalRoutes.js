@@ -8,7 +8,7 @@ const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
 const { esAdminJwt } = require('../../middleware/admin/esAdminJwt');
 
 router.get('/', esMasterJwt, sucursalController.obtenerSucursales);
-router.get('/:id', esIdValido, sucursalController.obtenerSucursalPorId);
+router.get('/:id', esAdminJwt, esIdValido, sucursalController.obtenerSucursalPorId);
 router.post('/nueva', esMasterJwt, validarSucursal, sucursalController.crearSucursal);
 router.patch('/editar/:id', esAdminJwt, esIdValido, validarSucursal, sucursalController.editarSucursal);
 router.patch('/estado/:id', esMasterJwt, esIdValido, sucursalController.cambiarEstadoSucursal);

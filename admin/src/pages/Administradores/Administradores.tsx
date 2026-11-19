@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Plus, Trash2, Power, RotateCcw } from 'lucide-react'
+import { Pencil, Plus, Power, RotateCcw } from 'lucide-react'
 import Paginacion from '../../components/Paginacion'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
@@ -220,8 +220,8 @@ const acciones = (a: AdminFila) => (
           </ul>
 
           {/* Escritorio: tabla */}
-          <div className="hidden rounded-lg border bg-white md:block">
-            <table className="w-full border-collapse">
+          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
+            <table className="w-full min-w-[750px] border-collapse">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left">Nombre</th>

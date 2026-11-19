@@ -52,7 +52,8 @@ module.exports = {
         ids.tamanio[t.nombre] = await asegurar('Tamanios', { nombre: t.nombre }, t);
       }
 
-      for (const s of DATOS.sucursales) {
+      // radioEntregaKm ya no es de cada sucursal (está en Parametros): se descarta del JSON
+      for (const { radioEntregaKm, ...s } of DATOS.sucursales) {        
         ids.sucursal[s.nombre] = await asegurar('Sucursals', { nombre: s.nombre }, { ...s, horario: JSON.stringify(s.horario) });
       }
 

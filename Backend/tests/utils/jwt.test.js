@@ -1,4 +1,4 @@
-process.env.JWT_SECRET = 'secreto-de-prueba';
+process.env.SECRET_JWT_TOKEN = 'secreto-de-prueba';
 
 jest.mock('jsonwebtoken', () => ({
     sign: jest.fn(),
@@ -10,6 +10,7 @@ const { firmarToken, verificarToken } = require('../../src/utils/jwt');
 
 beforeEach(() => {
     jest.clearAllMocks();
+    process.env.SECRET_JWT_TOKEN = 'secreto-de-prueba';
 });
 
 describe('jwt', () => {
@@ -37,16 +38,13 @@ describe('jwt', () => {
         expect(() => verificarToken('malo')).toThrow('jwt malformed');
     });
 
-    test('falla al cargar si falta JWT_SECRET', () => {
-        const secreto = process.env.JWT_SECRET;
-        delete process.env.JWT_SECRET;
+    test('falla al firmar si falta SECRET_JWT_TOKEN', () => {
+        const secreto = process.env.SECRET_JWT_TOKEN;
+        delete process.env.SECRET_JWT_TOKEN;
 
-        expect(() => {
-            jest.isolateModules(() => {
-                require('../../src/utils/jwt');
-            });
-        }).toThrow('Falta JWT_SECRET en el .env del backend');
+        expect(() => firmarToken({ id: 1 }, '1h'))
+            .toThrow('Falta SECRET_JWT_TOKEN en el .env del backend');
 
-        process.env.JWT_SECRET = secreto;
+        process.env.SECRET_JWT_TOKEN = secreto;
     });
 });

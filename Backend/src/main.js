@@ -1,16 +1,14 @@
 const express = require('express');
 require('dotenv').config();
+const http = require('http');
 let cookieParser = require('cookie-parser');
 const db = require('./models');
 const cors = require('cors');
+const { origenesPermitidos } = require('./config/cors');
+const { inicializarSockets } = require('./sockets');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-const origenesPermitidos = [
-    'http://localhost:5173',
-    'http://localhost:5174'
-];
 
 app.use(cors({
     origin: origenesPermitidos,
@@ -42,6 +40,11 @@ const usuarioRoutes = require('./routes/usuarioRoutes');
 const pedidoRoutes = require('./routes/pedidoRoutes');
 const direccionRoutes = require('./routes/direccionRoutes');
 const sucursalRoutes = require('./routes/sucursalRoutes');
+const repartidorRoutes = require('./routes/admin/repartidorRoutes');
+const authRepartidorRoutes = require('./routes/repartidor/authRepartidorRoutes');
+
+const pedidoRepartidorRoutes = require('./routes/repartidor/pedidoRepartidorRoutes');
+const viajeRepartidorRoutes = require('./routes/repartidor/viajeRepartidorRoutes');
 
 
 app.use('/admin/productos', adminProductoRoutes);
@@ -50,18 +53,32 @@ app.use('/admin/stock', adminStockRoutes);
 app.use('/admin/sucursales', require('./routes/admin/sucursalRoutes'));
 app.use('/admin/pedidos', require('./routes/admin/pedidoRoutes'));
 app.use('/admin/insumos', require('./routes/admin/insumoRoutes'));
+app.use('/admin/promociones', require('./routes/admin/promocionRoutes'));
+app.use('/admin/calificaciones', require('./routes/admin/calificacionRoutes'));
+app.use('/admin/parametros', require('./routes/admin/parametroRoutes'));
 app.use('/admin/reportes', require('./routes/admin/reportesRoutes'));
+app.use('/admin/repartidores', repartidorRoutes);
+app.use('/admin/viajes', require('./routes/admin/viajeRoutes'));
 app.use('/admin', adminRoutes);
+
 app.use('/productos', productoRoutes);
 app.use('/usuario', usuarioRoutes);
 app.use('/pedido', pedidoRoutes);
 app.use('/direcciones', direccionRoutes);
 app.use('/sucursales', sucursalRoutes);
+app.use('/notificaciones/cliente', require('./routes/notificacionClienteRoutes'));
+app.use('/notificaciones', require('./routes/notificacionRoutes'));
 app.use('/geo', require('./routes/geo'));
 app.use('/tamanios', require('./routes/tamanioRoutes'));
 app.use('/categorias', require('./routes/categoriaRoutes'));
 app.use('/promociones', require('./routes/promocionRoutes'));
+app.use('/calificaciones', require('./routes/calificacionRoutes'));
+app.use('/parametros', require('./routes/parametroRoutes'));
 
+app.use('/repartidor', authRepartidorRoutes);
+app.use('/repartidor/pedidos', pedidoRepartidorRoutes);
+app.use('/repartidor/viajes', viajeRepartidorRoutes);
+app.use('/repartidor/notificaciones', require('./routes/repartidor/notificacionRepartidorRoutes'));
 
 // Al arrancar, solo se verifica la conexión: las tablas las crean y cambian las migraciones
 async function iniciarServidor() {
@@ -71,7 +88,10 @@ async function iniciarServidor() {
         await db.sequelize.authenticate();
         console.log('Conexión con la base de datos OK');
 
-        app.listen(PORT, () => {
+        const server = http.createServer(app);
+        inicializarSockets(server);
+
+        server.listen(PORT, () => {
             console.log(`Servidor corriendo en http://localhost:${PORT}`);
         });
     } catch (error) {

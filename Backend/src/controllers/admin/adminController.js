@@ -1,10 +1,8 @@
 const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
-require('dotenv').config()
-const jwt = require('jsonwebtoken');
 
-
-const { Admin, Sucursal } = require('../../models')
+const { Admin, Sucursal } = require('../../models');
+const { firmarTokenAdmin } = require('../../services/authService');
 
 // La sucursal se devuelve solo con los datos que necesita el panel
 const SUCURSAL = { model: Sucursal, attributes: ['id', 'nombre'] };
@@ -119,19 +117,15 @@ const login = async (req, res) => {
         if (!passwordCorrecta) {
             return res.status(401).json({ code: "email-password-incorrectos" });
         }
-        const SECRET_JWT_TOKEN = process.env.SECRET_JWT_TOKEN;
-
-        // const token = jwt.sign({ id: admin.id, nombre: admin.nombre, rol: admin.rol }, SECRET_JWT_TOKEN, { expiresIn: "120s" })
-        const token = jwt.sign({ id: admin.id, nombre: admin.nombre, rol: admin.rol }, SECRET_JWT_TOKEN, { expiresIn: "4h" })
+        const token = firmarTokenAdmin(admin);
 
         return res.cookie("access_token", token, {
             httpOnly: true,
             sameSite: "lax",
             path: '/',
             secure: process.env.NODE_ENV === 'production',
-            // maxAge: 2 * 60 * 1000
             maxAge: 4 * 60 * 60 * 1000
-        }).status(200).json(datosDe(admin));
+        }).status(200).json({ ...datosDe(admin), token });
     } catch (error) {
         console.error('Error al loguear:', error.message);
         return res.status(500).json({ mensaje: 'Error al loguear' })

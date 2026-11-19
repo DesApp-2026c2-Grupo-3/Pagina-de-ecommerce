@@ -1,12 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import AddressPicker from './AddressPicker'
 import EditorHorario from './EditorHorario'
-import type { DatosSucursal, DiaSemana, HorarioDia } from '../types/sucursal.types'
-import { aplicarDiaATodos, formatearHorario, opcionesZonaHoraria } from '../utils/horario'
+import { DIAS_SEMANA, type DatosSucursal, type DiaSemana, type HorarioDia } from '../types/sucursal.types'
+import {
+  conflictosEntreDias,
+  formatearHorario,
+  opcionesZonaHoraria,
+  validarDia,
+  validarHorario,
+} from '../utils/horario'
 import { validarPaso } from '../utils/sucursalForm'
 
-const PASOS = ['Datos', 'Horario', 'Ubicación', 'Entrega']
-
+const PASOS = ['Datos', 'Horario', 'Ubicación', 'Confirmar']
 const campo = 'w-full rounded border p-2'
 
 interface Props {
@@ -72,6 +77,13 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
   }
 
   const u = datos.ubicacion
+  const hayErrorEnDias = DIAS_SEMANA.some((dia) => !!validarDia(dia, datos.horario[dia]))
+  const errorHorario = validarHorario(datos.horario)
+  const errorEntreDias =
+    !hayErrorEnDias && conflictosEntreDias(datos.horario).length > 0
+      ? 'Hay horarios superpuestos entre días. Revisá los campos marcados en rojo.'
+      : ''
+  const siguienteBloqueado = guardando || (paso === 2 && !!errorHorario)
 
   return (
     <form onSubmit={enviar} noValidate className="flex max-w-2xl flex-col gap-5">
@@ -133,17 +145,16 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
 
         {paso === 2 && (
           <div className="flex flex-col gap-4">
-            <EditorHorario horario={datos.horario} onCambiarDia={cambiarDia} />
+            <EditorHorario
+              horario={datos.horario}
+              onCambiarDia={cambiarDia}
+            />
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <button
-                type="button"
-                onClick={() => cambiar('horario', aplicarDiaATodos(datos.horario, 'lunes'))}
-                className="self-start text-sm font-semibold text-orange-600 hover:underline"
-              >
-                Aplicar lunes a todos los días
-              </button>
+            {errorEntreDias && (
+              <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{errorEntreDias}</p>
+            )}
 
+            <div className="flex justify-end">
               <div className="w-full sm:max-w-xs">
                 <label htmlFor="zona-horaria" className="font-medium">
                   Zona horaria
@@ -197,27 +208,13 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
                 </button>
               </div>
             </div>
-
-            <div>
-              <label className="font-medium">Radio de entrega (km)</label>
-              <input
-                type="number"
-                min="0.5"
-                max="30"
-                step="0.5"
-                value={datos.radioEntregaKm}
-                onChange={(e) => cambiar('radioEntregaKm', e.target.value)}
-                className={`${campo} sm:w-40`}
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Los clientes a más de esta distancia (en línea recta) no pueden pedirle a esta sucursal.
-              </p>
-            </div>
           </div>
         )}
       </section>
 
-      {error && <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && error !== errorHorario && (
+        <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>
+      )}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
         <button
@@ -229,7 +226,7 @@ export default function FormularioSucursal({ inicial, textoBoton, onGuardar, onC
         </button>
         <button
           type="submit"
-          disabled={guardando}
+          disabled={siguienteBloqueado}
           className="rounded border border-orange-300 bg-action px-4 py-2 font-semibold text-white hover:bg-action-hover disabled:opacity-50"
         >
           {paso < PASOS.length ? 'Siguiente' : guardando ? 'Guardando...' : textoBoton}

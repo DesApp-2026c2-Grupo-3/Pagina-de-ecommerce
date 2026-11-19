@@ -1,65 +1,50 @@
 import { describe, expect, it } from 'vitest'
+import type { Category, ProductoBackend } from '../../types/product'
 import {
-  GRUPOS_CATALOGO,
-  grupoDeCategoria,
-  subgrupoDeCategoria,
-  ubicarEnGrupo,
-  visibleEnMenu,
+  aSlug,
+  armarGrupos,
+  perteneceAlGrupo,
+  ubicarCategoria,
 } from '../../config/gruposCatalogo'
 
-const grupo = (slug: string) => GRUPOS_CATALOGO.find((g) => g.slug === slug)!
-const sub = (slug: string, producto: string, categoria: string) =>
-  ubicarEnGrupo(grupo(slug), producto, categoria).subgrupo?.slug
+const categorias: Category[] = [
+  { id: 1, nombre: 'Hamburguesas', categoriaPadreId: null },
+  { id: 2, nombre: 'Carne vacuna', categoriaPadreId: 1 },
+  { id: 3, nombre: 'Bebidas', categoriaPadreId: null },
+  { id: 4, nombre: 'Menú Café', categoriaPadreId: null },
+  { id: 5, nombre: 'Cafés', categoriaPadreId: 4 },
+]
+
+const grupos = armarGrupos(categorias)
+
+const productoDe = (categoriaId: number) => ({ categoriaId } as ProductoBackend)
 
 describe('gruposCatalogo', () => {
-  it('ordena los botones: Combos, Hamburguesas, Para acompañar, Bebidas, Cafetería, Postres', () => {
-    expect(GRUPOS_CATALOGO.map((g) => g.nombre)).toEqual([
-      'Combos', 'Hamburguesas', 'Para acompañar', 'Bebidas', 'Cafetería', 'Postres',
+  it('arma un grupo por categoría principal, en el orden que llega', () => {
+    expect(grupos.map((grupo) => grupo.slug)).toEqual([
+      'hamburguesas', 'bebidas', 'menu-cafe',
     ])
+    expect(grupos[0].subgrupos.map((subgrupo) => subgrupo.slug)).toEqual(['carne-vacuna'])
+    expect(grupos[1].subgrupos).toEqual([])
+    expect(grupos[2].subgrupos.map((subgrupo) => subgrupo.slug)).toEqual(['cafes'])
   })
 
-  it('reparte las hamburguesas en carne vacuna, pollo y veggie', () => {
-    expect(sub('hamburguesas', 'Fast Classic', 'Hamburguesas')).toBe('carne-vacuna')
-    expect(sub('hamburguesas', 'Crispy Crack', 'Hamburguesas')).toBe('pollo')
-    expect(sub('hamburguesas', 'Seed Vicious', 'Hamburguesas')).toBe('veggie')
+  it('normaliza tildes, espacios y mayúsculas para los slugs', () => {
+    expect(aSlug('Menú Café')).toBe('menu-cafe')
+    expect(aSlug('  Hamburguesas de pollo  ')).toBe('hamburguesas-de-pollo')
   })
 
-  it('las bebidas ya no son parte de Para acompañar', () => {
-    expect(ubicarEnGrupo(grupo('para-acompanar'), 'Coca Cola', 'Bebidas').pertenece).toBe(false)
-    expect(grupoDeCategoria('Bebidas')?.slug).toBe('bebidas')
+  it('considera que un producto pertenece al grupo si está en la principal o en una hija', () => {
+    expect(perteneceAlGrupo(grupos[0], productoDe(1))).toBe(true)
+    expect(perteneceAlGrupo(grupos[0], productoDe(2))).toBe(true)
+    expect(perteneceAlGrupo(grupos[0], productoDe(3))).toBe(false)
   })
 
-  it('Para acompañar: papas, nuggets, otros (con la pileta de cheddar) y ensaladas', () => {
-    expect(sub('para-acompanar', 'Papas Cajún', 'Papas Fritas')).toBe('papas-fritas')
-    expect(sub('para-acompanar', 'Nuggets de Pollo x10', 'Nuggets')).toBe('nuggets')
-    expect(sub('para-acompanar', 'Aros de Cebolla x8', 'Nuggets')).toBe('otros')
-    expect(sub('para-acompanar', 'Cheddar Fundido', 'Salsas')).toBe('otros')
-    expect(sub('para-acompanar', 'Ensalada Mixta', 'Ensaladas')).toBe('ensaladas')
-  })
-
-  it('Cafetería y Postres comparten Brownie y Cheesecake sin duplicar productos', () => {
-    expect(sub('cafeteria', 'Brownie con Helado', 'Postres')).toBe('pasteleria')
-    expect(sub('postres', 'Brownie con Helado', 'Postres')).toBe('tortas')
-    expect(sub('cafeteria', 'Donas Glaseadas x3', 'Menú Café')).toBe('pasteleria')
-    expect(ubicarEnGrupo(grupo('postres'), 'Donas Glaseadas x3', 'Menú Café').pertenece).toBe(false)
-    expect(sub('postres', 'Batido de Vainilla', 'Postres')).toBe('helados')
-  })
-
-  it('Cafetería: los productos sin botón propio caen en Clásicos', () => {
-    expect(sub('cafeteria', 'Espresso', 'Café')).toBe('bebidas-calientes')
-    expect(sub('cafeteria', 'Tostado de Jamón y Queso', 'Menú Café')).toBe('sandwiches')
-    expect(sub('cafeteria', 'Hot Cakes', 'Menú Café')).toBe('clasicos')
-  })
-
-  it('las salsas no se ven en el menú, salvo la pileta de cheddar', () => {
-    expect(visibleEnMenu('Ketchup', 'Salsas')).toBe(false)
-    expect(visibleEnMenu('Cheddar Fundido', 'Salsas')).toBe(true)
-    expect(visibleEnMenu('Fast Classic', 'Hamburguesas')).toBe(true)
-  })
-
-  it('una categoría con botón propio abre ese botón', () => {
-    const g = grupoDeCategoria('Nuggets')!
-    expect(subgrupoDeCategoria(g, 'Nuggets')?.slug).toBe('nuggets')
-    expect(subgrupoDeCategoria(grupoDeCategoria('Café')!, 'Café')?.slug).toBe('bebidas-calientes')
+  it('ubica una categoría principal o una subcategoría', () => {
+    expect(ubicarCategoria(grupos, 1)?.grupo.slug).toBe('hamburguesas')
+    expect(ubicarCategoria(grupos, 1)?.subgrupo).toBeUndefined()
+    expect(ubicarCategoria(grupos, 2)?.subgrupo?.slug).toBe('carne-vacuna')
+    expect(ubicarCategoria(grupos, 3)?.grupo.slug).toBe('bebidas')
+    expect(ubicarCategoria(grupos, 99)).toBeUndefined()
   })
 })

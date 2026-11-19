@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { useCart } from '../../context/CartContext'
 import { useZona } from '../../context/ZonaContext'
 import { getCategories, getMasPedidos, getProducts } from '../../services/productService'
-import { esCategoriaOculta, normalizarNombre } from '../../config/gruposCatalogo'
+import { normalizarNombre } from '../../config/gruposCatalogo'
 import { COMPLEMENTOS, INCLUYE } from '../../config/sugerencias'
 import ProductCard from '../home/ProductCard'
-import type { ProductoBackend } from '../../types/product'
+import type { Category, ProductoBackend } from '../../types/product'
 
 const MAXIMO = 4
 // Cuántos productos del ranking de ventas se piden (alcanza para ordenar cada categoría)
@@ -16,6 +16,10 @@ const normalizarReglas = (reglas: Record<string, string[]>) =>
   new Map(Object.entries(reglas).map(([cat, lista]) => [normalizarNombre(cat), lista.map(normalizarNombre)]))
 const COMPLEMENTOS_N = normalizarReglas(COMPLEMENTOS)
 const INCLUYE_N = normalizarReglas(INCLUYE)
+// Todas las categorías que aparecen en las reglas
+const EN_REGLAS = new Set(
+  [...COMPLEMENTOS_N, ...INCLUYE_N].flatMap(([categoria, lista]) => [categoria, ...lista]),
+)
 
 // Toma de a uno por lista (papa, bebida, papa, bebida...) hasta llegar al máximo
 function intercalar<T>(listas: T[][], maximo: number): T[] {
@@ -39,7 +43,7 @@ function SugerenciasCarrito() {
 
   const [catalogo, setCatalogo] = useState<ProductoBackend[]>([])
   const [ranking, setRanking] = useState<number[]>([])
-  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
+  const [categorias, setCategorias] = useState<Category[]>([])
 
   useEffect(() => {
     Promise.all([getMasPedidos(sucursalId, TAMANIO_RANKING), getProducts(sucursalId), getCategories()])
@@ -55,13 +59,20 @@ function SugerenciasCarrito() {
       })
   }, [sucursalId])
 
-  const categoriaDe = new Map(categorias.map((c) => [c.id, normalizarNombre(c.nombre)]))
-  // Las categorías ocultas (salsas) no se venden: nunca se sugieren
-  const ocultas = new Set(categorias.filter((c) => esCategoriaOculta(c.nombre)).map((c) => c.id))
+  // Las reglas hablan de "Hamburguesas", pero los productos están en "Hamburguesas de carne", "de pollo"...:
+  // si la categoría del producto no figura en las reglas, se usa la de su categoría principal
+  const porId = new Map(categorias.map((c) => [c.id, c]))
+  const categoriaDe = new Map(
+    categorias.map((c) => {
+      const propia = normalizarNombre(c.nombre)
+      const padre = c.categoriaPadreId != null ? porId.get(c.categoriaPadreId) : undefined
+      return [c.id, EN_REGLAS.has(propia) || !padre ? propia : normalizarNombre(padre.nombre)]
+    }),
+  )
   const enCarrito = new Set(items.map((i) => i.product.id))
 
-  // Lo que se puede sugerir: disponible en la sucursal, visible y que no esté ya en el carrito
-  const disponibles = catalogo.filter((p) => p.disponible && !ocultas.has(p.categoriaId) && !enCarrito.has(p.id))
+  // Lo que se puede sugerir: disponible en la sucursal y que no esté ya en el carrito
+  const disponibles = catalogo.filter((p) => p.disponible && !enCarrito.has(p.id))
 
   // Orden por ventas: primero los del ranking (en su orden), después el resto
   const posicion = new Map(ranking.map((id, i) => [id, i]))

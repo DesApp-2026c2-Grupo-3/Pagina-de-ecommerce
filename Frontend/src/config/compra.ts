@@ -1,8 +1,5 @@
-// ⚠️ Pendiente de backend: el costo de envío y los cupones todavía no existen en el servidor.
-// Cuando estén, estos valores se reemplazan por lo que devuelva la API.
-
-/** Costo de envío fijo. null = todavía no se calcula (se muestra "A calcular") */
-export const COSTO_ENVIO: number | null = null
+// ⚠️ Pendiente de backend: los cupones todavía no existen en el servidor.
+// El costo de envío lo calcula el backend según la distancia (POST /pedido/cotizar).
 
 /** false = el campo de cupón se muestra, pero avisa que todavía no está disponible */
 export const CUPONES_HABILITADOS = false

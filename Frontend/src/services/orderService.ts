@@ -1,6 +1,6 @@
 import { httpClient } from './httpClient'
 import type { CartItem } from '../types/cart'
-import type { Order } from '../types/order'
+import type { Cotizacion, Order } from '../types/order'
 import type { ComboElecciones, IngredientePersonalizacion } from '../types/cart'
 
 export const createOrder = async (
@@ -30,6 +30,10 @@ export const getHistorialPedidos = async (usuarioId: number): Promise<Order[]> =
   return httpClient<Order[]>(`/pedido/usuario/${usuarioId}`)
 }
 
+export const getPedidoCliente = async (pedidoId: number): Promise<Order> => {
+  return httpClient<Order>(`/pedido/cliente/${pedidoId}`)
+}
+
 
 // Una línea de un pedido viejo, reconstruida con los precios de hoy
 export interface LineaRepetida {
@@ -51,3 +55,11 @@ export interface ResultadoRepetir {
 
 export const getRepetirPedido = (pedidoId: number, usuarioId: number, sucursalId: number) =>
   httpClient<ResultadoRepetir>(`/pedido/${pedidoId}/repetir?usuarioId=${usuarioId}&sucursalId=${sucursalId}`)
+
+
+// Antes de confirmar: cuánto sale el envío y en cuánto llega (no crea nada)
+export const cotizarEnvio = (usuarioId: number, direccionId: number, sucursalId: number, unidades: number) =>
+  httpClient<Cotizacion>('/pedido/cotizar', {
+    method: 'POST',
+    body: JSON.stringify({ usuarioId, direccionId, sucursalId, unidades }),
+  })

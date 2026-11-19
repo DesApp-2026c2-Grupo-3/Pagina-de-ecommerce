@@ -97,7 +97,7 @@ describe('validarPedido', () => {
         validarPedido({ body: bodyValido({ estado: 'Volando' }) }, res, jest.fn());
 
         expect(codigoDe(res)).toBe(
-            'El estado debe ser uno de: Pendiente, En proceso, En camino, Entregado o Cancelado'
+            'El estado debe ser uno de: Pendiente, En proceso,Listo para retirar, En camino, Entregado o Cancelado'
         );
     });
 
@@ -111,7 +111,7 @@ describe('validarPedido', () => {
 });
 
 describe('validarEstadoPedido', () => {
-    test.each(['Pendiente', 'En proceso', 'En camino', 'Entregado', 'Cancelado'])(
+    test.each(['Pendiente', 'En proceso', 'Listo para retirar', 'En camino', 'Entregado', 'Cancelado'])(
         'acepta el estado "%s"',
         (estado) => {
             const req = { body: { estado } };
@@ -139,7 +139,7 @@ describe('validarEstadoPedido', () => {
         validarEstadoPedido({ body: { estado: 'Perdido' } }, res, jest.fn());
 
         expect(codigoDe(res)).toBe(
-            'El estado debe ser uno de: Pendiente, En proceso, En camino, Entregado o Cancelado'
+            'El estado debe ser uno de: Pendiente, En proceso,Listo para retirar, En camino, Entregado o Cancelado'
         );
     });
 

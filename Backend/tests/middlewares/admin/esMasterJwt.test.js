@@ -1,10 +1,13 @@
-jest.mock('jsonwebtoken', () => ({ verify: jest.fn() }));
-jest.mock('../../../src/utils/sesionAdmin', () => ({ limpiarCookieSesion: jest.fn() }));
-jest.mock('../../../src/models', () => ({ Admin: { findByPk: jest.fn() } }));
+jest.mock('../../../src/services/authService', () => ({
+    resolverIdentidad: jest.fn(),
+}));
 
-const jwt = require('jsonwebtoken');
+jest.mock('../../../src/utils/sesionAdmin', () => ({
+    limpiarCookieSesion: jest.fn(),
+}));
+
+const { resolverIdentidad } = require('../../../src/services/authService');
 const { limpiarCookieSesion } = require('../../../src/utils/sesionAdmin');
-const { Admin } = require('../../../src/models');
 const { esMasterJwt } = require('../../../src/middleware/admin/esMasterJwt');
 
 function crearRes() {
@@ -16,8 +19,6 @@ function crearRes() {
 
 beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    process.env.SECRET_JWT_TOKEN = 'secreto';
 });
 
 describe('esMasterJwt', () => {
@@ -25,51 +26,87 @@ describe('esMasterJwt', () => {
         const res = crearRes();
         const next = jest.fn();
 
-        await esMasterJwt({ cookies: {} }, res, next);
+        await esMasterJwt({ cookies: {}, headers: {} }, res, next);
 
         expect(res.status).toHaveBeenCalledWith(401);
         expect(next).not.toHaveBeenCalled();
     });
 
-    test('responde 401 si el token es inválido', async () => {
-        jwt.verify.mockImplementation(() => { throw new Error('inválido'); });
+    test('responde 401 y limpia la cookie si el token es inválido', async () => {
+        resolverIdentidad.mockRejectedValue({ codigo: 'AUTH_EXPIRED' });
         const res = crearRes();
 
-        await esMasterJwt({ cookies: { access_token: 'token' } }, res, jest.fn());
+        await esMasterJwt(
+            { cookies: { access_token: 'token' }, headers: {} },
+            res,
+            jest.fn()
+        );
 
         expect(limpiarCookieSesion).toHaveBeenCalledWith(res);
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({ msj: 'Token inválido o expirado' });
     });
 
-    test('responde 403 si el rol no es MASTER', async () => {
-        jwt.verify.mockReturnValue({ id: 1, rol: 'ADMIN' });
+    test('responde 500 si falla la base al resolver la identidad', async () => {
+        resolverIdentidad.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await esMasterJwt({ cookies: { access_token: 'token' } }, res, jest.fn());
+        await esMasterJwt(
+            { cookies: { access_token: 'token' }, headers: {} },
+            res,
+            jest.fn()
+        );
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({ msj: 'Error del servidor' });
+        expect(limpiarCookieSesion).not.toHaveBeenCalled();
+    });
+
+    test('responde 403 si el token no es de un administrador', async () => {
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'cliente',
+            id: 1,
+            nombre: 'Juan',
+        });
+        const res = crearRes();
+
+        await esMasterJwt(
+            { cookies: { access_token: 'token' }, headers: {} },
+            res,
+            jest.fn()
+        );
 
         expect(res.status).toHaveBeenCalledWith(403);
     });
 
-    test.each([
-        ['inexistente', null],
-        ['inactivo', { id: 1, activo: false, rol: 'MASTER' }],
-        ['con rol distinto', { id: 1, activo: true, rol: 'ADMIN' }],
-    ])('responde 401 si el administrador es %s', async (_caso, admin) => {
-        jwt.verify.mockReturnValue({ id: 1, rol: 'MASTER' });
-        Admin.findByPk.mockResolvedValue(admin);
+    test('responde 403 si el administrador no es MASTER', async () => {
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'admin',
+            id: 1,
+            nombre: 'Admin',
+            rol: 'ADMIN',
+            sucursalId: 2,
+        });
         const res = crearRes();
 
-        await esMasterJwt({ cookies: { access_token: 'token' } }, res, jest.fn());
+        await esMasterJwt(
+            { cookies: { access_token: 'token' }, headers: {} },
+            res,
+            jest.fn()
+        );
 
-        expect(limpiarCookieSesion).toHaveBeenCalledWith(res);
-        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.status).toHaveBeenCalledWith(403);
     });
 
     test('deja pasar a un MASTER activo y actualiza req.usuario', async () => {
-        jwt.verify.mockReturnValue({ id: 2, rol: 'MASTER' });
-        Admin.findByPk.mockResolvedValue({ id: 2, nombre: 'Master', rol: 'MASTER', activo: true });
-        const req = { cookies: { access_token: 'token' } };
+        resolverIdentidad.mockResolvedValue({
+            tipo: 'admin',
+            id: 2,
+            nombre: 'Master',
+            rol: 'MASTER',
+            sucursalId: null,
+        });
+        const req = { cookies: { access_token: 'token' }, headers: {} };
         const next = jest.fn();
 
         await esMasterJwt(req, crearRes(), next);

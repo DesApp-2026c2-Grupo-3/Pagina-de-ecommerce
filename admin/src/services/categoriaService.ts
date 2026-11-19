@@ -46,3 +46,4 @@ export async function habilitarCategoria(id: number) {
     mensajePorDefecto: 'Error al habilitar la categoría',
   })
 }
+

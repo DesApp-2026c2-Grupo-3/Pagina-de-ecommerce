@@ -1,26 +1,36 @@
 import { httpClient } from './httpClient'
-import type { LoginCredentials, RegisterData, User } from '../types/user'
+import type {
+  LoginCredentials,
+  RegisterData,
+  User,
+} from '../types/user'
+import type {
+  RespuestaLoginCliente,
+  SesionCliente,
+} from '../types/sesion.types'
 
-// Shape real que devuelve el backend
-interface UsuarioBackend {
-  id: number
-  nombre: string
-  email: string
-}
-
-function mapUsuario(u: UsuarioBackend): User {
+function mapUsuario(u: RespuestaLoginCliente): User {
   return { id: u.id, name: u.nombre, email: u.email }
 }
 
-export const login = async (credentials: LoginCredentials): Promise<User> => {
-  const usuario = await httpClient<UsuarioBackend>('/usuario/login', {
+export const login = async (
+  credentials: LoginCredentials,
+): Promise<SesionCliente> => {
+  const respuesta = await httpClient<RespuestaLoginCliente>('/usuario/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
   })
-  return mapUsuario(usuario)
+
+  if (typeof respuesta?.token !== 'string' || !respuesta.token.trim()) {
+    throw new Error('El servidor devolvió una sesión inválida')
+  }
+
+  return {
+    user: mapUsuario(respuesta),
+    token: respuesta.token.trim(),
+  }
 }
 
-// El backend responde siempre el mismo mensaje (no revela si el email ya tenía cuenta)
 export const register = async (data: RegisterData): Promise<string> => {
   const respuesta = await httpClient<{ mensaje: string }>('/usuario', {
     method: 'POST',
