@@ -150,3 +150,19 @@ test('no falla si Socket.io todavía no está inicializado', () => {
     expect(channel.enviar({ destinos: { clientes: [1] } })).toBe(0);
     expect(channel.emitirLeida({ destinatarioTipo: 'admin', destinatarioId: 3 })).toBe(false);
 });
+
+test('la notificación emitida no lleva los destinos (plan de clientes, C-6)', () => {
+    const io = crearIo();
+    const canal = new SocketChannel({ obtenerIo: () => io });
+
+    canal.enviar({
+        id: 1,
+        tipo: 'pedido.estado_cambiado',
+        datos: { pedidoId: 45 },
+        destinos: { clientes: [8], pedidos: [45] },
+    });
+
+    const payload = io.emit.mock.calls[0][1];
+    expect(payload).toEqual({ id: 1, tipo: 'pedido.estado_cambiado', datos: { pedidoId: 45 } });
+    expect(payload).not.toHaveProperty('destinos');
+});

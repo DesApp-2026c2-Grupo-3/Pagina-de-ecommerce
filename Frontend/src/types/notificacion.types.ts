@@ -1,19 +1,5 @@
-export type TipoNotificacionCliente =
-  | 'pedido.creado'
-  | 'pedido.estado_cambiado'
-  | 'sucursal.cerrada'
-
-export interface DatosPedidoCreado {
-  pedidoId: number
-  usuarioId: number
-  sucursalId: number
-  estadoAnterior: string | null
-  estado: string
-  total: number
-  fecha: string
-}
-
-export interface DatosPedidoEstadoCambiado {
+// Datos de los avisos de pedido (creado y cambio de estado tienen la misma forma)
+export interface DatosPedido {
   pedidoId: number
   usuarioId: number
   sucursalId: number
@@ -39,27 +25,16 @@ export interface BaseNotificacion {
 export type NotificacionCliente =
   | (BaseNotificacion & {
       tipo: 'pedido.creado'
-      datos: DatosPedidoCreado
+      datos: DatosPedido
     })
   | (BaseNotificacion & {
       tipo: 'pedido.estado_cambiado'
-      datos: DatosPedidoEstadoCambiado
+      datos: DatosPedido
     })
   | (BaseNotificacion & {
       tipo: 'sucursal.cerrada'
       datos: DatosSucursalCerrada
     })
-
-export interface NotificacionRemota {
-  id: number
-  tipo: string
-  version: number
-  ocurridoEn: string
-  datos: unknown
-  destinos?: unknown
-  leida?: boolean
-  leidaEn?: string | null
-}
 
 export interface PaginaNotificacionesCliente {
   items: NotificacionCliente[]
@@ -93,6 +68,16 @@ export interface DescripcionNotificacionCliente {
   tono: TonoNotificacionCliente
 }
 
+// Una estrategia por tipo de aviso: cómo se valida, cómo se describe y adónde lleva
+export interface EstrategiaNotificacionCliente<
+  T extends NotificacionCliente = NotificacionCliente,
+> {
+  tipo: T['tipo']
+  crear(base: BaseNotificacion, datos: unknown): T | null
+  describir(notificacion: T): DescripcionNotificacionCliente
+  obtenerDestino(notificacion: T): string | null
+}
+
 export interface RespuestaMarcarLeida {
   ok: boolean
   notificacionId: number
@@ -105,6 +90,12 @@ export interface RespuestaMarcarTodas {
   leidaEn: string
 }
 
+// Una carga que falló: «Reintentar» repite justo esa (plan, B-6)
+export interface ErrorCargaNotificaciones {
+  origen: 'inicial' | 'mas'
+  mensaje: string
+}
+
 export interface EstadoNotificacionesCliente {
   items: NotificacionCliente[]
   noLeidas: number | null
@@ -112,10 +103,9 @@ export interface EstadoNotificacionesCliente {
   cargandoInicial: boolean
   cargandoMas: boolean
   marcandoTodas: boolean
-  error: string | null
-  hayMas: boolean
-  noLeidasAlMarcarTodas: number | null
-  marcaMarcarTodas: string | null
+  errorCarga: ErrorCargaNotificaciones | null
+  // Error de «marcar leída» o «marcar todas»: no se reintenta, se informa (plan, B-6 y B-7)
+  errorAccion: string | null
 }
 
 export type AccionNotificacionesCliente =
@@ -138,13 +128,11 @@ export type AccionNotificacionesCliente =
   | { type: 'CURSOR_DESCARTADO' }
   | { type: 'NUEVA_NOTIFICACION'; notificacion: NotificacionCliente }
   | { type: 'LECTURA_LOCAL_OPTIMISTA'; id: number; marca: string }
-  | { type: 'LECTURA_LOCAL_REVERTIR'; id: number; marca: string }
+  | { type: 'LECTURA_LOCAL_REVERTIR'; id: number; marca: string; mensaje: string }
   | { type: 'LECTURA_REMOTA'; evento: EventoNotificacionLeida }
-  | { type: 'MARCAR_TODAS_INICIO'; marca: string }
+  | { type: 'MARCAR_TODAS_INICIO' }
   | { type: 'MARCAR_TODAS_OK'; leidaEn: string }
   | { type: 'MARCAR_TODAS_ERROR'; mensaje: string }
-  | { type: 'CONTADOR_ACTUALIZADO'; noLeidas: number | null }
-  | { type: 'ERROR_ACTUALIZADO'; mensaje: string | null }
 
 export interface AccionesNotificacionesCliente {
   cargarMas: () => void

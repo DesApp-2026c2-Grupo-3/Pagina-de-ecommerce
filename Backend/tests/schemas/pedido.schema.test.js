@@ -1,7 +1,6 @@
 const { pedidoSchema } = require('../../src/schemas/pedido.schema');
 
 const pedidoValido = {
-    usuarioId: 1,
     direccionId: 3,
     sucursalId: 2,
     productos: [
@@ -52,7 +51,6 @@ describe('pedidoSchema', () => {
 
         test('convierte los ids y cantidades de texto a número', () => {
             const { value } = pedidoSchema.validate({
-                usuarioId: '1',
                 direccionId: '3',
                 sucursalId: '2',
                 productos: [{ productoId: '10', cantidad: '2' }],
@@ -63,9 +61,9 @@ describe('pedidoSchema', () => {
     });
 
     describe('usuario, dirección y sucursal', () => {
-        test('exige el usuario', () => {
-            const { usuarioId, ...sinUsuario } = pedidoValido;
-            expect(mensajeDe(sinUsuario)).toBe('El id de usuario es obligatorio');
+        // El cliente sale de la sesión: mandarlo en el cuerpo se rechaza (plan de clientes, C-2)
+        test('rechaza un usuarioId en el cuerpo', () => {
+            expect(mensajeDe({ ...pedidoValido, usuarioId: 1 })).toMatch(/not allowed/);
         });
 
         test('exige una dirección de entrega', () => {

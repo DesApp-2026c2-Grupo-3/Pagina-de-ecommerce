@@ -1,10 +1,7 @@
 const Joi = require('joi')
+// El cliente no viaja en el cuerpo: sale de la sesión (plan de clientes, C-2).
+// Si llega un usuarioId, Joi lo rechaza como cualquier campo que no está en el esquema.
 const pedidoSchema = Joi.object({
-    usuarioId: Joi.number().integer().positive().required().messages({
-        'number.base': 'El id de usuario debe ser un número',
-        'any.required': 'El id de usuario es obligatorio'
-    }),
-
     direccionId: Joi.number().integer().positive().required().messages({
         'number.base': 'El id de dirección debe ser un número',
         'any.required': 'Tenés que seleccionar una dirección de entrega'

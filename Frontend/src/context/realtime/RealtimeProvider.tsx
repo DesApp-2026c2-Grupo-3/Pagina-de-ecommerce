@@ -13,6 +13,7 @@ import {
   codigoErrorSocket,
   esErrorAutenticacionSocket,
 } from '../../realtime/realtimeEvents'
+import { mapearRefrescoCliente } from '../../utils/realtime/mapearRefrescoCliente'
 import { RealtimeContext } from './RealtimeContext'
 import type {
   EstadoConexionCliente,
@@ -101,12 +102,18 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       publicarEventoRealtime({ tipo: 'notificacion:leida', payload })
     }
 
+    const alRecibirRefresco = (payload: unknown) => {
+      const refresco = mapearRefrescoCliente(payload)
+      if (refresco) publicarEventoRealtime({ tipo: 'cliente:refresco', refresco })
+    }
+
     socket.on('connect', alConectar)
     socket.on('disconnect', alDesconectar)
     socket.on('connect_error', alFallar)
     socket.io.on('reconnect_attempt', alReintentar)
     socket.on('notificacion', alRecibirNotificacion)
     socket.on('notificacion:leida', alRecibirLeida)
+    socket.on('cliente:refresco', alRecibirRefresco)
 
     actualizarConexion(socket.connected ? 'conectado' : 'conectando')
     if (socket.connected) huboConectadoRef.current = true
@@ -119,10 +126,21 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       socket.io.off('reconnect_attempt', alReintentar)
       socket.off('notificacion', alRecibirNotificacion)
       socket.off('notificacion:leida', alRecibirLeida)
+      socket.off('cliente:refresco', alRecibirRefresco)
       huboConectadoRef.current = false
       desconectarSocketCliente()
     }
   }, [actualizarConexion, logout, token])
+
+  // Al volver a la pestaña, las pantallas revalidan lo que muestran (plan, C-6)
+  useEffect(() => {
+    const alCambiarVisibilidad = () => {
+      if (document.visibilityState === 'visible') publicarEventoRealtime({ tipo: 'visible' })
+    }
+
+    document.addEventListener('visibilitychange', alCambiarVisibilidad)
+    return () => document.removeEventListener('visibilitychange', alCambiarVisibilidad)
+  }, [])
 
   useEffect(
     () => () => {

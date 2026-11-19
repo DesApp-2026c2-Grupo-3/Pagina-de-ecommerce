@@ -46,7 +46,7 @@ interface Props {
 function BotonRepetirPedido({ pedido, variante = 'claro', ocultarMensaje = false }: Props) {
   const { user } = useAuth()
   const { addItem } = useCart()
-  const { zona, abrirSelector } = useZona()
+  const { zona, abrirSelector, sucursalDesactivada } = useZona()
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
   const navigate = useNavigate()
 
@@ -61,7 +61,11 @@ function BotonRepetirPedido({ pedido, variante = 'claro', ocultarMensaje = false
       return
     }
     if (sucursalCerrada) {
-      setError('La sucursal está cerrada en este horario. No se pueden generar pedidos por ahora.')
+      setError(
+        sucursalDesactivada
+          ? 'La sucursal está desactivada y ninguna otra llega a tu dirección. Elegí otra dirección.'
+          : 'La sucursal está cerrada en este horario. No se pueden generar pedidos por ahora.',
+      )
       return
     }
 
@@ -69,7 +73,7 @@ function BotonRepetirPedido({ pedido, variante = 'claro', ocultarMensaje = false
     setError('')
     try {
       const [resultado] = await Promise.all([
-        getRepetirPedido(pedido.id, user.id, zona.sucursalId),
+        getRepetirPedido(pedido.id, zona.sucursalId),
         esperar(2800),
       ])
 
@@ -118,7 +122,7 @@ function BotonRepetirPedido({ pedido, variante = 'claro', ocultarMensaje = false
         type="button"
         onClick={repetir}
         disabled={cargando || sucursalCerrada}
-        title={sucursalCerrada ? 'La sucursal está cerrada' : 'Repetir pedido'}
+        title={sucursalCerrada ? (sucursalDesactivada ? 'La sucursal está desactivada' : 'La sucursal está cerrada') : 'Repetir pedido'}
         aria-label="Repetir pedido"
         className={`${STYLES.buttonBase} ${VARIANTES_BOTON[variante]}`}
       >

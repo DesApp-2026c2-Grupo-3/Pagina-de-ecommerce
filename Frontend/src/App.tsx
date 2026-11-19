@@ -29,7 +29,6 @@ import PantallaDespedida from './components/ui/PantallaDespedida'
 import BotonSubir from './components/layout/BotonSubir'
 import RecuperarPassword from './pages/RecuperarPassword'
 import RestablecerPassword from './pages/RestablecerPassword'
-import AlertasNotificaciones from './components/notificaciones/AlertasNotificaciones'
 
 function App() {
   const { user } = useAuth()
@@ -73,7 +72,6 @@ function App() {
       <BotonSubir />
       <Toast />
       <ZonaDesdeUsuario />
-      <AlertasNotificaciones />
       <ElegirZonaModal />
       <PantallaBienvenida />
       <PantallaDespedida />

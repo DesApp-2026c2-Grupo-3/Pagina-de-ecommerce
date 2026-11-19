@@ -41,7 +41,6 @@ function conItems(
     items,
     noLeidas,
     cargandoInicial: false,
-    hayMas: true,
     siguienteCursor: 'cursor',
   }
 }
@@ -61,7 +60,6 @@ describe('notificacionReducer', () => {
     expect(estado.items.map((item) => item.id)).toEqual([2, 1])
     expect(estado.noLeidas).toBe(2)
     expect(estado.siguienteCursor).toBe('siguiente')
-    expect(estado.hayMas).toBe(true)
     expect(estado.cargandoInicial).toBe(false)
   })
 
@@ -103,16 +101,22 @@ describe('notificacionReducer', () => {
       type: 'LECTURA_LOCAL_REVERTIR',
       id: item.id,
       marca,
+      mensaje: 'Falló',
     })
     expect(revertida.items[0].leida).toBe(false)
     expect(revertida.noLeidas).toBe(1)
+    expect(revertida.errorAccion).toBe('Falló')
+    expect(revertida.errorCarga).toBeNull()
 
-    const sinCambios = notificacionReducer(leida, {
+    // Con otra marca (ya la leyó el servidor) no se revierte, pero el error se informa igual
+    const sinRevertir = notificacionReducer(leida, {
       type: 'LECTURA_LOCAL_REVERTIR',
       id: item.id,
       marca: '2026-01-04T10:00:00.000Z',
+      mensaje: 'Falló',
     })
-    expect(sinCambios).toBe(leida)
+    expect(sinRevertir.items).toBe(leida.items)
+    expect(sinRevertir.errorAccion).toBe('Falló')
   })
 
   test('aplica lectura remota individual y masiva', () => {
@@ -141,24 +145,50 @@ describe('notificacionReducer', () => {
     expect(todas.items.every((item) => item.leida)).toBe(true)
   })
 
-  test('marcar todas respeta el corte temporal de la marca local', () => {
+  test('marcar todas usa el leidaEn del servidor: lo que llegó después sigue sin leer (plan, E-3)', () => {
     const anterior = pedido(1, '2026-01-01T10:00:00.000Z')
-    const estado = conItems([anterior], 1)
-    const marca = '2026-01-02T10:00:00.000Z'
+    const posterior = pedido(2, '2026-01-05T10:00:00.000Z')
+    const estado = conItems([posterior, anterior], 2)
 
-    const inicio = notificacionReducer(estado, {
-      type: 'MARCAR_TODAS_INICIO',
-      marca,
-    })
+    const inicio = notificacionReducer(estado, { type: 'MARCAR_TODAS_INICIO' })
+    expect(inicio.marcandoTodas).toBe(true)
+
     const fin = notificacionReducer(inicio, {
       type: 'MARCAR_TODAS_OK',
       leidaEn: '2026-01-03T10:00:00.000Z',
     })
 
-    expect(fin.items[0].leida).toBe(true)
-    expect(fin.items[0].leidaEn).toBe('2026-01-03T10:00:00.000Z')
-    expect(fin.noLeidas).toBe(0)
+    expect(fin.items.find((item) => item.id === 1)).toMatchObject({
+      leida: true,
+      leidaEn: '2026-01-03T10:00:00.000Z',
+    })
+    expect(fin.items.find((item) => item.id === 2)?.leida).toBe(false)
+    expect(fin.noLeidas).toBe(1)
     expect(fin.marcandoTodas).toBe(false)
+  })
+
+  test('cada carga que falla recuerda su origen; empezar otra lo limpia (plan, B-6)', () => {
+    const estado = conItems([pedido(1, '2026-01-01T10:00:00.000Z')], 1)
+
+    const falloInicial = notificacionReducer(estado, { type: 'CARGA_INICIAL_ERROR', mensaje: 'A' })
+    expect(falloInicial.errorCarga).toEqual({ origen: 'inicial', mensaje: 'A' })
+
+    const falloMas = notificacionReducer(estado, { type: 'CARGA_MAS_ERROR', mensaje: 'B' })
+    expect(falloMas.errorCarga).toEqual({ origen: 'mas', mensaje: 'B' })
+
+    expect(notificacionReducer(falloMas, { type: 'CARGA_MAS_INICIO' }).errorCarga).toBeNull()
+  })
+
+  test('el error de marcar todas va a errorAccion y no toca la carga', () => {
+    const estado = conItems([pedido(1, '2026-01-01T10:00:00.000Z')], 1)
+    const fallo = notificacionReducer(
+      notificacionReducer(estado, { type: 'MARCAR_TODAS_INICIO' }),
+      { type: 'MARCAR_TODAS_ERROR', mensaje: 'Sin conexión' },
+    )
+
+    expect(fallo.errorAccion).toBe('Sin conexión')
+    expect(fallo.errorCarga).toBeNull()
+    expect(fallo.marcandoTodas).toBe(false)
   })
 
   test('reinicia todo el estado al cerrar sesión', () => {

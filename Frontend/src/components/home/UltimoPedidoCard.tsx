@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
 import { ReceiptText, Store } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
 import { useZona } from '../../context/ZonaContext'
-import { getHistorialPedidos } from '../../services/orderService'
+import { useUltimoPedido } from '../../hooks/useUltimoPedido'
 import BotonRepetirPedido from '../BotonRepetirPedido'
 import { formatearFecha } from '../../utils/fechas'
 import { formatearPrecio } from '../../utils/precio'
@@ -41,33 +39,10 @@ function resumirProductos(pedido: Order, maximo = 2) {
 }
 
 function UltimoPedidoCard() {
-  const { user } = useAuth()
-  const { zona } = useZona()
-  const [pedido, setPedido] = useState<Order | null>(null)
+  const { zona, sucursalDesactivada } = useZona()
+  const pedido = useUltimoPedido()
 
   const isSucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
-
-  useEffect(() => {
-    if (!user) {
-      setPedido(null)
-      return
-    }
-
-    getHistorialPedidos(user.id)
-      .then((pedidos) => {
-        if (!pedidos || pedidos.length === 0) {
-          setPedido(null)
-          return
-        }
-
-        const ultimo = pedidos.reduce((masReciente, actual) =>
-          new Date(actual.fecha).getTime() > new Date(masReciente.fecha).getTime() ? actual : masReciente
-        )
-
-        setPedido(ultimo)
-      })
-      .catch(() => setPedido(null))
-  }, [user])
 
   if (!pedido) return null
 
@@ -111,7 +86,9 @@ function UltimoPedidoCard() {
         {isSucursalCerrada && (
           <div className={STYLES.closedBanner}>
             <Store className={STYLES.closedIcon} />
-            <p className={STYLES.closedText}>Sucursal cerrada. No tomamos pedidos ahora.</p>
+            <p className={STYLES.closedText}>
+              {sucursalDesactivada ? 'Sucursal desactivada. Elegí otra dirección.' : 'Sucursal cerrada. No tomamos pedidos ahora.'}
+            </p>
           </div>
         )}
       </div>

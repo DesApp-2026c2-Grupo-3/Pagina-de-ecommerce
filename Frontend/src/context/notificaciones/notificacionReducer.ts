@@ -12,10 +12,8 @@ export const estadoInicial: EstadoNotificacionesCliente = {
   cargandoInicial: true,
   cargandoMas: false,
   marcandoTodas: false,
-  error: null,
-  hayMas: false,
-  noLeidasAlMarcarTodas: null,
-  marcaMarcarTodas: null,
+  errorCarga: null,
+  errorAccion: null,
 }
 
 function tiempoDe(ocurridoEn: string): number {
@@ -75,12 +73,12 @@ function aplicarLeida(
   )
 }
 
+// Marca leídas las que ocurrieron hasta leidaEn (inclusive)
 function marcarHasta(
   items: NotificacionCliente[],
   leidaEn: string,
-  hasta: string,
 ): NotificacionCliente[] {
-  const limite = tiempoDe(hasta)
+  const limite = tiempoDe(leidaEn)
 
   return items.map((item) => {
     if (item.leida || tiempoDe(item.ocurridoEn) > limite) return item
@@ -93,7 +91,7 @@ function aplicarEventoLeida(
   evento: EventoNotificacionLeida,
 ): EstadoNotificacionesCliente {
   if ('todas' in evento) {
-    const items = marcarHasta(estado.items, evento.leidaEn, evento.leidaEn)
+    const items = marcarHasta(estado.items, evento.leidaEn)
 
     return {
       ...estado,
@@ -136,7 +134,7 @@ export function notificacionReducer(
       return {
         ...estado,
         cargandoInicial: true,
-        error: null,
+        errorCarga: null,
       }
 
     case 'CARGA_INICIAL_OK':
@@ -146,22 +144,21 @@ export function notificacionReducer(
         noLeidas: accion.noLeidas,
         siguienteCursor: accion.siguienteCursor,
         cargandoInicial: false,
-        error: null,
-        hayMas: accion.siguienteCursor !== null,
+        errorCarga: null,
       }
 
     case 'CARGA_INICIAL_ERROR':
       return {
         ...estado,
         cargandoInicial: false,
-        error: accion.mensaje,
+        errorCarga: { origen: 'inicial', mensaje: accion.mensaje },
       }
 
     case 'CARGA_MAS_INICIO':
       return {
         ...estado,
         cargandoMas: true,
-        error: null,
+        errorCarga: null,
       }
 
     case 'CARGA_MAS_OK':
@@ -170,24 +167,22 @@ export function notificacionReducer(
         items: fusionar(estado.items, accion.items),
         siguienteCursor: accion.siguienteCursor,
         cargandoMas: false,
-        error: null,
-        hayMas: accion.siguienteCursor !== null,
+        errorCarga: null,
       }
 
     case 'CARGA_MAS_ERROR':
       return {
         ...estado,
         cargandoMas: false,
-        error: accion.mensaje,
+        errorCarga: { origen: 'mas', mensaje: accion.mensaje },
       }
 
     case 'CURSOR_DESCARTADO':
       return {
         ...estado,
         siguienteCursor: null,
-        hayMas: false,
         cargandoMas: false,
-        error: null,
+        errorCarga: null,
       }
 
     case 'NUEVA_NOTIFICACION': {
@@ -213,6 +208,7 @@ export function notificacionReducer(
 
       return {
         ...estado,
+        errorAccion: null,
         items: aplicarLeida(estado.items, accion.id, true, accion.marca),
         noLeidas:
           estado.noLeidas === null
@@ -225,10 +221,14 @@ export function notificacionReducer(
       const item = estado.items.find(
         (candidato) => candidato.id === accion.id,
       )
-      if (!item || !item.leida || item.leidaEn !== accion.marca) return estado
+      // Solo se revierte la marca propia: si mientras tanto llegó la lectura del servidor, queda leída
+      if (!item || !item.leida || item.leidaEn !== accion.marca) {
+        return { ...estado, errorAccion: accion.mensaje }
+      }
 
       return {
         ...estado,
+        errorAccion: accion.mensaje,
         items: aplicarLeida(estado.items, accion.id, false, null),
         noLeidas:
           estado.noLeidas === null ? null : estado.noLeidas + 1,
@@ -242,23 +242,18 @@ export function notificacionReducer(
       return {
         ...estado,
         marcandoTodas: true,
-        error: null,
-        noLeidasAlMarcarTodas: estado.noLeidas,
-        marcaMarcarTodas: accion.marca,
+        errorAccion: null,
       }
 
+    // El corte es el leidaEn del servidor: lo que llegó después sigue sin leer (plan, E-3)
     case 'MARCAR_TODAS_OK': {
-      const hasta = estado.marcaMarcarTodas ?? accion.leidaEn
-      const items = marcarHasta(estado.items, accion.leidaEn, hasta)
+      const items = marcarHasta(estado.items, accion.leidaEn)
 
       return {
         ...estado,
         items,
         noLeidas: items.filter((item) => !item.leida).length,
         marcandoTodas: false,
-        error: null,
-        noLeidasAlMarcarTodas: null,
-        marcaMarcarTodas: null,
       }
     }
 
@@ -266,21 +261,7 @@ export function notificacionReducer(
       return {
         ...estado,
         marcandoTodas: false,
-        error: accion.mensaje,
-        noLeidasAlMarcarTodas: null,
-        marcaMarcarTodas: null,
-      }
-
-    case 'CONTADOR_ACTUALIZADO':
-      return {
-        ...estado,
-        noLeidas: accion.noLeidas,
-      }
-
-    case 'ERROR_ACTUALIZADO':
-      return {
-        ...estado,
-        error: accion.mensaje,
+        errorAccion: accion.mensaje,
       }
   }
 }

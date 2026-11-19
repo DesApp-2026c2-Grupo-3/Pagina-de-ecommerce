@@ -4,7 +4,8 @@ const {
     notificarSucursalCerrada,
     notificarSucursalModificadaPorAdmin,
 } = require('../../notifications/handlers/sucursalHandlers');
-const { detectarBloquesModificados } = require('../../utils/sucursalCambios');
+const { BLOQUES, detectarBloquesModificados } = require('../../utils/sucursalCambios');
+const { emitirRefrescoCliente } = require('../../notifications/clienteRefresco');
 const { motivoSinAcceso, mensajeSinAcceso } = require('../../utils/permisosSucursal');
 const { validarHorarioSucursal } = require('../../utils/horarioSucursal');
 
@@ -15,6 +16,10 @@ function conAdmins(sucursal) {
     const { Admins, ...datos } = sucursal.toJSON();
     return { ...datos, admins: Admins ?? [] };
 }
+
+// Lo que cambia la zona del cliente: si está abierta (horario) y si le llega (ubicación).
+// El radio de entrega es uno solo para todas las sucursales (Parámetros), no un dato de la sucursal.
+const BLOQUES_DE_LA_ZONA = [BLOQUES.HORARIOS, BLOQUES.UBICACION];
 
 // ¿Ya hay otra sucursal con ese nombre? (sin distinguir mayúsculas)
 async function nombreEnUso(nombre, idPropio = null) {
@@ -127,6 +132,10 @@ const editarSucursal = async (req, res) => {
 
         await sucursal.update(req.body);
 
+        if (cambios.some((bloque) => BLOQUES_DE_LA_ZONA.includes(bloque))) {
+            emitirRefrescoCliente({ dominio: 'sucursal', accion: 'actualizado', sucursalId: sucursal.id });
+        }
+
         if (esAdminSucursal && cambios.length > 0) {
             try {
                 await notificarSucursalModificadaPorAdmin({
@@ -165,6 +174,11 @@ const cambiarEstadoSucursal = async (req, res) => {
 
         const estabaActiva = sucursal.activa;
         await sucursal.update({ activa });
+
+        // Activarla o desactivarla cambia la zona de los clientes: recargan las sucursales (C-6, E-4)
+        if (estabaActiva !== activa) {
+            emitirRefrescoCliente({ dominio: 'sucursal', accion: 'estado_cambiado', sucursalId: sucursal.id });
+        }
 
         if (estabaActiva && !activa) {
             await notificarSucursalCerrada({
