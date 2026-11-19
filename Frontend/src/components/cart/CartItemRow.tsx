@@ -18,34 +18,44 @@ interface Props {
 // ==========================================
 // CONSTANTES DE ESTILO
 // ==========================================
+// < 480px: fila dentro de la lista unificada | >= 480px: tarjeta individual
 const tarjetaFilaClase =
-  'flex w-full items-start gap-2.5 rounded-3xl border-2 border-brand-dark bg-white px-3 py-2.5 min-[380px]:gap-3 min-[480px]:gap-4 min-[480px]:px-4 min-[480px]:py-3'
+  'grid w-full grid-cols-[auto_1fr] items-start gap-x-2.5 gap-y-1.5 px-2.5 py-2.5 min-[380px]:gap-x-3 min-[380px]:px-3 min-[480px]:rounded-3xl min-[480px]:border-2 min-[480px]:border-brand-dark min-[480px]:bg-white sm:gap-x-4 sm:px-4 sm:py-3'
+
+// Separador ornamental con 3 rombitos entre ítems (< 480px)
+const separadorOrnamentalClase =
+  'ornamento-item col-span-2 -mt-2.5 mb-2 hidden items-center gap-2 px-1'
+const lineaOrnamentalClase = 'h-px flex-1 border-t-2 border-dashed border-brand-sand'
+const romboChicoClase =
+  'h-1.5 w-1.5 shrink-0 rotate-45 rounded-[1.5px] border border-brand-dark bg-brand-cream'
+const romboCentralClase =
+  'h-2 w-2 shrink-0 rotate-45 rounded-[2px] border border-brand-dark bg-brand-mustard'
 
 const cajaImagenBaseClase =
-  'grid h-16 w-16 shrink-0 self-start place-items-center rounded-2xl border border-brand-dark/10 shadow-sm min-[380px]:h-20 min-[380px]:w-20'
-const imgProductoClase =
-  'h-13 w-13 object-contain min-[380px]:h-16 min-[380px]:w-16'
+  'grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-brand-dark/10 shadow-sm min-[380px]:row-span-2 min-[380px]:h-20 min-[380px]:w-20'
+const imgProductoClase = 'h-11 w-11 object-contain min-[380px]:h-16 min-[380px]:w-16'
 
-const bloqueSobreLineaClase = 'flex items-start justify-between gap-2 sm:gap-3'
+const bloqueSobreLineaClase = 'flex min-w-0 items-start justify-between gap-1 sm:gap-3'
 
 const badgePromoClase =
   'mb-0.5 inline-flex max-w-full items-center gap-1 rounded-full bg-brand-red px-2 py-0.5 text-[10px] font-extrabold text-white min-[480px]:text-xs'
 const tituloProductoClase =
-  'truncate font-display text-sm font-extrabold leading-none text-brand-dark min-[480px]:text-lg'
+  'truncate font-display text-sm font-extrabold leading-tight text-brand-dark min-[480px]:text-lg'
 const detalleOpcionesClase =
-  'mt-1 truncate text-[11px] leading-tight text-brand-muted min-[480px]:text-sm'
+  'mt-0.5 truncate text-[11px] leading-tight text-brand-muted min-[480px]:text-sm'
 const precioUnitarioClase =
-  'text-xs font-bold leading-none text-brand-muted min-[480px]:text-sm'
+  'text-[11px] font-bold leading-none text-brand-muted min-[380px]:text-xs min-[480px]:text-sm'
 
+// Sin línea punteada interna en < 480px (modo lista); recupera la línea punteada desde 480px (tarjetas)
 const bloqueBajoLineaClase =
-  'mt-1.5 flex items-center justify-between gap-2 border-t-2 border-dashed border-brand-dark/15 pt-1.5 sm:items-baseline'
+  'col-span-2 flex items-center justify-between gap-2 pt-1 min-[380px]:col-span-1 min-[480px]:border-t-2 min-[480px]:border-dashed min-[480px]:border-brand-dark/15 min-[480px]:pt-1.5 sm:items-baseline'
 const subtotalAbajoDerechaClase =
   'shrink-0 text-right font-display text-base font-extrabold tabular-nums leading-none text-brand-dark min-[480px]:text-xl'
 
 const botonIconoChicoClase =
-  'grid h-8 w-8 place-items-center rounded-xl text-brand-dark transition-colors sm:h-9 sm:w-9'
+  'grid h-7 w-7 place-items-center rounded-xl text-brand-dark transition-colors min-[380px]:h-8 min-[380px]:w-8 sm:h-9 sm:w-9'
 const botonEditarDeshabilitadoClase =
-  'grid h-8 w-8 cursor-not-allowed place-items-center rounded-xl text-brand-muted/40 sm:h-9 sm:w-9'
+  'grid h-7 w-7 cursor-not-allowed place-items-center rounded-xl text-brand-muted/40 min-[380px]:h-8 min-[380px]:w-8 sm:h-9 sm:w-9'
 
 // "20% OFF", "50% OFF", "GRATIS"
 const etiquetaDescuento = (d: number) => (d >= 1 ? 'GRATIS' : `${Math.round(d * 100)}% OFF`)
@@ -63,6 +73,7 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
     .filter(Boolean)
     .join(' · ')
 
+  const descripcionItem = detalle || 'Regular'
   const promo = item.selectedOptions.find((t) => t.startsWith('Promo:'))?.replace('Promo:', '').trim()
   const subtotalItem = formatearPrecio(item.unitPrice * item.quantity)
 
@@ -94,7 +105,7 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
           title={`Editar ${product.nombre}`}
           className={`${botonIconoChicoClase} hover:bg-brand-cream`}
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-3.5 w-3.5 min-[380px]:h-4 min-[380px]:w-4" />
         </button>
       ) : (
         <button
@@ -103,7 +114,7 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
           aria-label={`${product.nombre} no es editable`}
           className={botonEditarDeshabilitadoClase}
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-3.5 w-3.5 min-[380px]:h-4 min-[380px]:w-4" />
         </button>
       )}
 
@@ -114,7 +125,7 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
         title={item.promoFija ? 'Quita la promo completa' : `Quitar ${product.nombre}`}
         className={`${botonIconoChicoClase} hover:bg-brand-red/10 hover:text-brand-red`}
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-3.5 w-3.5 min-[380px]:h-4 min-[380px]:w-4" />
       </button>
     </div>
   )
@@ -128,7 +139,18 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
 
   return (
     <article className={tarjetaFilaClase}>
-      {/* Foto a la izquierda alineada al borde superior del título */}
+      {/* Separador ornamental con 3 rombitos entre ítems (< 480px) */}
+      <div className={separadorOrnamentalClase} aria-hidden="true">
+        <span className={lineaOrnamentalClase} />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className={romboChicoClase} />
+          <span className={romboCentralClase} />
+          <span className={romboChicoClase} />
+        </div>
+        <span className={lineaOrnamentalClase} />
+      </div>
+
+      {/* Foto a la izquierda */}
       <div className={`${cajaImagenBaseClase} ${product.id % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'}`}>
         {product.imagen && !imagenRota ? (
           <img
@@ -138,49 +160,42 @@ function CartItemRow({ item, onCantidad, onQuitar, onEditar }: Props) {
             className={imgProductoClase}
           />
         ) : (
-          <CategoryIcon icono="generico" className="h-9 w-9 sm:h-10 sm:w-10" />
+          <CategoryIcon icono="generico" className="h-8 w-8 min-[380px]:h-10 min-[380px]:w-10" />
         )}
       </div>
 
-      {/* Columna derecha */}
-      <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
-        {/* Arriba de la línea punteada */}
-        <div className={bloqueSobreLineaClase}>
-          <div className="min-w-0 flex-1">
-            {promo && (
-              <span className={badgePromoClase}>
-                <Tag className="h-2.5 w-2.5 shrink-0" />
-                <span className="truncate">
-                  {promo}
-                  {item.descuento ? ` · ${etiquetaDescuento(item.descuento)}` : ''}
-                </span>
+      {/* Bloque superior derecho: Título/detalle + Acciones */}
+      <div className={bloqueSobreLineaClase}>
+        <div className="min-w-0 flex-1">
+          {promo && (
+            <span className={badgePromoClase}>
+              <Tag className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate">
+                {promo}
+                {item.descuento ? ` · ${etiquetaDescuento(item.descuento)}` : ''}
               </span>
-            )}
+            </span>
+          )}
 
-            <h3 className={tituloProductoClase}>{product.nombre}</h3>
+          <h3 className={tituloProductoClase}>{product.nombre}</h3>
 
-            {detalle && <p className={detalleOpcionesClase}>{detalle}</p>}
+          <p className={detalleOpcionesClase}>{descripcionItem}</p>
 
-            {/* En < 640px (incluye 480px - 639px), el precio unitario va arriba debajo del detalle */}
-            <div className="mt-1 sm:hidden">{precioUnitarioTexto}</div>
-          </div>
-
-          {/* En < 640px: lápiz/tacho arriba a la derecha (justo encima del precio). En >= 640px: stepper + lápiz/tacho */}
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="hidden sm:block">{controlCantidad}</div>
-            {botonesAccion}
-          </div>
+          <div className="mt-1 sm:hidden">{precioUnitarioTexto}</div>
         </div>
 
-        {/* Debajo de la línea punteada */}
-        <div className={bloqueBajoLineaClase}>
-          {/* Izquierda: Stepper en < 640px | Precio unitario en >= 640px */}
-          <div className="sm:hidden">{controlCantidad}</div>
-          <div className="hidden min-w-0 sm:block">{precioUnitarioTexto}</div>
-
-          {/* Derecha: Precio final (justo debajo del lápiz y el tacho en 480px - 639px) */}
-          <span className={subtotalAbajoDerechaClase}>{subtotalItem}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden sm:block">{controlCantidad}</div>
+          {botonesAccion}
         </div>
+      </div>
+
+      {/* Stepper + Precio total en la esquina derecha (sin línea punteada en < 480px) */}
+      <div className={bloqueBajoLineaClase}>
+        <div className="sm:hidden">{controlCantidad}</div>
+        <div className="hidden min-w-0 sm:block">{precioUnitarioTexto}</div>
+
+        <span className={subtotalAbajoDerechaClase}>{subtotalItem}</span>
       </div>
     </article>
   )

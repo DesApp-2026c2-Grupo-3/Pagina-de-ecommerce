@@ -264,10 +264,10 @@ function DetalleProducto({ id }: { id: number }) {
   // ==========================================
   // CONSTANTES DE ESTILO (Tailwind refactorizado)
   // ==========================================
- const layoutGridClase =
-  'mx-auto -mt-24 grid max-w-xl justify-items-center gap-5 px-4 pb-32 sm:-mt-36 sm:gap-8 lg:max-w-6xl lg:grid-cols-2 lg:items-start lg:justify-items-stretch lg:gap-12 lg:pb-12 [&>*]:min-w-0'
- const marcoImagenClase =
-    'relative mx-auto grid aspect-square h-auto w-full max-w-[280px] rotate-2 place-items-center rounded-[2rem] border-2 border-brand-dark bg-brand-red sm:max-w-[288px] sm:rounded-[2.5rem] md:max-w-md'
+   const layoutGridClase =
+    'mx-auto -mt-24 grid max-w-xl justify-items-center gap-5 px-4 pb-44 sm:-mt-36 sm:gap-7 lg:max-w-6xl lg:grid-cols-2 lg:items-start lg:justify-items-stretch lg:gap-12 lg:pb-12 [&>*]:min-w-0'
+  const marcoImagenClase =
+    'relative mx-auto grid aspect-square h-auto w-full max-w-[260px] rotate-2 place-items-center rounded-[2rem] border-2 border-brand-dark bg-brand-red sm:max-w-[300px] sm:rounded-[2.5rem] lg:max-w-md'
   const imgProductoClase =
     'relative h-[70%] w-auto max-w-[70%] -rotate-2 object-contain drop-shadow-2xl md:h-auto md:w-[85%] md:max-w-none md:max-h-[82%]'
 
@@ -298,70 +298,135 @@ function DetalleProducto({ id }: { id: number }) {
       ? 'border-brand-cream text-brand-cream hover:bg-brand-cream hover:text-brand-dark'
       : 'border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-brand-cream'
 
-  const totalTexto = (movil: boolean) => (
-    <div className="text-right">
-      <p className={`text-xs font-bold uppercase tracking-wider ${movil ? 'text-brand-cream/60' : 'text-brand-muted'}`}>
+    const totalTexto = (movil: boolean) => (
+    <div className={`min-w-0 ${movil ? 'text-left min-[300px]:text-right' : 'text-right'}`}>
+      <p
+        className={`font-bold uppercase tracking-wider ${
+          movil ? 'text-[10px] text-brand-cream/60 min-[360px]:text-xs' : 'text-xs text-brand-muted'
+        }`}
+      >
         Total
       </p>
-      <p className={`font-display text-2xl sm:text-3xl font-extrabold ${movil ? 'text-brand-cream' : 'text-brand-dark'}`}>
+      <p
+        className={`truncate font-display font-extrabold tabular-nums leading-tight ${
+          movil
+            ? 'text-lg text-brand-cream min-[360px]:text-2xl sm:text-3xl'
+            : 'text-2xl text-brand-dark sm:text-3xl'
+        }`}
+      >
         {precio(total)}
       </p>
     </div>
   )
 
+  const botonAtrasFooter = (movil: boolean) => (
+    <button
+      type="button"
+      onClick={() => (paso > 1 ? setPaso(paso - 1) : volverAlProducto())}
+      aria-label="Volver atrás"
+      className={
+        movil
+          ? 'inline-flex items-center gap-1 text-xs font-bold text-brand-cream/85 transition-colors hover:text-brand-cream min-[300px]:h-8 min-[300px]:w-8 min-[300px]:shrink-0 min-[300px]:justify-center min-[300px]:rounded-full min-[300px]:border-2 min-[300px]:border-brand-cream min-[300px]:text-brand-cream min-[300px]:hover:bg-brand-cream min-[300px]:hover:text-brand-dark min-[360px]:h-9 min-[360px]:w-auto min-[360px]:px-3.5 min-[360px]:text-sm'
+          : 'inline-flex min-h-13 shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-brand-dark px-5 text-base font-bold text-brand-dark transition-colors hover:bg-brand-dark hover:text-brand-cream'
+      }
+    >
+      <ArrowLeft className="h-3.5 w-3.5 shrink-0 min-[360px]:h-4 min-[360px]:w-4" />
+      <span className={movil ? 'min-[300px]:hidden min-[360px]:inline' : ''}>Atrás</span>
+    </button>
+  )
+
   const barraCompra = (movil: boolean) =>
     !esUltimoPaso ? (
-      <div className={movil ? 'flex flex-col gap-2.5' : 'flex items-center justify-between gap-3'}>
-        {totalTexto(movil)}
-        <div className={`flex gap-2 ${movil ? 'w-full' : ''}`}>
-          <button
-            type="button"
-            onClick={() => (paso > 1 ? setPaso(paso - 1) : volverAlProducto())}
-            className={`${botonSecundarioBaseClase} ${botonBorde(movil)}`}
-          >
-            Atrás
-          </button>
+      movil ? (
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between gap-3">
+            {botonAtrasFooter(true)}
+            {totalTexto(true)}
+          </div>
           <button
             type="button"
             onClick={() => irAPaso(paso + 1)}
             disabled={!puedeAvanzar}
-            className={`${botonContinuarClase} ${movil ? 'flex-1' : ''}`}
+            className={`${botonContinuarClase} w-full`}
           >
             Continuar <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          {totalTexto(false)}
+          <div className="flex gap-2">
+            {botonAtrasFooter(false)}
+            <button
+              type="button"
+              onClick={() => irAPaso(paso + 1)}
+              disabled={!puedeAvanzar}
+              className={botonContinuarClase}
+            >
+              Continuar <ArrowRight className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )
+    ) : movil ? (
+      <div className="flex flex-col gap-2 min-[300px]:gap-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 min-[300px]:grid min-[300px]:grid-cols-[1fr_auto_1fr] min-[300px]:flex-nowrap min-[300px]:gap-1.5">
+          {/* < 300px: texto "← Atrás" arriba a la izquierda | >= 300px: columna izquierda de la grilla */}
+          <div className="w-full min-[300px]:w-auto min-[300px]:justify-self-start">
+            {botonAtrasFooter(true)}
+          </div>
+
+          {/* < 300px: total a la izquierda y stepper a la derecha | >= 300px: stepper centrado */}
+          <div className="order-3 ml-auto min-[300px]:order-2 min-[300px]:ml-0 min-[300px]:justify-self-center">
+            <div className="min-[360px]:hidden">
+              <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} compacto />
+            </div>
+            <div className="hidden min-[360px]:block">
+              <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
+            </div>
+          </div>
+
+          <div className="order-2 min-w-0 min-[300px]:order-3 min-[300px]:justify-self-end">
+            {totalTexto(true)}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setConfirmandoAgregar(true)}
+          disabled={!puedeComprar}
+          className={botonPrimarioStickerClase}
+        >
+          <ShoppingBag className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 min-[360px]:h-5 min-[360px]:w-5" />
+          <span className="truncate text-sm min-[360px]:text-base sm:text-lg">Añadir al carrito</span>
+          <ArrowRight className="hidden h-5 w-5 shrink-0 transition-transform duration-200 group-hover:translate-x-1 min-[360px]:block" />
+        </button>
       </div>
     ) : (
-      <div className={movil ? 'flex flex-col gap-2.5' : 'flex flex-col gap-4'}>
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
-          {totalTexto(movil)}
+          {totalTexto(false)}
         </div>
 
         <div className="flex items-center gap-2">
-          {paso > 1 && (
-            <button
-              type="button"
-              onClick={() => setPaso(paso - 1)}
-              className={`${botonSecundarioBaseClase} ${botonBorde(movil)}`}
-            >
-              Atrás
-            </button>
-          )}
+          {botonAtrasFooter(false)}
           <button
             type="button"
             onClick={() => setConfirmandoAgregar(true)}
             disabled={!puedeComprar}
             className={`${botonPrimarioStickerClase} flex-1`}
           >
-            <ShoppingBag className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 min-[360px]:h-5 min-[360px]:w-5" />
-            <span className="truncate text-sm min-[360px]:text-base sm:text-lg">Añadir al carrito</span>
-            <ArrowRight className="hidden h-5 w-5 shrink-0 transition-transform duration-200 group-hover:translate-x-1 min-[360px]:block" />
+            <ShoppingBag className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+            <span className="truncate text-lg">Añadir al carrito</span>
+            <ArrowRight className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:translate-x-1" />
           </button>
-
         </div>
       </div>
     )
+
+
+
 
   const botonEmpezar = (
     <button
@@ -449,7 +514,7 @@ function DetalleProducto({ id }: { id: number }) {
             </>
           ) : (
             <>
-              <div className="flex items-start justify-between gap-3">
+                                          <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-extrabold uppercase tracking-wider text-brand-red">Armá tu pedido</p>
                   <h2 className="mt-1 font-display text-2xl font-extrabold leading-none tracking-tight sm:text-3xl">
@@ -464,6 +529,8 @@ function DetalleProducto({ id }: { id: number }) {
                   Cancelar
                 </button>
               </div>
+
+
 
               {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} className="mt-5" />}
 
@@ -620,16 +687,18 @@ function DetalleProducto({ id }: { id: number }) {
       </div>
 
       {/* Footer fijo en móvil */}
+            {/* Footer fijo en móvil */}
       <div className={footerMovilClase}>
         {armando ? (
           barraCompra(true)
         ) : (
-          <div className="flex items-center justify-between gap-2.5 min-[360px]:gap-4">
-            {totalTexto(true)}
-            <div className="min-w-0 flex-1">{botonEmpezar}</div>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-end">{totalTexto(true)}</div>
+            {botonEmpezar}
           </div>
         )}
       </div>
+
 
       <ModalConfirmarAgregar
         abierto={confirmandoAgregar}

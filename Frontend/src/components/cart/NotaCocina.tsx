@@ -4,9 +4,12 @@ import { Check, Eye, EyeOff, Pencil, Plus, StickyNote, Trash2 } from 'lucide-rea
 const MAX_CARACTERES = 100
 
 // ==========================================
-// CONSTANTES DE ESTILO (Alineado con CartItemRow)
+// CONSTANTES DE ESTILO (Borde punteado + compacto)
 // ==========================================
-const tarjetaContenedorClase = 'w-full rounded-2xl border-2 border-brand-dark bg-white px-3 py-2.5 sm:px-4 sm:py-3'
+const tarjetaContenedorClase =
+  'w-full rounded-2xl border-2 border-dashed border-brand-dark/35 bg-white px-3 py-2 sm:px-4 sm:py-2.5'
+
+const tituloNotaClase = 'text-xs font-extrabold leading-none text-brand-dark sm:text-sm'
 
 const textareaNotaClase =
   'w-full resize-none rounded-xl border border-brand-dark/30 bg-brand-cream/40 px-3 py-1.5 text-xs text-brand-dark placeholder:text-brand-muted/70 focus:border-brand-dark focus:bg-white focus:outline-none sm:text-sm'
@@ -14,12 +17,11 @@ const textareaNotaClase =
 const botonEdicionBaseClase =
   'inline-flex h-8 w-8 shrink-0 items-center justify-center gap-1.5 rounded-full border-2 border-brand-dark text-xs font-bold transition-colors sm:h-9 sm:w-auto sm:px-3.5 disabled:cursor-not-allowed disabled:opacity-40'
 
-// Mismo tamaño, forma y color negro que los botones de CartItemRow
 const botonIconoCardClase =
   'grid h-8 w-8 shrink-0 place-items-center rounded-xl text-brand-dark transition-colors sm:h-9 sm:w-9'
 
 const botonAgregarNotaClase =
-  'flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-brand-dark/35 bg-white/80 px-3 py-2.5 text-left text-sm font-bold text-brand-dark transition-colors hover:border-brand-dark hover:bg-white sm:px-4'
+  'flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-brand-dark/35 bg-white/80 px-3 py-2 text-left text-xs font-bold text-brand-dark transition-colors hover:border-brand-dark hover:bg-white sm:px-4 sm:py-2.5 sm:text-sm'
 
 interface NotaCocinaProps {
   /** La nota ya guardada ('' si no hay). Solo esta viaja con el pedido. */
@@ -71,11 +73,11 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
 
     return (
       <div className={tarjetaContenedorClase}>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <label htmlFor="nota-cocina" className="text-sm font-extrabold text-brand-dark sm:text-base">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <label htmlFor="nota-cocina" className={tituloNotaClase}>
             Notas para la cocina
           </label>
-          <span className="shrink-0 text-[11px] font-semibold text-brand-muted">
+          <span className="shrink-0 text-[11px] font-semibold leading-none text-brand-muted">
             {borrador.length}/{MAX_CARACTERES}
           </span>
         </div>
@@ -94,7 +96,7 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
           className={textareaNotaClase}
         />
 
-        <div className="mt-2 flex w-full flex-row items-center justify-between gap-2">
+        <div className="mt-1.5 flex w-full flex-row items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             {sinGuardar && (
               <p className="break-words pr-1 text-xs font-semibold leading-tight text-brand-muted sm:text-sm">
@@ -132,13 +134,13 @@ export default function NotaCocina({ guardada, onGuardar }: NotaCocinaProps) {
     )
   }
 
-  // 2. MODO NOTA GUARDADA (Título más grande + botones negros alineados con CartItemRow)
+  // 2. MODO NOTA GUARDADA
   if (guardada) {
     return (
       <div className={tarjetaContenedorClase}>
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold text-brand-dark sm:text-base">Notas para la cocina</p>
+            <p className={tituloNotaClase}>Notas para la cocina</p>
 
             <div className="mt-1">
               {verCompleta ? (

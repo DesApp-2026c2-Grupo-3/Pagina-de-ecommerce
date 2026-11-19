@@ -28,18 +28,25 @@ const iconoVacioCajaClase =
 const badgeCeroClase =
   'absolute -right-3 -top-3 grid h-9 w-9 rotate-12 place-items-center rounded-full border-2 border-brand-dark bg-brand-red font-display text-lg font-extrabold text-white'
 const botonMenuVacioClase =
-  'mt-2 inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5'
+  'mt-2 inline-flex min-h-10 w-fit items-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5'
 
 const layoutCarritoClase =
   'mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_22rem] lg:items-start [&>*]:min-w-0'
-const barraAccionesClase = 'flex flex-wrap items-center justify-between gap-2.5'
+const barraAccionesClase = 'mb-1 flex flex-wrap items-center justify-between gap-2.5'
+
 const botonVolverMenuClase =
-  'inline-flex min-h-11 w-fit shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-dark bg-white px-3.5 text-sm font-bold shadow-sticker transition-all duration-200 hover:translate-y-0.5 hover:bg-brand-dark hover:text-brand-cream min-[380px]:px-4'
+  'inline-flex h-10 min-h-0 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-brand-dark transition-all duration-200 hover:translate-y-0.5 hover:bg-brand-mustard hover:text-black min-[300px]:w-fit min-[300px]:gap-1.5 min-[300px]:px-3.5'
 
 const botonVaciarClase =
-  'group inline-flex min-h-11 w-fit shrink-0 items-center gap-2 rounded-full border-2 border-brand-dark bg-brand-mustard pl-2 pr-3.5 text-sm font-bold text-brand-dark shadow-[4px_4px_0_var(--color-brand-dark)] transition-all duration-200 hover:translate-y-0.5 hover:bg-brand-red hover:text-white min-[380px]:gap-2.5 min-[380px]:pr-5'
+  'group inline-flex h-10 min-h-0 w-10 shrink-0 items-center justify-center rounded-full bg-brand-red text-sm font-bold text-white transition-all duration-200 hover:translate-y-0.5 hover:bg-brand-mustard hover:text-black min-[300px]:w-fit min-[300px]:gap-2 min-[300px]:pl-1.5 min-[300px]:pr-4'
+
 const iconoTachoClase =
-  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-brand-dark bg-brand-red text-white transition-colors duration-200 group-hover:border-white group-hover:bg-brand-dark'
+  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-mustard text-black transition-colors duration-200 group-hover:border-black group-hover:bg-brand-red group-hover:text-white min-[300px]:border-2'
+
+const listaItemsClase =
+  'flex flex-col overflow-hidden rounded-3xl bg-white min-[480px]:gap-3 min-[480px]:overflow-visible min-[480px]:rounded-none min-[480px]:bg-transparent [&>*+*_.ornamento-item]:flex min-[480px]:[&>*+*_.ornamento-item]:hidden'
+
+
 
 const alertaPromoClase = 'rounded-2xl border-2 border-brand-dark bg-brand-mustard p-3.5 font-bold sm:p-4'
 const iconoRegaloClase =
@@ -125,11 +132,7 @@ function Cart() {
     return (
       <div className="min-h-screen bg-brand-cream">
         <PageHeader
-          titulo={
-            <>
-              Tu <span className="text-brand-red">carrito</span>
-            </>
-          }
+          titulo="Tu carrito"
         />
         <div className={contenedorVacioClase}>
           <div className={tarjetaVaciaClase}>
@@ -155,11 +158,7 @@ function Cart() {
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       <PageHeader
-        titulo={
-          <>
-            Tu <span className="text-brand-red">carrito</span>
-          </>
-        }
+        titulo="Tu carrito"
         subtitulo="Acá podés ver los productos seleccionados"
       >
         <PasosCompra actual={0} />
@@ -167,20 +166,33 @@ function Cart() {
 
       <div className={layoutCarritoClase}>
         <div className="flex flex-col gap-3">
-          {/* Barra superior de acciones rápidas */}
+                    {/* Barra superior de acciones rápidas */}
           <div className={barraAccionesClase}>
-            <Link to="/catalogo?grupo=todos" className={botonVolverMenuClase}>
-              <ArrowLeft className="h-4 w-4" /> Ir al Menú
+            <Link
+              to="/catalogo?grupo=todos"
+              aria-label="Ir al Menú"
+              title="Ir al Menú"
+              className={botonVolverMenuClase}
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              <span className="hidden min-[300px]:inline">Ir al Menú</span>
             </Link>
 
-            <button type="button" onClick={() => setMostrarModalVaciar(true)} className={botonVaciarClase}>
+            <button
+              type="button"
+              onClick={() => setMostrarModalVaciar(true)}
+              aria-label="Vaciar carrito"
+              title="Vaciar carrito"
+              className={botonVaciarClase}
+            >
               <span className={iconoTachoClase}>
                 <Trash2 className="h-3.5 w-3.5 stroke-[2.4px]" />
               </span>
-              <span className="min-[380px]:hidden">Vaciar</span>
+              <span className="hidden min-[300px]:inline min-[380px]:hidden">Vaciar</span>
               <span className="hidden min-[380px]:inline">Eliminar todo</span>
             </button>
           </div>
+
 
           {sucursalCerrada && <AvisoCierreSucursal sucursal={zona?.sucursalNombre} />}
 
@@ -198,15 +210,18 @@ function Cart() {
             </div>
           ))}
 
-          {items.map((item) => (
-            <CartItemRow
-              key={item.id}
-              item={item}
-              onCantidad={(cantidad) => updateQuantity(item.id, cantidad)}
-              onQuitar={() => setItemAEliminar(item)}
-              onEditar={esEditable(item) ? () => setEditando(item) : undefined}
-            />
-          ))}
+            <div className={listaItemsClase}>
+            {items.map((item) => (
+              <CartItemRow
+                key={item.id}
+                item={item}
+                onCantidad={(cantidad) => updateQuantity(item.id, cantidad)}
+                onQuitar={() => setItemAEliminar(item)}
+                onEditar={esEditable(item) ? () => setEditando(item) : undefined}
+              />
+            ))}
+          </div>
+
 
           <NotaCocina guardada={observaciones} onGuardar={cambiarObservaciones} />
         </div>
