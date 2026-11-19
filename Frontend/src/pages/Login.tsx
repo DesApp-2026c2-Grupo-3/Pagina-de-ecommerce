@@ -8,6 +8,16 @@ import AuthLayout from '../components/auth/AuthLayout'
 import BotonEnviar from '../components/ui/BotonEnviar'
 import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
+const ESTILOS = {
+  pieContenedor: 'relative flex flex-col gap-2 pb-16',
+  linkAccion: 'font-bold text-brand-red hover:underline',
+  linkRecuperar: 'text-sm font-bold text-brand-red hover:underline',
+  errorReserva: 'absolute inset-x-0 top-8',
+  mensajeEstado: 'mb-5 rounded-2xl border-2 border-brand-mustard bg-brand-cream px-4 py-3 text-sm font-bold',
+  formulario: 'flex flex-col gap-4',
+} as const
+
+
 function Login() {
   const { login, loading } = useAuth()
   const navigate = useNavigate()
@@ -48,21 +58,23 @@ function Login() {
       titulo="Iniciar sesión"
       subtitulo="Ingresá tus datos para continuar con tu pedido."
       pie={
-        <>
-          ¿No tenés cuenta?{' '}
-          <Link to="/registro" state={{ from }} className="font-bold text-brand-red hover:underline">
-            Registrate
-          </Link>
-        </>
+        <div className={ESTILOS.pieContenedor}>
+          <div>
+            ¿No tenés cuenta?{' '}
+            <Link to="/registro" state={{ from }} className={ESTILOS.linkAccion}>
+              Registrate
+            </Link>
+          </div>
+
+          <div className={ESTILOS.errorReserva}>
+            {error && <ErrorAlert message={error} />}
+          </div>
+        </div>
       }
     >
-      {estado?.mensaje && (
-        <p className="mb-5 rounded-2xl border-2 border-brand-mustard bg-brand-cream px-4 py-3 text-sm font-bold">
-          {estado.mensaje}
-        </p>
-      )}
+      {estado?.mensaje && <p className={ESTILOS.mensajeEstado}>{estado.mensaje}</p>}
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className={ESTILOS.formulario}>
         <div>
           <label htmlFor="email" className={CLASE_LABEL}>
             Email
@@ -73,7 +85,10 @@ function Login() {
             required
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (error) setError('')
+            }}
             placeholder="tu@email.com"
             className={CLASE_INPUT}
           />
@@ -87,7 +102,10 @@ function Login() {
             id="password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (error) setError('')
+            }}
             placeholder="Tu contraseña"
             autoComplete="current-password"
             className={CLASE_INPUT}
@@ -95,14 +113,11 @@ function Login() {
         </div>
 
         <div className="text-right">
-          <Link to="/recuperar-password"
-          className="text-sm font-bold text-brand-red hover:underline"
-          >
+          <Link to="/recuperar-password" className={ESTILOS.linkRecuperar}>
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
 
-        <ErrorAlert message={error} />
         <BotonEnviar cargando={loading} texto="Ingresar" textoCargando="Ingresando..." />
       </form>
     </AuthLayout>

@@ -8,6 +8,14 @@ import AuthLayout from '../components/auth/AuthLayout'
 import BotonEnviar from '../components/ui/BotonEnviar'
 import { CLASE_INPUT, CLASE_LABEL } from '../components/ui/formulario'
 
+const ESTILOS = {
+  pieContenedor: 'relative flex flex-col gap-2 pb-16',
+  linkAccion: 'font-bold text-brand-red hover:underline',
+  errorReserva: 'absolute inset-x-0 top-8',
+  formulario: 'flex flex-col gap-4',
+} as const
+
+
 function Register() {
   const { register, loading } = useAuth()
   const navigate = useNavigate()
@@ -47,15 +55,21 @@ function Register() {
       titulo="Crear cuenta"
       subtitulo="Registrate para poder confirmar tus pedidos."
       pie={
-        <>
-          ¿Ya tenés cuenta?{' '}
-          <Link to="/login" state={{ from }} className="font-bold text-brand-red hover:underline">
-            Iniciar sesión
-          </Link>
-        </>
+        <div className={ESTILOS.pieContenedor}>
+          <div>
+            ¿Ya tenés cuenta?{' '}
+            <Link to="/login" state={{ from }} className={ESTILOS.linkAccion}>
+              Iniciar sesión
+            </Link>
+          </div>
+
+          <div className={ESTILOS.errorReserva}>
+            {error && <ErrorAlert message={error} />}
+          </div>
+        </div>
       }
     >
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className={ESTILOS.formulario}>
         <div>
           <label htmlFor="name" className={CLASE_LABEL}>
             Nombre
@@ -66,7 +80,10 @@ function Register() {
             required
             autoComplete="given-name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value)
+              if (error) setError('')
+            }}
             placeholder="Ej: Juan"
             className={CLASE_INPUT}
           />
@@ -82,7 +99,10 @@ function Register() {
             required
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (error) setError('')
+            }}
             placeholder="tu@email.com"
             className={CLASE_INPUT}
           />
@@ -97,14 +117,16 @@ function Register() {
             required
             minLength={6}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (error) setError('')
+            }}
             placeholder="Mínimo 6 caracteres"
             autoComplete="new-password"
             className={CLASE_INPUT}
           />
         </div>
 
-        <ErrorAlert message={error} />
         <BotonEnviar cargando={loading} texto="Crear cuenta" textoCargando="Creando cuenta..." />
       </form>
     </AuthLayout>

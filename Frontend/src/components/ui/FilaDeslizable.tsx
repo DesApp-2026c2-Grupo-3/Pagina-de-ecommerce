@@ -82,7 +82,7 @@ function FilaDeslizable({ className = '', children, userId }: Props) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div
         ref={ref}
         onScroll={alDeslizar}

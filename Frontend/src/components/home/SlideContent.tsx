@@ -18,11 +18,11 @@ const STYLES = {
   description: 'mt-4 w-full max-w-sm text-left text-base leading-relaxed text-white/85 sm:mt-5 sm:text-lg md:max-w-xl md:text-xl',
   ctaWrapper: 'mt-6 flex w-full justify-start sm:mt-8 sm:block',
   ctaBase:
-    'block w-full rounded-full px-6 py-3 text-center font-bold transition-all hover:translate-y-0.5 md:inline-block md:w-auto md:min-w-[16rem]',
+    'block w-full rounded-full px-6 py-3 text-center font-bold transition-all hover:translate-y-0.5 sm:inline-block sm:w-auto sm:min-w-[16rem]',
   ctaTransparentMobile:
-    'border-2 border-brand-cream bg-transparent text-brand-cream md:border-0 md:bg-brand-red md:text-white',
+    'border-2 border-brand-cream bg-transparent text-brand-cream sm:border-0 sm:bg-brand-red sm:text-white',
   ctaOutline:
-    'border-2 border-brand-cream bg-transparent text-brand-cream md:hover:bg-brand-cream md:hover:text-brand-dark',
+    'border-2 border-brand-cream bg-transparent text-brand-cream sm:hover:bg-brand-cream sm:hover:text-brand-dark',
   ctaSolid: 'border-2 border-transparent bg-brand-red text-white',
 } as const
 
@@ -45,6 +45,19 @@ function TituloConResaltado({ title, highlight }: { title: string; highlight?: s
         {despuesHighlight}
       </>
     )
+  }
+  else if(title.includes('¿Qué se te antoja hoy?')){
+    const [userName, fraseFinal] = title.split('. ')
+    const [antesHighlight, despuesHighlight] = fraseFinal.split(highlight)
+
+    return (
+      <>
+        <span className="text-red-600">{userName}</span>. {antesHighlight}
+        <span className={STYLES.highlightBadge}>{highlight}</span>
+        {despuesHighlight}
+      </>
+    )
+
   }
 
   return (

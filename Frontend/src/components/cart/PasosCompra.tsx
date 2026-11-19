@@ -5,8 +5,8 @@ import { Check } from 'lucide-react'
 // "Entrega y pago" es una sola pantalla (checkout).
 const PASOS = [
   { nombre: 'Carrito', to: '/carrito' },
-  { nombre: 'Entrega y pago', to: null },
-  { nombre: 'Confirmado', to: null },
+  { nombre: 'Entrega', to: null },
+  { nombre: 'Pago', to: null },
 ]
 
 interface Props {

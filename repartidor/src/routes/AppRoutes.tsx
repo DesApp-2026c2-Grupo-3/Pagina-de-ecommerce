@@ -3,13 +3,12 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { useAuth } from '../context/AuthContext'
 import ProtectedRoute from '../components/ProtectedRoute'
-import Login from '../pages/Login/Login'
+import Login from '../pages/Login/LoginDesert'
 import MainLayout from '../components/layout/MainLayout'
 import Inicio from '../pages/Inicio/Inicio'
 import Pedidos from '../pages/Pedidos/Pedidos'
 import Viaje from '../pages/Viaje/Viaje'
 import Historial from '../pages/Historial/Historial'
-import NotFound from '../pages/NotFound'
 
 export default function AppRoutes() {
   const { repartidor, cargando } = useAuth()
@@ -42,7 +41,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

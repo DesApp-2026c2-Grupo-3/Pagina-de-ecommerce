@@ -43,7 +43,8 @@ function App() {
       <ScrollToTop />
       <Navbar />
       {/* pb-24: espacio para la barra inferior del celular (ahí no hay footer) */}
-      <main className={`flex-1 lg:pb-0 ${conBarraInferior ? 'pb-24' : ''}`}>
+      <main className={`flex-1 md:pb-0 ${conBarraInferior ? 'pb-24' : ''}`}>
+
         {/* La key reinicia las páginas al cambiar de usuario: no quedan datos del anterior */}
         {/* La key con la ruta hace que cada página nueva entre con la animación */}
         <div key={pathname} className={pathname === '/carrito' || pathname === '/checkout' ? '' : 'bf-pagina'}>        

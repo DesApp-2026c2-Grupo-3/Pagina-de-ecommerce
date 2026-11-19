@@ -9,8 +9,9 @@ function Footer() {
   const { isAuthenticated } = useAuth()
 
   return (
-    <footer className="hidden border-t-4 border-brand-red bg-brand-dark text-brand-cream lg:block">      
-    <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-4 py-14 md:grid-cols-[2fr_1fr_1fr]">
+    <footer className="hidden border-t-4 border-brand-red bg-brand-dark text-brand-cream md:block">
+
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-4 py-14 md:grid-cols-[2fr_1fr_1fr]">
         <div className="col-span-2 flex flex-col gap-4 md:col-span-1">
           <Link to="/" className="w-fit font-display text-4xl font-extrabold tracking-tight">
             Burger<span className="text-brand-red">Fast</span>
