@@ -16,8 +16,8 @@ interface Props<T extends string> {
 // La elegida va en oscuro; las no disponibles dicen "Próximamente".
 function OpcionesCheckout<T extends string>({ nombre, opciones, elegida, onElegir }: Props<T>) {
   return (
-    <div role="radiogroup" aria-label={nombre} className="grid gap-3 sm:grid-cols-2">
-      {opciones.map((op) => {
+    <div role="radiogroup" aria-label={nombre} className={`grid gap-3 ${opciones.length > 1 ? 'sm:grid-cols-2' : ''}`}>      
+    {opciones.map((op) => {
         const activa = op.id === elegida
         return (
           <button

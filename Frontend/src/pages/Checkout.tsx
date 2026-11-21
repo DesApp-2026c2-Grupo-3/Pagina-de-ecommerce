@@ -325,10 +325,12 @@ function Checkout() {
             : "Revisá todo antes de mandarlo a la cocina."
         }
       >
-        <PasosCompra actual={1} />
-      </PageHeader>
+        <div className="self-start">
+          <PasosCompra actual={1} />
+        </div>      
+        </PageHeader>
 
-      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start [&>*]:min-w-0">
+      <div className="mx-auto -mt-12 grid max-w-6xl gap-6 px-4 pb-16 lg:grid-cols-[1fr_24rem] lg:items-start [&>*]:min-w-0">        
         <div className="flex flex-col gap-5">
           {/* Volver: al carrito, o al producto si es una compra directa */}
           {compraDirecta ? (
@@ -355,10 +357,15 @@ function Checkout() {
             />
           )}
 
-          {/* ---------- Cómo lo recibís (pendiente de backend) ---------- */}
-          <SeccionCheckout titulo="¿Cómo lo recibís?">
-            <OpcionesCheckout nombre="Cómo lo recibís" opciones={FORMAS_ENTREGA} elegida={formaEntrega} onElegir={setFormaEntrega} />
-          </SeccionCheckout>
+          {/* ---------- Cómo lo recibís y forma de pago, uno al lado del otro ---------- */}
+          <div className="grid gap-6 sm:grid-cols-2">
+            <SeccionCheckout titulo="¿Cómo lo recibís?">
+              <OpcionesCheckout nombre="Cómo lo recibís" opciones={FORMAS_ENTREGA} elegida={formaEntrega} onElegir={setFormaEntrega} />
+            </SeccionCheckout>
+            <SeccionCheckout titulo="Forma de pago">
+              <OpcionesCheckout nombre="Forma de pago" opciones={FORMAS_PAGO} elegida={formaPago} onElegir={setFormaPago} />
+            </SeccionCheckout>
+          </div>
 
           {/* ---------- Dirección de entrega ---------- */}
           <SeccionCheckout titulo="Dirección de entrega">
@@ -556,14 +563,10 @@ function Checkout() {
             )}
           </SeccionCheckout>
 
-          {/* ---------- Forma de pago (pendiente de backend) ---------- */}
-          <SeccionCheckout titulo="Forma de pago">
-            <OpcionesCheckout nombre="Forma de pago" opciones={FORMAS_PAGO} elegida={formaPago} onElegir={setFormaPago} />
-          </SeccionCheckout>
         </div>
 
         {/* Arriba de "Tu pedido" van los avisos y errores, así se ven antes que el botón */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:-mt-16">          
           <ErrorAlert message={error} />
           {avisoSucursal && <Aviso mensaje={avisoSucursal} />}
           <ResumenPedido
