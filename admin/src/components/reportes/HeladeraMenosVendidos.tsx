@@ -415,7 +415,8 @@ export default function HeladeraMenosVendidos({
           puedeCrearPromo={puedeCrearPromo}
           onDescongelar={() => tocarFila(elegido)}
           onVolverACongelar={() => volverACongelar(elegido.id)}
-          onCrearPromo={() => navigate("/admin/promociones/nueva")}
+          // Abre Promociones con una promo del día para hoy y este producto ya elegido
+          onCrearPromo={() => navigate("/admin/promociones", { state: { productoParaPromo: Number(elegido.id) } })}
         />
       </aside>
     </div>

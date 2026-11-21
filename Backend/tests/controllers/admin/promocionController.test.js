@@ -1,14 +1,15 @@
 jest.mock('../../../src/models', () => ({
     Promocion: { findAll: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
     PromocionItem: { bulkCreate: jest.fn(), destroy: jest.fn() },
-    Producto: { findAll: jest.fn() },
+    Producto: { findAll: jest.fn(), findByPk: jest.fn() },
+    Parametro: { update: jest.fn() },
     sequelize: { transaction: jest.fn() },
 }));
 jest.mock('../../../src/utils/parametros', () => ({
     obtenerParametros: jest.fn(),
 }));
 
-const { Promocion, PromocionItem, Producto, sequelize } = require('../../../src/models');
+const { Promocion, PromocionItem, Producto, Parametro, sequelize } = require('../../../src/models');
 const { obtenerParametros } = require('../../../src/utils/parametros');
 const {
     obtenerPromociones,
@@ -18,6 +19,8 @@ const {
     deshabilitarPromocion,
     habilitarPromocion,
     eliminarPromocion,
+    verProductoNuevo,
+    guardarProductoNuevo,
 } = require('../../../src/controllers/admin/promocionController');
 
 function crearRes() {
@@ -438,5 +441,48 @@ describe('eliminarPromocion', () => {
         await eliminarPromocion({ params: { id: '9' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('producto "nuevo en la carta"', () => {
+    test('devuelve el producto elegido (o null)', async () => {
+        obtenerParametros.mockResolvedValue({ productoNuevoId: 7 });
+        const res = crearRes();
+        await verProductoNuevo({}, res);
+        expect(res.json).toHaveBeenCalledWith({ productoId: 7 });
+
+        obtenerParametros.mockResolvedValue({ productoNuevoId: null });
+        const res2 = crearRes();
+        await verProductoNuevo({}, res2);
+        expect(res2.json).toHaveBeenCalledWith({ productoId: null });
+    });
+
+    test('guarda un producto que existe', async () => {
+        obtenerParametros.mockResolvedValue({});
+        Producto.findByPk.mockResolvedValue({ id: 7 });
+        const res = crearRes();
+        await guardarProductoNuevo({ body: { productoId: 7 } }, res);
+        expect(Parametro.update).toHaveBeenCalledWith({ productoNuevoId: 7 }, { where: { id: 1 } });
+        expect(res.status).not.toHaveBeenCalled();
+    });
+
+    test('se puede quitar (null) sin buscar el producto', async () => {
+        obtenerParametros.mockResolvedValue({});
+        const res = crearRes();
+        await guardarProductoNuevo({ body: { productoId: null } }, res);
+        expect(Producto.findByPk).not.toHaveBeenCalled();
+        expect(Parametro.update).toHaveBeenCalledWith({ productoNuevoId: null }, { where: { id: 1 } });
+    });
+
+    test('rechaza un id inválido o un producto que no existe', async () => {
+        const res = crearRes();
+        await guardarProductoNuevo({ body: { productoId: 'abc' } }, res);
+        expect(res.status).toHaveBeenCalledWith(400);
+
+        Producto.findByPk.mockResolvedValue(null);
+        const res2 = crearRes();
+        await guardarProductoNuevo({ body: { productoId: 99 } }, res2);
+        expect(res2.status).toHaveBeenCalledWith(400);
+        expect(Parametro.update).not.toHaveBeenCalled();
     });
 });

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Promocion, PromocionItem, Producto, sequelize } = require('../../models');
+const { Promocion, PromocionItem, Producto, Parametro, sequelize } = require('../../models');
 const { NOMBRES_DIAS } = require('../../config/promociones');
 // Máximo de promos por día: se edita desde el admin (Parámetros)
 const { obtenerParametros } = require('../../utils/parametros');
@@ -231,7 +231,40 @@ const eliminarPromocion = async (req, res) => {
     }
 };
 
+// ---------- "Nuevo en la carta": el producto que la página de Promos presenta como lanzamiento ----------
+
+// GET /admin/promociones/producto-nuevo → { productoId } (null si no hay ninguno elegido)
+const verProductoNuevo = async (req, res) => {
+    try {
+        const { productoNuevoId } = await obtenerParametros();
+        return res.json({ productoId: productoNuevoId ?? null });
+    } catch (error) {
+        return responderError(res, error, 'Error al obtener el producto nuevo');
+    }
+};
+
+// PATCH /admin/promociones/producto-nuevo  { productoId } → lo cambia (null = no mostrar el bloque)
+const guardarProductoNuevo = async (req, res) => {
+    try {
+        const { productoId } = req.body ?? {};
+        if (productoId !== null && !(Number.isInteger(productoId) && productoId > 0)) {
+            return res.status(400).json({ mensaje: 'Elegí un producto' });
+        }
+        if (productoId !== null && !(await Producto.findByPk(productoId, { attributes: ['id'] }))) {
+            return res.status(400).json({ mensaje: 'El producto elegido no existe o fue eliminado' });
+        }
+
+        await obtenerParametros(); // asegura que exista la fila
+        await Parametro.update({ productoNuevoId: productoId }, { where: { id: 1 } });
+        return res.json({ mensaje: 'Producto nuevo guardado', productoId });
+    } catch (error) {
+        return responderError(res, error, 'Error al guardar el producto nuevo');
+    }
+};
+
 module.exports = {
+    verProductoNuevo,
+    guardarProductoNuevo,
     obtenerPromociones,
     obtenerPromocionPorId,
     crearPromocion,

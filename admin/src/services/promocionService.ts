@@ -55,3 +55,19 @@ export async function habilitarPromocion(id: number) {
     mensajePorDefecto: 'Error al habilitar la promoción',
   })
 }
+
+// "Nuevo en la carta" de la página de Promos (null = el bloque no se muestra)
+export async function obtenerProductoNuevo() {
+  return apiFetch<{ productoId: number | null }>(`${API}/producto-nuevo`, {
+    mensajePorDefecto: 'Error al obtener el producto nuevo',
+  })
+}
+
+export async function guardarProductoNuevo(productoId: number | null) {
+  return apiFetch(`${API}/producto-nuevo`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ productoId }),
+    mensajePorDefecto: 'Error al guardar el producto nuevo',
+  })
+}

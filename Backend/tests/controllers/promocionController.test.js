@@ -3,6 +3,9 @@ jest.mock('../../src/models', () => ({
     PromocionItem: {},
     Producto: {},
 }));
+jest.mock('../../src/utils/parametros', () => ({
+    obtenerParametros: jest.fn().mockResolvedValue({ productoNuevoId: 5 }),
+}));
 
 const { Promocion } = require('../../src/models');
 const { obtenerPromociones } = require('../../src/controllers/promocionController');
@@ -54,6 +57,7 @@ describe('obtenerPromociones (público)', () => {
         expect(respuesta.hoy).toBeLessThanOrEqual(6);
         expect(respuesta.productoSemana).toBeNull();
         expect(respuesta.regalo).toBeNull();
+        expect(respuesta.productoNuevoId).toBe(5);
         expect(respuesta.dias).toHaveLength(7);
         respuesta.dias.forEach((dia) => expect(dia.promos).toEqual([]));
     });
