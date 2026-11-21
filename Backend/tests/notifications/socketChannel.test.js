@@ -3,6 +3,7 @@
 jest.mock('../../src/sockets', () => ({ getIo: jest.fn() }));
 
 const { getIo } = require('../../src/sockets');
+const registro = require('../../src/notifications/registroEstrategias');
 const { SocketChannel, salasDeNotificacion } = require('../../src/notifications/canales/socketChannel');
 
 function crearIo() {
@@ -15,7 +16,11 @@ beforeEach(() => {
     jest.clearAllMocks();
 });
 
-test('calcula todas las salas de destino sin duplicados', () => {
+afterEach(() => {
+    jest.restoreAllMocks();
+});
+
+test('calcula todas las salas de destino sin duplicados para un tipo de admin y cliente', () => {
     expect(salasDeNotificacion({
         clientes: [8, 8],
         administradores: [3],
@@ -23,7 +28,7 @@ test('calcula todas las salas de destino sin duplicados', () => {
         clientesSucursal: [2],
         pedidos: [45],
         roles: ['admin'],
-    })).toEqual([
+    }, 'pedido.creado')).toEqual([
         'user:cliente:8',
         'user:admin:3',
         'admin:sucursal:2',
@@ -46,6 +51,35 @@ test('los cambios de estado no emiten a salas de administradores', () => {
         'sucursal:2',
         'pedido:45',
     ]);
+});
+
+test('una notificación de admin y cliente no llega a salas de repartidores', () => {
+    expect(salasDeNotificacion({
+        clientes: [8],
+        repartidores: [7],
+        repartidoresSucursal: [2],
+    }, 'pedido.creado')).toEqual(['user:cliente:8']);
+});
+
+test('una notificación de repartidor solo emite a salas de repartidores', () => {
+    jest.spyOn(registro, 'audienciasDe').mockReturnValue(['repartidor']);
+
+    expect(salasDeNotificacion({
+        repartidores: [7, 7],
+        repartidoresSucursal: [2],
+        clientes: [8],
+        clientesSucursal: [2],
+        administradoresSucursal: [2],
+        pedidos: [45],
+        roles: ['MASTER'],
+    }, 'viaje.asignado')).toEqual([
+        'user:repartidor:7',
+        'repartidor:sucursal:2',
+    ]);
+});
+
+test('un tipo no registrado no emite a ninguna sala', () => {
+    expect(salasDeNotificacion({ clientes: [8], roles: ['MASTER'] }, 'desconocido')).toEqual([]);
 });
 
 test('la modificación de sucursal emite a la sala del rol MASTER', () => {
@@ -115,4 +149,20 @@ test('no falla si Socket.io todavía no está inicializado', () => {
 
     expect(channel.enviar({ destinos: { clientes: [1] } })).toBe(0);
     expect(channel.emitirLeida({ destinatarioTipo: 'admin', destinatarioId: 3 })).toBe(false);
+});
+
+test('la notificación emitida no lleva los destinos (plan de clientes, C-6)', () => {
+    const io = crearIo();
+    const canal = new SocketChannel({ obtenerIo: () => io });
+
+    canal.enviar({
+        id: 1,
+        tipo: 'pedido.estado_cambiado',
+        datos: { pedidoId: 45 },
+        destinos: { clientes: [8], pedidos: [45] },
+    });
+
+    const payload = io.emit.mock.calls[0][1];
+    expect(payload).toEqual({ id: 1, tipo: 'pedido.estado_cambiado', datos: { pedidoId: 45 } });
+    expect(payload).not.toHaveProperty('destinos');
 });

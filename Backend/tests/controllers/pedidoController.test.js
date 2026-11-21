@@ -36,10 +36,9 @@ const { notificarStockBajo } = require('../../src/notifications/handlers/stockHa
 const { emitirRefrescoAdmin } = require('../../src/notifications/adminRefresco');
 const {
     crearPedido,
-    obtenerPedidos,
     obtenerPedidosPorUsuario,
-    obtenerPedidoId,
     obtenerPedidoClienteId,
+    cotizarEnvio,
 } = require('../../src/controllers/pedidoController');
 
 const {
@@ -66,8 +65,9 @@ function crearStock(cantidad, stockMinimo = null) {
     return stock;
 }
 
+// El cliente sale de la sesión (req.identidad), no del cuerpo (plan de clientes, C-2)
 function pedidoCon(productos) {
-    return { body: { usuarioId: 1, direccionId: 3, sucursalId: 2, productos } };
+    return { identidad: { id: 1, tipo: 'cliente' }, body: { direccionId: 3, sucursalId: 2, productos } };
 }
 
 // La sucursal y la dirección están en el mismo lugar: siempre dentro de la zona de entrega
@@ -276,6 +276,16 @@ describe('crearPedido', () => {
             expect(Direccion.findOne).toHaveBeenCalledWith({ where: { id: 3, usuarioId: 1 } });
         });
 
+        test('usa el cliente de la sesión aunque el cuerpo traiga otro usuarioId (C-2)', async () => {
+            const req = pedidoCon([{ productoId: 10, cantidad: 1 }]);
+            req.body.usuarioId = 9;
+
+            await crearPedido(req, crearRes());
+
+            expect(Usuario.findByPk).toHaveBeenCalledWith(1);
+            expect(Direccion.findOne).toHaveBeenCalledWith({ where: { id: 3, usuarioId: 1 } });
+        });
+
         test('rechaza una dirección que no es del usuario', async () => {
             Direccion.findOne.mockResolvedValue(null);
             const res = crearRes();
@@ -418,86 +428,72 @@ describe('crearPedido', () => {
     });
 });
 
-describe('obtenerPedidos', () => {
-    test('devuelve todos los pedidos', async () => {
-        const pedidos = [{ id: 1 }, { id: 2 }];
-        Pedido.findAll.mockResolvedValue(pedidos);
-        const res = crearRes();
-
-        await obtenerPedidos({}, res);
-
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(pedidos);
-    });
-
-    test('responde 500 si falla la base de datos', async () => {
-        Pedido.findAll.mockRejectedValue(new Error('Base caída'));
-        const res = crearRes();
-
-        await obtenerPedidos({}, res);
-
-        expect(res.status).toHaveBeenCalledWith(500);
-    });
-});
-
-describe('obtenerPedidosPorUsuario', () => {
-    test('devuelve los pedidos del usuario, del más nuevo al más viejo', async () => {
+describe('obtenerPedidosPorUsuario (C-2)', () => {
+    test('devuelve los pedidos del cliente de la sesión, del más nuevo al más viejo', async () => {
         Pedido.findAll.mockResolvedValue([{ id: 5, toJSON: () => ({ id: 5 }) }]);
         const res = crearRes();
 
-        await obtenerPedidosPorUsuario({ params: { usuarioId: '1' } }, res);
+        await obtenerPedidosPorUsuario({ identidad: { id: 1, tipo: 'cliente' } }, res);
 
         expect(Pedido.findAll).toHaveBeenCalledWith(
-            expect.objectContaining({ where: { usuarioId: '1' } })
+            expect.objectContaining({ where: { usuarioId: 1 } })
         );
         // Del más nuevo al más viejo (el segundo criterio ordena el historial de cada pedido)
         expect(Pedido.findAll.mock.calls[0][0].order[0]).toEqual(['fecha', 'DESC']);
         expect(res.status).toHaveBeenCalledWith(200);
     });
 
+    test('ignora cualquier id que venga en la URL o la query', async () => {
+        Pedido.findAll.mockResolvedValue([]);
+        const res = crearRes();
+
+        await obtenerPedidosPorUsuario(
+            { identidad: { id: 1, tipo: 'cliente' }, params: { usuarioId: '9' }, query: { usuarioId: '9' } },
+            res,
+        );
+
+        expect(Pedido.findAll.mock.calls[0][0].where).toEqual({ usuarioId: 1 });
+    });
+
     test('responde 500 si falla la base de datos', async () => {
         Pedido.findAll.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await obtenerPedidosPorUsuario({ params: { usuarioId: '1' } }, res);
+        await obtenerPedidosPorUsuario({ identidad: { id: 1, tipo: 'cliente' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
 });
 
-describe('obtenerPedidoId', () => {
-    test('devuelve el pedido', async () => {
-        const pedido = { id: 7 };
-        Pedido.findByPk.mockResolvedValue(pedido);
+describe('cotizarEnvio (C-2)', () => {
+    test('busca la dirección del cliente de la sesión, no la del cuerpo', async () => {
         const res = crearRes();
 
-        await obtenerPedidoId({ params: { id: '7' } }, res);
+        await cotizarEnvio(
+            { identidad: { id: 1, tipo: 'cliente' }, body: { usuarioId: 9, direccionId: 3, sucursalId: 2, unidades: 2 } },
+            res,
+        );
 
-        expect(res.json).toHaveBeenCalledWith(pedido);
+        expect(Direccion.findOne).toHaveBeenCalledWith({ where: { id: 3, usuarioId: 1 } });
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ dentroDelRadio: true }));
     });
 
-    test('responde 404 si el pedido no existe', async () => {
-        Pedido.findByPk.mockResolvedValue(null);
+    test('una dirección de otro cliente responde 404', async () => {
+        Direccion.findOne.mockResolvedValue(null);
         const res = crearRes();
 
-        await obtenerPedidoId({ params: { id: '99' } }, res);
+        await cotizarEnvio(
+            { identidad: { id: 1, tipo: 'cliente' }, body: { direccionId: 50, sucursalId: 2, unidades: 1 } },
+            res,
+        );
 
         expect(res.status).toHaveBeenCalledWith(404);
-    });
-
-    test('responde 500 si falla la base de datos', async () => {
-        Pedido.findByPk.mockRejectedValue(new Error('Base ca��da'));
-        const res = crearRes();
-
-        await obtenerPedidoId({ params: { id: '7' } }, res);
-
-        expect(res.status).toHaveBeenCalledWith(500);
     });
 });
 
 describe('obtenerPedidoClienteId', () => {
     test('devuelve solo el pedido del cliente autenticado con su historial', async () => {
-        const pedido = { id: 7, usuarioId: 1 };
+        const pedido = { id: 7, usuarioId: 1, toJSON: () => ({ id: 7, usuarioId: 1 }) };
         Pedido.findOne.mockResolvedValue(pedido);
         const res = crearRes();
 
@@ -518,7 +514,36 @@ describe('obtenerPedidoClienteId', () => {
             ]],
         }));
         expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(pedido);
+        // Sin ubicación de entrega no hay hora estimada
+        expect(res.json).toHaveBeenCalledWith({ id: 7, usuarioId: 1, estimacion: null });
+    });
+
+    test('incluye la hora estimada de un pedido en curso, como el historial (plan, E-2)', async () => {
+        const datos = {
+            id: 7,
+            usuarioId: 1,
+            estado: 'Pendiente',
+            historialDeTiemposPedidos: [],
+            DetallePedidos: [{ cantidad: 2 }],
+        };
+        Pedido.findOne.mockResolvedValue({
+            ...datos,
+            fecha: new Date().toISOString(),
+            Direccion: direccionCercana,
+            Sucursal: sucursalMoron,
+            toJSON: () => datos,
+        });
+        const res = crearRes();
+
+        await obtenerPedidoClienteId(
+            { params: { id: '7' }, identidad: { tipo: 'cliente', id: 1 } },
+            res,
+        );
+
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            id: 7,
+            estimacion: expect.objectContaining({ minutosRestantes: expect.any(Number), demorado: false }),
+        }));
     });
 
     test('responde 404 si el pedido no existe o es de otro usuario', async () => {

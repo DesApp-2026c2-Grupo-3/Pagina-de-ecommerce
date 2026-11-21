@@ -61,3 +61,9 @@ export async function obtenerRepartidoresDisponibles(viajeId: number): Promise<R
   })
 }
 
+export async function darDeBajaRepartidor(id: number): Promise<{ mensaje: string }> {
+  return apiFetch(`${API}/${id}`, {
+    method: 'DELETE',
+    mensajePorDefecto: 'Error al dar de baja el repartidor',
+  })
+}

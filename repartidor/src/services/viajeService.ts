@@ -1,51 +1,45 @@
 import { apiFetch } from './httpClient'
 
-import type { ViajeActivo, RespuestaIniciarViaje, ViajeHistorial, 
-  SolicitudAsistenciaPayload, RespuestaSolicitudAsistencia, 
+import type {
+  ViajeActivo,
+  ViajeHistorial,
+  SolicitudAsistenciaPayload,
+  RespuestaSolicitudAsistencia,
   RespuestaCambioEstadoViaje,
-  ViajeCreado} from '../types/viaje.types'
+  RespuestaTomarPedidos,
+  RespuestaQuitarPedido,
+  RespuestaConfirmarRecepcion,
+} from '../types/viaje.types'
 
-
-export const tomarPedidos = (pedidoIds: number[]) => {
-  return apiFetch<RespuestaIniciarViaje>('/repartidor/viajes', {
+export const tomarPedidos = (pedidoIds: number[]) =>
+  apiFetch<RespuestaTomarPedidos>('/repartidor/viajes', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify({ pedidoIds }),
   })
-}
 
-export const iniciarViaje = () => {
-  return apiFetch<RespuestaCambioEstadoViaje>('/repartidor/viajes/iniciar', {
+export const iniciarViaje = () =>
+  apiFetch<RespuestaCambioEstadoViaje>('/repartidor/viajes/iniciar', {
     method: 'PATCH',
   })
-}
 
-export const obtenerViajeActivo = () => {
-  return apiFetch<ViajeActivo | null>('/repartidor/viajes/activo')
-}
+export const obtenerViajeActivo = () =>
+  apiFetch<ViajeActivo | null>('/repartidor/viajes/activo')
 
-export const obtenerHistorialViajes = () => {
-  return apiFetch<ViajeHistorial[]>('/repartidor/viajes/historial')
-}
+export const confirmarRecepcion = () =>
+  apiFetch<RespuestaConfirmarRecepcion>('/repartidor/viajes/confirmar-recepcion', {
+    method: 'PATCH',
+  })
 
-export const solicitarAyuda = (datos: SolicitudAsistenciaPayload) => {
-  return apiFetch<RespuestaSolicitudAsistencia>('/repartidor/viajes/solicitar-ayuda', {
+export const obtenerHistorialViajes = () =>
+  apiFetch<ViajeHistorial[]>('/repartidor/viajes/historial')
+
+export const solicitarAyuda = (datos: SolicitudAsistenciaPayload) =>
+  apiFetch<RespuestaSolicitudAsistencia>('/repartidor/viajes/solicitar-ayuda', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(datos),
   })
-}
 
 export const quitarPedidoDelViaje = (pedidoId: number) =>
-  apiFetch<{
-    mensaje: string
-    pedidoId: number
-    pedidosRestantes: number
-    viaje: ViajeCreado
-  }>(`/repartidor/viajes/pedidos/${pedidoId}`, {
+  apiFetch<RespuestaQuitarPedido>(`/repartidor/viajes/pedidos/${pedidoId}`, {
     method: 'DELETE',
   })

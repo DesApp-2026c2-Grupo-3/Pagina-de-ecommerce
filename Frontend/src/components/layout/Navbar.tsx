@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { ShoppingBag } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
@@ -8,6 +8,8 @@ import { useCerrarSesion } from '../../hooks/useCerrarSesion'
 import ZoneButton from './ZoneButton'
 import AccountMenu from './AccountMenu'
 import CampanaNotificaciones from '../notificaciones/CampanaNotificaciones'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { CONSULTA_ESCRITORIO } from '../../config/pantallas'
 
 const linkBase = 'rounded-full px-4 py-2 text-sm font-bold transition-colors xl:text-base'
 
@@ -20,8 +22,10 @@ function alNavegar(to: string) {
 function Navbar() {
   const { isAuthenticated } = useAuth()
   const { totalItems } = useCart()
-  const { pathname } = useLocation()
   const cerrarSesion = useCerrarSesion()
+  // Una sola campana montada (plan, DC-8): junto a la zona en celular y tablet,
+  // y entre el carrito y la cuenta en escritorio
+  const esEscritorio = useMediaQuery(CONSULTA_ESCRITORIO)
 
   return (
     <header className="sticky top-0 z-40 border-b-4 border-brand-red bg-brand-dark" id="top">
@@ -33,9 +37,7 @@ function Navbar() {
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
 
           <ZoneButton />
-          {isAuthenticated && (
-            <CampanaNotificaciones key={pathname} className="lg:hidden" />
-          )}
+          {isAuthenticated && !esEscritorio && <CampanaNotificaciones />}
         </div>
 
         {/* ---------- Escritorio ---------- */}
@@ -80,7 +82,7 @@ function Navbar() {
 
           {isAuthenticated ? (
             <>
-              <CampanaNotificaciones key={pathname} />
+              {esEscritorio && <CampanaNotificaciones />}
               <div className="ml-2"> <AccountMenu onLogout={cerrarSesion} /></div>
             </>
           ) : (

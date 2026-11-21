@@ -42,3 +42,16 @@ export function formatearFechaHora(valor: string | Date | null | undefined): str
     })
     .replace(',', '')
 }
+
+// Día, mes abreviado y hora, como en la bandeja de avisos (ej: 02 ene 10:05)
+const formatoDiaHora = new Intl.DateTimeFormat('es-AR', {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+export function formatearDiaHora(iso: string): string {
+  const fecha = new Date(iso)
+  return Number.isNaN(fecha.getTime()) ? '' : formatoDiaHora.format(fecha)
+}

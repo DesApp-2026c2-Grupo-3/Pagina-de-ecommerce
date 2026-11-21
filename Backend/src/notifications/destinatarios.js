@@ -37,7 +37,23 @@ function paraStock({ sucursalId }) {
     };
 }
 
+function paraRepartidor({ repartidorId }) {
+    return {
+        repartidores: ids([repartidorId]),
+    };
+}
+
+// Una asistencia la atienden los admins de la sucursal del repartidor y el MASTER
+function paraAsistencia({ sucursalId }) {
+    return {
+        administradoresSucursal: ids([sucursalId]),
+        roles: ['MASTER'],
+    };
+}
+
 module.exports = {
+    paraRepartidor,
+    paraAsistencia,
     paraPedidoCreado,
     paraEstadoPedido,
     paraSucursal,

@@ -5,6 +5,7 @@ const SALAS = Object.freeze({
     adminSucursal: (id) => `admin:sucursal:${id}`,
     adminGlobal: () => 'admin:global',
     pedido: (id) => `pedido:${id}`,
+    repartidorSucursal: (id) => `repartidor:sucursal:${id}`,
 });
 
 function salasDeIdentidad(identidad) {
@@ -15,16 +16,20 @@ function salasDeIdentidad(identidad) {
         SALAS.rol(identidad.tipo),
     ];
 
-    if (identidad.tipo === 'admin' && typeof identidad.rol === 'string' && identidad.rol) {
+    // role:REPARTIDOR, role:ADMIN, role:MASTER (el rol 'cliente' coincide con su tipo y se deduplica)
+    if (typeof identidad.rol === 'string' && identidad.rol) {
         salas.push(SALAS.rol(identidad.rol));
     }
 
-    if (identidad.sucursalId) {
-        salas.push(
-            identidad.tipo === 'admin'
-                ? SALAS.adminSucursal(identidad.sucursalId)
-                : SALAS.sucursal(identidad.sucursalId)
-        );
+    // Cada tipo tiene su propia sala de sucursal: un repartidor nunca entra a la de clientes
+    const salaSucursal = {
+        admin: SALAS.adminSucursal,
+        cliente: SALAS.sucursal,
+        repartidor: SALAS.repartidorSucursal,
+    }[identidad.tipo];
+
+    if (identidad.sucursalId && salaSucursal) {
+        salas.push(salaSucursal(identidad.sucursalId));
     } else if (identidad.tipo === 'admin') {
         salas.push(SALAS.adminGlobal());
     }

@@ -1,7 +1,9 @@
-const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, historialDeTiemposPedido, sequelize } = require('../../models');
+const { Pedido, DetallePedido, Producto, Admin, Usuario, Direccion, Sucursal, Viaje, historialDeTiemposPedido, sequelize } = require('../../models');
 const { devolverStockPedido } = require('../../utils/stockPedido');
 const { notificarEstadoPedido } = require('../../notifications/handlers/pedidoHandlers');
 const { emitirRefrescoAdmin } = require('../../notifications/adminRefresco');
+const { notificarPedidoCanceladoEnViaje, notificarDisponibilidad } = require('../../notifications/handlers/viajeHandlers');
+const { catalogoDelPedido } = require('../../utils/catalogoPedido');
 
 // Qué se trae de cada parte del pedido (nunca la contraseña del cliente).
 // paranoid: false → los productos eliminados (borrado lógico) se siguen viendo en los pedidos viejos
@@ -35,6 +37,12 @@ const ESTADOS_FINALES = ['entregado', 'cancelado'];
 
 // Los pedidos viejos pueden tener el estado en minúscula ("pendiente"): se compara sin importar mayúsculas
 const mismoEstado = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
+
+function errorConflicto(mensaje) {
+    const error = new Error(mensaje);
+    error.statusCode = 409;
+    return error;
+}
 
 // El master (sin sucursal) puede todo; el admin de sucursal, solo la suya
 function puedeVerSucursal(admin, sucursalId) {
@@ -77,7 +85,10 @@ const obtenerPedidosPorSucursal = async (req, res) => {
     }
 };
 
-// GET /admin/pedidos/:id → detalle completo: productos, cliente, dirección y sucursal
+// GET /admin/pedidos/:id → detalle completo: productos, cliente, dirección y sucursal.
+// Incluye `catalogo` (nombres, recetas y grupos de combo de los productos del pedido e
+// insumos de sus personalizaciones): así el admin de sucursal arma "Sin cebolla" o
+// "Papas: Papas con cheddar" sin pedir el catálogo completo, que es solo del MASTER.
 const obtenerPedidoPorId = async (req, res) => {
     try {
         // Auth primero: no se revela si el pedido existe a quien no tiene sesión
@@ -98,7 +109,10 @@ const obtenerPedidoPorId = async (req, res) => {
         if (!pedido || !puedeVerSucursal(admin, pedido.sucursalId)) {
             return res.status(404).json({ mensaje: 'Pedido no encontrado' });
         }
-        res.status(200).json(pedido);
+
+        const datos = typeof pedido.toJSON === 'function' ? pedido.toJSON() : pedido;
+        const catalogo = await catalogoDelPedido(datos.DetallePedidos ?? []);
+        res.status(200).json({ ...datos, catalogo });
     } catch (error) {
         console.error('Algo salió mal:', error.message);
         res.status(500).json({ mensaje: 'Error al obtener el pedido' });
@@ -155,13 +169,51 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
                 mensaje: `No se puede pasar de "${pedido.estado}" a "${estado}"`
             });
         }
+        // D-08: un pedido "Listo para retirar" se puede cancelar solo si el repartidor no lo retiró
+        const cancelaDisponible = mismoEstado(estado, 'cancelado') && actual === 'listo para retirar';
+
         // El cambio de estado y su registro en la línea de tiempo van juntos
         // (igual que la eventual devolución de stock): o se hacen todos, o ninguno
         const t = await sequelize.transaction();
         const estadoPrevio = pedido.estado;
         let stockDevuelto = false;
+        let viajeAfectado = null;
+        let viajeEliminado = false;
         try {
-            await pedido.update({ estado }, { transaction: t });
+            const cambios = { estado };
+
+            if (cancelaDisponible) {
+                // Se relee bloqueado: el repartidor podría estar retirándolo en este momento
+                await pedido.reload({ transaction: t, lock: t.LOCK.UPDATE });
+
+                if (pedido.retiradoEn) {
+                    throw errorConflicto('El repartidor ya retiró el pedido: no se puede cancelar');
+                }
+
+                if (pedido.viajeId) {
+                    viajeAfectado = await Viaje.findByPk(pedido.viajeId, {
+                        transaction: t,
+                        lock: t.LOCK.UPDATE,
+                    });
+                    // El pedido sale del viaje en preparación del repartidor
+                    cambios.viajeId = null;
+                }
+            }
+
+            await pedido.update(cambios, { transaction: t });
+
+            if (viajeAfectado) {
+                const restantes = await Pedido.count({
+                    where: { viajeId: viajeAfectado.id },
+                    transaction: t,
+                });
+                // Un viaje vacío no tiene sentido: se elimina (igual que al quitar el último pedido)
+                if (restantes === 0) {
+                    await viajeAfectado.destroy({ transaction: t });
+                    viajeEliminado = true;
+                }
+            }
+
             await historialDeTiemposPedido.create({
                 pedidoId: pedido.id,
                 estadoAnterior: estadoPrevio,
@@ -182,6 +234,15 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
             throw error;
         }
 
+        // Avisos a la app del repartidor (D-08 y refresco de pedidos disponibles, 7.4)
+        if (viajeAfectado) {
+            await notificarPedidoCanceladoEnViaje({ pedido, viaje: viajeAfectado, viajeEliminado });
+        } else if (cancelaDisponible) {
+            await notificarDisponibilidad({ pedido, accion: 'eliminado' });
+        } else if (mismoEstado(estado, 'listo para retirar')) {
+            await notificarDisponibilidad({ pedido, accion: 'creado' });
+        }
+
         if (stockDevuelto) {
             await emitirRefrescoAdmin({
                 dominio: 'stock',
@@ -195,6 +256,9 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
 
         res.status(200).json(pedido);
     } catch (error) {
+        if (error.statusCode) {
+            return res.status(error.statusCode).json({ mensaje: error.message });
+        }
         console.error('Algo salió mal:', error.message);
         res.status(500).json({ mensaje: 'Error al cambiar el estado del pedido' });
     }

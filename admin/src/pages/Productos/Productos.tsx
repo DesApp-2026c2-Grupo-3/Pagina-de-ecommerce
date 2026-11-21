@@ -6,6 +6,7 @@ import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
 import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
 import { useToast } from '../../context/ToastContext'
+import { useBloquearScroll } from '../../hooks/useBloquearScroll'
 import { obtenerCategorias } from '../../services/categoriaService'
 import {
   obtenerProductos,
@@ -49,6 +50,7 @@ export default function Productos() {
   const [paginaActual, setPaginaActual] = useState(1)
   const [aEliminar, setAEliminar] = useState<ProductoFila | null>(null)
   const [stockVisto, setStockVisto] = useState<StockDeProducto | null>(null)
+  useBloquearScroll(stockVisto !== null)
 
   // Filtros
   const [busqueda, setBusqueda] = useState('')
@@ -237,8 +239,8 @@ useEffect(() => {
           </ul>
 
           {/* Escritorio: tabla */}
-          <div className="hidden rounded-lg border bg-white md:block">
-            <table className="w-full border-collapse">
+          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
+            <table className="w-full min-w-[750px] border-collapse">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left">Nombre</th>

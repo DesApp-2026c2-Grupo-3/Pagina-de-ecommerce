@@ -86,7 +86,7 @@ function masBaratoDe(categoriaId, tamanioId) {
 let stocks;
 
 function pedidoCon(items) {
-    return { body: { usuarioId: 1, direccionId: 3, sucursalId: 2, productos: items } };
+    return { identidad: { id: 1, tipo: 'cliente' }, body: { direccionId: 3, sucursalId: 2, productos: items } };
 }
 
 beforeEach(() => {

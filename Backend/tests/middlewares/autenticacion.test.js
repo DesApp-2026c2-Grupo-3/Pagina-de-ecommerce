@@ -7,6 +7,7 @@ const {
     autenticarUsuario,
     autenticarAdmin,
     autenticarCualquiera,
+    esPropietarioOAdmin,
     soloMaster,
     deSuSucursal,
 } = require('../../src/middleware/autenticacion');
@@ -229,6 +230,55 @@ describe('autenticarCualquiera', () => {
         await autenticarCualquiera(crearReq(), res, jest.fn());
 
         expect(res.status).toHaveBeenCalledWith(401);
+    });
+});
+
+describe('esPropietarioOAdmin', () => {
+    function reqCon(identidad, id = '7') {
+        return { identidad, params: { id } };
+    }
+
+    test('deja pasar al cliente dueño del recurso aunque el id venga como texto', () => {
+        const next = jest.fn();
+
+        esPropietarioOAdmin()(reqCon({ tipo: 'cliente', id: 7 }), crearRes(), next);
+
+        expect(next).toHaveBeenCalledWith();
+    });
+
+    test.each([
+        ['un ADMIN', { tipo: 'admin', id: 3, rol: 'ADMIN', sucursalId: 2 }],
+        ['el MASTER', { tipo: 'admin', id: 1, rol: 'MASTER', sucursalId: null }],
+    ])('deja pasar a %s con cualquier id', (_, identidad) => {
+        const next = jest.fn();
+
+        esPropietarioOAdmin()(reqCon(identidad, '99'), crearRes(), next);
+
+        expect(next).toHaveBeenCalledWith();
+    });
+
+    test.each([
+        ['otro cliente', { tipo: 'cliente', id: 8 }],
+        ['un repartidor, aunque su id coincida', { tipo: 'repartidor', id: 7, rol: 'REPARTIDOR' }],
+        ['una request sin identidad', undefined],
+    ])('responde 403 a %s', (_, identidad) => {
+        const res = crearRes();
+        const next = jest.fn();
+
+        esPropietarioOAdmin()(reqCon(identidad), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(res.json).toHaveBeenCalledWith({ mensaje: 'No tenés permiso sobre este usuario' });
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    test('usa obtenerId para saber de quién es el recurso', () => {
+        const next = jest.fn();
+        const req = { identidad: { tipo: 'cliente', id: 7 }, params: {}, body: { usuarioId: 7 } };
+
+        esPropietarioOAdmin((r) => r.body.usuarioId)(req, crearRes(), next);
+
+        expect(next).toHaveBeenCalledWith();
     });
 });
 

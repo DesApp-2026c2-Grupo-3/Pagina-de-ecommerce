@@ -75,9 +75,21 @@ const actualizarRepartidorSchema = Joi.object({
     sucursalId: sucursalId.optional()
 }).min(1);
 
+// Esquema para iniciar sesión: no repite las reglas de la contraseña nueva,
+// así un error de formato no da pistas sobre la cuenta.
+const loginRepartidorSchema = Joi.object({
+    email,
+    password: Joi.string()
+        .required()
+        .messages({
+            'string.base': 'La contraseña es obligatoria',
+            'string.empty': 'La contraseña es obligatoria',
+            'any.required': 'La contraseña es obligatoria'
+        })
+});
+
 module.exports = {
     repartidorSchema,
-    actualizarRepartidorSchema
+    actualizarRepartidorSchema,
+    loginRepartidorSchema
 };
-
-module.exports = { repartidorSchema, actualizarRepartidorSchema };

@@ -1,44 +1,86 @@
 import { Link } from 'react-router-dom'
 import type { CarouselSlide } from '../../types/carousel'
 
-// Resalta una palabra del título con la pastilla mostaza del diseño
+interface SlideContentProps {
+  slide: CarouselSlide
+  transparentesEnMovil?: boolean
+}
+
+const STYLES = {
+  wrapper: 'flex w-full max-w-2xl flex-col items-start justify-start pb-4 text-left sm:block sm:pb-0',
+  inner: 'flex w-full flex-col items-start sm:block',
+  eyebrowWrapper: 'mb-3 sm:mb-6',
+  eyebrowBadge:
+    'inline-block rounded-full bg-brand-mustard px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-dark',
+  title:
+    'w-full text-left font-display text-[2.5rem] font-extrabold leading-[1.05] tracking-tight drop-shadow-lg sm:max-w-md sm:text-5xl md:max-w-xl md:text-6xl',
+  highlightBadge: 'inline-block -rotate-2 rounded-xl bg-brand-mustard px-3 text-brand-dark',
+  description: 'mt-4 w-full max-w-sm text-left text-base leading-relaxed text-white/85 sm:mt-5 sm:text-lg md:max-w-xl md:text-xl',
+  ctaWrapper: 'mt-6 flex w-full justify-start sm:mt-8 sm:block',
+  ctaBase:
+    'block w-full rounded-full px-6 py-3 text-center font-bold transition-all hover:translate-y-0.5 md:inline-block md:w-auto md:min-w-[16rem]',
+  ctaTransparentMobile:
+    'border-2 border-brand-cream bg-transparent text-brand-cream md:border-0 md:bg-brand-red md:text-white',
+  ctaOutline:
+    'border-2 border-brand-cream bg-transparent text-brand-cream md:hover:bg-brand-cream md:hover:text-brand-dark',
+  ctaSolid: 'border-2 border-transparent bg-brand-red text-white',
+} as const
+
 function TituloConResaltado({ title, highlight }: { title: string; highlight?: string }) {
   if (!highlight || !title.includes(highlight)) return <>{title}</>
 
   const [antes, despues] = title.split(highlight)
+
+  if (title.includes('Hola,')) {
+    const [antesDelNombre, resto] = title.split(', ')
+    const [userName, fraseFinal] = resto.split('. ')
+    const [antesHighlight, despuesHighlight] = fraseFinal.split(highlight)
+
+    return (
+      <>
+        {antesDelNombre}
+        {', '}
+        <span className="text-red-600">{userName}</span>. {antesHighlight}
+        <span className={STYLES.highlightBadge}>{highlight}</span>
+        {despuesHighlight}
+      </>
+    )
+  }
+
   return (
     <>
       {antes}
-      <span className="inline-block -rotate-2 rounded-xl bg-brand-mustard px-3 text-brand-dark">{highlight}</span>
+      <span className={STYLES.highlightBadge}>{highlight}</span>
       {despues}
     </>
   )
 }
-// Texto y botón de un slide, sobre la foto de fondo
-function SlideContent({ slide }: { slide: CarouselSlide }) {
+
+function SlideContent({ slide, transparentesEnMovil = false }: SlideContentProps) {
+  const ctaVariantClass = transparentesEnMovil
+    ? STYLES.ctaTransparentMobile
+    : slide.ctaVariant === 'outline'
+      ? STYLES.ctaOutline
+      : STYLES.ctaSolid
+
   return (
-    <div className="w-full max-w-2xl text-center md:text-left">
-      {slide.eyebrow && (
-        <span className="mb-4 inline-block rounded-full bg-brand-mustard px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-dark">
-          {slide.eyebrow}
-        </span>
-      )}
+    <div className={STYLES.wrapper}>
+      <div className={STYLES.inner}>
+        {slide.eyebrow && (
+          <div className={STYLES.eyebrowWrapper}>
+            <span className={STYLES.eyebrowBadge}>{slide.eyebrow}</span>
+          </div>
+        )}
 
-      <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight drop-shadow-lg sm:text-6xl">
-        <TituloConResaltado title={slide.title} highlight={slide.highlight} />
-      </h1>
+        <h1 className={STYLES.title}>
+          <TituloConResaltado title={slide.title} highlight={slide.highlight} />
+        </h1>
 
-      <p className="mt-5 max-w-xl text-lg text-white/85">{slide.description}</p>
+        <p className={STYLES.description}>{slide.description}</p>
+      </div>
 
-      <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
-        <Link
-          to={slide.ctaTo}
-          className={
-            slide.ctaVariant === 'outline'
-              ? 'rounded-full border-2 border-brand-cream px-6 py-3 text-center font-bold text-brand-cream transition-colors hover:bg-brand-cream hover:text-brand-dark'
-              : 'rounded-full bg-brand-red px-6 py-3 text-center font-bold text-white transition-transform hover:translate-y-0.5'
-          }          
-        >
+      <div className={STYLES.ctaWrapper}>
+        <Link to={slide.ctaTo} className={`${STYLES.ctaBase} ${ctaVariantClass}`}>
           {slide.ctaLabel}
         </Link>
       </div>

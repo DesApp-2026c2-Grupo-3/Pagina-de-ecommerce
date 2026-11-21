@@ -6,6 +6,8 @@ export type {
   DatosStockBajo,
   DatosSucursalCerrada,
   DatosSucursalModificadaPorAdmin,
+  DatosViajeAsistenciaTomada,
+  DatosViajeRequiereAsistencia,
   Notificacion,
   TipoNotificacion,
 } from '../notificaciones/catalogo'

@@ -148,11 +148,11 @@ async function reconstruirLinea(detalle, obtener, stockPorInsumo) {
     };
 }
 
-// GET /pedido/:id/repetir?usuarioId=X&sucursalId=Y
+// GET /pedido/:id/repetir?sucursalId=Y (el cliente sale de la sesión: plan de clientes, C-2)
 // → { disponibles: [líneas listas para el carrito], noDisponibles: [{ nombre, cantidad, motivo }] }
 const repetirPedido = async (req, res) => {
     try {
-        const usuarioId = Number(req.query.usuarioId);
+        const usuarioId = req.identidad.id;
         const sucursalId = Number(req.query.sucursalId) || null;
 
         const pedido = await Pedido.findByPk(req.params.id, { include: [DetallePedido] });

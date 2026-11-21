@@ -98,6 +98,7 @@ module.exports = {
           ...ref('Sucursals', { onUpdate: 'CASCADE', onDelete: 'RESTRICT' }),
         },
         activo: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
+        deletedAt: { type: Sequelize.DATE, allowNull: true },
         ...timestamps,
       });
 
@@ -300,6 +301,11 @@ module.exports = {
         longitudAsistencia: {
           type: Sequelize.DECIMAL(10, 7),
           allowNull: true,
+        },
+        recepcionConfirmada: {
+          type: Sequelize.BOOLEAN,
+          allowNull: false,
+          defaultValue: true,
         },
         ...timestamps,
       });

@@ -9,68 +9,149 @@ import { promoDelProducto } from '../../utils/promosUtils'
 interface ProductCardProps {
   product: ProductoBackend
   indice?: number
+  compacta?: boolean
+  mostrarDescripcion?: boolean
+  /** Activa formato horizontal 50/50 estilo PromoBanner entre 405px y 639px */
+  horizontalIntermedio?: boolean
 }
 
-export default function ProductCard({ product, indice }: ProductCardProps) {
+const STYLES = {
+  link: 'group block h-full',
+  articleBase: 'relative flex h-full overflow-hidden rounded-[1.5rem] border-2 bg-white transition sm:rounded-[1.75rem]',
+  articleAvailable: 'border-brand-dark group-hover:-translate-y-1 group-hover:shadow-sticker',
+  articleUnavailable: 'border-dashed border-brand-muted/60',
+  articleHorizontalMid: 'min-[405px]:max-[639px]:grid min-[405px]:max-[639px]:grid-cols-2',
+  promoBadgeBase:
+    'absolute z-10 grid rotate-12 place-items-center rounded-full border-2 border-brand-dark bg-brand-red text-center font-display font-extrabold leading-none text-white',
+  promoBadgeCompact: 'left-1.5 top-1.5 h-10 w-10 text-[10px] sm:left-auto sm:right-3 sm:top-3 sm:h-14 sm:w-14 sm:text-sm',
+  promoBadgeDefault: 'right-2 top-2 h-11 w-11 text-xs sm:right-3 sm:top-3 sm:h-14 sm:w-14 sm:text-sm',
+  unavailableBadgeBase: 'absolute z-10 rounded-full bg-brand-dark font-bold text-white',
+  unavailableBadgeCompact: 'left-1.5 top-1.5 px-2 py-0.5 text-[9px] sm:left-3 sm:top-3 sm:px-3 sm:py-1 sm:text-xs',
+  unavailableBadgeDefault: 'left-2 top-2 px-2 py-0.5 text-[10px] sm:left-3 sm:top-3 sm:px-3 sm:py-1 sm:text-xs',
+  mediaWrapperBase: 'grid place-items-center',
+  mediaWrapperCompact: 'w-24 shrink-0 self-stretch sm:h-44 sm:w-auto sm:self-auto',
+  mediaWrapperDefault: 'h-32 sm:h-44',
+  mediaWrapperHorizontalMid: 'min-[405px]:max-[639px]:h-full min-[405px]:max-[639px]:min-h-44 min-[405px]:max-[639px]:p-3',
+  imageBase: 'w-full object-contain drop-shadow-lg transition-transform duration-300',
+  imageAvailable: 'group-hover:scale-110 group-hover:-rotate-3',
+  imageUnavailable: 'opacity-50 grayscale',
+  imageHorizontalMid: 'min-[405px]:max-[639px]:h-36',
+  bodyBase: 'flex min-w-0 flex-1 flex-col gap-0.5 border-brand-dark',
+  bodyCompact: 'border-l-2 p-3 sm:border-l-0 sm:border-t-2 sm:p-5',
+  bodyDefault: 'border-t-2 p-3 sm:p-5',
+  bodyHorizontalMid:
+    'min-[405px]:max-[639px]:justify-between min-[405px]:max-[639px]:border-l-2 min-[405px]:max-[639px]:border-t-0 min-[405px]:max-[639px]:p-4',
+  title: 'font-display text-sm font-extrabold leading-tight text-brand-dark sm:text-xl',
+  titleHorizontalMid: 'min-[405px]:max-[639px]:text-lg',
+  descriptionVisible: 'line-clamp-2 flex-1 text-xs text-brand-muted sm:text-sm',
+  descriptionDesktopOnly: 'hidden text-xs text-brand-muted sm:line-clamp-2 sm:flex-1 sm:text-sm',
+  descriptionHorizontalMid: 'min-[405px]:max-[639px]:mt-1 min-[405px]:max-[639px]:line-clamp-2 min-[405px]:max-[639px]:block',
+  footerBase: 'mt-2 flex items-center justify-between sm:mt-3',
+  priceGroup: 'flex items-baseline gap-0.5 sm:gap-1',
+  priceFrom: 'text-[10px] font-semibold text-brand-muted sm:text-xs',
+  priceText: 'text-base font-extrabold sm:text-xl',
+  priceHorizontalMid: 'min-[405px]:max-[639px]:text-lg',
+  addBtn:
+    'grid h-8 w-8 place-items-center rounded-xl bg-brand-red text-white transition-transform group-hover:rotate-90 sm:h-10 sm:w-10',
+  addIcon: 'h-4 w-4 sm:h-5 sm:w-5',
+} as const
+
+export default function ProductCard({
+  product,
+  indice,
+  compacta = false,
+  mostrarDescripcion = true,
+  horizontalIntermedio = false,
+}: ProductCardProps) {
   const isUnavailable = !product.disponible
   const tieneTamanios = (product.tamanios?.length ?? 0) > 0
-  // Fondo de la foto intercalado entre mostaza y arena, como en el diseño
-  const fondoFoto = (indice ?? product.id) % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'  
-  // Si hoy está en promo (o es el producto de la semana), lleva una etiqueta
+  const fondoFoto = (indice ?? product.id) % 2 === 0 ? 'bg-brand-mustard' : 'bg-brand-sand'
   const promo = promoDelProducto(usePromociones(), product.id)
 
   return (
-    <Link to={`/producto/${product.id}`} className="group block h-full">
+    <Link to={`/producto/${product.id}`} className={STYLES.link}>
       <article
-        className={`relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border-2 bg-white transition ${
-          isUnavailable
-            ? 'border-dashed border-brand-muted/60'
-            : 'border-brand-dark group-hover:-translate-y-1 group-hover:shadow-sticker'
-        }`}
+        className={`${STYLES.articleBase} ${compacta ? 'flex-row sm:flex-col' : 'flex-col'} ${
+          horizontalIntermedio ? STYLES.articleHorizontalMid : ''
+        } ${isUnavailable ? STYLES.articleUnavailable : STYLES.articleAvailable}`}
       >
         {promo && !isUnavailable && (
-          <span className="absolute right-3 top-3 z-10 grid h-14 w-14 rotate-12 place-items-center rounded-full border-2 border-brand-dark bg-brand-red text-center font-display text-sm font-extrabold leading-none text-white">
+          <span
+            className={`${STYLES.promoBadgeBase} ${
+              compacta ? STYLES.promoBadgeCompact : STYLES.promoBadgeDefault
+            }`}
+          >
             {promo.destacado}
-            {promo.destacado.endsWith('%') && <span className="block text-[10px]">OFF</span>}
+            {promo.destacado.endsWith('%') && <span className="block text-[8px] sm:text-[10px]">OFF</span>}
           </span>
         )}
 
         {isUnavailable && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-brand-dark px-3 py-1 text-xs font-bold text-white">
+          <span
+            className={`${STYLES.unavailableBadgeBase} ${
+              compacta ? STYLES.unavailableBadgeCompact : STYLES.unavailableBadgeDefault
+            }`}
+          >
             No disponible
           </span>
         )}
 
-        <div className={`grid h-44 place-items-center ${isUnavailable ? 'bg-brand-sand/60' : fondoFoto}`}>
+        <div
+          className={`${STYLES.mediaWrapperBase} ${
+            compacta ? STYLES.mediaWrapperCompact : STYLES.mediaWrapperDefault
+          } ${horizontalIntermedio ? STYLES.mediaWrapperHorizontalMid : ''} ${
+            isUnavailable ? 'bg-brand-sand/60' : fondoFoto
+          }`}
+        >
           <ImagenProducto
             src={product.imagen}
             alt={product.nombre}
-            className={`h-36 w-full object-contain drop-shadow-lg transition-transform duration-300 ${
-              isUnavailable ? 'opacity-50 grayscale' : 'group-hover:scale-110 group-hover:-rotate-3'
-            }`}
-            claseIcono={`h-20 w-20 text-brand-dark ${isUnavailable ? 'opacity-40' : ''}`}
+            ancho={compacta ? 400 : 600}
+            className={`${STYLES.imageBase} ${compacta ? 'h-20 sm:h-36' : 'h-30 sm:h-36'} ${
+              horizontalIntermedio ? STYLES.imageHorizontalMid : ''
+            } ${isUnavailable ? STYLES.imageUnavailable : STYLES.imageAvailable}`}
+            claseIcono={`text-brand-dark ${
+              compacta ? 'h-10 w-10 sm:h-20 sm:w-20' : 'h-14 w-14 sm:h-20 sm:w-20'
+            } ${isUnavailable ? 'opacity-40' : ''}`}
           />
         </div>
 
-        <div className="flex flex-1 flex-col gap-1 border-t-2 border-brand-dark p-5">
-          <h3 className="font-display text-xl font-extrabold leading-tight text-brand-dark">{product.nombre}</h3>
+        <div
+          className={`${STYLES.bodyBase} ${compacta ? STYLES.bodyCompact : STYLES.bodyDefault} ${
+            horizontalIntermedio ? STYLES.bodyHorizontalMid : ''
+          }`}
+        >
+          <div>
+            <h3 className={`${STYLES.title} ${horizontalIntermedio ? STYLES.titleHorizontalMid : ''}`}>
+              {product.nombre}
+            </h3>
 
-          <p className="line-clamp-2 flex-1 text-sm text-brand-muted">{product.descripcion}</p>
+            {product.descripcion && (
+              <p
+                className={`${mostrarDescripcion ? STYLES.descriptionVisible : STYLES.descriptionDesktopOnly} ${
+                  horizontalIntermedio ? STYLES.descriptionHorizontalMid : ''
+                }`}
+              >
+                {product.descripcion}
+              </p>
+            )}
+          </div>
 
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-baseline gap-1">
-              {tieneTamanios && <span className="text-xs font-semibold text-brand-muted">desde</span>}
-              <span className={`text-xl font-extrabold ${isUnavailable ? 'text-brand-muted' : 'text-brand-red'}`}>
+          <div className={`${STYLES.footerBase} ${!mostrarDescripcion ? 'mt-auto' : ''}`}>
+            <div className={STYLES.priceGroup}>
+              {tieneTamanios && <span className={STYLES.priceFrom}>desde</span>}
+              <span
+                className={`${STYLES.priceText} ${horizontalIntermedio ? STYLES.priceHorizontalMid : ''} ${
+                  isUnavailable ? 'text-brand-muted' : 'text-brand-red'
+                }`}
+              >
                 {formatearPrecio(precioDesde(product))}
               </span>
             </div>
 
             {!isUnavailable && (
-              <span
-                aria-hidden="true"
-                className="grid h-10 w-10 place-items-center rounded-xl bg-brand-red text-white transition-transform group-hover:rotate-90"
-              >
-                <Plus className="h-5 w-5" strokeWidth={3} />
+              <span aria-hidden="true" className={STYLES.addBtn}>
+                <Plus className={STYLES.addIcon} strokeWidth={3} />
               </span>
             )}
           </div>

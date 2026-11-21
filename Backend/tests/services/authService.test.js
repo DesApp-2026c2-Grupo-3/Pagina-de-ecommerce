@@ -6,13 +6,15 @@ jest.mock('../../src/utils/jwt', () => ({
 jest.mock('../../src/models', () => ({
     Usuario: { findByPk: jest.fn() },
     Admin: { findByPk: jest.fn() },
+    Repartidor: { findByPk: jest.fn() },
 }));
 
 const { firmarToken, verificarToken } = require('../../src/utils/jwt');
-const { Usuario, Admin } = require('../../src/models');
+const { Usuario, Admin, Repartidor } = require('../../src/models');
 const {
     firmarTokenCliente,
     firmarTokenAdmin,
+    firmarTokenRepartidor,
     resolverIdentidad,
 } = require('../../src/services/authService');
 
@@ -45,6 +47,20 @@ describe('firmarTokenAdmin', () => {
             '4h'
         );
         expect(token).toBe('token-admin');
+    });
+});
+
+describe('firmarTokenRepartidor', () => {
+    test('firma un token de repartidor con rol y duración de 12 horas', () => {
+        firmarToken.mockReturnValue('token-repartidor');
+
+        const token = firmarTokenRepartidor({ id: 9, sucursalId: 2 });
+
+        expect(firmarToken).toHaveBeenCalledWith(
+            { sub: 9, tipo: 'repartidor', rol: 'REPARTIDOR' },
+            '12h'
+        );
+        expect(token).toBe('token-repartidor');
     });
 });
 
@@ -116,14 +132,56 @@ describe('resolverIdentidad', () => {
             .rejects.toMatchObject({ codigo: 'AUTH_INVALID' });
     });
 
+    test('resuelve un repartidor activo desde la base', async () => {
+        verificarToken.mockReturnValue({ sub: 9, tipo: 'repartidor', rol: 'REPARTIDOR' });
+        Repartidor.findByPk.mockResolvedValue({
+            id: 9,
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            sucursalId: 2,
+            activo: true,
+        });
+
+        const identidad = await resolverIdentidad('token');
+
+        expect(Repartidor.findByPk).toHaveBeenCalledWith(9, {
+            attributes: ['id', 'nombre', 'apellido', 'sucursalId', 'activo'],
+        });
+        expect(identidad).toEqual({
+            tipo: 'repartidor',
+            id: 9,
+            rol: 'REPARTIDOR',
+            sucursalId: 2,
+            nombre: 'Juan Pérez',
+        });
+    });
+
+    test('rechaza un repartidor inexistente o dado de baja', async () => {
+        // Con paranoid, findByPk no devuelve a los dados de baja
+        verificarToken.mockReturnValue({ sub: 9, tipo: 'repartidor' });
+        Repartidor.findByPk.mockResolvedValue(null);
+
+        await expect(resolverIdentidad('token'))
+            .rejects.toMatchObject({ codigo: 'AUTH_INVALID' });
+    });
+
+    test('rechaza un repartidor inactivo', async () => {
+        verificarToken.mockReturnValue({ sub: 9, tipo: 'repartidor' });
+        Repartidor.findByPk.mockResolvedValue({ id: 9, activo: false });
+
+        await expect(resolverIdentidad('token'))
+            .rejects.toMatchObject({ codigo: 'AUTH_INVALID' });
+    });
+
     test('rechaza un tipo de token desconocido', async () => {
-        verificarToken.mockReturnValue({ sub: 1, tipo: 'repartidor' });
+        verificarToken.mockReturnValue({ sub: 1, tipo: 'otro' });
 
         await expect(resolverIdentidad('token'))
             .rejects.toMatchObject({ codigo: 'AUTH_INVALID' });
 
         expect(Usuario.findByPk).not.toHaveBeenCalled();
         expect(Admin.findByPk).not.toHaveBeenCalled();
+        expect(Repartidor.findByPk).not.toHaveBeenCalled();
     });
 
     test('distingue un token vencido', async () => {

@@ -81,7 +81,7 @@ describe('repetirPedido', () => {
         Pedido.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 99 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 99 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'Pedido no encontrado' });
@@ -91,7 +91,16 @@ describe('repetirPedido', () => {
         Pedido.findByPk.mockResolvedValue(crearPedido([detalle()], 2));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
+
+        expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    test('un usuarioId en la query no cambia de quién es el pedido (C-2)', async () => {
+        Pedido.findByPk.mockResolvedValue(crearPedido([detalle()], 2));
+        const res = crearRes();
+
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: { usuarioId: '2' } }, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -99,7 +108,7 @@ describe('repetirPedido', () => {
     test('reconstruye una línea simple con el precio actual', async () => {
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json).toHaveBeenCalledWith({
             disponibles: [{
@@ -123,7 +132,7 @@ describe('repetirPedido', () => {
         ]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].disponibles[0].selectedOptions).toEqual([]);
     });
@@ -134,7 +143,7 @@ describe('repetirPedido', () => {
             .mockResolvedValueOnce({ nombre: 'Viejo Producto' });
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles).toEqual([{
             nombre: 'Viejo Producto',
@@ -151,7 +160,7 @@ describe('repetirPedido', () => {
         Producto.findByPk.mockResolvedValue(null);
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].nombre).toBe('Un producto');
     });
@@ -160,7 +169,7 @@ describe('repetirPedido', () => {
         setProductos([producto({ disponible: false })]);
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('No está disponible por el momento');
@@ -170,7 +179,7 @@ describe('repetirPedido', () => {
         setProductos([producto({ tamanios: [{ tamanioId: 2, precio: '1500' }] })]);
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1', } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('Ya no se vende en ese tamaño');
@@ -181,7 +190,7 @@ describe('repetirPedido', () => {
         Pedido.findByPk.mockResolvedValue(crearPedido([detalle({ tamanioId: 2 })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         const linea = res.json.mock.calls[0][0].disponibles[0];
         expect(linea.tamanioId).toBe(2);
@@ -227,7 +236,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         const linea = res.json.mock.calls[0][0].disponibles[0];
         expect(linea.personalizaciones).toEqual([
@@ -252,7 +261,7 @@ describe('repetirPedido', () => {
         })]);
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('El combo cambió: armalo de nuevo');
@@ -264,7 +273,7 @@ describe('repetirPedido', () => {
         })]);
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         const linea = res.json.mock.calls[0][0].disponibles[0];
         expect(linea.combo).toEqual([]);
@@ -280,7 +289,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('Una opción del combo ya no está disponible');
@@ -298,7 +307,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('Refresco ya no está disponible');
@@ -322,7 +331,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('Refresco ya no se vende en ese tamaño');
@@ -349,7 +358,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1', sucursalId: '3' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: { sucursalId: '3' } }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('No hay stock de Refresco en tu sucursal');
@@ -374,7 +383,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         const linea = res.json.mock.calls[0][0].disponibles[0];
         expect(precioMasBarato).toHaveBeenCalledWith(3, null);
@@ -401,7 +410,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         const linea = res.json.mock.calls[0][0].disponibles[0];
         expect(precioMasBarato).not.toHaveBeenCalled();
@@ -428,7 +437,7 @@ describe('repetirPedido', () => {
         })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.json.mock.calls[0][0].disponibles[0].unitPrice).toBe(1000);
     });
@@ -441,7 +450,7 @@ describe('repetirPedido', () => {
         StockSucursal.findAll.mockResolvedValue([{ insumoId: 10, cantidad: '0' }]);
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1', sucursalId: '3' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: { sucursalId: '3' } }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('No hay stock en tu sucursal');
@@ -454,7 +463,7 @@ describe('repetirPedido', () => {
         Sucursal.findByPk.mockResolvedValue({ activa: false });
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1', sucursalId: '3' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: { sucursalId: '3' } }, res);
 
         expect(StockSucursal.findAll).not.toHaveBeenCalled();
         expect(res.json.mock.calls[0][0].disponibles).toHaveLength(1);
@@ -470,7 +479,7 @@ describe('repetirPedido', () => {
         Pedido.findByPk.mockResolvedValue(crearPedido([detalle({ tamanioId: 2 })]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1', sucursalId: '3' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: { sucursalId: '3' } }, res);
 
         expect(res.json.mock.calls[0][0].noDisponibles[0].motivo)
             .toBe('No hay stock en tu sucursal');
@@ -480,7 +489,7 @@ describe('repetirPedido', () => {
         Pedido.findByPk.mockResolvedValue(crearPedido([detalle(), detalle()]));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(Producto.findByPk).toHaveBeenCalledTimes(1);
         expect(res.json.mock.calls[0][0].disponibles).toHaveLength(2);
@@ -490,7 +499,7 @@ describe('repetirPedido', () => {
         Pedido.findByPk.mockRejectedValue(new Error('Base caída'));
         const res = crearRes();
 
-        await repetirPedido({ params: { id: 1 }, query: { usuarioId: '1' } }, res);
+        await repetirPedido({ params: { id: 1 }, identidad: { id: 1 }, query: {} }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.json).toHaveBeenCalledWith({ mensaje: 'No se pudo repetir el pedido' });

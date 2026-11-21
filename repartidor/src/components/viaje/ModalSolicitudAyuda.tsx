@@ -1,18 +1,55 @@
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import type { SolicitudAsistencia } from '../../types/viaje.types'
+
+import Dialogo from '../ui/Dialogo'
+import Boton from '../ui/Boton'
+import type { Motivo, SolicitudAsistencia } from '../../types/viaje.types'
 
 interface ModalSolicitudAyudaProps {
+  abierto: boolean
   enviando: boolean
   error: string
   onCerrar: () => void
   onConfirmar: (datos: SolicitudAsistencia) => void
 }
 
-export default function ModalSolicitudAyuda({enviando, error, onCerrar, onConfirmar }: ModalSolicitudAyudaProps) {
-  const [motivo, setMotivo] = useState<SolicitudAsistencia['motivo'] | ''>('')
+// Etiquetas de una línea para el celular; al servidor va el motivo completo
+const MOTIVOS: { valor: Motivo; etiqueta: string }[] = [
+  { valor: 'Problema con el vehículo', etiqueta: 'Vehículo' },
+  { valor: 'Accidente', etiqueta: 'Accidente' },
+  { valor: 'Problema personal', etiqueta: 'Personal' },
+  { valor: 'Otro', etiqueta: 'Otro' },
+]
+
+// v1.9 (D-25): 150 caracteres entran completos en 4 renglones, sin scroll, a 360 px
+const MAXIMO_COMENTARIO = 150
+
+// El cuadro crece con el texto en vez de mostrar scroll (W-7). Con texto común, 150 caracteres
+// entran en los 4 renglones de base; solo crece con letras muy anchas.
+function ajustarAlto(cuadro: HTMLTextAreaElement) {
+  cuadro.style.height = 'auto'
+  // scrollHeight no incluye el borde (box-sizing: border-box): se lo suma
+  const borde = cuadro.offsetHeight - cuadro.clientHeight
+  cuadro.style.height = `${cuadro.scrollHeight + borde}px`
+}
+
+// Versión compacta (W-7): entra entera en 360 × 640 sin scroll interno. El motivo es un grupo
+// de 4 opciones en lugar de un select y los textos van a 16 px para que iOS no haga zoom.
+export default function ModalSolicitudAyuda({ abierto, enviando, error, onCerrar, onConfirmar }: ModalSolicitudAyudaProps) {
+  const [motivo, setMotivo] = useState<Motivo | null>(null)
   const [comentario, setComentario] = useState('')
   const [errorValidacion, setErrorValidacion] = useState('')
+  const idComentario = useId()
+  const cuadroComentario = useRef<HTMLTextAreaElement>(null)
+
+  // Al cerrar sin enviar se descarta lo cargado: la próxima vez arranca de cero
+  const cerrar = () => {
+    setMotivo(null)
+    setComentario('')
+    setErrorValidacion('')
+    if (cuadroComentario.current) cuadroComentario.current.style.height = ''
+    onCerrar()
+  }
 
   const confirmar = () => {
     if (!motivo) {
@@ -21,101 +58,102 @@ export default function ModalSolicitudAyuda({enviando, error, onCerrar, onConfir
     }
 
     setErrorValidacion('')
-
-    onConfirmar({
-      motivo,
-      comentario: comentario.trim() || undefined,
-    })
+    onConfirmar({ motivo, comentario: comentario.trim() || undefined })
   }
 
+  const mensajeError = errorValidacion || error
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-red-100 p-3">
-            <AlertTriangle className="text-red-600" size={24} />
-          </div>
+    <Dialogo
+      abierto={abierto}
+      titulo="Solicitar asistencia"
+      onCerrar={cerrar}
+      bloquearCierre={enviando}
+      icono={
+        <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+          <AlertTriangle size={20} />
+        </span>
+      }
+    >
+      <fieldset disabled={enviando} className="m-0 min-w-0 border-0 p-0">
+        <legend className="mb-2 text-sm font-bold text-slate-700">Motivo de asistencia</legend>
 
-          <div>
-            <h3 className="text-lg font-bold text-slate-900">
-              Solicitar asistencia
-            </h3>
-            <p className="text-sm text-slate-500">
-              Contanos qué ocurrió durante el viaje.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Motivo
-            </label>
-
-            <select
-              value={motivo}
-              onChange={(e) => {
-                setMotivo(e.target.value as SolicitudAsistencia['motivo'] | '')
-                setErrorValidacion('')
-              }}
-              disabled={enviando}
-              className="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm outline-none focus:border-orange-500"
+        <div className="grid grid-cols-2 gap-2">
+          {MOTIVOS.map(({ valor, etiqueta }) => (
+            <label
+              key={valor}
+              className={
+                'flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border-2 px-3 text-base font-semibold ' +
+                'text-slate-800 transition has-[:checked]:border-red-700 has-[:checked]:bg-red-50 ' +
+                'has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-orange-300 ' +
+                'border-slate-200'
+              }
             >
-              <option value="">Seleccioná un motivo</option>
-              <option value="Problema con el vehículo">
-                Problema con el vehículo
-              </option>
-              <option value="Accidente">Accidente</option>
-              <option value="Problema personal">Problema personal</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Comentario (opcional)
+              <input
+                type="radio"
+                name="motivo-asistencia"
+                value={valor}
+                checked={motivo === valor}
+                onChange={() => {
+                  setMotivo(valor)
+                  setErrorValidacion('')
+                }}
+                className="size-5 shrink-0 accent-red-700 focus:outline-none"
+              />
+              {etiqueta}
             </label>
+          ))}
+        </div>
+      </fieldset>
 
-            <textarea
-              value={comentario}
-              onChange={(e) => setComentario(e.target.value)}
-              maxLength={500}
-              rows={3}
-              disabled={enviando}
-              placeholder="Explicá brevemente qué sucedió..."
-              className="w-full resize-none rounded-xl border border-slate-300 p-3 text-sm outline-none focus:border-orange-500"
-            />
-
-            <p className="mt-1 text-right text-xs text-slate-400">
-              {comentario.length}/500
-            </p>
-          </div>
-
-          {(errorValidacion || error) && (
-            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-              {errorValidacion || error}
-            </p>
-          )}
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between gap-2">
+          <label htmlFor={idComentario} className="text-sm font-bold text-slate-700">
+            Comentario (opcional)
+          </label>
+          <span className="text-xs font-semibold text-slate-600">
+            {comentario.length}/{MAXIMO_COMENTARIO}
+          </span>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onCerrar}
-            disabled={enviando}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            Cancelar
-          </button>
-
-          <button
-            onClick={confirmar}
-            disabled={enviando}
-            className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {enviando ? 'Enviando...' : 'Confirmar solicitud'}
-          </button>
-        </div>
+        <textarea
+          ref={cuadroComentario}
+          id={idComentario}
+          value={comentario}
+          onChange={(evento) => {
+            setComentario(evento.target.value)
+            ajustarAlto(evento.target)
+          }}
+          maxLength={MAXIMO_COMENTARIO}
+          rows={4}
+          disabled={enviando}
+          placeholder="Explicá brevemente qué sucedió..."
+          className={
+            'block w-full resize-none overflow-hidden rounded-xl border-2 border-slate-200 px-3 py-2 text-base text-slate-900 ' +
+            'placeholder:text-slate-500 focus:border-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-100 ' +
+            'disabled:cursor-not-allowed disabled:opacity-60'
+          }
+        />
       </div>
-    </div>
+
+      <p className="text-sm leading-snug text-slate-600">
+        Administración recibe tu pedido junto con tu ubicación actual, si está disponible.
+      </p>
+
+      {mensajeError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">
+          {mensajeError}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <Boton variante="secundaria" anchoCompleto onClick={cerrar} disabled={enviando}>
+          Cancelar
+        </Boton>
+        <Boton variante="peligro" anchoCompleto onClick={confirmar} cargando={enviando} textoCargando="Enviando…">
+          Solicitar ayuda
+        </Boton>
+      </div>
+    </Dialogo>
   )
 }

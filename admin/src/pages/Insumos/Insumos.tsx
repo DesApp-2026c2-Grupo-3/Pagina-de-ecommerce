@@ -373,7 +373,7 @@ const acciones = (insumo: Insumo) => (
           </ul>
 
           {/* Escritorio: tabla */}
-          <div className="hidden rounded-lg border bg-white md:block">
+          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
             <table className="w-full border-collapse">
               <thead className="bg-gray-100">
                 <tr>

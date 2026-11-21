@@ -46,7 +46,7 @@ function Conocenos() {
         </div>
 
         <div className="rotate-2 rounded-[2rem] border-2 border-brand-dark bg-brand-mustard p-3 shadow-sticker">
-          <img src="/Nosotros/4.png" alt="Persona pidiendo en la web de BurgerFast" className="h-80 w-full -rotate-2 rounded-3xl object-cover" />
+          <img src="/Nosotros/empleadoModelo.jpg" alt="Persona pidiendo en la web de BurgerFast" className="h-100 w-full -rotate-2 rounded-3xl object-cover" />
         </div>
       </section>
 

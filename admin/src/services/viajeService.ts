@@ -1,4 +1,4 @@
-import type { Viaje } from '../types/viaje.types'
+import type { RespuestaReasignacion, Viaje } from '../types/viaje.types'
 import { apiFetch, API_URL } from './httpClient'
 
 const API = `${API_URL}/admin/viajes`
@@ -10,7 +10,7 @@ export async function obtenerViajesPorSucursal(sucursalId: number): Promise<Viaj
 }
 
 export async function reasignarViaje( viajeId: number, repartidorId: number) {
-  return apiFetch(`${API}/${viajeId}/reasignar`, {
+  return apiFetch<RespuestaReasignacion>(`${API}/${viajeId}/reasignar`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',

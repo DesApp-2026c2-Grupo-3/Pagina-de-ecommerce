@@ -1,5 +1,12 @@
 const { Op } = require('sequelize');
-const { Viaje, Pedido , Usuario, Direccion, DetallePedido, Producto }= require('../../models');
+const { Viaje, Pedido , Usuario, Direccion, DetallePedido, Producto, historialDeTiemposPedido }= require('../../models');
+const {
+    notificarPedidosTomados,
+    notificarViajeIniciado,
+    notificarPedidoQuitado,
+    notificarRecepcionConfirmada,
+    notificarAsistenciaSolicitada,
+} = require('../../notifications/handlers/viajeHandlers');
 
 const tomarPedidos = async (req, res) => {
     const { pedidoIds } = req.body;
@@ -95,6 +102,8 @@ const tomarPedidos = async (req, res) => {
 
         await transaction.commit();
 
+        await notificarPedidosTomados({ viajeId: viaje.id, sucursalId });
+
         return res.status(201).json({
             mensaje: 'Pedidos asignados correctamente. Retiralos para poder iniciar el viaje',
             viaje: {
@@ -150,15 +159,13 @@ const iniciarViaje = async (req, res) => {
             throw error;
         }
 
-        // Comprobar que el viaje tenga pedidos asociados.
-        const cantidadPedidos = await Pedido.count({
-            where: {
-                viajeId: viaje.id,
-            },
+        const pedidos = await Pedido.findAll({
+            where: { viajeId: viaje.id },
             transaction,
+            lock: transaction.LOCK.UPDATE,
         });
 
-        if (cantidadPedidos === 0) {
+        if (pedidos.length === 0) {
             const error = new Error(
                 'No podés iniciar un viaje sin pedidos'
             );
@@ -166,16 +173,8 @@ const iniciarViaje = async (req, res) => {
             throw error;
         }
 
-        // Comprobar que todos los pedidos hayan sido retirados.
-        const pedidosSinRetirar = await Pedido.count({
-            where: {
-                viajeId: viaje.id,
-                estado: 'Listo para retirar',
-            },
-            transaction,
-        });
-
-        if (pedidosSinRetirar > 0) {
+        // D-07: todos tienen que estar retirados del local
+        if (pedidos.some((pedido) => !pedido.retiradoEn)) {
             const error = new Error(
                 'Todavía tenés pedidos pendientes de retirar'
             );
@@ -183,16 +182,31 @@ const iniciarViaje = async (req, res) => {
             throw error;
         }
 
-        // Iniciar el viaje.
+        // Recién ahora salen: todos pasan a "En camino" con su registro en la línea de tiempo
+        const salida = new Date();
+
+        for (const pedido of pedidos) {
+            const estadoAnterior = pedido.estado;
+            await pedido.update({ estado: 'En camino' }, { transaction });
+            await historialDeTiemposPedido.create({
+                pedidoId: pedido.id,
+                estadoAnterior,
+                estado: 'En camino',
+                fecha: salida,
+            }, { transaction });
+        }
+
         await viaje.update(
             {
                 estado: 'activo',
-                fechaInicio: new Date(),
+                fechaInicio: salida,
             },
             { transaction }
         );
 
         await transaction.commit();
+
+        await notificarViajeIniciado({ viaje, pedidos, sucursalId: req.repartidor.sucursalId });
 
         return res.status(200).json({
             mensaje: 'Viaje iniciado correctamente',
@@ -266,7 +280,7 @@ const quitarPedidoDelViaje = async (req, res) => {
             throw error;
         }
 
-        if (pedido.estado !== 'Listo para retirar') {
+        if (pedido.retiradoEn || pedido.estado !== 'Listo para retirar') {
             const error = new Error(
                 'No podés quitar un pedido que ya fue retirado o modificado'
             );
@@ -292,6 +306,8 @@ const quitarPedidoDelViaje = async (req, res) => {
         }
 
         await transaction.commit();
+
+        await notificarPedidoQuitado({ pedido, viajeId: viaje.id, repartidorId });
 
         return res.status(200).json({
             mensaje: pedidosRestantes === 0
@@ -370,6 +386,83 @@ const obtenerViajeActivo = async (req, res) => {
     }
 };
 
+const confirmarRecepcion = async (req, res) => {
+    const { id: repartidorId } = req.repartidor;
+
+    const transaction = await Viaje.sequelize.transaction();
+
+    try {
+        // Buscar y bloquear el viaje activo del repartidor.
+        const viaje = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: 'activo',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!viaje) {
+            const error = new Error(
+                'No tenés un viaje activo para confirmar la recepción'
+            );
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Si ya confirmó, no hace falta repetir la operación.
+        if (viaje.recepcionConfirmada) {
+            await transaction.commit();
+
+            return res.status(200).json({
+                mensaje: 'La recepción ya estaba confirmada',
+                recepcionConfirmada: true,
+            });
+        }
+
+        await viaje.update(
+            { recepcionConfirmada: true },
+            { transaction }
+        );
+
+        const cantidadPedidos = await Pedido.count({
+            where: { viajeId: viaje.id },
+            transaction,
+        });
+
+        await transaction.commit();
+
+        // Solo acá avisa: una confirmación repetida sale antes y no duplica el aviso
+        await notificarRecepcionConfirmada({
+            viaje,
+            repartidor: {
+                id: repartidorId,
+                nombre: req.identidad.nombre,
+                sucursalId: req.repartidor.sucursalId,
+            },
+            cantidadPedidos,
+        });
+
+        return res.status(200).json({
+            mensaje: 'Recepción de pedidos confirmada correctamente',
+            recepcionConfirmada: true,
+        });
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error('Error al confirmar recepción:', error.message);
+
+        return res.status(error.statusCode || 500).json({
+            mensaje: error.statusCode
+                ? error.message
+                : 'Error al confirmar la recepción de los pedidos',
+        });
+    }
+};
+
 const obtenerHistorialViajes = async (req, res) => {
     try {
         const { id: repartidorId } = req.repartidor;
@@ -424,6 +517,9 @@ const obtenerHistorialViajes = async (req, res) => {
     }
 };
 
+// D-25: el comentario entra completo, sin scroll, en el diálogo del celular (plan UX, v1.9)
+const MAXIMO_COMENTARIO_ASISTENCIA = 150;
+
 const solicitarAyuda = async (req, res) => {
     const { id: repartidorId } = req.repartidor;
     const { motivo, comentario, latitud, longitud } = req.body;
@@ -443,10 +539,10 @@ const solicitarAyuda = async (req, res) => {
 
     if (
         comentario !== undefined &&
-        (typeof comentario !== 'string' || comentario.trim().length > 500)
+        (typeof comentario !== 'string' || comentario.trim().length > MAXIMO_COMENTARIO_ASISTENCIA)
     ) {
         return res.status(400).json({
-            mensaje: 'El comentario debe tener como máximo 500 caracteres',
+            mensaje: `El comentario debe tener como máximo ${MAXIMO_COMENTARIO_ASISTENCIA} caracteres`,
         });
     }
 
@@ -498,6 +594,15 @@ const solicitarAyuda = async (req, res) => {
 
         await transaction.commit();
 
+        await notificarAsistenciaSolicitada({
+            viaje,
+            repartidor: {
+                id: repartidorId,
+                nombre: req.identidad.nombre,
+                sucursalId: req.repartidor.sucursalId,
+            },
+        });
+
         return res.status(200).json({
             mensaje: 'Solicitud de asistencia enviada correctamente',
             viaje: {
@@ -525,5 +630,6 @@ const solicitarAyuda = async (req, res) => {
 };
 
 module.exports = {
-    iniciarViaje, obtenerViajeActivo, obtenerHistorialViajes, solicitarAyuda, tomarPedidos, quitarPedidoDelViaje
+    iniciarViaje, obtenerViajeActivo, confirmarRecepcion, obtenerHistorialViajes,
+     solicitarAyuda, tomarPedidos, quitarPedidoDelViaje
 }

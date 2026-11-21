@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const AUDIENCIAS_VALIDAS = new Set(['admin', 'cliente']);
+const AUDIENCIAS_VALIDAS = new Set(['admin', 'cliente', 'repartidor']);
 const DIRECTORIO_ESTRATEGIAS = path.join(__dirname, 'estrategias');
 const SUFIJO_ESTRATEGIA = '.strategy.js';
 
@@ -32,10 +32,6 @@ function validarEstrategia(estrategia, archivo) {
 
     if (estrategia.audiencias.some((audiencia) => !AUDIENCIAS_VALIDAS.has(audiencia))) {
         throw errorRegistro(`${archivo} define una audiencia desconocida`);
-    }
-
-    if (typeof estrategia.paraAdministradores !== 'boolean') {
-        throw errorRegistro(`${archivo} no define paraAdministradores`);
     }
 
     if (typeof estrategia.construir !== 'function') {
@@ -83,9 +79,9 @@ function tiposInbox(audiencia) {
         .map((estrategia) => estrategia.tipo);
 }
 
-function tipoParaAdministradores(tipo) {
-    const estrategia = obtenerEstrategia(tipo);
-    return estrategia ? estrategia.paraAdministradores : false;
+// Audiencias que pueden recibir un tipo (el canal filtra las salas con esto)
+function audienciasDe(tipo) {
+    return obtenerEstrategia(tipo)?.audiencias ?? [];
 }
 
 function tiposRegistrados() {
@@ -97,6 +93,6 @@ module.exports = {
     obtenerEstrategia,
     esTipoRegistrado,
     tiposInbox,
-    tipoParaAdministradores,
+    audienciasDe,
     tiposRegistrados,
 };

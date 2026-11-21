@@ -4,6 +4,12 @@ jest.mock('../../src/notifications', () => ({
     fabrica: { publicarPorTipo: jest.fn() },
 }));
 
+jest.mock('../../src/notifications/clienteRefresco', () => ({
+    emitirRefrescoCliente: jest.fn(),
+}));
+
+const { emitirRefrescoCliente } = require('../../src/notifications/clienteRefresco');
+
 const { fabrica } = require('../../src/notifications');
 const { notificarPedidoCreado, notificarEstadoPedido } = require('../../src/notifications/handlers/pedidoHandlers');
 const {
@@ -103,4 +109,35 @@ test('delega la modificación de sucursal por administrador', async () => {
         'sucursal.modificada_por_admin',
         payload,
     );
+});
+
+describe('refresco del cliente (plan de clientes, C-6)', () => {
+    test('un pedido nuevo pide recargar los pedidos de su cliente', async () => {
+        await notificarPedidoCreado(PEDIDO);
+
+        expect(emitirRefrescoCliente).toHaveBeenCalledWith({
+            dominio: 'pedido', accion: 'creado', usuarioId: 8, pedidoId: 45,
+        });
+    });
+
+    test('un cambio de estado visible pide recargar ese pedido', async () => {
+        await notificarEstadoPedido({ ...PEDIDO, estado: 'En camino' }, 'Listo para retirar');
+
+        expect(emitirRefrescoCliente).toHaveBeenCalledWith({
+            dominio: 'pedido', accion: 'estado_cambiado', usuarioId: 8, pedidoId: 45,
+        });
+    });
+
+    test('el paso a un estado interno no refresca (el cliente no ve ningún cambio)', async () => {
+        await notificarEstadoPedido({ ...PEDIDO, estado: 'Listo para retirar' }, 'En proceso');
+
+        expect(emitirRefrescoCliente).not.toHaveBeenCalled();
+    });
+
+    test('el refresco sale aunque el aviso falle', async () => {
+        fabrica.publicarPorTipo.mockRejectedValue(new Error('Base caída'));
+
+        await expect(notificarEstadoPedido(PEDIDO, 'pendiente')).rejects.toThrow('Base caída');
+        expect(emitirRefrescoCliente).toHaveBeenCalledTimes(1);
+    });
 });

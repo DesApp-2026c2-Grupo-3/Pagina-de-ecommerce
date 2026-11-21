@@ -39,7 +39,6 @@ module.exports = Object.freeze({
     tipo: 'sucursal.modificada_por_admin',
     version: 1,
     audiencias: ['admin'],
-    paraAdministradores: true,
 
     construir(payload) {
         if (!esObjeto(payload)) {
