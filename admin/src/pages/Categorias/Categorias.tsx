@@ -7,8 +7,8 @@ import { useToast } from '../../context/ToastContext'
 import MensajeVacio from '../../components/MensajeVacio'
 import { deshabilitarCategoria, habilitarCategoria, obtenerCategorias } from '../../services/categoriaService';
 import { eliminarCategoria as eliminarCategoriaAPI } from '../../services/categoriaService'
-import SeccionDesplegable from '../../components/SeccionDesplegable'
 import type { CategoriaAdmin } from '../../types/categoria.types'
+import { BarraFiltros, Buscador } from '../../components/Filtros'
 
 interface Categoria {
   id: number
@@ -28,6 +28,10 @@ function enOrdenJerarquico(lista: CategoriaAdmin[]): CategoriaAdmin[] {
   return resultado
 }
 
+// Para buscar sin importar tildes ni mayúsculas ("cafe" encuentra "Café")
+const normalizar = (texto: string) =>
+  texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
 export default function Categorias() {
   const navigate = useNavigate();
   const [paginaActual, setPaginaActual] = useState(1);
@@ -37,7 +41,7 @@ export default function Categorias() {
 
   const [categorias, setCategorias] = useState<CategoriaAdmin[]>([])
   const [filtroEstado, setFiltroEstado] = useState('todos')
-
+  const [busqueda, setBusqueda] = useState('')
   const cambiarEstado = async (categoria: Categoria) => {
     try {
       if (categoria.activo) {
@@ -90,9 +94,12 @@ export default function Categorias() {
     cargarCategorias()
   }, [])
 
+  const texto = normalizar(busqueda)
+
   const filtradas = enOrdenJerarquico(categorias).filter((categoria) => {
-    if (filtroEstado === 'activas') return categoria.activo
-    if (filtroEstado === 'deshabilitadas') return !categoria.activo
+    if (filtroEstado === 'activas' && !categoria.activo) return false
+    if (filtroEstado === 'deshabilitadas' && categoria.activo) return false
+    if (texto && !normalizar(categoria.nombre).includes(texto)) return false
     return true
   })
 
@@ -113,7 +120,7 @@ export default function Categorias() {
   }, [filtradas.length, paginaActual])
 
   return (
-  <main className="p-8">    
+<main className="p-4 sm:p-8">  
   <div className="mb-6 flex items-start justify-between gap-4">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
@@ -143,14 +150,20 @@ export default function Categorias() {
       </button>
     </div>
 
-    <SeccionDesplegable
-      id="categorias-lista"
-      titulo="Todas las categorías"
-      descripcion="El listado completo: crear, editar, habilitar o deshabilitar y eliminar."
-      resumen={`${categorias.length} categorías · ${categorias.filter((c) => !c.activo).length} deshabilitadas`}
-      abiertaPorDefecto
-    >
-    <div className="mb-4">
+<section className="mb-6 rounded-lg border bg-white p-4">
+  <h2 className="text-lg font-bold">Todas las categorías</h2>
+  <p className="mt-1 mb-4 text-sm text-gray-600">
+    El listado completo: crear, editar, habilitar o deshabilitar y eliminar.
+  </p>
+    <BarraFiltros>
+      <Buscador
+        valor={busqueda}
+        onChange={(valor) => {
+          setBusqueda(valor)
+          setPaginaActual(1)
+        }}
+        placeholder="Buscar categoría..."
+      />      
       <label htmlFor="filtro-categoria" className="sr-only">
         Filtrar categorías
       </label>
@@ -167,15 +180,15 @@ export default function Categorias() {
         <option value="activas">Habilitadas</option>
         <option value="deshabilitadas">Deshabilitadas</option>
       </select>
-    </div>
+    </BarraFiltros>
     
     <div className="bg-white border rounded-lg overflow-x-auto">
     <table className="w-full">
       <thead className="bg-gray-100">
         <tr>
-          <th className="text-left px-4 py-3 sm:px-6">Nombre</th>
-          <th className="px-4 py-3 text-left sm:px-6">Estado</th>
-          <th className="text-right px-4 py-3 sm:px-6">Acciones</th>
+          <th className="text-left px-2 py-3 sm:px-6">Nombre</th>
+          <th className="hidden px-2 py-3 text-left sm:table-cell sm:px-6">Estado</th>
+          <th className="text-right px-2 py-3 sm:px-6">Acciones</th>
         </tr>
       </thead>
 
@@ -191,7 +204,7 @@ export default function Categorias() {
         ) : (
         categoriasPagina.map((categoria: Categoria) => (
           <tr key={categoria.id} className="border-t border-b">
-            <td className="px-4 py-4 sm:px-6">
+            <td className="px-2 py-4 sm:px-6">
               {categoria.categoriaPadreId ? (
                 <span className="text-gray-500">↳ </span>
               ) : null}
@@ -201,9 +214,17 @@ export default function Categorias() {
                   en {categorias.find((c) => c.id === categoria.categoriaPadreId)?.nombre ?? 'otra categoría'}
                 </span>
               ) : null}
+                            <span
+                className={`mt-1 block w-fit rounded-full px-2 py-1 text-xs font-semibold sm:hidden ${
+                  categoria.activo
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                {categoria.activo ? 'Activa' : 'Deshabilitada'}
+              </span>
             </td>
 
-            <td className="px-4 py-4 sm:px-6">
+            <td className="hidden px-2 py-4 sm:table-cell sm:px-6">              
               <span
               className={`rounded-full px-2 py-1 text-xs font-semibold ${
                 categoria.activo
@@ -214,8 +235,8 @@ export default function Categorias() {
               </span>
             </td>
 
-            <td className="px-4 py-4 sm:px-6">
-              <div className="flex justify-end gap-2">
+            <td className="px-2 py-4 sm:px-6">
+              <div className="flex justify-end gap-1 sm:gap-2">                
                 <button onClick={() => navigate(`/admin/categorias/editar/${categoria.id}`)}
                 className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
                 hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
@@ -266,7 +287,7 @@ export default function Categorias() {
       totalElementos={filtradas.length}
       elementosPorPagina={categoriaPorPagina}
       cambiarPagina={setPaginaActual} />
-    </SeccionDesplegable>
-  </main>
+</section>  
+</main>
   )
 }
