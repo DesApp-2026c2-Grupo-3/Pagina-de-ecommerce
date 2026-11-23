@@ -13,14 +13,16 @@ export async function obtenerPedidoPorId(pedidoId: number): Promise<PedidoComple
 
 // Cambio de estado (PATCH /editar/estado/:id).
 // El backend valida: bloquea volver a Pendiente y solo devuelve stock si se cancela desde Pendiente.
+// Al cancelar se manda el motivo: le llega al cliente en la notificación.
 export async function actualizarEstadoPedido(
   pedidoId: number,
   estado: Etapa,
+  motivo?: string,
 ): Promise<{ estado?: string }> {
   return apiFetch(`${API}/editar/estado/${pedidoId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ estado }),
+    body: JSON.stringify(motivo ? { estado, motivo } : { estado }),    
     mensajePorDefecto: 'No se pudo actualizar el estado',
   })
 }

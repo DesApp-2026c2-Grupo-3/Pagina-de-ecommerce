@@ -8,7 +8,6 @@ import {
   MECANICAS, OFERTAS, aItems, circulo, desdePromo, detalleSugerido, mecanicaVacia, precios, tituloSugerido, validarMecanica,
   type ErroresMecanica, type MecanicaPromo, type Oferta, type ProductoOpcion,
 } from '../../utils/mecanicasPromo'
-import { pedidoDesdePromo } from '../../utils/promoAPedido'
 import {
   actualizarPromocion, crearPromocion, deshabilitarPromocion, eliminarPromocion,
 } from '../../services/promocionService'
@@ -41,11 +40,8 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
   const [dias, setDias] = useState<number[]>(promo ? promo.dias : [diaInicial])
   const [titulo, setTitulo] = useState(promo?.titulo ?? '')
   const [tituloTocado, setTituloTocado] = useState(Boolean(promo) && promo?.titulo !== tituloSugerido(inicial.mecanica, productos))
-  // Día completo → qué promo se saca de ese día para hacerle lugar
-  const [saca, setSaca] = useState<Record<number, number>>({})
   const [errores, setErrores] = useState<ErroresMecanica>({})
   const [errorDias, setErrorDias] = useState('')
-  const [errorSaca, setErrorSaca] = useState<Record<number, string>>({})
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [confirmarEliminar, setConfirmarEliminar] = useState(false)
@@ -57,6 +53,8 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
   const p = precios(m, productos)
   const circ = circulo(m, productos)
   const tieneEliminados = promo?.items.some((i) => i.eliminado)
+  // Una promo deshabilitada se guarda deshabilitada (se habilita desde la lista)
+  const quedaActiva = promo ? promo.activo : true
 
   function cambiar(cambios: Partial<MecanicaPromo>) {
     setM((prev) => ({ ...prev, ...cambios }))
@@ -71,37 +69,21 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
 
   async function guardar() {
     const nuevos = validarMecanica(m, productos)
-    const faltaSacar: Record<number, string> = {}
-    for (const dia of dias) {
-      if (lleno(dia) && saca[dia] === undefined) faltaSacar[dia] = 'Elegí cuál sacar para hacerle lugar'
-    }
+    const llenos = quedaActiva ? dias.filter(lleno) : []
     setErrores(nuevos)
-    setErrorSaca(faltaSacar)
-    setErrorDias(dias.length === 0 ? 'Elegí al menos un día' : '')
+    setErrorDias(
+      dias.length === 0
+        ? 'Elegí al menos un día'
+        : llenos.length > 0
+          ? `${llenos.map(nombreDia).join(', ')} ya ${llenos.length === 1 ? 'tiene' : 'tienen'} ${maxPorDia} promos. Quitá una de ese día para hacerle lugar.`
+          : '',
+    )
     const items = aItems(m, productos)
-    if (Object.keys(nuevos).length || Object.keys(faltaSacar).length || dias.length === 0 || !items) return
+    if (Object.keys(nuevos).length || dias.length === 0 || llenos.length > 0 || !items) return
 
     setGuardando(true)
     setError('')
     try {
-      // 1) Hacer lugar en los días completos: la promo elegida deja de estar ese día
-      //    (si se queda sin días, se pausa: sigue guardada para usarla otra vez)
-      const quitar = new Map<number, number[]>()
-      for (const dia of dias) {
-        const id = saca[dia]
-        if (id !== undefined && lleno(dia)) quitar.set(id, [...(quitar.get(id) ?? []), dia])
-      }
-      const sacadas: string[] = []
-      for (const [id, diasQuitar] of quitar) {
-        const otra = activas.find((x) => x.id === id)
-        if (!otra) continue
-        const quedan = otra.dias.filter((d) => !diasQuitar.includes(d))
-        if (quedan.length === 0) await deshabilitarPromocion(id)
-        else await actualizarPromocion(id, pedidoDesdePromo(otra, { dias: quedan }))
-        sacadas.push(`"${otra.titulo}"`)
-      }
-
-      // 2) Guardar esta promo
       const datos = {
         tipo: 'DIA',
         titulo: (tituloMostrado.trim() || tituloSugerido(m, productos) || 'Promo del día').slice(0, 60),
@@ -110,14 +92,13 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
         dias: [...dias].sort((a, b) => a - b),
         maxPorPedido: promo?.maxPorPedido ?? 1,
         compraMinima: promo?.compraMinima ?? null,
-        activo: true,
+        activo: quedaActiva,
         items,
       }
       if (promo) await actualizarPromocion(promo.id, datos)
       else await crearPromocion(datos)
 
-      const base = promo ? (promo.activo ? 'Promo actualizada' : 'Promo activada') : 'Promo agregada'
-      onGuardado(sacadas.length ? `${base}. Se sacó ${sacadas.join(' y ')} para hacerle lugar.` : base)
+      onGuardado(promo ? 'Promo actualizada' : 'Promo agregada')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la promo.')
     } finally {
@@ -130,7 +111,7 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
     setGuardando(true)
     try {
       await deshabilitarPromocion(promo.id)
-      onGuardado('Promo pausada. La encontrás abajo, en «Pausadas».')
+      onGuardado('Promo deshabilitada. La seguís viendo en la lista de abajo.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo pausar la promo.')
     } finally {
@@ -322,14 +303,12 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
     )
   }
 
-  const diasLlenosElegidos = dias.filter(lleno)
-
   return (
     <>
       <EditorConVista
         editor={
           <>
-            <p className="font-bold">{promo ? (promo.activo ? 'Editar promo' : 'Promo pausada') : `Nueva promo para el ${nombreDia(diaInicial).toLowerCase()}`}</p>
+            <p className="font-bold">{promo ? (promo.activo ? 'Editar promo' : 'Editar promo (deshabilitada)') : `Nueva promo para el ${nombreDia(diaInicial).toLowerCase()}`}</p>
 
             {tieneEliminados && (
               <p className="flex gap-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -383,24 +362,6 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
                 ))}
               </div>
               <ErrorCampo mensaje={errorDias} />
-              {diasLlenosElegidos.map((dia) => (
-                <div key={dia} className="mt-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-                  <p className="font-semibold text-amber-900">El {nombreDia(dia).toLowerCase()} ya tiene {maxPorDia} promos. Elegí cuál sacar de ese día:</p>
-                  {otrasDelDia(dia).map((o) => (
-                    <label key={o.id} className="mt-1.5 flex cursor-pointer items-center gap-2">
-                      <input
-                        type="radio"
-                        name={`sacar-${dia}`}
-                        checked={saca[dia] === o.id}
-                        onChange={() => { setSaca((s) => ({ ...s, [dia]: o.id })); setErrorSaca((e) => ({ ...e, [dia]: '' })) }}
-                      />
-                      {o.titulo}
-                    </label>
-                  ))}
-                  <p className="mt-1.5 text-xs text-amber-800">No se borra: deja de estar ese día. Si se queda sin días, pasa a «Pausadas».</p>
-                  <ErrorCampo mensaje={errorSaca[dia]} />
-                </div>
-              ))}
             </div>
 
             <div>
@@ -421,11 +382,11 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
               guardando={guardando}
               onCancelar={onCerrar}
               onGuardar={guardar}
-              textoGuardar={promo && !promo.activo ? 'Guardar y activar' : promo ? 'Guardar cambios' : 'Agregar promo'}
+              textoGuardar={promo ? 'Guardar cambios' : 'Agregar promo'}
               extra={promo && (
                 <>
                   {promo.activo && (
-                    <button type="button" onClick={pausar} disabled={guardando} className={botonSecundario}>Pausar</button>
+                    <button type="button" onClick={pausar} disabled={guardando} className={botonSecundario}>Deshabilitar</button>
                   )}
                   <button type="button" onClick={() => setConfirmarEliminar(true)} disabled={guardando} className={`${botonSecundario} text-danger`}>
                     Eliminar
@@ -466,7 +427,7 @@ export default function EditorPromoDia({ promo, diaInicial, productoInicial = nu
         abierto={confirmarEliminar}
         titulo="Eliminar promo"
         textoConfirmar="Eliminar"
-        mensaje={`¿Eliminar "${promo?.titulo}"? Si solo querés sacarla un tiempo, usá «Pausar».`}
+        mensaje={`¿Eliminar "${promo?.titulo}"? Si solo querés sacarla un tiempo, usá «Deshabilitar».`}
         onConfirmar={eliminar}
         onCancelar={() => setConfirmarEliminar(false)}
       />

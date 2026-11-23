@@ -1,5 +1,5 @@
 // Bloque 2: la franja amarilla de la página de Promos (regalo de la semana)
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Gift } from 'lucide-react'
 import type { PromocionAdmin } from '../../types/promocion.types'
 import type { ProductoOpcion } from '../../utils/mecanicasPromo'
@@ -11,6 +11,10 @@ import {
 
 interface Props {
   promo: PromocionAdmin | null
+  /** Una promo elegida desde la lista (puede estar deshabilitada). Si no hay, se edita la publicada */
+  editando?: PromocionAdmin | null
+  /** Crear una nueva: al guardar reemplaza a la publicada (que queda deshabilitada) */
+  crear?: boolean
   productos: ProductoOpcion[]
   abierta: boolean
   onAbrir: () => void
@@ -18,21 +22,25 @@ interface Props {
   onGuardado: (mensaje: string) => void
 }
 
-export default function BloqueRegalo({ promo, productos, abierta, onAbrir, onCerrar, onGuardado }: Props) {
+export default function BloqueRegalo({ promo, editando = null, crear = false, productos, abierta, onAbrir, onCerrar, onGuardado }: Props) {
   const actual = promo?.items[0]
+  // La que se edita: la elegida en la lista o, si no, la publicada
+  const objetivo = crear ? null : editando ?? promo
   const [productoId, setProductoId] = useState<number | null>(null)
   const [minima, setMinima] = useState('')
   const [errores, setErrores] = useState<{ producto?: string; minima?: string }>({})
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
 
-  function abrir() {
-    setProductoId(actual?.productoId ?? null)
-    setMinima(promo?.compraMinima ? String(promo.compraMinima) : '')
+  // Al abrirse (desde «Cambiar» o desde la lista) se cargan los datos de la promo
+  useEffect(() => {
+    if (!abierta) return
+    setProductoId(objetivo?.items[0]?.productoId ?? null)
+    setMinima(objetivo?.compraMinima ? String(objetivo.compraMinima) : '')
     setErrores({})
     setError('')
-    onAbrir()
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierta, objetivo?.id])
 
   const producto = productos.find((p) => p.id === productoId)
   const m = Number(minima) || 0
@@ -52,14 +60,18 @@ export default function BloqueRegalo({ promo, productos, abierta, onAbrir, onCer
       dias: null,
       maxPorPedido: 1,
       compraMinima: m || null,
-      activo: true,
+      activo: objetivo ? objetivo.activo : true,
       items: [{ productoId: producto.id, cantidad: 1, descuento: 1 }],
     }
     setGuardando(true)
     setError('')
     try {
-      if (promo) await actualizarPromocion(promo.id, datos)
-      else await crearPromocion(datos)
+      if (objetivo) await actualizarPromocion(objetivo.id, datos)
+      else {
+        // Hay una sola publicada: la nueva toma su lugar
+        if (promo?.activo) await deshabilitarPromocion(promo.id)
+        await crearPromocion(datos)
+      }
       onGuardado('Regalo actualizado')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el regalo.')
@@ -69,10 +81,10 @@ export default function BloqueRegalo({ promo, productos, abierta, onAbrir, onCer
   }
 
   async function sacar() {
-    if (!promo) return
+    if (!objetivo) return
     setGuardando(true)
     try {
-      await deshabilitarPromocion(promo.id)
+      await deshabilitarPromocion(objetivo.id)
       onGuardado('Se sacó el regalo de la página')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo sacar el regalo.')
@@ -92,10 +104,20 @@ export default function BloqueRegalo({ promo, productos, abierta, onAbrir, onCer
   )
 
   return (
-    <TarjetaBloque numero={2} lugar="Franja amarilla" titulo="Regalo de la semana" resumen={resumen} abierta={abierta} onAbrir={abrir} tono="amarillo">
+    <TarjetaBloque numero={2} lugar="Franja amarilla" titulo="Regalo de la semana" resumen={resumen} abierta={abierta} onAbrir={onAbrir}>
       <EditorConVista
         editor={
           <>
+            {crear && promo?.activo && (
+              <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                Hoy la franja muestra «{promo.titulo}». Al guardar, esta nueva la reemplaza y la anterior queda deshabilitada en la lista.
+              </p>
+            )}
+            {objetivo && !objetivo.activo && (
+              <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                Estás editando una promo deshabilitada: no se ve en la tienda. Para mostrarla, habilitala desde la lista.
+              </p>
+            )}
             <div>
               <label htmlFor="regalo-producto" className={etiqueta}>Producto de regalo</label>
               <SelectProducto id="regalo-producto" productos={productos} valor={productoId} onChange={(id) => { setProductoId(id); setErrores((e) => ({ ...e, producto: undefined })) }} />
@@ -124,7 +146,7 @@ export default function BloqueRegalo({ promo, productos, abierta, onAbrir, onCer
               guardando={guardando}
               onCancelar={onCerrar}
               onGuardar={guardar}
-              extra={promo?.activo && (
+              extra={objetivo?.activo && (
                 <button type="button" onClick={sacar} disabled={guardando} className={botonSecundario}>
                   Sacar de la página
                 </button>

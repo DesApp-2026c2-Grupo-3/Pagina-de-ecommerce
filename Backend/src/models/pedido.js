@@ -33,6 +33,8 @@ module.exports = (sequelize, DataTypes) => {
     minutosEstimados: { type: DataTypes.INTEGER, allowNull: true },
     // D-07: cuándo lo retiró el repartidor del local (el estado no cambia hasta iniciar el viaje)
     retiradoEn: { type: DataTypes.DATE, allowNull: true },
+        // Lo escribe el admin al cancelar (le llega al cliente y alimenta el ranking de motivos)
+    motivoCancelacion: { type: DataTypes.STRING(200), allowNull: true },
   }, {
     sequelize,
     modelName: 'Pedido',

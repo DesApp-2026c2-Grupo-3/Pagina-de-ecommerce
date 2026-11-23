@@ -18,6 +18,7 @@ export function leerDatosPedido(datos: unknown): DatosPedido | null {
   const total = numeroNoNegativo(datos.total)
   const fecha = fechaIso(datos.fecha)
   const estadoAnterior = textoNoVacio(datos.estadoAnterior)
+  const motivo = textoNoVacio(datos.motivo)
 
   if (
     pedidoId === null ||
@@ -30,7 +31,7 @@ export function leerDatosPedido(datos: unknown): DatosPedido | null {
     return null
   }
 
-  return { pedidoId, usuarioId, sucursalId, estadoAnterior, estado, total, fecha }
+  return { pedidoId, usuarioId, sucursalId, estadoAnterior, estado, total, fecha, motivo }
 }
 
 export const destinoPedido = (pedidoId: number) => `/pedidos/${pedidoId}`

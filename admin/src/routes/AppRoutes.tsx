@@ -9,6 +9,8 @@ import NuevoProducto from '../pages/Productos/NuevoProducto'
 import EditarProducto from '../pages/Productos/EditarProducto'
 import Promociones from '../pages/Promociones/Promociones'
 import Categorias from '../pages/Categorias/Categorias'
+import NuevaPromocion from '../pages/Promociones/NuevaPromocion'
+import EditarPromocion from '../pages/Promociones/EditarPromocion'
 import NuevaCategoria from '../pages/Categorias/NuevaCategoria'
 import EditarCategoria from '../pages/Categorias/EditarCategoria'
 import Administradores from '../pages/Administradores/Administradores'
@@ -66,7 +68,8 @@ export default function AppRoutes() {
           <Route path="/admin/productos/editar/:id" element={<EditarProducto />} />
 
           <Route path="/admin/promociones" element={<Promociones />} />
-
+          <Route path="/admin/promociones/nueva" element={<NuevaPromocion />} />
+          <Route path="/admin/promociones/editar/:id" element={<EditarPromocion />} />
           <Route path="/admin/categorias" element={<Categorias />} />
           <Route path="/admin/categorias/nueva" element={<NuevaCategoria />} />
           <Route path="/admin/categorias/editar/:id" element={<EditarCategoria />} />

@@ -1,5 +1,5 @@
 // Bloque 1: el banner rojo de la página de Promos (producto de la semana)
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { PromocionAdmin } from '../../types/promocion.types'
 import type { ProductoOpcion } from '../../utils/mecanicasPromo'
 import { actualizarPromocion, crearPromocion, deshabilitarPromocion } from '../../services/promocionService'
@@ -12,6 +12,10 @@ const ATAJOS = [10, 15, 20, 25]
 
 interface Props {
   promo: PromocionAdmin | null
+  /** Una promo elegida desde la lista (puede estar deshabilitada). Si no hay, se edita la publicada */
+  editando?: PromocionAdmin | null
+  /** Crear una nueva: al guardar reemplaza a la publicada (que queda deshabilitada) */
+  crear?: boolean
   productos: ProductoOpcion[]
   abierta: boolean
   onAbrir: () => void
@@ -19,8 +23,10 @@ interface Props {
   onGuardado: (mensaje: string) => void
 }
 
-export default function BloqueProductoSemana({ promo, productos, abierta, onAbrir, onCerrar, onGuardado }: Props) {
+export default function BloqueProductoSemana({ promo, editando = null, crear = false, productos, abierta, onAbrir, onCerrar, onGuardado }: Props) {
   const actual = promo?.items[0]
+  // La que se edita: la elegida en la lista o, si no, la publicada
+  const objetivo = crear ? null : editando ?? promo
   const [productoId, setProductoId] = useState<number | null>(null)
   const [porcentaje, setPorcentaje] = useState('')
   const [titulo, setTitulo] = useState('')
@@ -31,15 +37,18 @@ export default function BloqueProductoSemana({ promo, productos, abierta, onAbri
 
   const nombreDe = (id: number | null) => productos.find((p) => p.id === id)?.nombre ?? ''
 
-  function abrir() {
-    setProductoId(actual?.productoId ?? null)
-    setPorcentaje(actual ? String(Math.round(actual.descuento * 100)) : '20')
-    setTitulo(promo?.titulo ?? '')
-    setTituloTocado(Boolean(promo) && promo?.titulo !== nombreDe(actual?.productoId ?? null))
+  // Al abrirse (desde «Cambiar» o desde la lista) se cargan los datos de la promo
+  useEffect(() => {
+    if (!abierta) return
+    const item = objetivo?.items[0]
+    setProductoId(item?.productoId ?? null)
+    setPorcentaje(item ? String(Math.round(item.descuento * 100)) : '20')
+    setTitulo(objetivo?.titulo ?? '')
+    setTituloTocado(Boolean(objetivo) && objetivo?.titulo !== nombreDe(item?.productoId ?? null))
     setErrores({})
     setError('')
-    onAbrir()
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierta, objetivo?.id])
 
   function elegirProducto(id: number | null) {
     setProductoId(id)
@@ -65,15 +74,19 @@ export default function BloqueProductoSemana({ promo, productos, abierta, onAbri
       dias: null,
       maxPorPedido: null,
       compraMinima: null,
-      activo: true,
+      activo: objetivo ? objetivo.activo : true,
       items: [{ productoId: producto.id, cantidad: 1, descuento: d / 100 }],
     }
     setGuardando(true)
     setError('')
     try {
       // Hay uno solo: si ya existe se cambia ese mismo
-      if (promo) await actualizarPromocion(promo.id, datos)
-      else await crearPromocion(datos)
+      if (objetivo) await actualizarPromocion(objetivo.id, datos)
+      else {
+        // Hay una sola publicada: la nueva toma su lugar
+        if (promo?.activo) await deshabilitarPromocion(promo.id)
+        await crearPromocion(datos)
+      }
       onGuardado('Banner actualizado')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el producto de la semana.')
@@ -83,10 +96,10 @@ export default function BloqueProductoSemana({ promo, productos, abierta, onAbri
   }
 
   async function sacar() {
-    if (!promo) return
+    if (!objetivo) return
     setGuardando(true)
     try {
-      await deshabilitarPromocion(promo.id)
+      await deshabilitarPromocion(objetivo.id)
       onGuardado('Se sacó el producto de la semana de la página')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo sacar el producto de la semana.')
@@ -108,10 +121,20 @@ export default function BloqueProductoSemana({ promo, productos, abierta, onAbri
   )
 
   return (
-    <TarjetaBloque numero={1} lugar="Banner rojo" titulo="Producto de la semana" resumen={resumen} abierta={abierta} onAbrir={abrir} tono="rojo">
+    <TarjetaBloque numero={1} lugar="Banner rojo" titulo="Producto de la semana" resumen={resumen} abierta={abierta} onAbrir={onAbrir}>
       <EditorConVista
         editor={
           <>
+            {crear && promo?.activo && (
+              <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                Hoy el banner muestra «{promo.titulo}». Al guardar, esta nueva la reemplaza y la anterior queda deshabilitada en la lista.
+              </p>
+            )}
+            {objetivo && !objetivo.activo && (
+              <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                Estás editando una promo deshabilitada: no se ve en la tienda. Para mostrarla, habilitala desde la lista.
+              </p>
+            )}
             <div>
               <label htmlFor="semana-producto" className={etiqueta}>Producto</label>
               <SelectProducto id="semana-producto" productos={productos} valor={productoId} onChange={elegirProducto} />
@@ -157,7 +180,7 @@ export default function BloqueProductoSemana({ promo, productos, abierta, onAbri
               guardando={guardando}
               onCancelar={onCerrar}
               onGuardar={guardar}
-              extra={promo?.activo && (
+              extra={objetivo?.activo && (
                 <button type="button" onClick={sacar} disabled={guardando} className={botonSecundario}>
                   Sacar de la página
                 </button>

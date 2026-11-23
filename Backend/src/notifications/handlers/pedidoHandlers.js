@@ -27,7 +27,8 @@ function notificarPedidoCreado(pedido) {
 // Avisa al cliente un cambio de estado de su pedido y le pide recargarlo (estado, línea de tiempo y hora estimada).
 // - Pasar a un estado interno ("Listo para retirar") no se avisa: para el cliente sigue "En proceso".
 // - Si el estado anterior era interno, se informa el que el cliente veía (p. ej. al cancelar).
-function notificarEstadoPedido(pedido, estadoAnterior) {
+// - Al cancelar se manda el motivo que escribió el admin.
+function notificarEstadoPedido(pedido, estadoAnterior, motivo = null) {    
     if (estadoInterno(pedido?.estado)) {
         return Promise.resolve(null);
     }
@@ -36,6 +37,7 @@ function notificarEstadoPedido(pedido, estadoAnterior) {
     return fabrica.publicarPorTipo('pedido.estado_cambiado', {
         pedido,
         estadoAnterior: estadoInterno(estadoAnterior) ?? estadoAnterior,
+        ...(motivo ? { motivo } : {}),
     });
 }
 

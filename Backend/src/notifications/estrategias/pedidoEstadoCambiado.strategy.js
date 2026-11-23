@@ -1,7 +1,7 @@
 'use strict';
 
 const { paraEstadoPedido } = require('../destinatarios');
-const { pedidoADto, esObjeto } = require('./comunes');
+const { pedidoADto, esObjeto, texto } = require('./comunes');
 
 module.exports = Object.freeze({
     tipo: 'pedido.estado_cambiado',
@@ -16,7 +16,9 @@ module.exports = Object.freeze({
         }
 
         const datos = pedidoADto(payload.pedido, payload.estadoAnterior ?? null);
-
+        // Motivo de la cancelación (lo escribe el admin)
+        if (payload.motivo) datos.motivo = texto(payload.motivo);
+        
         return {
             datos,
             destinos: paraEstadoPedido({

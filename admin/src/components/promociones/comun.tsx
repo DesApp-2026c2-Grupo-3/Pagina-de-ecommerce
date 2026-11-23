@@ -1,5 +1,5 @@
 // Piezas que comparten los bloques de la pantalla de Promociones
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import type { ProductoOpcion } from '../../utils/mecanicasPromo'
 
@@ -37,22 +37,22 @@ interface TarjetaBloqueProps {
   resumen: ReactNode
   abierta: boolean
   onAbrir: () => void
-  /** Colores de la tarjeta: los mismos que tiene ese bloque en la tienda */
-  tono: 'rojo' | 'amarillo' | 'neutro'
   children: ReactNode
 }
 
-const TONOS = {
-  rojo: { tarjeta: 'border-red-300 bg-red-50', lugar: 'text-red-700', titulo: 'text-red-900', linea: 'border-red-200' },
-  amarillo: { tarjeta: 'border-amber-300 bg-amber-50', lugar: 'text-amber-700', titulo: 'text-amber-900', linea: 'border-amber-200' },
-  neutro: { tarjeta: 'bg-white', lugar: 'text-gray-500', titulo: 'text-gray-900', linea: 'border-gray-200' },
-}
+// Todas las tarjetas son iguales (sin colores): el color queda solo en la vista previa de la tienda
+const ESTILO_TARJETA = { tarjeta: 'bg-white', lugar: 'text-gray-500', titulo: 'text-gray-900', linea: 'border-gray-200' }
 
 // Una parte de la página de Promos: cerrada muestra lo publicado, abierta despliega su editor
-export function TarjetaBloque({ numero, lugar, titulo, resumen, abierta, onAbrir, tono, children }: TarjetaBloqueProps) {
-  const t = TONOS[tono]
+export function TarjetaBloque({ numero, lugar, titulo, resumen, abierta, onAbrir, children }: TarjetaBloqueProps) {
+  const t = ESTILO_TARJETA
+  // Al abrirse (por ejemplo, con «Editar» desde la lista de abajo) se lleva la vista hasta la tarjeta
+  const ref = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (abierta) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [abierta])
   return (
-    <section className={`rounded-xl border p-4 sm:p-5 ${t.tarjeta}`}>
+    <section ref={ref} className={`scroll-mt-4 rounded-xl border p-4 sm:p-5 ${t.tarjeta}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className={`text-xs font-semibold uppercase tracking-wide ${t.lugar}`}>
@@ -93,21 +93,101 @@ interface SelectProductoProps {
   className?: string
 }
 
+// Sin tildes ni mayúsculas: "cafe" encuentra "Café"
+const normalizar = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+const MAX_RESULTADOS = 50
+
+// Selector de producto con búsqueda: se escribe y la lista se va filtrando (son muchos productos).
+// Flechas para moverse, Enter para elegir, Escape para cerrar.
 export function SelectProducto({ id, productos, valor, onChange, className = campo }: SelectProductoProps) {
+  const elegido = productos.find((p) => p.id === valor) ?? null
+  const [texto, setTexto] = useState('')
+  const [abierto, setAbierto] = useState(false)
+  const [activo, setActivo] = useState(0)
+  const refLista = useRef<HTMLUListElement>(null)
+
+  const buscado = normalizar(texto)
+  const resultados = (buscado ? productos.filter((p) => normalizar(p.nombre).includes(buscado)) : productos).slice(0, MAX_RESULTADOS)
+
+  function elegir(p: ProductoOpcion) {
+    onChange(p.id)
+    setAbierto(false)
+    setTexto('')
+  }
+
+  function teclado(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setAbierto(true)
+      setActivo((a) => Math.min(a + 1, resultados.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActivo((a) => Math.max(a - 1, 0))
+    } else if (e.key === 'Enter' && abierto) {
+      e.preventDefault()
+      if (resultados[activo]) elegir(resultados[activo])
+    } else if (e.key === 'Escape') {
+      setAbierto(false)
+      setTexto('')
+    }
+  }
+
+  // La opción marcada con las flechas siempre queda a la vista
+  useEffect(() => {
+    refLista.current?.children[activo]?.scrollIntoView({ block: 'nearest' })
+  }, [activo])
+
   return (
-    <select
-      id={id}
-      value={valor ?? ''}
-      onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-      className={className}
-    >
-      <option value="">Elegí un producto</option>
-      {productos.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.nombre} · {formatearPrecio(p.precio)}
-        </option>
-      ))}
-    </select>
+    <div className={`relative ${className.includes('flex-1') ? 'min-w-0 flex-1' : 'w-full'}`}>
+      <input
+        id={id}
+        type="text"
+        role="combobox"
+        aria-expanded={abierto}
+        aria-controls={`${id}-lista`}
+        aria-autocomplete="list"
+        autoComplete="off"
+        value={abierto ? texto : elegido ? `${elegido.nombre} · ${formatearPrecio(elegido.precio)}` : ''}
+        placeholder={elegido ? 'Escribí para cambiarlo' : 'Escribí para buscar un producto'}
+        onFocus={() => { setAbierto(true); setTexto(''); setActivo(0) }}
+        onBlur={() => { setAbierto(false); setTexto('') }}
+        onChange={(e) => { setTexto(e.target.value); setAbierto(true); setActivo(0) }}
+        onKeyDown={teclado}
+        className={campo}
+      />
+      {abierto && (
+        <ul
+          ref={refLista}
+          id={`${id}-lista`}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded border bg-white py-1 shadow-lg"
+        >
+          {resultados.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-gray-500">No hay productos con «{texto}»</li>
+          ) : (
+            resultados.map((p, i) => (
+              <li
+                key={p.id}
+                role="option"
+                aria-selected={p.id === valor}
+                // mousedown en vez de click: así se elige antes de que el campo pierda el foco
+                onMouseDown={(e) => { e.preventDefault(); elegir(p) }}
+                onMouseEnter={() => setActivo(i)}
+                className={`flex cursor-pointer justify-between gap-3 px-3 py-2 text-sm ${
+                  i === activo ? 'bg-orange-100' : ''
+                } ${p.id === valor ? 'font-semibold' : ''}`}
+              >
+                <span className="min-w-0 truncate">{p.nombre}</span>
+                <span className="shrink-0 text-gray-500">{formatearPrecio(p.precio)}</span>
+              </li>
+            ))
+          )}
+          {!buscado && productos.length > MAX_RESULTADOS && (
+            <li className="px-3 py-2 text-xs text-gray-500">Mostrando {MAX_RESULTADOS} de {productos.length}. Escribí para encontrar el resto.</li>
+          )}
+        </ul>
+      )}
+    </div>
   )
 }
 

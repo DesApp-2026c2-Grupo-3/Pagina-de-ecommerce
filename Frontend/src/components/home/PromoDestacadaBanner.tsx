@@ -67,8 +67,8 @@ function PromoDestacadaBanner() {
     >
       <div className={STYLES.container}>
         <h2 className={STYLES.title}>
-          No hay dos sin...<span className="text-brand-red">3 promos</span>
-        </h2>
+          Las promos <span className="text-brand-red">de hoy</span>        
+          </h2>
 
         <div className={STYLES.slidesStack}>
           {lista.map((p, i) => (

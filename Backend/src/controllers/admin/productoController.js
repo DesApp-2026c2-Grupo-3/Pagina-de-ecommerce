@@ -168,7 +168,11 @@ async function nombreCategoria(categoriaId) {
 const crearProducto = async (req, res) => {
     const { receta: recetaPedida = [], tamanios = [], grupos = [], ...datos } = req.body;
     // Un combo con producto principal no tiene receta propia: usa la del principal
-    const receta = datos.productoPrincipalId ? [] : recetaPedida;    
+    const receta = datos.productoPrincipalId ? [] : recetaPedida;
+    // Sin receta el producto no descuenta stock: todo lo que no es combo lleva al menos un insumo
+    if (!datos.productoPrincipalId && receta.length === 0) {
+        return res.status(400).json({ mensaje: 'Agregá al menos un insumo a la receta' });
+    }    
     let t;
     let confirmado = false;
     try {
@@ -212,7 +216,10 @@ const editarProductoPorId = async (req, res) => {
         // Un combo con producto principal no tiene receta propia: usa la del principal
         const principalId = datos.productoPrincipalId !== undefined ? datos.productoPrincipalId : producto.productoPrincipalId;
         const receta = principalId ? [] : recetaPedida;
-
+        // Si se manda la receta de un producto que no es combo, tiene que tener al menos un insumo
+        if (!principalId && recetaPedida !== undefined && recetaPedida.length === 0) {
+            return res.status(400).json({ mensaje: 'Agregá al menos un insumo a la receta' });
+        }
         // Los tamaños se rearman si vienen en el pedido, o si cambió el precio o la categoría
         // de un producto que ya los tiene. Si vienen vacíos (pasó a Simple), se borran.
         let tamaniosFinales = tamanios;

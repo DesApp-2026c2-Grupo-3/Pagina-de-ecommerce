@@ -50,8 +50,8 @@ export default function BloqueNuevo({ productoId, productos, abierta, onAbrir, o
   )
 
   return (
-    <TarjetaBloque numero={3} lugar="Bloque «Nuevo»" titulo="Nuevo en la carta" resumen={resumen} abierta={abierta} onAbrir={abrir} tono="neutro">
-      <div className="flex max-w-lg flex-col gap-4 rounded-lg border bg-white p-4">
+    <TarjetaBloque numero={3} lugar="Bloque «Nuevo»" titulo="Nuevo en la carta" resumen={resumen} abierta={abierta} onAbrir={abrir}>      
+    <div className="flex max-w-lg flex-col gap-4 rounded-lg border bg-white p-4">
         <div>
           <label htmlFor="nuevo-producto" className={etiqueta}>Producto que se presenta como nuevo</label>
           <SelectProducto id="nuevo-producto" productos={productos} valor={elegido} onChange={(id) => { setElegido(id); setErrorCampo('') }} />
