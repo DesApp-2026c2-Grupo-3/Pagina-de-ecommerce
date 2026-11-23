@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Insumo, Sucursal, StockSucursal, RecetaInsumo, sequelize } = require('../../models');
+const { Insumo, Sucursal, StockSucursal, RecetaInsumo, Producto, sequelize } = require('../../models');
 
 // ¿Ya hay otro insumo con ese nombre? (sin distinguir mayúsculas)
 async function nombreEnUso(nombre, idPropio = null) {
@@ -11,7 +11,7 @@ async function nombreEnUso(nombre, idPropio = null) {
 const obtenerInsumos = async (req, res) => {
     try {
         const insumos = await Insumo.findAll({
-            attributes: ['id', 'nombre', 'unidadMedida', 'precioComercial'],
+            attributes: ['id', 'nombre', 'unidadMedida', 'precioComercial', 'activo'],
             order: [['nombre', 'ASC']],
         });
         res.json(insumos);
@@ -33,7 +33,8 @@ const crearInsumo = async (req, res) => {
 
         const sucursales = await Sucursal.findAll({ attributes: ['id'], transaction: t });
         await StockSucursal.bulkCreate(
-            sucursales.map((s) => ({ insumoId: insumo.id, sucursalId: s.id, cantidad: 0 })),
+            // El stock mínimo sugerido del insumo es el mínimo inicial de cada sucursal
+            sucursales.map((s) => ({ insumoId: insumo.id, sucursalId: s.id, cantidad: 0, stockMinimo: insumo.stockMinimo ?? null })),            
             { transaction: t }
         );
 
@@ -54,11 +55,21 @@ const editarInsumo = async (req, res) => {
             return res.status(404).json({ mensaje: 'Insumo no encontrado' });
         }
 
-        if (await nombreEnUso(req.body.nombre, insumo.id)) {
-            return res.status(400).json({ code: 'Ya existe un insumo con ese nombre' });
+        const { nombre, unidadMedida, precioComercial } = req.body;
+
+        if (nombre !== undefined && await nombreEnUso(nombre, insumo.id)) {
+            return res.status(400).json({
+                code: 'Ya existe un insumo con ese nombre'
+            });
         }
 
-        await insumo.update(req.body);
+        const cambios = {};
+
+        if (nombre !== undefined) cambios.nombre = nombre;
+        if (unidadMedida !== undefined) cambios.unidadMedida = unidadMedida;
+        if (precioComercial !== undefined) cambios.precioComercial = precioComercial;
+
+        await insumo.update(cambios);
         res.json({ mensaje: 'Insumo editado con éxito', insumo });
     } catch (error) {
         console.error(error);
@@ -73,24 +84,86 @@ const eliminarInsumo = async (req, res) => {
         return res.status(404).json({ mensaje: 'Insumo no encontrado' });
     }
 
-    const enRecetas = await RecetaInsumo.count({ where: { insumoId: insumo.id } });
+    // Solo cuentan las recetas de productos NO eliminados: un producto eliminado ya no consume nada
+    const enRecetas = await RecetaInsumo.count({
+        where: { insumoId: insumo.id },
+        include: [{ model: Producto, attributes: [], required: true }],
+    });
     if (enRecetas > 0) {
         return res.status(409).json({
-            mensaje: `No se puede eliminar: ${insumo.nombre} se usa en ${enRecetas} ${enRecetas === 1 ? 'producto' : 'productos'}. Quitalo de esas recetas primero.`
+            mensaje: `No se puede eliminar: ${insumo.nombre} se usa en ${enRecetas} ${enRecetas === 1 ? 'producto' : 'productos'}. Quitalo de esas recetas primero (o deshabilitalo para usarlo hasta agotar stock).`
         });
     }
 
-    const t = await sequelize.transaction();
     try {
-        await StockSucursal.destroy({ where: { insumoId: insumo.id }, transaction: t });
-        await insumo.destroy({ transaction: t });
-        await t.commit();
-        res.json({ mensaje: 'Insumo eliminado con éxito' });
+        // Borrado lógico (el modelo es paranoid): el stock y los movimientos quedan para el historial
+        await insumo.destroy();
+        res.json({ mensaje: 'Insumo eliminado. El historial de stock lo conserva.' });
     } catch (error) {
-        await t.rollback();
         console.error(error);
         res.status(500).json({ mensaje: 'Error al eliminar el insumo' });
     }
 };
 
-module.exports = { obtenerInsumos, crearInsumo, editarInsumo, eliminarInsumo };
+// PATCH /admin/insumos/:id/deshabilitar
+const deshabilitarInsumo = async (req, res) => {
+    try {
+        const insumo = await Insumo.findByPk(req.params.id);
+
+        if (!insumo) {
+            return res.status(404).json({
+                mensaje: 'Insumo no encontrado',
+            });
+        }
+
+        if (!insumo.activo) {
+            return res.status(400).json({
+                mensaje: 'El insumo ya está deshabilitado',
+            });
+        }
+
+        await insumo.update({ activo: false });
+
+        return res.status(200).json({
+            mensaje: 'Insumo deshabilitado correctamente',
+            insumo,
+        });
+    } catch (error) {
+        console.error('Error al deshabilitar insumo:', error.message);
+        return res.status(500).json({
+            mensaje: 'Error del servidor',
+        });
+    }
+};
+
+// PATCH /admin/insumos/:id/habilitar
+const habilitarInsumo = async (req, res) => {
+    try {
+        const insumo = await Insumo.findByPk(req.params.id);
+
+        if (!insumo) {
+            return res.status(404).json({
+                mensaje: 'Insumo no encontrado',
+            });
+        }
+
+        if (insumo.activo) {
+            return res.status(400).json({
+                mensaje: 'El insumo ya está activo',
+            });
+        }
+
+        await insumo.update({ activo: true });
+
+        return res.status(200).json({
+            mensaje: 'Insumo habilitado correctamente',
+            insumo,
+        });
+    } catch (error) {
+        console.error('Error al habilitar insumo:', error.message);
+        return res.status(500).json({
+            mensaje: 'Error del servidor',
+        });
+    }
+};
+module.exports = { obtenerInsumos, crearInsumo, editarInsumo, eliminarInsumo, habilitarInsumo, deshabilitarInsumo };

@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Tokens de la app (plan UX, secciones 8 y 30) */
+@theme {
+  /* Se mantiene la tipografía actual */
+  --font-sans: Arial, Helvetica, sans-serif;
+
+  /* Salto corto de la insignia cuando sube el contador */
+  --animate-insignia: insignia-salto 250ms ease-out;
+
+  @keyframes insignia-salto {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  /* Toasts (plan UX, 7.3): entran desde arriba y salen con fundido.
+     Con movimiento reducido, solo fundido. */
+  --animate-toast-entrada: toast-entrada 200ms ease-out;
+  --animate-toast-aparecer: toast-aparecer 200ms ease-out;
+  --animate-toast-salida: toast-salida 150ms ease-in forwards;
+
+  @keyframes toast-entrada {
+    from { opacity: 0; transform: translateY(-0.5rem); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes toast-aparecer {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes toast-salida {
+    to { opacity: 0; }
+  }
+}
+
+/* Alto de la barra inferior del celular (h-16 + zona segura). En escritorio no hay barra.
+   La barra de acción fija y el contenido se apoyan encima de ella. */
+:root {
+  --alto-nav-inferior: calc(4rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --alto-nav-inferior: 0px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: #f9fafb;
+}

@@ -1,4 +1,4 @@
-// Promociones tal como las devuelve GET /promociones (fuente: Backend/src/config/promociones.js)
+// Promociones tal como las devuelve GET /promociones (las arma el Admin-Master desde el panel)
 
 export interface ItemPromo {
   nombre: string
@@ -31,5 +31,7 @@ export interface Promociones {
   hoy: number
   productoSemana: Promo | null
   regalo: Promo | null
+  /** Producto de "Nuevo en la carta" (lo elige el admin; null = no se muestra) */
+  productoNuevoId?: number | null
   dias: DiaPromos[]
 }

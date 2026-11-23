@@ -1,10 +1,7 @@
 const Joi = require('joi')
+// El cliente no viaja en el cuerpo: sale de la sesión (plan de clientes, C-2).
+// Si llega un usuarioId, Joi lo rechaza como cualquier campo que no está en el esquema.
 const pedidoSchema = Joi.object({
-    usuarioId: Joi.number().integer().positive().required().messages({
-        'number.base': 'El id de usuario debe ser un número',
-        'any.required': 'El id de usuario es obligatorio'
-    }),
-
     direccionId: Joi.number().integer().positive().required().messages({
         'number.base': 'El id de dirección debe ser un número',
         'any.required': 'Tenés que seleccionar una dirección de entrega'
@@ -15,9 +12,9 @@ const pedidoSchema = Joi.object({
         'any.required': 'Tenés que seleccionar una sucursal'
     }),
 
-    observaciones: Joi.string().max(500).allow('', null).optional().messages({
+    observaciones: Joi.string().max(100).allow('', null).optional().messages({
         'string.base': 'Las observaciones deben ser un texto',
-        'string.max': 'Las observaciones no pueden superar los 500 caracteres'
+        'string.max': 'Las observaciones no pueden superar los 100 caracteres'
     }),
 
         productos: Joi.array().items(
@@ -32,7 +29,7 @@ const pedidoSchema = Joi.object({
                 'number.max': 'No se pueden pedir más de 20 unidades de un mismo producto',
                 'any.required': 'La cantidad es obligatoria'
             }),
-            // Promo con la que se agregó la línea (ver config/promociones.js)
+            // Promo con la que se agregó la línea (id de la tabla Promociones, como texto; ver utils/promociones.js)
             promoId: Joi.string().max(60).optional().messages({
                 'string.base': 'La promo no es válida'
             }),

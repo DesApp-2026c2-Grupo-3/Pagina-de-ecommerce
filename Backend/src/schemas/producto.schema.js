@@ -105,6 +105,12 @@ const productoSchema = Joi.object({
         'any.only': 'El sabor debe ser cola, naranja, lima o agua'
     }),
 
+    
+    // Solo combos: el producto que arma su receta (null = sin principal)
+    productoPrincipalId: Joi.number().integer().positive().allow(null).optional().messages({
+        'number.base': 'El producto principal no es válido'
+    }),
+    
     // Partes del producto. Sin valor por defecto a propósito:
     // al editar, si no vienen, no se tocan.
     receta: Joi.array().items(itemReceta).unique('insumoId').optional().messages({

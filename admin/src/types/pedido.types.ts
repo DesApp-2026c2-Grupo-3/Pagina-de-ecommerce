@@ -52,6 +52,13 @@ export interface PedidoCompleto {
   Sucursal: { nombre: string } | null
   DetallePedidos: DetalleLinea[]
   historialDeTiemposPedidos: RegistroTiempoPedido[]
+  // Lo del catálogo que aparece en este pedido (lo arma el backend; sirve también al admin de sucursal)
+  catalogo?: CatalogoPedido
+}
+
+export interface CatalogoPedido {
+  productos: ProductoCatalogo[]
+  insumos: { id: number; nombre: string }[]
 }
 
 // Lo que hace falta del catálogo para traducir ids a nombres
@@ -72,6 +79,7 @@ export interface PropsDetallePedidoModal {
 export const ETAPAS = [
   'Pendiente',
   'En proceso',
+  'Listo para retirar',
   'En camino',
   'Entregado',
   'Cancelado',

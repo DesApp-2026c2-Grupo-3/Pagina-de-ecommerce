@@ -6,15 +6,28 @@ jest.mock('bcrypt', () => ({
 jest.mock('../../src/models', () => ({
     Usuario: { findAll: jest.fn(), findOne: jest.fn(), findByPk: jest.fn(), create: jest.fn() },
     Sucursal: { findByPk: jest.fn() },
+    TokenRecuperacion: { destroy: jest.fn(), create: jest.fn(), findOne: jest.fn() },
+    sequelize: { transaction: jest.fn() },
+}));
+jest.mock('../../src/services/emailServices', () => ({
+    enviarCorreoRecuperacion: jest.fn(),
+}));
+jest.mock('../../src/services/authService', () => ({
+    firmarTokenCliente: jest.fn(() => 'token-cliente'),
 }));
 
 const bcrypt = require('bcrypt');
-const { Usuario, Sucursal } = require('../../src/models');
+const { Usuario, Sucursal, TokenRecuperacion, sequelize } = require('../../src/models');
+const { enviarCorreoRecuperacion } = require('../../src/services/emailServices');
+const { firmarTokenCliente } = require('../../src/services/authService');
 const {
     verUsuarios,
     crearUsuario,
     login,
+    solicitarRecuperacion,
+    restablecerPassword,
     obtenerUsuarioPorId,
+    obtenerMiUsuario,
     actualizarSucursalPredeterminada,
     actualizarUsuario,
 } = require('../../src/controllers/usuarioController');
@@ -149,7 +162,13 @@ describe('login', () => {
         await login({ body }, res);
 
         expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith({ id: 1, nombre: 'Juan', email: 'juan@mail.com' });
+        expect(res.json).toHaveBeenCalledWith({
+            id: 1,
+            nombre: 'Juan',
+            email: 'juan@mail.com',
+            token: 'token-cliente',
+        });
+        expect(firmarTokenCliente).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
     });
 
     test('responde 500 si falla la base de datos', async () => {
@@ -205,6 +224,39 @@ describe('obtenerUsuarioPorId', () => {
         const res = crearRes();
 
         await obtenerUsuarioPorId({ params: { id: '1' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+    });
+});
+
+describe('obtenerMiUsuario', () => {
+    test('busca el usuario del token, no el de la URL', async () => {
+        Usuario.findByPk.mockResolvedValue({ id: 7 });
+        const res = crearRes();
+
+        await obtenerMiUsuario({ usuario: { id: 7 }, params: { id: '1' } }, res);
+
+        expect(Usuario.findByPk.mock.calls[0][0]).toBe(7);
+        const { attributes } = Usuario.findByPk.mock.calls[0][1];
+        expect(attributes).not.toContain('password');
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ id: 7 });
+    });
+
+    test('responde 404 si el usuario del token ya no existe', async () => {
+        Usuario.findByPk.mockResolvedValue(null);
+        const res = crearRes();
+
+        await obtenerMiUsuario({ usuario: { id: 99 } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    test('responde 500 si falla la base de datos', async () => {
+        Usuario.findByPk.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await obtenerMiUsuario({ usuario: { id: 1 } }, res);
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
@@ -358,5 +410,155 @@ describe('actualizarUsuario', () => {
         await actualizarUsuario({ params: { id: '1' }, body: { email: 'Juan@Mail.com' } }, crearRes());
 
         expect(Usuario.findOne).not.toHaveBeenCalled();
+    });
+});
+
+describe('solicitarRecuperacion', () => {
+    const respuestaGenerica = {
+        mensaje: 'Si el email está registrado, recibirás instrucciones para recuperar tu contraseña.',
+    };
+
+    test('responde lo mismo si el email no está registrado', async () => {
+        Usuario.findOne.mockResolvedValue(null);
+        const res = crearRes();
+
+        await solicitarRecuperacion({ body: { email: ' NoExiste@Mail.com ' } }, res);
+
+        expect(Usuario.findOne).toHaveBeenCalledWith({ where: { email: 'noexiste@mail.com' } });
+        expect(TokenRecuperacion.destroy).not.toHaveBeenCalled();
+        expect(enviarCorreoRecuperacion).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(respuestaGenerica);
+    });
+
+    test('invalida tokens anteriores, guarda el hash y envía el correo', async () => {
+        Usuario.findOne.mockResolvedValue({ id: 7, email: 'juan@mail.com' });
+        const res = crearRes();
+
+        await solicitarRecuperacion({ body: { email: 'JUAN@mail.com' } }, res);
+
+        expect(TokenRecuperacion.destroy).toHaveBeenCalledWith({
+            where: { usuarioId: 7, usadoEn: null },
+        });
+        expect(TokenRecuperacion.create).toHaveBeenCalledWith(expect.objectContaining({
+            usuarioId: 7,
+            tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+            expiraEn: expect.any(Date),
+            usadoEn: null,
+        }));
+        expect(enviarCorreoRecuperacion).toHaveBeenCalledWith(
+            'juan@mail.com',
+            expect.stringMatching(/^[a-f0-9]{64}$/),
+        );
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    test('responde 500 si falla la base de datos', async () => {
+        Usuario.findOne.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await solicitarRecuperacion({ body: { email: 'juan@mail.com' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error del servidor' });
+    });
+});
+
+describe('restablecerPassword', () => {
+    const transaction = { LOCK: { UPDATE: 'UPDATE' } };
+
+    beforeEach(() => {
+        sequelize.transaction.mockImplementation(async (callback) => callback(transaction));
+    });
+
+    test.each([
+        ['sin token', { password: 'nueva123' }],
+        ['token vacío', { token: '   ', password: 'nueva123' }],
+        ['token no string', { token: 123, password: 'nueva123' }],
+        ['sin password', { token: 'abc' }],
+        ['password corta', { token: 'abc', password: '12345' }],
+        ['password larga', { token: 'abc', password: '123456789012345678901' }],
+        ['password sólo espacios', { token: 'abc', password: '      ' }],
+    ])('rechaza una solicitud %s', async (_caso, body) => {
+        const res = crearRes();
+
+        await restablecerPassword({ body }, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(sequelize.transaction).not.toHaveBeenCalled();
+    });
+
+    test('rechaza un token inexistente o ya usado', async () => {
+        TokenRecuperacion.findOne.mockResolvedValue(null);
+        const res = crearRes();
+
+        await restablecerPassword({ body: { token: 'abc', password: 'nueva123' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ mensaje: 'El token es inválido o ha expirado.' });
+    });
+
+    test('rechaza un token expirado', async () => {
+        TokenRecuperacion.findOne.mockResolvedValue({
+            usuarioId: 1,
+            expiraEn: new Date(Date.now() - 1000),
+        });
+        const res = crearRes();
+
+        await restablecerPassword({ body: { token: 'abc', password: 'nueva123' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(Usuario.findByPk).not.toHaveBeenCalled();
+    });
+
+    test('rechaza si el usuario del token ya no existe', async () => {
+        TokenRecuperacion.findOne.mockResolvedValue({
+            usuarioId: 1,
+            expiraEn: new Date(Date.now() + 60_000),
+        });
+        Usuario.findByPk.mockResolvedValue(null);
+        const res = crearRes();
+
+        await restablecerPassword({ body: { token: 'abc', password: 'nueva123' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    test('guarda la nueva contraseña y marca el token como usado', async () => {
+        const solicitud = {
+            usuarioId: 1,
+            expiraEn: new Date(Date.now() + 60_000),
+            usadoEn: null,
+            save: jest.fn(),
+        };
+        const usuario = {
+            id: 1,
+            password: 'hash-viejo',
+            save: jest.fn(),
+        };
+        TokenRecuperacion.findOne.mockResolvedValue(solicitud);
+        Usuario.findByPk.mockResolvedValue(usuario);
+        bcrypt.hash.mockResolvedValue('hash-nuevo');
+        const res = crearRes();
+
+        await restablecerPassword({ body: { token: 'abc', password: 'nueva123' } }, res);
+
+        expect(bcrypt.hash).toHaveBeenCalledWith('nueva123', 10);
+        expect(usuario.password).toBe('hash-nuevo');
+        expect(usuario.save).toHaveBeenCalledWith({ transaction });
+        expect(solicitud.usadoEn).toEqual(expect.any(Date));
+        expect(solicitud.save).toHaveBeenCalledWith({ transaction });
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ mensaje: 'La contraseña se restableció correctamente.' });
+    });
+
+    test('responde 500 ante un error inesperado', async () => {
+        TokenRecuperacion.findOne.mockRejectedValue(new Error('Base caída'));
+        const res = crearRes();
+
+        await restablecerPassword({ body: { token: 'abc', password: 'nueva123' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({ mensaje: 'Error del servidor' });
     });
 });

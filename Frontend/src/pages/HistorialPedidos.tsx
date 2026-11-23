@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ShoppingBag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getHistorialPedidos } from '../services/orderService'
 import type { Order } from '../types/order'
 import { FILTROS_PEDIDO, estaEnCurso, type FiltroPedido } from '../config/pedidoEstados'
+import { useRefrescoCliente } from '../hooks/useRefrescoCliente'
 import AccountLayout from '../components/cuenta/AccountLayout'
 import PedidoEnCurso from '../components/cuenta/PedidoEnCurso'
 import PedidoCard from '../components/cuenta/PedidoCard'
@@ -17,16 +18,31 @@ function HistorialPedidos() {
   const [error, setError] = useState('')
   const [filtro, setFiltro] = useState<FiltroPedido>('todos')
 
-  useEffect(() => {
-    if (!user) return
+  // Solo vale la respuesta de la última carga: una más vieja que llega tarde no pisa la lista (RN-45)
+  const ultimaCargaRef = useRef(0)
 
-    getHistorialPedidos(user.id)
-      .then(setPedidos)
+  const cargarPedidos = useCallback(() => {
+    if (!user) return Promise.resolve()
+
+    const carga = ++ultimaCargaRef.current
+    return getHistorialPedidos()
+      .then((historial) => {
+        if (carga !== ultimaCargaRef.current) return
+        setPedidos(historial)
+        setError('')
+      })
       .catch((err) => {
+        if (carga !== ultimaCargaRef.current) return
         setError(err instanceof Error ? err.message : 'Error al cargar el historial')
       })
-      .finally(() => setLoading(false))
   }, [user])
+
+  useEffect(() => {
+    void cargarPedidos().finally(() => setLoading(false))
+  }, [cargarPedidos])
+
+  // Un pedido nuevo o un cambio de estado recarga la lista desde el servidor (plan, C-6)
+  useRefrescoCliente('pedido', () => void cargarPedidos())
 
   const enCurso = pedidos.filter((p) => estaEnCurso(p.estado))
   const aplica = FILTROS_PEDIDO.find((f) => f.id === filtro)!.aplica

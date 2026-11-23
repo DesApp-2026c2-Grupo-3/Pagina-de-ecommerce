@@ -7,6 +7,7 @@ const {
     ComboGrupo,
     StockSucursal,
     Sucursal,
+    Categoria
 } = require('../models');
 const {
     agruparPorProducto,
@@ -109,10 +110,24 @@ const obtenerProductos = async (req, res) => {
         if (error) return res.status(error.status).json({ mensaje: error.mensaje });
 
         const productos = (await Producto.findAll({
-            include: [incluirTamanios(), incluirGrupos()],
+            include: [
+                incluirTamanios(), incluirGrupos(),
+                {
+                    model: Categoria,
+                    as: 'categoria',
+                    where: { activo: true },
+                    required: true,
+                },
+            ],
             order: [['id', 'ASC']]
         })).map(aplanarProducto);
 
+        // Un combo depende de su producto principal: si está inhabilitado o eliminado, el combo tampoco se vende
+        const porId = new Map(productos.map((p) => [p.id, p]));
+        for (const p of productos) {
+            if (p.productoPrincipalId && !porId.get(p.productoPrincipalId)?.disponible) p.disponible = false;
+        }
+        
         if (!sucursalId) return res.json(productos);
 
         // Dos consultas en total, no una por producto
@@ -127,7 +142,7 @@ const obtenerProductos = async (req, res) => {
         // Primero, cada producto por su propia receta
         const porReceta = new Map(productos.map((p) => [
             p.id,
-            productoDisponible(p, recetasPorProducto.get(p.id), stockPorInsumo, factorDe(p)),
+            productoDisponible(p, recetasPorProducto.get(p.productoPrincipalId ?? p.id), stockPorInsumo, factorDe(p)),        
         ]));
 
         // Un combo, además, necesita al menos una opción disponible en cada lugar obligatorio
@@ -154,7 +169,13 @@ const obtenerProductoPorId = async (req, res) => {
             include: [
                 { model: RecetaInsumo, include: [Insumo] },
                 incluirTamanios(),
-                incluirGrupos()
+                incluirGrupos(),
+                {
+                    model: Categoria,
+                    as: 'categoria',
+                    where: { activo: true },
+                    required: true,
+                },
             ]
         });
 
@@ -165,8 +186,16 @@ const obtenerProductoPorId = async (req, res) => {
         const productoJson = producto.toJSON();
         const { RecetaInsumos, ...resto } = productoJson;
         const datosProducto = aplanarProducto(resto);
-        const ingredientes = mapIngredientes(productoJson);
-
+        // Un combo usa la receta de su producto principal (y no se vende si el principal no está disponible)
+        let ingredientes = mapIngredientes(productoJson);
+        if (producto.productoPrincipalId) {
+            const principal = await Producto.findByPk(producto.productoPrincipalId, {
+                attributes: ['id', 'disponible'],
+                include: [{ model: RecetaInsumo, include: [Insumo] }],
+            });
+            ingredientes = principal ? mapIngredientes(principal.toJSON()) : [];
+            if (!principal?.disponible) datosProducto.disponible = false;
+        }
         const { sucursalId, error } = await sucursalDesdeQuery(req.query);
         if (error) return res.status(error.status).json({ mensaje: error.mensaje });
         if (!sucursalId) return res.json({ ...datosProducto, ingredientes });

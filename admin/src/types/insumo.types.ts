@@ -4,6 +4,9 @@ export interface Insumo {
   nombre: string
   unidadMedida: string
   precioComercial: string | number | null
+  activo: boolean
+  /** Stock mínimo sugerido: se copia a las sucursales al crear el insumo */
+  stockMinimo: string | number | null
 }
 
 // Datos que espera el backend al crear o editar un insumo.
@@ -11,4 +14,6 @@ export interface DatosInsumo {
   nombre: string
   unidadMedida: string
   precioComercial: number | null
+  /** Opcional: vacío = sin alerta de stock mínimo */
+  stockMinimo?: number | null
 }

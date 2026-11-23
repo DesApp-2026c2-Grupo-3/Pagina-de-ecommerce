@@ -1,0 +1,635 @@
+const { Op } = require('sequelize');
+const { Viaje, Pedido , Usuario, Direccion, DetallePedido, Producto, historialDeTiemposPedido }= require('../../models');
+const {
+    notificarPedidosTomados,
+    notificarViajeIniciado,
+    notificarPedidoQuitado,
+    notificarRecepcionConfirmada,
+    notificarAsistenciaSolicitada,
+} = require('../../notifications/handlers/viajeHandlers');
+
+const tomarPedidos = async (req, res) => {
+    const { pedidoIds } = req.body;
+    const { id: repartidorId, sucursalId } = req.repartidor;
+
+    // Validar que se hayan enviado pedidos válidos.
+    if (
+        !Array.isArray(pedidoIds) ||
+        pedidoIds.length === 0 ||
+        !pedidoIds.every(id => Number.isInteger(id) && id > 0)
+    ) {
+        return res.status(400).json({
+            mensaje: 'Debés seleccionar al menos un pedido válido',
+        });
+    }
+
+    // Evitar IDs repetidos.
+    const idsUnicos = [...new Set(pedidoIds)];
+
+    if (idsUnicos.length !== pedidoIds.length) {
+        return res.status(400).json({
+            mensaje: 'La selección contiene pedidos duplicados',
+        });
+    }
+
+    const transaction = await Viaje.sequelize.transaction();
+
+    try {
+        // Comprobar que el repartidor no tenga otro viaje en curso.
+        const viajeExistente = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: {
+                    [Op.in]: [
+                        'preparando',
+                        'activo',
+                        'requiere asistencia',
+                    ],
+                },
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (viajeExistente) {
+            const error = new Error(
+                'Ya tenés un viaje en curso. Debés finalizarlo antes de tomar otros pedidos'
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
+        // Buscar y bloquear los pedidos seleccionados.
+        const pedidos = await Pedido.findAll({
+            where: {
+                id: { [Op.in]: idsUnicos },
+                sucursalId,
+                estado: 'Listo para retirar',
+                viajeId: null,
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (pedidos.length !== idsUnicos.length) {
+            const error = new Error(
+                'Uno o más pedidos ya no están disponibles o no pertenecen a tu sucursal'
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
+        // Crear el viaje en preparación.
+        const viaje = await Viaje.create(
+            {
+                repartidorId,
+                estado: 'preparando',
+                fechaInicio: null,
+            },
+            { transaction }
+        );
+
+        // Asociar los pedidos al viaje.
+        await Pedido.update(
+            { viajeId: viaje.id },
+            {
+                where: {
+                    id: { [Op.in]: idsUnicos },
+                },
+                transaction,
+            }
+        );
+
+        await transaction.commit();
+
+        await notificarPedidosTomados({ viajeId: viaje.id, sucursalId });
+
+        return res.status(201).json({
+            mensaje: 'Pedidos asignados correctamente. Retiralos para poder iniciar el viaje',
+            viaje: {
+                id: viaje.id,
+                repartidorId: viaje.repartidorId,
+                fechaInicio: viaje.fechaInicio,
+                estado: viaje.estado,
+            },
+            pedidoIds: idsUnicos,
+        });
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error('Error al tomar pedidos:', error.message);
+
+        return res.status(
+            error.statusCode ||
+            (error.name === 'SequelizeUniqueConstraintError' ? 409 : 500)
+        ).json({
+            mensaje: error.statusCode
+                ? error.message
+                : error.name === 'SequelizeUniqueConstraintError'
+                    ? 'Ya tenés un viaje en curso'
+                    : 'Error al asignar los pedidos',
+        });
+    }
+};
+
+const iniciarViaje = async (req, res) => {
+    const { id: repartidorId } = req.repartidor;
+
+    const transaction = await Viaje.sequelize.transaction();
+
+    try {
+        // Buscar el viaje que está preparando el repartidor y bloquearlo.
+        const viaje = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: 'preparando',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!viaje) {
+            const error = new Error(
+                'No tenés un viaje en preparación para iniciar'
+            );
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const pedidos = await Pedido.findAll({
+            where: { viajeId: viaje.id },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (pedidos.length === 0) {
+            const error = new Error(
+                'No podés iniciar un viaje sin pedidos'
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
+        // D-07: todos tienen que estar retirados del local
+        if (pedidos.some((pedido) => !pedido.retiradoEn)) {
+            const error = new Error(
+                'Todavía tenés pedidos pendientes de retirar'
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
+        // Recién ahora salen: todos pasan a "En camino" con su registro en la línea de tiempo
+        const salida = new Date();
+
+        for (const pedido of pedidos) {
+            const estadoAnterior = pedido.estado;
+            await pedido.update({ estado: 'En camino' }, { transaction });
+            await historialDeTiemposPedido.create({
+                pedidoId: pedido.id,
+                estadoAnterior,
+                estado: 'En camino',
+                fecha: salida,
+            }, { transaction });
+        }
+
+        await viaje.update(
+            {
+                estado: 'activo',
+                fechaInicio: salida,
+            },
+            { transaction }
+        );
+
+        await transaction.commit();
+
+        await notificarViajeIniciado({ viaje, pedidos, sucursalId: req.repartidor.sucursalId });
+
+        return res.status(200).json({
+            mensaje: 'Viaje iniciado correctamente',
+            viaje: {
+                id: viaje.id,
+                repartidorId: viaje.repartidorId,
+                fechaInicio: viaje.fechaInicio,
+                estado: viaje.estado,
+            },
+        });
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error('Error al iniciar viaje:', error.message);
+
+        return res.status(error.statusCode || 500).json({
+            mensaje: error.statusCode
+                ? error.message
+                : 'Error al iniciar el viaje',
+        });
+    }
+};
+
+const quitarPedidoDelViaje = async (req, res) => {
+    const { id: repartidorId } = req.repartidor;
+    const pedidoId = Number(req.params.pedidoId);
+
+    if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+        return res.status(400).json({
+            mensaje: 'El identificador del pedido no es válido',
+        });
+    }
+
+    const transaction = await Viaje.sequelize.transaction();
+
+    try {
+        const viaje = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: 'preparando',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!viaje) {
+            const error = new Error(
+                'No tenés un viaje en preparación'
+            );
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const pedido = await Pedido.findOne({
+            where: {
+                id: pedidoId,
+                viajeId: viaje.id,
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!pedido) {
+            const error = new Error(
+                'El pedido no pertenece a tu viaje'
+            );
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (pedido.retiradoEn || pedido.estado !== 'Listo para retirar') {
+            const error = new Error(
+                'No podés quitar un pedido que ya fue retirado o modificado'
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
+        await pedido.update(
+            { viajeId: null },
+            { transaction }
+        );
+
+        const pedidosRestantes = await Pedido.count({
+            where: {
+                viajeId: viaje.id,
+            },
+            transaction,
+        });
+
+        // Si era el último pedido, cancelar automáticamente el viaje.
+        if (pedidosRestantes === 0) {
+            await viaje.destroy({ transaction });
+        }
+
+        await transaction.commit();
+
+        await notificarPedidoQuitado({ pedido, viajeId: viaje.id, repartidorId });
+
+        return res.status(200).json({
+            mensaje: pedidosRestantes === 0
+                ? 'Pedido quitado. El viaje quedó vacío y fue eliminado'
+                : 'Pedido quitado correctamente. Ya está disponible para otros repartidores',
+            pedidoId: pedido.id,
+            pedidosRestantes,
+            viajeEliminado: pedidosRestantes === 0,
+        });
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error('Error al quitar pedido del viaje:', error.message);
+
+        return res.status(error.statusCode || 500).json({
+            mensaje: error.statusCode
+                ? error.message
+                : 'Error al quitar el pedido del viaje',
+        });
+    }
+};
+
+const obtenerViajeActivo = async (req, res) => {
+    try {
+        const { id: repartidorId } = req.repartidor;
+
+        const viaje = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: {[Op.in]: ['preparando', 'activo', 'requiere asistencia']}
+                
+            },
+            include: [
+                {
+                    model: Pedido,
+                    include: [
+                        {
+                            model: Usuario,
+                            attributes: ['id', 'nombre', 'apellido', 'telefono'],
+                        },
+                        {
+                            model: Direccion,
+                            attributes: [
+                                'id', 'alias', 'calle', 'numero', 'piso',
+                                'localidad', 'provincia', 'observaciones',
+                                'latitud', 'longitud',
+                            ],
+                            paranoid: false,
+                        },
+                        {
+                            model: DetallePedido,
+                            include: [
+                                {
+                                    model: Producto,
+                                    attributes: ['id', 'nombre', 'imagen'],
+                                    paranoid: false,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+
+        return res.status(200).json(viaje);
+
+    } catch (error) {
+        console.error('Error al obtener viaje activo:', error.message);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el viaje activo',
+        });
+    }
+};
+
+const confirmarRecepcion = async (req, res) => {
+    const { id: repartidorId } = req.repartidor;
+
+    const transaction = await Viaje.sequelize.transaction();
+
+    try {
+        // Buscar y bloquear el viaje activo del repartidor.
+        const viaje = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: 'activo',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!viaje) {
+            const error = new Error(
+                'No tenés un viaje activo para confirmar la recepción'
+            );
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Si ya confirmó, no hace falta repetir la operación.
+        if (viaje.recepcionConfirmada) {
+            await transaction.commit();
+
+            return res.status(200).json({
+                mensaje: 'La recepción ya estaba confirmada',
+                recepcionConfirmada: true,
+            });
+        }
+
+        await viaje.update(
+            { recepcionConfirmada: true },
+            { transaction }
+        );
+
+        const cantidadPedidos = await Pedido.count({
+            where: { viajeId: viaje.id },
+            transaction,
+        });
+
+        await transaction.commit();
+
+        // Solo acá avisa: una confirmación repetida sale antes y no duplica el aviso
+        await notificarRecepcionConfirmada({
+            viaje,
+            repartidor: {
+                id: repartidorId,
+                nombre: req.identidad.nombre,
+                sucursalId: req.repartidor.sucursalId,
+            },
+            cantidadPedidos,
+        });
+
+        return res.status(200).json({
+            mensaje: 'Recepción de pedidos confirmada correctamente',
+            recepcionConfirmada: true,
+        });
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error('Error al confirmar recepción:', error.message);
+
+        return res.status(error.statusCode || 500).json({
+            mensaje: error.statusCode
+                ? error.message
+                : 'Error al confirmar la recepción de los pedidos',
+        });
+    }
+};
+
+const obtenerHistorialViajes = async (req, res) => {
+    try {
+        const { id: repartidorId } = req.repartidor;
+
+        const viajes = await Viaje.findAll({
+            where: {
+                repartidorId,
+                estado: 
+                {[Op.in]: ['finalizado', 'cancelado']}
+            },
+            include: [
+                {
+                    model: Pedido,
+                    include: [
+                        {
+                            model: Usuario,
+                            attributes: ['id', 'nombre', 'apellido', 'telefono'],
+                        },
+                        {
+                            model: Direccion,
+                            attributes: [
+                                'id', 'alias', 'calle', 'numero', 'piso',
+                                'localidad', 'provincia', 'observaciones',
+                                'latitud', 'longitud',
+                            ],
+                            paranoid: false,
+                        },
+                        {
+                            model: DetallePedido,
+                            include: [
+                                {
+                                    model: Producto,
+                                    attributes: ['id', 'nombre', 'imagen'],
+                                    paranoid: false,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            order: [['fechaInicio', 'DESC']],
+        });
+
+        return res.status(200).json(viajes);
+
+    } catch (error) {
+        console.error('Error al obtener historial de viajes:', error.message);
+
+        return res.status(500).json({
+            mensaje: 'Error al obtener el historial de viajes',
+        });
+    }
+};
+
+// D-25: el comentario entra completo, sin scroll, en el diálogo del celular (plan UX, v1.9)
+const MAXIMO_COMENTARIO_ASISTENCIA = 150;
+
+const solicitarAyuda = async (req, res) => {
+    const { id: repartidorId } = req.repartidor;
+    const { motivo, comentario, latitud, longitud } = req.body;
+
+    const motivosValidos = [
+        'Problema con el vehículo',
+        'Accidente',
+        'Problema personal',
+        'Otro',
+    ];
+
+    if (!motivosValidos.includes(motivo)) {
+        return res.status(400).json({
+            mensaje: 'Debés seleccionar un motivo válido',
+        });
+    }
+
+    if (
+        comentario !== undefined &&
+        (typeof comentario !== 'string' || comentario.trim().length > MAXIMO_COMENTARIO_ASISTENCIA)
+    ) {
+        return res.status(400).json({
+            mensaje: `El comentario debe tener como máximo ${MAXIMO_COMENTARIO_ASISTENCIA} caracteres`,
+        });
+    }
+
+    if ( typeof latitud !== 'number' ||
+        !Number.isFinite(latitud) ||
+        latitud < -90 ||
+        latitud > 90 ||
+        typeof longitud !== 'number' ||
+        !Number.isFinite(longitud) ||
+        longitud < -180 ||
+        longitud > 180) 
+        {
+        return res.status(400).json({
+            mensaje: 'No se pudo obtener una ubicación válida',
+        });
+    }
+
+    const transaction = await Viaje.sequelize.transaction();
+
+    try {
+        const viaje = await Viaje.findOne({
+            where: {
+                repartidorId,
+                estado: 'activo',
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!viaje) {
+            await transaction.rollback();
+
+            return res.status(404).json({
+                mensaje: 'No tenés un viaje activo para solicitar asistencia',
+            });
+        }
+
+        await viaje.update(
+            {
+                estado: 'requiere asistencia',
+                motivoAsistencia: motivo,
+                comentarioAsistencia: comentario?.trim() || null,
+                fechaSolicitudAsistencia: new Date(),
+                latitudAsistencia: latitud,
+                longitudAsistencia: longitud,
+            },
+            { transaction }
+        );
+
+        await transaction.commit();
+
+        await notificarAsistenciaSolicitada({
+            viaje,
+            repartidor: {
+                id: repartidorId,
+                nombre: req.identidad.nombre,
+                sucursalId: req.repartidor.sucursalId,
+            },
+        });
+
+        return res.status(200).json({
+            mensaje: 'Solicitud de asistencia enviada correctamente',
+            viaje: {
+                id: viaje.id,
+                estado: viaje.estado,
+                motivoAsistencia: viaje.motivoAsistencia,
+                comentarioAsistencia: viaje.comentarioAsistencia,
+                fechaSolicitudAsistencia: viaje.fechaSolicitudAsistencia,
+                latitudAsistencia: viaje.latitudAsistencia,
+                longitudAsistencia: viaje.longitudAsistencia,
+            },
+        });
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error('Error al solicitar asistencia:', error.message);
+
+        return res.status(500).json({
+            mensaje: 'Error al enviar la solicitud de asistencia',
+        });
+    }
+};
+
+module.exports = {
+    iniciarViaje, obtenerViajeActivo, confirmarRecepcion, obtenerHistorialViajes,
+     solicitarAyuda, tomarPedidos, quitarPedidoDelViaje
+}

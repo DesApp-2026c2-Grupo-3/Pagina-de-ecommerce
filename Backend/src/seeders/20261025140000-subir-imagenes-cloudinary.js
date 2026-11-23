@@ -7,12 +7,13 @@
 //   con un nombre fijo (ej: productos/hamburguesas-fast-classic), así no se duplica si se corre de nuevo.
 // - Si dos productos usan la misma foto, se sube una sola vez y los dos apuntan a ella.
 // - Solo toca productos sin imagenPublicId: los que ya están en Cloudinary no se procesan otra vez.
+// - Si la imagen ya está en Cloudinary (mismo nombre), no se vuelve a subir: solo se usa su URL.
 // - Si falta un archivo, ese producto queda con su ruta local y se avisa al final.
 // - Necesita las credenciales de Cloudinary en Backend/.env.
 
 const fs = require('fs');
 const path = require('path');
-const { cloudinaryConfigurado } = require('../config/cloudinary');
+const { cloudinary, cloudinaryConfigurado } = require('../config/cloudinary');
 const { CARPETA_PRODUCTOS, subirImagenProducto } = require('../utils/imagenesCloudinary');
 
 const CARPETA_PUBLICA = path.join(__dirname, '../../../Frontend/public');
@@ -26,6 +27,16 @@ const aNombreCloudinary = (ruta) =>
     .replace(/\.[a-z0-9]+$/, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+// Si la imagen ya está en Cloudinary (de una corrida anterior), devuelve su URL sin volver a subirla
+async function buscarEnCloudinary(publicId) {
+  try {
+    const recurso = await cloudinary.api.resource(publicId);
+    return { url: recurso.secure_url, publicId: recurso.public_id };
+  } catch {
+    return null; // no existe (o no se pudo consultar): se sube
+  }
+}
 
 module.exports = {
   async up(queryInterface) {
@@ -50,15 +61,23 @@ module.exports = {
       let subida = subidas.get(producto.imagen);
 
       if (!subida) {
-        const archivo = path.join(CARPETA_PUBLICA, producto.imagen);
-        if (!fs.existsSync(archivo)) {
-          faltantes.push(`${producto.nombre} (${producto.imagen})`);
-          continue;
-        }
         const nombre = aNombreCloudinary(producto.imagen.replace(/^\/imagenes\//, ''));
-        subida = await subirImagenProducto(fs.readFileSync(archivo), { publicId: `${CARPETA_PRODUCTOS}/${nombre}` });
+        const publicId = `${CARPETA_PRODUCTOS}/${nombre}`;
+
+        // Primero se busca en Cloudinary: si ya está, no se comprime ni se sube de nuevo
+        subida = await buscarEnCloudinary(publicId);
+
+        if (!subida) {
+          const archivo = path.join(CARPETA_PUBLICA, producto.imagen);
+          if (!fs.existsSync(archivo)) {
+            faltantes.push(`${producto.nombre} (${producto.imagen})`);
+            continue;
+          }
+          subida = await subirImagenProducto(fs.readFileSync(archivo), { publicId });
+          console.log(`  ↑ ${producto.imagen}`);
+        }
+
         subidas.set(producto.imagen, subida);
-        console.log(`  ↑ ${producto.imagen}`);
       }
 
       await sequelize.query(

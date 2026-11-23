@@ -7,6 +7,9 @@ import { NAV_LINKS } from '../../config/navigation'
 import { useCerrarSesion } from '../../hooks/useCerrarSesion'
 import ZoneButton from './ZoneButton'
 import AccountMenu from './AccountMenu'
+import CampanaNotificaciones from '../notificaciones/CampanaNotificaciones'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { CONSULTA_ESCRITORIO } from '../../config/pantallas'
 
 const linkBase = 'rounded-full px-4 py-2 text-sm font-bold transition-colors xl:text-base'
 
@@ -20,9 +23,12 @@ function Navbar() {
   const { isAuthenticated } = useAuth()
   const { totalItems } = useCart()
   const cerrarSesion = useCerrarSesion()
+  // Una sola campana montada (plan, DC-8): junto a la zona en celular y tablet,
+  // y entre el carrito y la cuenta en escritorio
+  const esEscritorio = useMediaQuery(CONSULTA_ESCRITORIO)
 
   return (
-    <header className="sticky top-0 z-30 border-b-4 border-brand-red bg-brand-dark" id="top">
+    <header className="sticky top-0 z-40 border-b-4 border-brand-red bg-brand-dark" id="top">
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         {/* Logo y dónde se recibe el pedido */}
         <Link to="/" className="flex shrink-0 items-center" onClick={() => alNavegar('/')}>
@@ -31,6 +37,7 @@ function Navbar() {
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
 
           <ZoneButton />
+          {isAuthenticated && !esEscritorio && <CampanaNotificaciones />}
         </div>
 
         {/* ---------- Escritorio ---------- */}
@@ -74,8 +81,10 @@ function Navbar() {
 
 
           {isAuthenticated ? (
-            <div className="ml-2 "> <AccountMenu onLogout={cerrarSesion} /></div>
-
+            <>
+              {esEscritorio && <CampanaNotificaciones />}
+              <div className="ml-2"> <AccountMenu onLogout={cerrarSesion} /></div>
+            </>
           ) : (
 
 

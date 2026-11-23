@@ -2,9 +2,12 @@ import type { Order } from '../../types/order'
 import { normalizarEstado } from '../../config/pedidoEstados'
 import { formatearFechaHora } from '../../utils/fechas'
 import { formatearPrecio } from '../../utils/precio'
-import { resumenItems } from '../../utils/pedidos'
+import { resumenItems, totalConEnvio } from '../../utils/pedidos'
 import SeguimientoPedido from './SeguimientoPedido'
-import { MessageSquareText } from 'lucide-react'
+import { MessageSquareText, Timer } from 'lucide-react'
+
+// "21:35"
+const hora = (fecha: string) => new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 
 // Tarjeta oscura destacada para un pedido que todavía no se entregó
 function PedidoEnCurso({ pedido }: { pedido: Order }) {
@@ -21,9 +24,23 @@ function PedidoEnCurso({ pedido }: { pedido: Order }) {
             Sucursal: {pedido.Sucursal?.nombre ?? 'No disponible'}
           </p>
         </div>
-        <p className="font-display text-3xl font-extrabold">{formatearPrecio(Number(pedido.total))}</p>
+        {/* A la derecha: el precio y, debajo, la hora estimada en un recuadro angosto */}
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <p className="font-display text-3xl font-extrabold">{formatearPrecio(totalConEnvio(pedido))}</p>
+          {/* Hora estimada: la calcula el backend y se corre sola si alguna etapa se demora */}
+          {pedido.estimacion && (
+            <div className="flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2">
+              <Timer className="h-5 w-5 shrink-0 text-brand-mustard" />
+              <div className="leading-tight">
+                <p className="text-sm font-bold">Llega aprox. a las {hora(pedido.estimacion.llegaAprox)}</p>
+                <p className="text-xs font-semibold text-brand-cream/70">
+                  {pedido.estimacion.demorado ? 'Viene un poco demorado' : `en unos ${pedido.estimacion.minutosRestantes} min`}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>      
       </div>
-
       <SeguimientoPedido
         estado={pedido.estado}
         historial={pedido.historialDeTiemposPedidos}

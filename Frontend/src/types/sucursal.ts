@@ -4,13 +4,29 @@ export const DIAS_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes',
 
 export type DiaSemana = (typeof DIAS_SEMANA)[number]
 
-export interface HorarioDia {
+export interface HorarioTurno {
   apertura: string
   cierre: string
+  cruzaMedianoche: boolean
+}
+
+export interface HorarioDia {
   abierto: boolean
+  turnos: HorarioTurno[]
 }
 
 export type HorarioSemana = Record<DiaSemana, HorarioDia>
+
+export interface IntervaloTurno {
+  inicio: number
+  fin: number
+}
+
+export interface GrupoHorario {
+  desde: DiaSemana
+  hasta: DiaSemana
+  config: HorarioDia
+}
 
 export interface EstadoSucursal {
   abierta: boolean
@@ -26,7 +42,7 @@ export interface Sucursal {
   provincia: string
   codigoPostal: string | null
   telefono: string | null
-  horario: HorarioSemana | string | null
+  horario: HorarioSemana
   zona_horaria: string
   latitud: number
   longitud: number

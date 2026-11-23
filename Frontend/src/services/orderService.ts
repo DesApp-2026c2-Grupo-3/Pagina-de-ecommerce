@@ -1,10 +1,10 @@
 import { httpClient } from './httpClient'
 import type { CartItem } from '../types/cart'
-import type { Order } from '../types/order'
+import type { Cotizacion, Order } from '../types/order'
 import type { ComboElecciones, IngredientePersonalizacion } from '../types/cart'
 
+// El cliente sale de la sesión (token): no se manda su id en ningún pedido (plan, C-2)
 export const createOrder = async (
-  usuarioId: number,
   items: CartItem[],
   direccionId: number,
   sucursalId: number,
@@ -22,12 +22,17 @@ export const createOrder = async (
 
   return httpClient<Order>('/pedido', {
     method: 'POST',
-    body: JSON.stringify({ usuarioId, productos, direccionId, sucursalId, observaciones }),
+    body: JSON.stringify({ productos, direccionId, sucursalId, observaciones }),
   })
 }
 
-export const getHistorialPedidos = async (usuarioId: number): Promise<Order[]> => {
-  return httpClient<Order[]>(`/pedido/usuario/${usuarioId}`)
+// Los pedidos del cliente de la sesión, del más nuevo al más viejo
+export const getHistorialPedidos = async (): Promise<Order[]> => {
+  return httpClient<Order[]>('/pedido/mios')
+}
+
+export const getPedidoCliente = async (pedidoId: number): Promise<Order> => {
+  return httpClient<Order>(`/pedido/cliente/${pedidoId}`)
 }
 
 
@@ -49,5 +54,13 @@ export interface ResultadoRepetir {
   noDisponibles: { nombre: string; cantidad: number; motivo: string }[]
 }
 
-export const getRepetirPedido = (pedidoId: number, usuarioId: number, sucursalId: number) =>
-  httpClient<ResultadoRepetir>(`/pedido/${pedidoId}/repetir?usuarioId=${usuarioId}&sucursalId=${sucursalId}`)
+export const getRepetirPedido = (pedidoId: number, sucursalId: number) =>
+  httpClient<ResultadoRepetir>(`/pedido/${pedidoId}/repetir?sucursalId=${sucursalId}`)
+
+
+// Antes de confirmar: cuánto sale el envío y en cuánto llega (no crea nada)
+export const cotizarEnvio = (direccionId: number, sucursalId: number, unidades: number) =>
+  httpClient<Cotizacion>('/pedido/cotizar', {
+    method: 'POST',
+    body: JSON.stringify({ direccionId, sucursalId, unidades }),
+  })

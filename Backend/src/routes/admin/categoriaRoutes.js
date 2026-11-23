@@ -12,5 +12,7 @@ router.get('/', esAdminJwt, categoriaController.obtenerCategorias);
 router.post('/nueva', esMasterJwt, validarCategoria, categoriaController.crearCategoria);
 router.patch('/editar/:id', esMasterJwt, validarCategoria, esIdValido, categoriaController.editarCategoriaPorId);
 router.delete('/eliminar/:id', esMasterJwt, esIdValido, categoriaController.eliminarCategorias);
+router.patch('/:id/deshabilitar', esMasterJwt, esIdValido, categoriaController.deshabilitarCategoria);
+router.patch( '/:id/habilitar', esMasterJwt, esIdValido, categoriaController.habilitarCategoria);
 
 module.exports = router;

@@ -2,21 +2,19 @@ import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
 
 // "Carrito" tiene ruta: una vez pasado, se puede tocar para volver.
-// "Entrega" y "Pago" están en la misma página (checkout): se vuelve con onIrA.
+// "Entrega y pago" es una sola pantalla (checkout).
 const PASOS = [
   { nombre: 'Carrito', to: '/carrito' },
-  { nombre: 'Entrega', to: null },
-  { nombre: 'Pago', to: null },
+  { nombre: 'Entrega y pago', to: null },
   { nombre: 'Confirmado', to: null },
 ]
 
 interface Props {
-  actual: number // 0 = carrito, 1 = entrega, 2 = pago, 3 = confirmado
-  onIrA?: (paso: number) => void
+  actual: number // 0 = carrito, 1 = entrega y pago, 2 = confirmado
 }
 
 // Indicador de en qué paso de la compra está el cliente
-function PasosCompra({ actual, onIrA }: Props) {
+function PasosCompra({ actual }: Props) {
   return (
     <ol aria-label="Pasos de la compra" className="flex flex-wrap items-center gap-1.5 text-sm font-bold sm:gap-2">
       {PASOS.map((paso, i) => {
@@ -47,10 +45,6 @@ function PasosCompra({ actual, onIrA }: Props) {
               <Link to={paso.to} className="flex items-center gap-1.5 rounded-full hover:opacity-80 sm:gap-2">
                 {contenido}
               </Link>
-            ) : hecho && onIrA ? (
-              <button type="button" onClick={() => onIrA(i)} className="flex items-center gap-1.5 rounded-full hover:opacity-80 sm:gap-2">
-                {contenido}
-              </button>
             ) : (
               <span className="flex items-center gap-1.5 sm:gap-2">{contenido}</span>
             )}

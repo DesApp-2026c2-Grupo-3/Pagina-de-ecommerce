@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-// Pantallas del master (productos, categorías, insumos, sucursales, administradores)
+// Pantallas del master (productos, promociones, categorías, insumos, sucursales, administradores)
 export function SoloMaster() {
   const { administrador } = useAuth()
   return administrador?.rol === 'MASTER' ? <Outlet /> : <Navigate to="/admin" replace />
@@ -12,6 +12,11 @@ export function SoloMaster() {
 export function SoloSuSucursal() {
   const { administrador } = useAuth()
   const { id } = useParams()
-  const permitido = administrador?.rol === 'MASTER' || Number(id) === administrador?.sucursalId
+
+  const esMaster = administrador?.rol === 'MASTER'
+  const esAdminConSucursal = administrador?.rol === 'ADMIN' && Boolean(administrador?.sucursalId)
+
+  const permitido = esMaster || (id ? Number(id) === administrador?.sucursalId : esAdminConSucursal)
+  
   return permitido ? <Outlet /> : <Navigate to="/admin" replace />
 }

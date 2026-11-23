@@ -122,7 +122,7 @@ function Promociones() {
         </div>
       )}
       {/* ---------- Nuevo en la carta ---------- */}
-      <NuevoEnLaCarta catalogo={catalogo} />
+      <NuevoEnLaCarta catalogo={catalogo} productoId={promos?.productoNuevoId ?? null} />
       {/* ---------- La semana en promos ---------- */}
       <section className="mx-auto max-w-6xl px-4 pt-14">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">

@@ -9,6 +9,8 @@ node_modules/
 # Archivos generados
 dist/
 build/
+coverage/
+planes/
 
 # Logs
 npm-debug.log*

@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import type { AdministradorSesion } from '../types/sesion.types'
 import { iniciarSesion as iniciarSesionApi } from '../services/authService'
 import { useAuth } from '../context/AuthContext'
 
@@ -30,18 +29,9 @@ export default function Home() {
             e.preventDefault()
 
             try {
-              const administrador = await iniciarSesionApi(email, password)
+              const sesion = await iniciarSesionApi(email, password)
 
-              const sesion: AdministradorSesion = {
-                id: administrador.id,
-                nombre: administrador.nombre,
-                email: administrador.email,
-                rol: administrador.rol,
-                sucursalId: administrador.sucursalId ?? null,
-                sucursal: administrador.sucursal ?? null,
-              }
-
-              iniciarSesion(sesion)
+              iniciarSesion(sesion, sesion.token)
               navigate('/admin')
             } catch {
               setError('Email o contraseña incorrectos')

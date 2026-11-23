@@ -14,4 +14,7 @@ export interface Zona extends UbicacionElegida {
   distanciaKm: number
   sucursalAbierta: boolean
   sucursalZonaHoraria: string
+  // La sucursal anterior, si la zona se pasó sola a esta porque aquella se desactivó (DC-12).
+  // Se borra cuando el cliente cierra el aviso o elige otra.
+  sucursalAnterior?: string
 }

@@ -33,7 +33,7 @@ function DetalleProducto({ id }: { id: number }) {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const { showToast } = useToast()
-  const { zona } = useZona()
+  const { zona, abrirSelector } = useZona()
   const promos = usePromociones()
   const sucursalCerrada = Boolean(zona && zona.sucursalAbierta === false)
   const [product, setProduct] = useState<ProductoBackend | null>(null)
@@ -45,15 +45,13 @@ function DetalleProducto({ id }: { id: number }) {
   const [tamanioId, setTamanioId] = useState<number | null>(null)
   // Cantidad final por insumo, solo de los que el cliente cambió respecto de la receta
   const [cantidades, setCantidades] = useState<Record<number, number>>({})
-  // ⚠️ Pendiente de backend: la nota viaja como texto en el carrito, todavía no se guarda en el pedido
-  const [nota] = useState('')
   // Producto elegido en cada grupo del combo: id del grupo -> id del producto
   const [eleccion, setEleccion] = useState<Record<number, number>>({})
   const [grupoAbierto, setGrupoAbierto] = useState<number | null>(null)
-  // false = se ve solo el producto; true = aparecen los pasos para armarlo
-  const [armando, setArmando] = useState(false)
   // Paso actual de la tarjeta (empieza en 1, como el Stepper)
   const [paso, setPaso] = useState(1)
+    // La imagen se da vuelta y muestra la descripción (mouse encima en la compu, toque en el celular)
+  const [girada, setGirada] = useState(false)
   // Pregunta "¿Lo sumamos al carrito?" antes de agregarlo
   const [confirmandoAgregar, setConfirmandoAgregar] = useState(false)
 
@@ -130,22 +128,23 @@ function DetalleProducto({ id }: { id: number }) {
   const puedeAgregar = !!product?.disponible && comboCompleto
   const puedeComprar = puedeAgregar && !sucursalCerrada
 
-  // Pasos de la tarjeta: solo los que aplican a este producto. El último siempre es el de la nota y la compra.
+  // Pasos de la tarjeta: solo los que aplican a este producto. El último siempre es el resumen y la compra.
   const pasos = [
-    // Con un único tamaño (combos de desayuno y merienda) no hay nada para elegir
-    ...(tamanios.length > 1 ? [{ id: 'tamanio', nombre: 'Tamaño' }] : []),
-    ...(esCombo ? [{ id: 'combo', nombre: 'Tu combo' }] : []),
+    // 1. Sacar o sumar ingredientes (en un combo, los del producto principal)
     ...(personalizable ? [{ id: 'ingredientes', nombre: 'Ingredientes' }] : []),
-    { id: 'final', nombre: 'Listo' },
+    // 2. Tamaño y, si es combo, acompañamiento y bebida. Con un único tamaño y sin combo, no hay nada que elegir
+    ...(esCombo || tamanios.length > 1 ? [{ id: 'opciones', nombre: esCombo ? 'Tu combo' : 'Tamaño' }] : []),
+    // 3. Repaso, cantidad y añadir al carrito
+    { id: 'final', nombre: 'Resumen' },
   ]
   const pasoActual = pasos[paso - 1]?.id ?? 'final'
   const esUltimoPaso = paso >= pasos.length
   // No se avanza del paso del combo sin elegir lo obligatorio
-  const puedeAvanzar = pasoActual !== 'combo' || comboCompleto
+  const puedeAvanzar = pasoActual !== 'opciones' || comboCompleto
 
   function irAPaso(destino: number) {
     // Para pasar más allá del combo, tiene que estar completo
-    const pasoCombo = pasos.findIndex((p) => p.id === 'combo') + 1
+    const pasoCombo = pasos.findIndex((p) => p.id === 'opciones') + 1
     if (pasoCombo > 0 && destino > pasoCombo && !comboCompleto) {
       setPaso(pasoCombo)
       return
@@ -183,7 +182,7 @@ function DetalleProducto({ id }: { id: number }) {
     })
 
     return {
-      opciones: [...opcionesCombo, ...textos, nota.trim() ? `Nota: ${nota.trim()}` : ''].filter(Boolean),
+      opciones: [...opcionesCombo, ...textos].filter(Boolean),
       extras: {
         unitPrice: precioUnitario,
         ...(descuentoSemana > 0 && semana
@@ -205,16 +204,8 @@ function DetalleProducto({ id }: { id: number }) {
     const { opciones, extras } = armarEleccion()
     addItem(product, cantidad, opciones, extras)
     showToast(`${product.nombre} agregado al carrito`)
-    // Después de confirmar, lleva al carrito para revisar el pedido
-    navigate('/carrito')
-  }
-
-  // Agrega el producto y lleva al carrito para revisar todo y pagar
-  function pagarAhora() {
-    if (!product || !puedeComprar) return
-    const { opciones, extras } = armarEleccion()
-    addItem(product, cantidad, opciones, extras)
-    navigate('/carrito')
+    // Después de confirmar, vuelve al menú en la categoría del producto (Combos › Carne, por ejemplo)
+    navigate(`/catalogo?categoria=${product.categoriaId}`)
   }
 
   if (loading) {
@@ -270,13 +261,15 @@ function DetalleProducto({ id }: { id: number }) {
       <div className={movil ? 'flex flex-col gap-3' : 'flex items-center justify-between gap-3'}>
         {totalTexto(movil)}
         <div className={`flex gap-2 ${movil ? 'w-full' : ''}`}>
-          <button
-            type="button"
-            onClick={() => (paso > 1 ? setPaso(paso - 1) : volverAlProducto())}
-            className={`min-h-13 rounded-full border-2 px-5 font-bold ${botonBorde(movil)}`}
-          >
-            Atrás
-          </button>
+          {paso > 1 && (
+            <button
+              type="button"
+              onClick={() => setPaso(paso - 1)}
+              className={`min-h-13 rounded-full border-2 px-5 font-bold ${botonBorde(movil)}`}
+            >
+              Atrás
+            </button>
+          )}
           <button
             type="button"
             onClick={() => irAPaso(paso + 1)}
@@ -293,47 +286,39 @@ function DetalleProducto({ id }: { id: number }) {
           <QuantityStepper value={cantidad} onChange={setCantidad} min={1} max={20} label={product.nombre} />
           {totalTexto(movil)}
         </div>
-        <div className="grid grid-cols-[1fr_1.4fr] gap-3">
-          <button
-            type="button"
-            onClick={pagarAhora}
-            disabled={!puedeComprar}
-            className={`min-h-13 rounded-full border-2 px-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${botonBorde(movil)}`}
-          >
-            Pagar ahora
-          </button>
+        
+    
           <button
             type="button"
             onClick={() => setConfirmandoAgregar(true)}
             disabled={!puedeComprar}
-            className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-brand-red px-4 font-bold text-white transition-transform hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ShoppingBag className="h-5 w-5" />
-            Añadir al carrito
+            className="group flex min-h-14 w-full items-center justify-center gap-3
+            rounded-full border-2 border-brand-dark bg-brand-red
+            px-6 py-4 font-extrabold text-white
+            shadow-[4px_4px_0px_#252525] transition-all duration-200
+            hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#252525]
+            active:translate-y-1 active:shadow-none
+            disabled:cursor-not-allowed disabled:opacity-40">
+            <ShoppingBag className="h-5 w-5 transition-transform duration-200 group-hover:scale-110"/>
+            <span className="text-base sm:text-lg">Añadir al carrito</span>
+            <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
           </button>
-        </div>
+        
         {paso > 1 && (
           <button
             type="button"
             onClick={() => setPaso(paso - 1)}
-            className={`mt-3 w-full text-sm font-bold underline-offset-4 hover:underline ${movil ? 'text-brand-cream/70' : 'text-brand-muted'}`}
+            className={`group mt-3 flex w-full items-center justify-center gap-2
+              rounded-full py-2.5 text-sm font-bold
+              transition-all duration-200
+              hover:bg-brand-dark/5 ${movil ? 'text-brand-cream/80' : 'text-brand-muted'}`}
           >
-            ← Volver al paso anterior
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+            <span>Volver al paso anterior</span>
           </button>
         )}
       </>
     )
-
-  function empezarAArmar() {
-    setPaso(1)
-    setArmando(true)
-    window.scrollTo(0, 0)
-  }
-
-  function volverAlProducto() {
-    setArmando(false)
-    setPaso(1)
-  }
 
   const imagenProducto = (claseImg: string, claseIcono: string) => (
     <ImagenProducto
@@ -344,32 +329,11 @@ function DetalleProducto({ id }: { id: number }) {
     />
   )
 
-  // Categoría, nombre, precio y descripción (se usa en las dos vistas)
+  // Avisos debajo de la imagen (y el nombre, solo para lectores de pantalla)  
   const infoProducto = (
     <>
-      {categoryName && (
-        <span className="inline-block rounded-full bg-brand-red px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white">
-          {categoryName}
-        </span>
-      )}
-      <h1 className="mt-3 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
-        {product.nombre}
-      </h1>
-      {descuentoSemana > 0 ? (
-        <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-2xl font-extrabold text-brand-red">{precio(conDescuento(precioBase, descuentoSemana))}</span>
-          <s className="font-bold text-brand-muted">{precio(precioBase)}</s>
-          <span className="rounded-full bg-brand-red px-2.5 py-0.5 text-xs font-extrabold text-white">
-            Producto de la semana · {Math.round(descuentoSemana * 100)}% OFF
-          </span>
-        </div>
-      ) : (
-        <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
-      )}
-      <p className="mt-3 w-full whitespace-normal break-words leading-relaxed text-brand-muted">
-        {product.descripcion}
-        {esCombo && <span className="block">{textoGruposCombo}</span>}
-      </p>
+      {/* El nombre se ve sobre la imagen; acá queda solo para lectores de pantalla */}
+      <h1 className="sr-only">{product.nombre}</h1>
 
       {!product.disponible && (
         <p className="mt-4 rounded-2xl border-2 border-dashed border-brand-red/40 bg-brand-red/5 px-4 py-3 font-bold text-brand-red">
@@ -381,25 +345,13 @@ function DetalleProducto({ id }: { id: number }) {
     </>
   )
 
-  const botonEmpezar = (
-    <button
-      type="button"
-      onClick={empezarAArmar}
-      disabled={!product.disponible}
-      className="flex min-h-13 w-full items-center justify-center gap-2 rounded-full bg-brand-red px-6 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <ShoppingBag className="h-5 w-5" />
-      Agregar
-    </button>
-  )
-
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
-      {/* Banda oscura arriba: la imagen y la tarjeta se montan sobre ella */}
+      {/* Banda oscura arriba: las tarjetas se montan sobre ella */}
       <div className="bg-brand-dark px-4 pb-40 pt-6">
         <div className="mx-auto max-w-6xl">
           <Link
-            to="/catalogo"
+            to={`/catalogo?categoria=${product.categoriaId}`}
             className="inline-flex min-h-11 items-center gap-2 font-bold text-brand-cream/70 transition-colors hover:text-brand-cream"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -409,166 +361,151 @@ function DetalleProducto({ id }: { id: number }) {
       </div>
 
       <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12 [&>*]:min-w-0">
-        {/* La imagen grande queda a la izquierda. En celular se oculta mientras se arma el pedido */}
-        <div className={armando ? 'hidden md:block' : ''}>
-          <div className="relative mx-auto grid aspect-square w-full max-w-md rotate-2 place-items-center rounded-[2.5rem] border-2 border-brand-dark bg-brand-red">
-            <div className="absolute inset-[8%] rounded-full bg-black/15" />
-            {imagenProducto('relative w-[85%] -rotate-2 object-contain drop-shadow-2xl', 'relative h-32 w-32 text-brand-cream')}
-          </div>
+        {/* A la izquierda: la imagen con su nombre; al pasar el mouse o tocarla se da vuelta y muestra la descripción */}
+        <div className="flex flex-col gap-8">
+          <button
+            type="button"
+            onClick={() => setGirada((v) => !v)}
+            onPointerEnter={(e) => e.pointerType === 'mouse' && setGirada(true)}
+            onPointerLeave={(e) => e.pointerType === 'mouse' && setGirada(false)}
+            aria-pressed={girada}
+            aria-label={girada ? 'Volver a la imagen' : 'Ver descripción'}
+            className="mx-auto block aspect-square w-full max-w-sm rotate-2 cursor-pointer perspective-[1200px]"
+          >
+            <span className={`relative block h-full w-full transition-transform duration-500 transform-3d ${girada ? 'rotate-y-180' : ''}`}>
+              {/* Frente: la imagen y el nombre */}
+              <span className="absolute inset-0 grid place-items-center overflow-hidden rounded-[2.5rem] border-2 border-brand-dark bg-brand-red backface-hidden">
+                <span className="absolute inset-[8%] rounded-full bg-black/15" />
+                {imagenProducto('relative w-[75%] -rotate-2 -translate-y-6 object-contain drop-shadow-2xl', 'relative h-32 w-32 text-brand-cream')}
+                {descuentoSemana > 0 && (
+                  <span className="absolute left-4 top-4 rounded-full bg-brand-mustard px-3 py-1 text-xs font-extrabold text-brand-dark">
+                    {Math.round(descuentoSemana * 100)}% OFF
+                  </span>
+                )}
+                <span className="absolute right-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-dark">
+                  Ver descripción ↻
+                </span>
+                <span className="absolute inset-x-0 bottom-0 bg-brand-dark/85 px-6 py-4 text-left font-display text-3xl font-extrabold leading-none tracking-tight text-brand-cream">
+                  {product.nombre}
+                </span>
+              </span>
+
+              {/* Dorso: la descripción */}
+                {categoryName && (
+                  <span className="mb-3 w-fit rounded-full bg-brand-red px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white">
+                    {categoryName}
+                  </span>
+                )}
+              <span className="absolute inset-0 flex flex-col overflow-y-auto rounded-[2.5rem] border-2 border-brand-dark bg-white p-6 text-left rotate-y-180 backface-hidden sm:p-8">
+                <span className="font-display text-3xl font-extrabold leading-none tracking-tight">{product.nombre}</span>
+                <span className="mt-4 block whitespace-normal break-words leading-relaxed text-brand-muted">
+                  {product.descripcion || 'Este producto no tiene descripción.'}
+                  {esCombo && <span className="block">{textoGruposCombo}</span>}
+                </span>
+                <span className="mt-auto pt-4 text-sm font-bold text-brand-red">↻ Volver a la imagen</span>
+              </span>
+            </span>
+          </button>
+
+          {infoProducto}
         </div>
 
-        {/* A la derecha: primero la descripción con "Agregar"; al tocarlo, se reemplaza por los pasos */}
-        {!armando ? (
-          <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
-            {infoProducto}
-            <div className="mt-8 hidden md:block">{botonEmpezar}</div>
-          </div>
-        ) : (
-          <>
-            <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-brand-red">Armá tu pedido</p>
-                  <h2 className="mt-1 font-display text-3xl font-extrabold leading-none tracking-tight">{product.nombre}</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={volverAlProducto}
-                  className="shrink-0 text-sm font-bold text-brand-muted underline-offset-4 hover:text-brand-dark hover:underline"
-                >
-                  Cancelar
-                </button>
-              </div>
+        {/* A la derecha: los pasos para armar el pedido, desde el principio */}
+        <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
+          <p className="text-xs font-extrabold uppercase tracking-wider text-brand-red">Armá tu pedido</p>
 
-            {pasos.length > 1 && (
-              <div className="mt-6">
-                <Stepper pasos={pasos.map((p) => p.nombre)} actual={paso} onIrA={irAPaso} />
-              </div>
-            )}
-
-            {pasoActual === 'tamanio' && (
-              <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} conImagen={esCombo} />
-            )}
-
-            {pasoActual === 'combo' && (
-              <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-2" aria-label="Armá tu combo">
-                <div className={filaGrupo}>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-lg font-extrabold">{product.nombre}</p>
-                    <p className="text-sm text-brand-muted">
-                      {tocados.length > 0 ? textoPersonalizacion().join(' · ') : 'Como viene en la receta'}
-                    </p>
-                  </div>
-                </div>
-
-                {grupos.map((grupo) => {
-                  const elegido = elegida(grupo)
-                  return (
-                    <div key={grupo.id} className={filaGrupo}>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-display text-lg font-extrabold">{grupo.nombre}</p>
-                        {sinOpcion(grupo) ? (
-                          <p className="text-sm text-brand-muted">{textoSin(grupo)}</p>
-                        ) : elegido ? (
-                          <p className="text-sm text-brand-muted">
-                            {elegido.nombre}
-                            {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
-                          </p>
-                        ) : (
-                          <p
-                            className={`text-sm font-semibold ${grupo.obligatorio ? 'text-brand-red' : 'text-brand-muted'}`}
-                          >
-                            Elegí uno {grupo.obligatorio ? '(obligatorio)' : '(opcional)'}
-                          </p>
-                        )}
-                      </div>
-                      <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
-                        {elegido || sinOpcion(grupo) ? 'Cambiar' : 'Elegir'}
-                      </button>
-                    </div>
-                  )
-                })}
-              </section>
-            )}
-
-            {/* Sacar y sumar ingredientes (en un combo, aplica a la hamburguesa) */}
-            {pasoActual === 'ingredientes' && (
-              <IngredientesEditables
-                ingredientes={ingredientes}
-                cantidades={cantidades}
-                onCambiar={(insumoId, cantidad) => {
-                  const ing = ingredientes.find((i) => i.insumoId === insumoId)
-                  setCantidades((prev) => {
-                    const nuevas = { ...prev }
-                    // Si vuelve a la cantidad de la receta, deja de contar como cambio
-                    if (ing && cantidad === ing.cantidadBase) delete nuevas[insumoId]
-                    else nuevas[insumoId] = cantidad
-                    return nuevas
-                  })
-                }}
-              />
-            )}
-
-            {pasoActual === 'final' && (
-              <>
-                {/* Repaso de lo elegido en los pasos anteriores */}
-                {pasos.length > 1 && (
-                  <div className="mt-6 rounded-2xl border-2 border-dashed border-brand-sand bg-brand-cream/60 p-4">
-                    <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu elección</p>
-                    <p className="mt-1 font-semibold">{resumenEleccion() || 'Como viene en la receta'}</p>
-                  </div>
-                )}
-
-                {/*<SeccionOpciones titulo="¿Algo para la cocina?">
-                  <textarea
-                    value={nota}
-                    onChange={(e) => setNota(e.target.value)}
-                    maxLength={140}
-                    rows={2}
-                    placeholder="Ej: bien cocida, sin sal en las papas"
-                    className="w-full resize-none rounded-2xl border-2 border-brand-dark bg-brand-cream px-4 py-3 placeholder:text-brand-muted/70 focus:border-brand-red focus:outline-none"
-                  />
-                </SeccionOpciones>*/}
-              </>
-            )}
-
-
-              {/* En pantallas grandes la barra de compra va dentro de la tarjeta */}
-              <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">
-                {barraCompra(false)}
-              </div>
+          {pasos.length > 1 && (
+            <div className="mt-6">
+              <Stepper pasos={pasos.map((p) => p.nombre)} actual={paso} onIrA={irAPaso} />
             </div>
-          </>
-        )}
+          )}
+
+          {/* Paso 1: sacar y sumar ingredientes (en un combo, los del producto principal) */}
+          {pasoActual === 'ingredientes' && (
+            <IngredientesEditables
+              ingredientes={ingredientes}
+              cantidades={cantidades}
+              onCambiar={(insumoId, cantidad) => {
+                const ing = ingredientes.find((i) => i.insumoId === insumoId)
+                setCantidades((prev) => {
+                  const nuevas = { ...prev }
+                  // Si vuelve a la cantidad de la receta, deja de contar como cambio
+                  if (ing && cantidad === ing.cantidadBase) delete nuevas[insumoId]
+                  else nuevas[insumoId] = cantidad
+                  return nuevas
+                })
+              }}
+            />
+          )}
+
+          {/* Paso 2: los tamaños en fila y, si es combo, debajo el acompañamiento y la bebida */}
+          {pasoActual === 'opciones' && tamanios.length > 1 && (
+            <SelectorTamanio tamanios={tamanios} valor={tamanioId} onChange={cambiarTamanio} />
+          )}
+
+          {pasoActual === 'opciones' && esCombo && (
+            <section className="mt-6 border-t-2 border-dashed border-brand-sand pt-2" aria-label="Armá tu combo">
+              {grupos.map((grupo) => {
+                const elegido = elegida(grupo)
+                return (
+                  <div key={grupo.id} className={filaGrupo}>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-lg font-extrabold">{grupo.nombre}</p>
+                      {sinOpcion(grupo) ? (
+                        <p className="text-sm text-brand-muted">{textoSin(grupo)}</p>
+                      ) : elegido ? (
+                        <p className="text-sm text-brand-muted">
+                          {elegido.nombre}
+                          {elegido.recargo > 0 && <> · +{precio(elegido.recargo)}</>}
+                        </p>
+                      ) : (
+                        <p className={`text-sm font-semibold ${grupo.obligatorio ? 'text-brand-red' : 'text-brand-muted'}`}>
+                          Elegí uno {grupo.obligatorio ? '(obligatorio)' : '(opcional)'}
+                        </p>
+                      )}
+                    </div>
+                    <button type="button" onClick={() => setGrupoAbierto(grupo.id)} className={botonSeleccionar}>
+                      {elegido || sinOpcion(grupo) ? 'Cambiar' : 'Elegir'}
+                    </button>
+                  </div>
+                )
+              })}
+            </section>
+          )}
+
+          {/* Paso 3: repaso de lo elegido (la cantidad y el botón van en la barra de compra) */}
+          {pasoActual === 'final' && pasos.length > 1 && (
+            <div className="mt-6 rounded-2xl border-2 border-dashed border-brand-sand bg-brand-cream/60 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-brand-muted">Tu elección</p>
+              <p className="mt-1 font-semibold">{resumenEleccion() || 'Como viene en la receta'}</p>
+            </div>
+          )}
+
+          {/* En pantallas grandes la barra de compra va dentro de la tarjeta */}
+          <div className="mt-8 hidden border-t-2 border-dashed border-brand-sand pt-6 md:block">
+            {barraCompra(false)}
+          </div>
+        </div>
       </div>
 
       {/* En el celular la barra queda pegada al pie de la pantalla */}
       <div className="sticky bottom-0 z-30 rounded-t-[2rem] bg-brand-dark px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_24px_rgba(26,20,20,0.25)] md:hidden">
-        {armando ? (
-          <>
-            {esUltimoPaso && sucursalCerrada && (
-              <p className="mb-3 rounded-xl bg-brand-red px-3 py-2 text-center text-xs font-bold text-white">
-                La sucursal está cerrada. No se pueden generar pedidos ahora.
-              </p>
-            )}
-            {barraCompra(true)}
-          </>
-        ) : (
-          <div className="flex items-center justify-between gap-4">
-            {totalTexto(true)}
-            <div className="flex-1">{botonEmpezar}</div>
-          </div>
-        )}
+        {barraCompra(true)}
       </div>
 
       <ModalConfirmarAgregar
         abierto={confirmandoAgregar}
         nombre={product.nombre}
         imagen={product.imagen}
-        detalle={[resumenEleccion(), nota.trim() ? `Nota: ${nota.trim()}` : ''].filter(Boolean).join(' · ')}
+        detalle={resumenEleccion()}
         cantidad={cantidad}
         total={total}
         deshabilitado={sucursalCerrada}
+        sucursal={zona?.sucursalNombre}
+        onCambiarDireccion={() => {
+          setConfirmandoAgregar(false)
+          abrirSelector()
+        }}
         onCancelar={() => setConfirmandoAgregar(false)}
         onConfirmar={() => {
           setConfirmandoAgregar(false)

@@ -9,8 +9,21 @@ import { ArrowBigLeft, ArrowBigRight } from 'lucide-react'
 
 const CADA_MS = 6000
 
-// Carrusel con las 3 promos de HOY: cambia solo cada 6 s y se mueve con los puntitos (como el carrusel de arriba).
-// Las 3 se dibujan una encima de la otra en la misma celda, así el alto es siempre el de la más alta y no salta.
+const STYLES = {
+  section: 'px-4 pb-14',
+  container: 'mx-auto max-w-7xl',
+  title: 'py-6 font-display text-2xl font-extrabold tracking-tight md:text-4xl',
+  slidesStack: 'relative grid [&>*]:col-start-1 [&>*]:row-start-1',
+  arrowBtn:
+    'absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 md:block',
+  dotsRow: 'mt-2 flex justify-center',
+  // Área táctil de 24 × 24 px alrededor del puntito (Lighthouse, tamaño de objetivos táctiles)
+  dotTarget: 'group grid h-6 min-w-6 place-items-center',
+  dotBase: 'h-2 rounded-full transition-all',
+  dotActive: 'w-6 bg-brand-red',
+  dotInactive: 'w-2 bg-brand-dark/25 group-hover:bg-brand-dark/40',
+} as const
+
 function PromoDestacadaBanner() {
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -41,25 +54,25 @@ function PromoDestacadaBanner() {
     showToast(`"${p.titulo}" se sumó a tu carrito`)
     navigate('/carrito')
   }
+
   const mover = (paso: number) => setActual((i) => (i + paso + lista.length) % lista.length)
-  const flecha =
-    'absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 md:block'
 
   return (
     <section
-      className="px-4 pb-14"
+      className={STYLES.section}
       aria-roledescription="carrusel"
       aria-label={`Promos de hoy, ${hoy.nombre.toLowerCase()}`}
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
     >
-      <div className="mx-auto max-w-7xl">
-        <div className="relative grid [&>*]:col-start-1 [&>*]:row-start-1">          {lista.map((p, i) => (
-            <div
-              key={p.id}
-              aria-hidden={i !== visible}
-              className={`grid ${i === visible ? '' : 'invisible'}`}
-            >
+      <div className={STYLES.container}>
+        <h2 className={STYLES.title}>
+          Las promos <span className="text-brand-red">de hoy</span>        
+          </h2>
+
+        <div className={STYLES.slidesStack}>
+          {lista.map((p, i) => (
+            <div key={p.id} aria-hidden={i !== visible} className={`grid ${i === visible ? '' : 'invisible'}`}>
               <PromoBanner
                 promo={p}
                 resuelta={resolverPromo(p, catalogo)}
@@ -69,12 +82,23 @@ function PromoDestacadaBanner() {
               />
             </div>
           ))}
-            {lista.length > 1 && (
+
+          {lista.length > 1 && (
             <>
-              <button type="button" onClick={() => mover(-1)} aria-label="Promo anterior" className={`${flecha} left-3`}>
+              <button
+                type="button"
+                onClick={() => mover(-1)}
+                aria-label="Promo anterior"
+                className={`${STYLES.arrowBtn} left-3`}
+              >
                 <ArrowBigLeft size={18} />
               </button>
-              <button type="button" onClick={() => mover(1)} aria-label="Promo siguiente" className={`${flecha} right-3`}>
+              <button
+                type="button"
+                onClick={() => mover(1)}
+                aria-label="Promo siguiente"
+                className={`${STYLES.arrowBtn} right-3`}
+              >
                 <ArrowBigRight size={18} />
               </button>
             </>
@@ -82,7 +106,7 @@ function PromoDestacadaBanner() {
         </div>
 
         {lista.length > 1 && (
-          <div className="mt-4 flex justify-center gap-2">
+          <div className={STYLES.dotsRow}>
             {lista.map((p, i) => (
               <button
                 key={p.id}
@@ -90,8 +114,10 @@ function PromoDestacadaBanner() {
                 onClick={() => setActual(i)}
                 aria-label={`Ver promo ${i + 1}: ${p.titulo}`}
                 aria-current={i === visible ? 'true' : undefined}
-                className={`h-2 rounded-full ${i === visible ? 'w-6 bg-brand-red' : 'w-2 bg-brand-dark/25 hover:bg-brand-dark/40'}`}
-              />
+                className={STYLES.dotTarget}
+              >
+                <span className={`${STYLES.dotBase} ${i === visible ? STYLES.dotActive : STYLES.dotInactive}`} />
+              </button>
             ))}
           </div>
         )}

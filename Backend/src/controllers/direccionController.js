@@ -1,5 +1,4 @@
-const { Direccion, sequelize } = require('../models');
-
+const { Direccion, Usuario, sequelize } = require('../models');
 // Campos que el usuario puede enviar al crear o editar una dirección
 const CAMPOS = [
     'alias',
@@ -22,7 +21,22 @@ function tomarCampos(body, base = {}) {
         CAMPOS.map((campo) => [campo, body[campo] ?? base[campo] ?? null])
     );
 }
+// Para comparar direcciones sin importar mayúsculas, tildes ni espacios de más
+const normalizar = (valor) =>
+    String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
+// Es la misma dirección si coinciden calle, número, piso/depto y localidad
+const mismaDireccion = (a, b) =>
+    ['calle', 'numero', 'piso', 'localidad'].every((campo) => normalizar(a[campo]) === normalizar(b[campo]));
+
+// Busca si el usuario ya tiene guardada esa dirección (sin contar la que se está editando)
+async function buscarRepetida(usuarioId, datos, idActual = null) {
+    const direcciones = await Direccion.findAll({ where: { usuarioId } });
+    return direcciones.find((d) => d.id !== idActual && mismaDireccion(d, datos)) ?? null;
+}
+
+const mensajeRepetida = (d) =>
+    `Ya tenés guardada esta dirección${d.alias ? ` como «${d.alias}»` : ''}. Elegila de tu lista o editala.`;
 const obtenerDireccionesPorUsuario = async (req, res) => {
     try {
         const direcciones = await Direccion.findAll({
@@ -41,6 +55,13 @@ const crearDireccion = async (req, res) => {
     try {
         const { predeterminada, usuarioId } = req.body;
 
+        if (!(await Usuario.findByPk(usuarioId, { attributes: ['id'] }))) {
+            return res.status(401).json({ mensaje: 'Tu sesión ya no es válida. Iniciá sesión de nuevo' });
+        }
+        const repetida = await buscarRepetida(usuarioId, req.body);
+        if (repetida) {
+            return res.status(409).json({ mensaje: mensajeRepetida(repetida) });
+        }
         if (predeterminada) {
             await Direccion.update(
                 { predeterminada: false },
@@ -70,7 +91,10 @@ const actualizarDireccion = async (req, res) => {
         }
 
         const { predeterminada } = req.body;
-
+        const repetida = await buscarRepetida(direccion.usuarioId, tomarCampos(req.body, direccion), direccion.id);
+        if (repetida) {
+            return res.status(409).json({ mensaje: mensajeRepetida(repetida) });
+        }
         if (predeterminada) {
             await Direccion.update(
                 { predeterminada: false },

@@ -20,6 +20,13 @@ const insumoSchema = Joi.object({
         'number.base': 'El precio del extra debe ser un número',
         'number.min': 'El precio del extra no puede ser negativo',
         'number.max': 'El precio del extra no puede superar 999999'
+    }),
+
+    // Stock mínimo sugerido: al crear el insumo se copia a todas las sucursales (vacío = sin alerta)
+    stockMinimo: Joi.number().min(0).max(999999).allow(null).messages({
+        'number.base': 'El stock mínimo debe ser un número',
+        'number.min': 'El stock mínimo no puede ser negativo',
+        'number.max': 'El stock mínimo no puede superar 999999'
     })
 });
 

@@ -23,7 +23,7 @@ function cargarProducto(id) {
         include: [
             { model: RecetaInsumo, include: [Insumo] },
             { model: ProductoTamanio, as: 'tamanios', include: [Tamanio] },
-            { model: ComboGrupo, as: 'grupos' },
+            { model: Producto, as: 'principal', include: [{ model: RecetaInsumo, include: [Insumo] }] },        
         ],
     });
 }
@@ -51,7 +51,11 @@ async function reconstruirLinea(detalle, obtener, stockPorInsumo) {
     }
 
     // Personalización: solo lo que la receta de hoy sigue permitiendo, con los precios de hoy
-    const receta = producto.RecetaInsumos ?? [];
+    // Un combo usa la receta de su producto principal (si lo eliminaron, "principal" viene vacío)
+    if (producto.productoPrincipalId && !producto.principal?.disponible) {
+        return { nombre, motivo: 'No está disponible por el momento' };
+    }
+    const receta = (producto.productoPrincipalId ? producto.principal.RecetaInsumos : producto.RecetaInsumos) ?? [];    
     const porInsumo = new Map(receta.map((r) => [r.insumoId, r]));
     const viejas = Array.isArray(detalle.personalizaciones) ? detalle.personalizaciones : [];
     const personalizaciones = [];
@@ -144,11 +148,11 @@ async function reconstruirLinea(detalle, obtener, stockPorInsumo) {
     };
 }
 
-// GET /pedido/:id/repetir?usuarioId=X&sucursalId=Y
+// GET /pedido/:id/repetir?sucursalId=Y (el cliente sale de la sesión: plan de clientes, C-2)
 // → { disponibles: [líneas listas para el carrito], noDisponibles: [{ nombre, cantidad, motivo }] }
 const repetirPedido = async (req, res) => {
     try {
-        const usuarioId = Number(req.query.usuarioId);
+        const usuarioId = req.identidad.id;
         const sucursalId = Number(req.query.sucursalId) || null;
 
         const pedido = await Pedido.findByPk(req.params.id, { include: [DetallePedido] });

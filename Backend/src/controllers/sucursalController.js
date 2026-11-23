@@ -1,5 +1,5 @@
 const { Sucursal } = require('../models');
-
+const { obtenerParametros } = require('../utils/parametros');
 // GET /sucursales → sucursales activas (público: lo usa el mapa de Home)
 const obtenerSucursales = async (req, res) => {
     try {
@@ -18,13 +18,15 @@ const obtenerSucursales = async (req, res) => {
                 'zona_horaria',
                 'latitud',
                 'longitud',
-                'radioEntregaKm',
             ],
             order: [['nombre', 'ASC']],
         });
 
-        res.json(sucursales);
-    } catch (error) {
+          // El radio es uno solo para todas (Parámetros). Se agrega a cada sucursal para que la tienda
+          // lo siga leyendo como antes.
+          const { radioEntregaKm } = await obtenerParametros();
+          res.json(sucursales.map((s) => ({ ...s.toJSON(), radioEntregaKm })));    
+        } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: 'Error al obtener las sucursales' });
     }
