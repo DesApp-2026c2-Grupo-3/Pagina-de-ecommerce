@@ -29,6 +29,9 @@ export interface DetalleLinea {
   personalizaciones: Personalizacion[] | string | null
   combo: { elecciones?: EleccionCombo[] } | string | null
   Producto: { id: number; nombre: string } | null
+  // Precio de lista congelado: si es mayor que `precio`, hubo promoción (RN-18)
+  precioLista?: string | number | null
+  promocionId?: number | null
 }
 
 export interface PedidoCompleto {
@@ -49,7 +52,13 @@ export interface PedidoCompleto {
     latitud: string | number | null
     longitud: string | number | null
   } | null
-  Sucursal: { nombre: string } | null
+  Sucursal: { id?: number; nombre: string } | null
+  sucursalId?: number | null
+  // Viaje en preparación del repartidor y momento del retiro en el local (RN-23, RN-31)
+  viajeId?: number | null
+  retiradoEn?: string | null
+  costoEnvio?: string | number | null
+  minutosEstimados?: number | null
   DetallePedidos: DetalleLinea[]
   historialDeTiemposPedidos: RegistroTiempoPedido[]
   // Lo del catálogo que aparece en este pedido (lo arma el backend; sirve también al admin de sucursal)
@@ -87,6 +96,10 @@ export const ETAPAS = [
 
 export type Etapa = (typeof ETAPAS)[number]
 
+// Filtro de la lista: todas las etapas o una en particular
+export type FiltroEtapa = 'todas' | Etapa
+export type ContadoresEtapa = Record<FiltroEtapa, number>
+
 export interface DetallePedidoFila {
   cantidad: number
   Producto: { nombre: string } | null
@@ -99,6 +112,9 @@ export interface PedidoFila {
   estado: string
   Usuario: { nombre: string; apellido: string } | null
   DetallePedidos: DetallePedidoFila[]
+  sucursalId?: number | null
+  viajeId?: number | null
+  retiradoEn?: string | null
 }
 
 export interface SucursalOpcion {

@@ -23,6 +23,7 @@ import EditarSucursal from '../pages/Sucursales/EditarSucursal'
 import Stock from '../pages/Stock/Stock'
 import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
+import DetallePedido from '../pages/pedidos/DetallePedido'
 import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
 import Reportes from '../pages/Reportes/Reportes'
 import Calificaciones from '../pages/Calificaciones/Calificaciones'
@@ -55,6 +56,9 @@ export default function AppRoutes() {
         <Route path="/admin" element={<Reportes />} />
         <Route path="/admin/reportes" element={<Reportes />} />
         <Route path="/admin/pedidos" element={<Pedidos />} />
+        {/* Fuera de SoloSuSucursal a propósito: ese guard lee `:id` como sucursal.
+            El backend responde 404 si el pedido es de otra sucursal (RF-83). */}
+        <Route path="/admin/pedidos/:pedidoId" element={<DetallePedido />} />
         <Route path="/admin/calificaciones" element={<Calificaciones />} />
         <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
         <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
