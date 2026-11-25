@@ -1,163 +1,47 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Plus, Power, RotateCcw } from 'lucide-react'
-import Paginacion from '../../components/Paginacion'
+import { Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
-import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
-import { useToast } from '../../context/ToastContext'
+import Paginacion from '../../components/Paginacion'
+import AdministradorCard from '../../components/administradores/AdministradorCard'
+import FiltrosAdministradores from '../../components/administradores/FiltrosAdministradores'
+import { POR_PAGINA_ADMINISTRADORES } from '../../config/administradores'
+import { useAdministradores } from '../../hooks/administradores/useAdministradores'
+import { useFiltrosAdministradores } from '../../hooks/administradores/useFiltrosAdministradores'
+import { useIrAlInicioLista } from '../../hooks/useIrAlInicioLista'
+import type { AdministradorFila } from '../../types/administrador.types'
 import {
-  obtenerAdministradores,
-  eliminarAdministrador as eliminarAdministradorAPI,
-  reactivarAdmin,
-} from '../../services/administradorService'
+  contarPorRol,
+  contarPorSucursal,
+  filtrarAdministradores,
+  sucursalesDeLaLista,
+} from '../../utils/administradores/filtrarAdministradores'
+import { paginar } from '../../utils/listas/paginar'
 
-interface AdminFila {
-  id: number
-  nombre: string
-  email: string
-  rol: string
-  activo: boolean
-  sucursal: { id: number; nombre: string } | null
-}
-
-const POR_PAGINA = 8
-
-const rolTexto = (rol: string) => (rol === 'MASTER' ? 'General' : 'Sucursal')
-const botonIcono = 'rounded border p-2 transition-colors'
-
+// Administradores (solo MASTER), sin tabla (plan responsivo de Administradores v6). Solo compone: datos y acciones
+// (useAdministradores), filtros con menú propio en la URL, tarjetas, paginación de hasta 10 y la confirmación.
 export default function Administradores() {
   const navigate = useNavigate()
-  const { mostrarToast } = useToast()
+  const datos = useAdministradores()
+  const filtros = useFiltrosAdministradores()
+  const { refTitulo, irAlInicio } = useIrAlInicioLista()
+  const [aDesactivar, setADesactivar] = useState<AdministradorFila | null>(null)
 
-  const [administradores, setAdministradores] = useState<AdminFila[]>([])
-  const [paginaActual, setPaginaActual] = useState(1)
-  const [aEliminar, setAEliminar] = useState<AdminFila | null>(null)
+  const filtrados = filtrarAdministradores(datos.administradores, filtros)
+  const { pagina, totalPaginas, items } = paginar(filtrados, filtros.pagina, POR_PAGINA_ADMINISTRADORES)
 
-  // Filtros
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroRol, setFiltroRol] = useState('todos')
-  const [filtroSucursal, setFiltroSucursal] = useState('todas')
-
-  useEffect(() => {
-    obtenerAdministradores()
-      .then(setAdministradores)
-      .catch((error) => console.error('Error al cargar administradores:', error))
-  }, [])
-
-  // Al cambiar un filtro, se vuelve a la primera página
-  const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
-    cambiar(valor)
-    setPaginaActual(1)
+  async function confirmarDesactivar() {
+    if (aDesactivar) await datos.desactivar(aDesactivar)
+    setADesactivar(null)
   }
-
-  // Las sucursales que aparecen en la lista, sin repetir
-  const sucursalesDeLaLista = [
-    ...new Map(
-      administradores.filter((a) => a.sucursal).map((a) => [a.sucursal!.id, a.sucursal!]),
-    ).values(),
-  ].sort((x, y) => x.nombre.localeCompare(y.nombre))
-
-  const texto = busqueda.trim().toLowerCase()
-  const filtrados = administradores.filter(
-    (a) =>
-      (a.nombre.toLowerCase().includes(texto) || a.email.toLowerCase().includes(texto)) &&
-      (filtroRol === 'todos' || a.rol === filtroRol) &&
-      (filtroSucursal === 'todas' || String(a.sucursal?.id) === filtroSucursal),
-  )
-  const pagina = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
-  const hayFiltros = busqueda !== '' || filtroRol !== 'todos' || filtroSucursal !== 'todas'
-
-  async function eliminar() {
-    if (!aEliminar) return
-
-    try {
-      await eliminarAdministradorAPI(aEliminar.id)
-
-      setAdministradores((prev) =>
-        prev.map((a) =>
-          a.id === aEliminar.id ? { ...a, activo: false } : a,
-        ),
-      )
-
-      mostrarToast('Administrador desactivado correctamente')
-    } catch (error) {
-      mostrarToast(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo desactivar el administrador',
-      )
-    } finally {
-      setAEliminar(null)
-    }
-  }
-
-  async function reactivar(a: AdminFila) {
-    try {
-      await reactivarAdmin(a.id)
-
-      setAdministradores((prev) =>
-        prev.map((admin) =>
-          admin.id === a.id ? { ...admin, activo: true } : admin,
-        ),
-      )
-
-      mostrarToast('Administrador reactivado correctamente')
-    } catch (error) {
-      mostrarToast(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo reactivar el administrador',
-      )
-    }
-  }
-
-  
-const acciones = (a: AdminFila) => (
-  <div className="flex shrink-0 gap-2">
-    <button
-      type="button"
-      onClick={() => navigate(`/admin/administradores/editar/${a.id}`)}
-      aria-label={`Editar ${a.nombre}`}
-      title="Editar"
-      className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
-    >
-      <Pencil size={18} />
-    </button>
-
-    {a.activo ? (
-      <button
-        type="button"
-        onClick={() => setAEliminar(a)}
-        aria-label={`Desactivar ${a.nombre}`}
-        title="Desactivar"
-        className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
-      >
-        <Power size={18} />
-      </button>
-    ) : (
-      <button
-        type="button"
-        onClick={() => reactivar(a)}
-        aria-label={`Reactivar ${a.nombre}`}
-        title="Reactivar"
-        className={`${botonIcono} bg-blue-200 text-blue-700 hover:bg-blue-300`}
-      >
-        <RotateCcw size={18} />
-      </button>
-    )}
-  </div>
-)
-
 
   return (
-    <main className="p-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <main className="@container w-full max-w-full p-4 @3xl:p-8">
+      <div className="mb-5 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-            Usuarios y permisos
-          </p>
-          <h1 className="text-2xl font-bold break-words sm:text-3xl">Administradores</h1>
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Usuarios y permisos</p>
+          <h1 className="break-words text-2xl font-bold @3xl:text-3xl">Administradores</h1>
           <p className="mt-2 text-gray-600">Gestión de administradores del sistema.</p>
         </div>
         <button
@@ -167,111 +51,63 @@ const acciones = (a: AdminFila) => (
           title="Nuevo administrador"
           className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
         >
-          <Plus size={22} />
+          <Plus size={22} aria-hidden="true" />
         </button>
       </div>
 
-      <BarraFiltros>
-        <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar por nombre o email..." />
-        <SelectFiltro
-          valor={filtroRol}
-          onChange={conReinicio(setFiltroRol)}
-          etiqueta="Filtrar por rol"
-          opciones={[
-            { valor: 'todos', etiqueta: 'Todos los roles' },
-            { valor: 'MASTER', etiqueta: 'General' },
-            { valor: 'ADMIN', etiqueta: 'Sucursal' },
-          ]}
-        />
-        <SelectFiltro
-          valor={filtroSucursal}
-          onChange={conReinicio(setFiltroSucursal)}
-          etiqueta="Filtrar por sucursal"
-          opciones={[
-            { valor: 'todas', etiqueta: 'Todas las sucursales' },
-            ...sucursalesDeLaLista.map((s) => ({ valor: String(s.id), etiqueta: s.nombre })),
-          ]}
-        />
-      </BarraFiltros>
+      <FiltrosAdministradores
+        busqueda={filtros.busqueda}
+        onBusqueda={filtros.setBusqueda}
+        rol={filtros.rol}
+        onRol={filtros.setRol}
+        contadoresRol={contarPorRol(datos.administradores, filtros)}
+        sucursal={filtros.sucursal}
+        onSucursal={filtros.setSucursal}
+        sucursales={sucursalesDeLaLista(datos.administradores)}
+        contadoresSucursal={contarPorSucursal(datos.administradores, filtros)}
+      />
 
-      {pagina.length === 0 ? (
-        <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio mensaje={hayFiltros ? 'No hay administradores con esos filtros.' : 'No hay administradores registrados.'} />
+      <h2 ref={refTitulo} tabIndex={-1} className="sr-only">
+        Administradores, página {pagina} de {totalPaginas}
+      </h2>
+
+      {datos.cargando ? (
+        <p className="rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-gray-600">Cargando administradores...</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-10">
+          <MensajeVacio
+            mensaje={filtros.hayFiltros ? 'No hay administradores con esos filtros.' : 'No hay administradores registrados.'}
+          />
         </div>
       ) : (
-        <>
-          {/* Celular: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {pagina.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{a.nombre}</p>
-                  <p className="truncate text-sm text-gray-600">{a.email}</p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {rolTexto(a.rol)} · {a.sucursal?.nombre ?? 'Sin sucursal'}
-                  </p>
-                  <p className={`mt-1 text-sm font-medium ${a.activo ? 'text-green-700' : 'text-red-600'}`}>
-                    {a.activo ? 'Activo' : 'Inactivo'}
-                  </p>
-                </div>
-                {acciones(a)}
-              </li>
-            ))}
-          </ul>
-
-          {/* Escritorio: tabla */}
-          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
-            <table className="w-full min-w-[750px] border-collapse">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left">Nombre</th>
-                  <th className="px-6 py-3 text-left">Email</th>
-                  <th className="px-6 py-3 text-left">Rol</th>
-                  <th className="px-6 py-3 text-left">Sucursal</th>
-                  <th className="px-6 py-3 text-right">Estado</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagina.map((a) => (
-                  <tr key={a.id} className="border-t">
-                    <td className="px-6 py-4 font-medium">{a.nombre}</td>
-                    <td className="px-6 py-4">{a.email}</td>
-                    <td className="px-6 py-4">{rolTexto(a.rol)}</td>
-                    <td className="px-6 py-4">{a.sucursal?.nombre ?? 'Sin sucursal'}</td>
-                    <td className="px-6 py-4">
-                      <span
-                      className={`rounded-full px-3 py-1 text-sm font-medium ${
-                        a.activo
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                      }`}>
-                      {a.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end">{acciones(a)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <ul aria-label="Administradores" className="flex flex-col gap-2.5">
+          {items.map((a) => (
+            <AdministradorCard
+              key={a.id}
+              admin={a}
+              onEditar={(x) => navigate(`/admin/administradores/editar/${x.id}`)}
+              onDesactivar={setADesactivar}
+              onReactivar={(x) => void datos.reactivar(x)}
+            />
+          ))}
+        </ul>
       )}
 
       <Paginacion
-        paginaActual={paginaActual}
+        paginaActual={pagina}
         totalElementos={filtrados.length}
-        elementosPorPagina={POR_PAGINA}
-        cambiarPagina={setPaginaActual}
+        elementosPorPagina={POR_PAGINA_ADMINISTRADORES}
+        cambiarPagina={(nueva) => {
+          filtros.setPagina(nueva)
+          irAlInicio()
+        }}
       />
 
       <ConfirmarEliminacion
-        abierto={aEliminar !== null}
-        mensaje={`¿Seguro que querés desactivar a ${aEliminar?.nombre ?? 'este administrador'}?`}
-        onConfirmar={eliminar}
-        onCancelar={() => setAEliminar(null)}
+        abierto={aDesactivar !== null}
+        mensaje={`¿Seguro que querés desactivar a ${aDesactivar?.nombre ?? 'este administrador'}?`}
+        onConfirmar={() => void confirmarDesactivar()}
+        onCancelar={() => setADesactivar(null)}
       />
     </main>
   )
