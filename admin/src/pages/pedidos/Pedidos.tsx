@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import MensajeVacio from '../../components/MensajeVacio'
 import AvisoColaPedidos from '../../components/pedidos/AvisoColaPedidos'
-import BarraFiltrosPedidos from '../../components/pedidos/BarraFiltrosPedidos'
+import BarraFiltrosLista from '../../components/listas/BarraFiltrosLista'
 import ListaPedidos from '../../components/pedidos/ListaPedidos'
 import { DURACION_CONFIRMACION_RAPIDA_MS, POR_PAGINA_PEDIDOS } from '../../config/pedidos'
 import { useAuth } from '../../context/AuthContext'
@@ -13,10 +13,16 @@ import { useFiltrosPedidosUrl } from '../../hooks/pedidos/useFiltrosPedidosUrl'
 import { usePedidosSucursal } from '../../hooks/pedidos/usePedidosSucursal'
 import { usePedidoDeepLink } from '../../hooks/usePedidoDeepLink'
 import { usePedidosEnTiempoReal } from '../../hooks/usePedidosEnTiempoReal'
-import { obtenerSucursales } from '../../services/sucursalService'
-import type { PedidoFila, SucursalOpcion } from '../../types/pedido.types'
+import { useSucursalMaster } from '../../hooks/useSucursalMaster'
+import { ETAPAS } from '../../types/pedido.types'
+import type { FiltroEtapa, PedidoFila } from '../../types/pedido.types'
 import { coincideBusqueda, coincideEtapa, contarPorEtapa } from '../../utils/pedidos/filtrarPedidos'
 import { siguienteEtapaRapida } from '../../utils/pedidos/resumenPedido'
+
+const OPCIONES_ETAPA: { valor: FiltroEtapa; etiqueta: string }[] = [
+  { valor: 'todas', etiqueta: 'Todas' },
+  ...ETAPAS.map((etapa) => ({ valor: etapa, etiqueta: etapa })),
+]
 
 // Lista de pedidos de una sucursal (plan responsivo de Pedidos). Solo compone:
 // datos (usePedidosSucursal), filtros en la URL, cola de ingreso con cooldown y acción rápida.
@@ -24,25 +30,13 @@ export default function Pedidos() {
   const { administrador } = useAuth()
   const { mostrarToast } = useToast()
   const location = useLocation()
-  const esMaster = administrador?.rol === 'MASTER'
   const { redirigiendo } = usePedidoDeepLink()
   const filtros = useFiltrosPedidosUrl()
 
-  // El master elige la sucursal (por defecto, la primera); el admin de sucursal ve la suya
-  const [sucursales, setSucursales] = useState<SucursalOpcion[]>([])
-  const [sucursalesListas, setSucursalesListas] = useState(!esMaster)
-  const [errorSucursales, setErrorSucursales] = useState('')
-  useEffect(() => {
-    if (!esMaster) return
-    obtenerSucursales()
-      .then((lista: SucursalOpcion[]) => setSucursales(lista))
-      .catch(() => setErrorSucursales('No se pudieron cargar las sucursales'))
-      .finally(() => setSucursalesListas(true))
-  }, [esMaster])
-
-  const sucursalId = esMaster
-    ? (filtros.sucursal ?? sucursales[0]?.id ?? null)
-    : (administrador?.sucursalId ?? null)
+  // MASTER: URL > la que eligió antes en Pedidos o Viajes > la primera (D-V2, D-V4).
+  // Admin de sucursal: siempre la suya (RN-35).
+  const { esMaster, sucursales, sucursalesListas, errorSucursales, sucursalId, elegir } =
+    useSucursalMaster(filtros.sucursal)
 
   const datos = usePedidosSucursal(sucursalId)
   const { guardandoId, errores, cambiarEtapa } = useCambioEtapaPedido()
@@ -82,7 +76,7 @@ export default function Pedidos() {
   })
 
   const nombreSucursal = esMaster
-    ? sucursales.find((s) => s.id === sucursalId)?.nombre
+    ? sucursales?.find((s) => s.id === sucursalId)?.nombre
     : administrador?.sucursal?.nombre
 
   async function accionRapida(pedido: PedidoFila) {
@@ -125,15 +119,24 @@ export default function Pedidos() {
         </div>
       ) : (
         <>
-          <BarraFiltrosPedidos
-            sucursales={esMaster ? sucursales : null}
+          <BarraFiltrosLista<FiltroEtapa>
+            sucursales={sucursales}
             sucursalId={sucursalId}
-            onSucursal={filtros.setSucursal}
+            onSucursal={(id) => {
+              elegir(id)
+              filtros.setSucursal(id)
+            }}
             busqueda={filtros.busqueda}
             onBusqueda={filtros.setBusqueda}
-            etapa={filtros.etapa}
-            onEtapa={filtros.setEtapa}
-            contadores={contarPorEtapa(visibles, filtros.busqueda)}
+            placeholder="Buscar por cliente o nº de pedido"
+            filtro={{
+              id: 'filtro-etapa',
+              leyenda: 'Filtrar por etapa',
+              opciones: OPCIONES_ETAPA,
+              valor: filtros.etapa,
+              contadores: contarPorEtapa(visibles, filtros.busqueda),
+              onChange: filtros.setEtapa,
+            }}
           />
 
           {error && (

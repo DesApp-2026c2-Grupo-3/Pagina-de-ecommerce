@@ -1,6 +1,6 @@
-import { ArrowLeft } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useParams, useSearchParams } from 'react-router-dom'
+import EnlaceVolver from '../../components/navegacion/EnlaceVolver'
 import ClientePedido from '../../components/pedidos/detalle/ClientePedido'
 import EncabezadoDetallePedido from '../../components/pedidos/detalle/EncabezadoDetallePedido'
 import EntregaPedido from '../../components/pedidos/detalle/EntregaPedido'
@@ -15,7 +15,7 @@ import { usePedidoDetalleEnTiempoReal } from '../../hooks/pedidos/usePedidoDetal
 import type { Etapa } from '../../types/pedido.types'
 import { leerIdPositivo } from '../../utils/navegacion/leerIdPositivo'
 import { PARAM_SUCURSAL } from '../../utils/navegacion/parametros'
-import { destinoVolver } from '../../utils/navegacion/rutasPedido'
+import { destinoVolver, etiquetaVolver } from '../../utils/navegacion/rutasPedido'
 
 // Página propia del detalle y seguimiento de un pedido (plan responsivo, 4.4). Sin modales.
 // El acceso lo decide el backend: un pedido de otra sucursal responde 404.
@@ -71,12 +71,8 @@ export default function DetallePedido() {
   return (
     <main className="@container w-full max-w-full p-4 @3xl:p-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
-        <Link
-          to={volverA}
-          className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-action hover:underline"
-        >
-          <ArrowLeft size={18} aria-hidden="true" /> Volver a pedidos
-        </Link>
+        {/* Vuelve a la lista de pedidos o al viaje desde el que se abrió */}
+        <EnlaceVolver to={volverA} texto={etiquetaVolver(volverA)} />
 
         {carga === 'cargando' && <p className="text-gray-600">Cargando pedido...</p>}
 

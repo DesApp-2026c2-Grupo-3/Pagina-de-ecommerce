@@ -1,42 +1,54 @@
-import type { ContadoresEtapa, FiltroEtapa } from '../../types/pedido.types'
-import { ETAPAS } from '../../types/pedido.types'
-import { esFiltroEtapa } from '../../utils/pedidos/filtrarPedidos'
+import type { ChangeEvent } from 'react'
+interface Opcion<T extends string> {
+  valor: T
+  etiqueta: string
+}
 
-interface Props {
-  valor: FiltroEtapa
-  contadores: ContadoresEtapa
-  onChange: (valor: FiltroEtapa) => void
+interface Props<T extends string> {
+  // Identifica los controles (ids y grupo de radios únicos por pantalla)
+  id: string
+  // Para lectores de pantalla: «Filtrar por etapa», «Filtrar por estado»
+  leyenda: string
+  opciones: Opcion<T>[]
+  valor: T
+  contadores: Record<T, number>
+  onChange: (valor: T) => void
   // 'botones': lado a lado (solo escritorio) · 'desplegable': tablet y móvil
   variante: 'botones' | 'desplegable'
   className?: string
 }
 
-const OPCIONES: { valor: FiltroEtapa; etiqueta: string }[] = [
-  { valor: 'todas', etiqueta: 'Todas' },
-  ...ETAPAS.map((etapa) => ({ valor: etapa, etiqueta: etapa })),
-]
-
-// Filtro por etapa (plan responsivo, 4.3). La página dibuja las dos variantes y el CSS
-// (container query de 60 rem) muestra una sola: la oculta queda con display:none,
-// así el lector de pantalla no la anuncia dos veces. Nunca hay scroll horizontal.
-export default function FiltroEtapas({ valor, contadores, onChange, variante, className = '' }: Props) {
+// Filtro de una sola opción compartido por Pedidos y Viajes. La pantalla dibuja las dos
+// variantes y el CSS (container query de 60 rem) muestra una sola: la oculta queda con
+// display:none, así el lector de pantalla no la anuncia dos veces. Nunca hay scroll horizontal.
+export default function FiltroSegmentado<T extends string>({
+  id,
+  leyenda,
+  opciones,
+  valor,
+  contadores,
+  onChange,
+  variante,
+  className = '',
+}: Props<T>) {
   if (variante === 'desplegable') {
     return (
       <div className={className}>
-        <label htmlFor="filtro-etapa" className="sr-only">
-          Filtrar por etapa
+        <label htmlFor={`${id}-select`} className="sr-only">
+          {leyenda}
         </label>
         <select
-          id="filtro-etapa"
+          id={`${id}-select`}
           value={valor}
-          onChange={(e) => {
-            if (esFiltroEtapa(e.target.value)) onChange(e.target.value)
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+            const elegida = opciones.find((o) => o.valor === e.target.value)
+            if (elegida) onChange(elegida.valor)
           }}
           className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3"
         >
-          {OPCIONES.map((opcion) => (
+          {opciones.map((opcion) => (
             <option key={opcion.valor} value={opcion.valor}>
-              {opcion.etiqueta} ({contadores[opcion.valor]})
+              {opcion.etiqueta} ({contadores[opcion.valor] ?? 0})
             </option>
           ))}
         </select>
@@ -46,9 +58,9 @@ export default function FiltroEtapas({ valor, contadores, onChange, variante, cl
 
   return (
     <fieldset className={className}>
-      <legend className="sr-only">Filtrar por etapa</legend>
+      <legend className="sr-only">{leyenda}</legend>
       <div className="flex flex-nowrap gap-2">
-        {OPCIONES.map((opcion) => {
+        {opciones.map((opcion) => {
           const activa = opcion.valor === valor
           return (
             <label
@@ -61,13 +73,13 @@ export default function FiltroEtapas({ valor, contadores, onChange, variante, cl
             >
               <input
                 type="radio"
-                name="filtro-etapa-botones"
+                name={`${id}-botones`}
                 value={opcion.valor}
                 checked={activa}
                 onChange={() => onChange(opcion.valor)}
                 className="sr-only"
               />
-              {opcion.etiqueta} ({contadores[opcion.valor]})
+              {opcion.etiqueta} ({contadores[opcion.valor] ?? 0})
             </label>
           )
         })}

@@ -45,6 +45,8 @@ export default function Toast({ mensaje, visible, onCerrar, contador }: ToastPro
 
   return (
     <div
+      // Oculto: fuera del orden de tabulación y de los lectores de pantalla
+      inert={!visible}
       className={`fixed top-6 right-6 z-50 transition-all duration-500 ease-out ${
         visible && animando
           ? 'opacity-100 translate-x-0'
@@ -52,13 +54,15 @@ export default function Toast({ mensaje, visible, onCerrar, contador }: ToastPro
       }`}
     >
       <div className="bg-success text-white px-5 py-3 rounded-md shadow-lg flex items-center gap-4">
-        <span>{mensaje}</span>
+        <span role="status">{mensaje}</span>
 
         <button
+          type="button"
+          aria-label="Cerrar aviso"
           onClick={onCerrar}
           className="font-bold hover:text-gray-200"
         >
-          <CircleX size={20} />
+          <CircleX size={20} aria-hidden="true" />
         </button>
       </div>
     </div>

@@ -23,17 +23,26 @@ export interface EstadoNavegacionPedido {
   desde: string
 }
 
-// A dónde vuelve el detalle: a la lista exacta de la que vino, o a la lista por defecto.
-// El estado de navegación es dato externo: solo se acepta una ruta de la lista de pedidos.
+// Orígenes desde los que se llega al detalle de un pedido: la lista de pedidos
+// o la página de un viaje (/admin/viajes/512, «Ver pedido»)
+const ORIGEN_VIAJE = /^\/admin\/viajes\/\d+(\?.*)?$/
+
+function esOrigenValido(desde: string): boolean {
+  return desde === RUTA_PEDIDOS || desde.startsWith(`${RUTA_PEDIDOS}?`) || ORIGEN_VIAJE.test(desde)
+}
+
+// A dónde vuelve el detalle: a la pantalla exacta de la que vino, o a la lista por defecto.
+// El estado de navegación es dato externo: solo se aceptan esas rutas del panel.
 export function destinoVolver(estado: unknown, sucursalId?: number | null): string {
   if (typeof estado === 'object' && estado !== null && 'desde' in estado) {
     const desde = (estado as { desde: unknown }).desde
-    if (
-      typeof desde === 'string' &&
-      (desde === RUTA_PEDIDOS || desde.startsWith(`${RUTA_PEDIDOS}?`))
-    ) {
-      return desde
-    }
+    if (typeof desde === 'string' && esOrigenValido(desde)) return desde
   }
   return rutaListaPedidos(sucursalId)
+}
+
+// Texto del enlace «Volver…» según a dónde lleva
+export function etiquetaVolver(destino: string): string {
+  const viaje = destino.match(/^\/admin\/viajes\/(\d+)/)
+  return viaje ? `Volver al viaje #${viaje[1]}` : 'Volver a pedidos'
 }

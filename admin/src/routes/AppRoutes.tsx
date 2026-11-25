@@ -4,6 +4,7 @@ import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../components/AdminLayout'
 import { NotificacionProvider } from '../context/notificaciones/NotificacionProvider'
 import { RealtimeProvider } from '../context/realtime/RealtimeProvider'
+import { SucursalMasterProvider } from '../context/sucursalMaster/SucursalMasterProvider'
 import Productos from '../pages/Productos/Productos'
 import NuevoProducto from '../pages/Productos/NuevoProducto'
 import EditarProducto from '../pages/Productos/EditarProducto'
@@ -35,6 +36,7 @@ import Repartidores from '../pages/Repartidores/Repartidores'
 import NuevoRepartidor from '../pages/Repartidores/NuevoRepartidor'
 import EditarRepartidor from '../pages/Repartidores/EditarRepartidor'
 import Viajes from '../pages/Viajes/Viajes'
+import DetalleViaje from '../pages/Viajes/DetalleViaje'
 import Parametros from '../pages/Parametros/Parametros'
 
 export default function AppRoutes() {
@@ -47,7 +49,9 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <RealtimeProvider>
               <NotificacionProvider>
-                <AdminLayout />
+                <SucursalMasterProvider>
+                  <AdminLayout />
+                </SucursalMasterProvider>
               </NotificacionProvider>
             </RealtimeProvider>
           </ProtectedRoute>
@@ -97,6 +101,8 @@ export default function AppRoutes() {
 
           <Route path="/admin/repartidores" element={<Repartidores />} />
           <Route path="/admin/viajes" element={<Viajes />} />
+          {/* El viaje se busca en la lista de su sucursal: si es de otra, «no encontrado» (RF-83) */}
+          <Route path="/admin/viajes/:viajeId" element={<DetalleViaje />} />
           <Route path="/admin/repartidores/editar/:id" element={<EditarRepartidor />}/>
           <Route path="/admin/repartidores/nuevo" element={<NuevoRepartidor />} />
           
