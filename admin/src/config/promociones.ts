@@ -25,3 +25,6 @@ export const DIAS: { valor: number; corto: string; nombre: string }[] = [
   { valor: 6, corto: 'Sáb', nombre: 'Sábado' },
   { valor: 0, corto: 'Dom', nombre: 'Domingo' },
 ]
+
+// Plan responsivo de Promociones v2 (D-PR1)
+export const POR_PAGINA_PROMOCIONES = 10
