@@ -7,8 +7,16 @@ export interface DatosPedido {
   estado: string
   total: number
   fecha: string
+  /** Motivo de la cancelación (lo escribe el local al cancelar) */
+  motivo?: string | null
 }
 
+// Carta "Te extrañamos" que manda el local a un cliente que hace tiempo que no pide
+export interface DatosCartaTeExtranamos {
+  usuarioId: number
+  nombre: string
+  productoFavorito: string | null
+}
 export interface DatosSucursalCerrada {
   sucursalId: number
   sucursalNombre: string
@@ -36,6 +44,10 @@ export type NotificacionCliente =
       datos: DatosSucursalCerrada
     })
 
+  | (BaseNotificacion & {
+      tipo: 'cliente.te_extranamos'
+      datos: DatosCartaTeExtranamos
+    })  
 export interface PaginaNotificacionesCliente {
   items: NotificacionCliente[]
   siguienteCursor: string | null
@@ -60,7 +72,7 @@ export type EventoNotificacionLeida =
   | EventoLeidaIndividual
   | EventoLeidaTodas
 
-export type TonoNotificacionCliente = 'pedido' | 'estado' | 'sucursal'
+export type TonoNotificacionCliente = 'pedido' | 'estado' | 'sucursal' | 'cocina' | 'entregado' | 'cancelado' | 'mensaje'
 
 export interface DescripcionNotificacionCliente {
   titulo: string

@@ -38,6 +38,14 @@ async function traerPedidos(sucursalId: number): Promise<PedidoFila[]> {
     estado: normalizarEtapa(pedido.estado),
   }));
 }
+// Son los mismos de la semilla de motivos: así el ranking de "¿Por qué se cancelan?" los agrupa
+const MOTIVOS_FRECUENTES = [
+  "Nos quedamos sin stock de un producto del pedido",
+  "Demora en la cocina por alta demanda",
+  "No podemos entregar en tu dirección en este momento",
+  "No conseguimos un repartidor disponible",
+  "El local tuvo que cerrar antes de lo previsto",
+];
 
 export default function Pedidos() {
   const { mostrarToast } = useToast();
@@ -62,7 +70,10 @@ export default function Pedidos() {
   // Pedido que se está guardando y error de guardado por fila
   const [guardando, setGuardando] = useState<number | null>(null);
   const [errorFila, setErrorFila] = useState<Record<number, string>>({});
-
+  // Cancelar pide el motivo antes de guardar: le llega al cliente
+  const [aCancelar, setACancelar] = useState<PedidoFila | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [errorMotivo, setErrorMotivo] = useState("");
   // Pedido abierto en el detalle
   const [detalleId, setDetalleId] = useState<number | null>(null);
 
@@ -241,11 +252,32 @@ export default function Pedidos() {
   async function aceptar(pedido: PedidoFila) {
     const nueva = seleccion[pedido.id];
     if (!nueva || !puedeAceptar(pedido)) return;
+    if (nueva === "Cancelado") {
+      setACancelar(pedido);
+      setMotivo("");
+      setErrorMotivo("");
+      return;
+    }
+    await guardarEstado(pedido, nueva);
+  }
 
+  function confirmarCancelacion() {
+    if (!aCancelar) return;
+    const texto = motivo.trim();
+    if (texto.length < 3) {
+      setErrorMotivo("Escribí el motivo: el cliente lo va a ver en la notificación.");
+      return;
+    }
+    const pedido = aCancelar;
+    setACancelar(null);
+    void guardarEstado(pedido, "Cancelado", texto);
+  }
+
+  async function guardarEstado(pedido: PedidoFila, nueva: Etapa, motivoCancelacion?: string) {
     setGuardando(pedido.id);
     setErrorFila((prev) => ({ ...prev, [pedido.id]: "" }));
     try {
-      const actualizado = await actualizarEstadoPedido(pedido.id, nueva);
+      const actualizado = await actualizarEstadoPedido(pedido.id, nueva, motivoCancelacion);      
       // Solo se actualiza el estado: la respuesta no trae cliente ni productos
       setPedidos((prev) =>
         prev.map((p) =>
@@ -255,7 +287,7 @@ export default function Pedidos() {
         ),
       );
       setSeleccion((prev) => ({ ...prev, [pedido.id]: undefined }));
-      mostrarToast("Estado del pedido actualizado");
+      mostrarToast(motivoCancelacion ? "Pedido cancelado. Le avisamos al cliente el motivo" : "Estado del pedido actualizado");    
     } catch (error) {
       setErrorFila((prev) => ({
         ...prev,
@@ -404,6 +436,50 @@ export default function Pedidos() {
       )}
 
       <DetallePedidoModal pedidoId={detalleId} onClose={cerrarDetalle} />
+            {aCancelar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="titulo-cancelar" className="w-full max-w-md rounded-lg border bg-white p-6 shadow-xl">
+            <h2 id="titulo-cancelar" className="text-xl font-bold">Cancelar pedido #{aCancelar.id}</h2>
+            <p className="mt-1 text-sm text-gray-600">El cliente va a recibir este motivo en la notificación.</p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {MOTIVOS_FRECUENTES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { setMotivo(m); setErrorMotivo(""); }}
+                  className={`rounded border px-3 py-1.5 text-left text-sm ${motivo === m ? "border-orange-400 bg-orange-100 text-orange-800" : "bg-white hover:bg-gray-50"}`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+
+            <label htmlFor="motivo-cancelacion" className="mt-4 block text-sm font-semibold">Motivo</label>
+            <textarea
+              id="motivo-cancelacion"
+              value={motivo}
+              maxLength={200}
+              rows={3}
+              autoFocus
+              onChange={(e) => { setMotivo(e.target.value); setErrorMotivo(""); }}
+              placeholder="Escribí el motivo o elegí uno de arriba"
+              className="mt-1 w-full rounded border px-3 py-2"
+            />
+            <p className="text-right text-xs text-gray-500">{motivo.length}/200</p>
+            {errorMotivo && <p className="text-sm font-medium text-red-700">{errorMotivo}</p>}
+
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setACancelar(null)} className="rounded border bg-white px-4 py-2 font-semibold hover:bg-gray-50">
+                Volver
+              </button>
+              <button type="button" onClick={confirmarCancelacion} className="rounded border border-red-300 bg-danger px-4 py-2 font-semibold text-white hover:bg-danger-hover">
+                Cancelar pedido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -344,6 +344,14 @@ recargar()
         />
       )}
 
+      {/* La paginación es solo de los insumos: va pegada a su tabla */}
+      <Paginacion
+        paginaActual={paginaActual}
+        totalElementos={stockFiltrado.length}
+        elementosPorPagina={POR_PAGINA}
+        cambiarPagina={setPaginaActual}
+      />
+
       <StockMovimientos
         movimientos={movimientos}
         filtroTipo={filtroTipo}
@@ -562,13 +570,6 @@ recargar()
           </div>
         </div>
       )}
-
-      <Paginacion
-      paginaActual={paginaActual}
-      totalElementos={stockFiltrado.length}
-      elementosPorPagina={POR_PAGINA}
-      cambiarPagina={setPaginaActual}
-      />
     </main>
   )
 }

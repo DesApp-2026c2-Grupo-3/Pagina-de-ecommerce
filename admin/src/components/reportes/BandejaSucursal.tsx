@@ -111,13 +111,22 @@ export default function BandejaSucursal({ sucursales }: Props) {
             : `Cada icono son ${porIcono} unidades vendidas.`}
         </p>
 
-        {/* La bandeja */}
-        <div className="relative rounded-[22px] bg-red-600 px-3 pt-4 pb-5 shadow-[inset_0_0_0_6px_#b91c1c,0_10px_22px_rgba(185,28,28,0.25)] sm:px-5 sm:pt-[18px] sm:pb-[22px]">
-          {/* Manija */}
-          <span
-            aria-hidden="true"
-            className="absolute -top-3 left-1/2 -ml-[34px] h-[18px] w-[68px] rounded-t-[10px] border-[5px] border-b-0 border-red-700"
-          />
+        {/* La bandeja (con margen a los costados para que entren las asas) */}
+        <div className="relative mx-6 rounded-[22px] bg-red-600 px-3 pt-4 pb-5 shadow-[inset_0_0_0_6px_#b91c1c,0_10px_22px_rgba(185,28,28,0.25)] sm:mx-8 sm:px-5 sm:pt-[18px] sm:pb-[22px]">
+          {/* Asas a los costados, con su agujero para meter los dedos */}
+          {(["izquierda", "derecha"] as const).map((lado) => (
+            <span
+              key={lado}
+              aria-hidden="true"
+              className={`absolute top-1/2 flex h-24 w-7 -translate-y-1/2 items-center bg-red-600 shadow-[inset_0_0_0_5px_#b91c1c] sm:w-9 ${
+                lado === "izquierda"
+                  ? "-left-6 justify-start rounded-l-[22px] pl-2 sm:-left-8"
+                  : "-right-6 justify-end rounded-r-[22px] pr-2 sm:-right-8"
+              }`}
+            >
+              <span className="h-12 w-2.5 rounded-full bg-white shadow-[inset_0_2px_3px_rgba(0,0,0,0.35)] sm:w-3" />
+            </span>
+          ))}
 
           {/* Papel de la bandeja. La "key" vuelve a servir todo al cambiar de sucursal. */}
           <div

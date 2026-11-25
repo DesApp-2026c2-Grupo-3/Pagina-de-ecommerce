@@ -168,5 +168,49 @@ export interface ImpactoPromociones {
 
 /* ---------- Período de los botones ---------- */
 
-// Últimos 7, 30 o 365 días; null = histórico (todo)
-export type PeriodoReporte = 7 | 30 | 365 | null
+// Últimos 7, 30 o 365 días (no hay "histórico": sería muy costoso con una base grande)
+export type PeriodoReporte = 7 | 30 | 365
+/* ---------- Motivos de cancelación ---------- */
+
+export interface MotivoCancelacion {
+  motivo: string
+  cantidad: number
+}
+
+/* ---------- Dónde se atrasan los pedidos ---------- */
+
+export interface EtapaDemora {
+  estado: string
+  nombre: string
+  esperadoMinutos: number
+  promedioMinutos: number | null
+  pedidos: number
+  // 1 = justo lo esperado; 1,3 = se pasa un 30 %
+  relacion: number | null
+}
+
+export interface SucursalLenta {
+  sucursalId: number
+  nombre: string | null
+  peorEtapa: EtapaDemora
+}
+
+export interface PedidoDemorado {
+  pedidoId: number
+  sucursalId: number
+  sucursalNombre: string | null
+  cliente: string | null
+  estado: string
+  etapa: string
+  minutos: number
+  limiteMinutos: number
+}
+
+export interface DemorasPedidos {
+  etapas: EtapaDemora[]
+  // estado de la etapa que más se atrasa (null = todas dentro de lo esperado)
+  cuelloDeBotella: string | null
+  // Solo con todas las sucursales (master)
+  sucursalesLentas: SucursalLenta[]
+  demorados: PedidoDemorado[]
+}

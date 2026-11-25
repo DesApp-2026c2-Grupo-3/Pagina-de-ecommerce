@@ -73,7 +73,7 @@ export default function EditarCategoria() {
 
       <form onSubmit={guardarCambios} className="max-w-md">
         <div className="mb-4">
-          <label className="block mb-2 font-medium">Nombre</label>
+          <label className="block mb-2 font-medium">Nombre de la categoria</label>
 
           <input
             type="text"

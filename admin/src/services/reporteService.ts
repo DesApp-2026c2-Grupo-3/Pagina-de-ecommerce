@@ -19,6 +19,8 @@ import type {
   PromocionMasUtilizada,
   ImpactoPromociones,
   PeriodoReporte,
+  MotivoCancelacion,
+  DemorasPedidos,
 } from '../types/reporte.types'
 import { apiFetch, API_URL } from './httpClient'
 
@@ -40,7 +42,7 @@ function construirUrlReporte(
   return `${API}/${endpoint}${query ? `?${query}` : ''}`
 }
 
-// Parámetro de los botones de período: ?ultimos=7|30|365 (sin nada = histórico)
+// Parámetro de los botones de período: ?ultimos=7|30|365 (sin nada, el backend toma 30 días)
 function conPeriodo(ultimos?: PeriodoReporte): Record<string, string> {
   return ultimos ? { ultimos: String(ultimos) } : {}
 }
@@ -234,5 +236,42 @@ export async function obtenerImpactoPromociones(
 ): Promise<ImpactoPromociones> {
   return apiFetch(construirUrlReporte('impacto-promociones', sucursalId), {
     mensajePorDefecto: 'Error al obtener el impacto de las promociones',
+  })
+}
+//-------------------------------------------------------------
+
+// Ranking de por qué se cancelan los pedidos (el motivo lo escribe el admin al cancelar)
+export async function obtenerMotivosCancelacion(
+  sucursalId?: number,
+  ultimos?: PeriodoReporte,
+): Promise<MotivoCancelacion[]> {
+  return apiFetch(construirUrlReporte('motivos-cancelacion', sucursalId, conPeriodo(ultimos)), {
+    mensajePorDefecto: 'Error al obtener los motivos de cancelación',
+  })
+}
+
+// Cuánto tarda cada etapa, las sucursales más lentas y los pedidos demorados ahora
+export async function obtenerDemorasPedidos(
+  sucursalId?: number,
+  ultimos?: PeriodoReporte,
+): Promise<DemorasPedidos> {
+  return apiFetch(construirUrlReporte('demoras', sucursalId, conPeriodo(ultimos)), {
+    mensajePorDefecto: 'Error al obtener las demoras de los pedidos',
+  })
+}
+
+
+//-------------------------------------------------------------
+
+// Carta "Te extrañamos" a clientes inactivos: les llega como notificación en la tienda.
+// El backend no repite la carta a quien ya la recibió en la última semana.
+export async function notificarClientesInactivos(
+  usuarioIds: number[],
+): Promise<{ enviados: number; yaAvisados: number; noEncontrados: number }> {
+  return apiFetch(`${API}/clientes-inactivos/notificar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuarioIds }),
+    mensajePorDefecto: 'No se pudieron enviar los avisos',
   })
 }

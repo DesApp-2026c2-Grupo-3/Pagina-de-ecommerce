@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { SelectFiltro } from '../Filtros'
 import { MOTIVOS_BAJA } from '../../services/stockService'
 import { formatearFechaHora } from '../../utils/pedidoEstado'
@@ -19,6 +20,7 @@ function descripcion(m: Movimiento) {
   return 'Carga de stock'
 }
 
+const POR_TANDA = 10
 const resta = (m: Movimiento) =>
   m.tipo === 'baja' || m.tipo === 'venta'
 
@@ -30,6 +32,12 @@ export default function StockMovimientos({
   const filtrados = movimientos.filter(
     (m) => filtroTipo === 'todos' || m.tipo === filtroTipo,
   )
+  
+  // Se muestran de a 10: "Mostrar más" suma otros 10. Al cambiar el filtro vuelve a 10.
+  const [visibles, setVisibles] = useState(POR_TANDA)
+  useEffect(() => setVisibles(POR_TANDA), [filtroTipo])
+  const mostrados = filtrados.slice(0, visibles)
+  const quedan = filtrados.length - mostrados.length
 
   return (
     <>
@@ -58,8 +66,7 @@ export default function StockMovimientos({
       ) : (
         <>
           <ul className="flex flex-col gap-3 md:hidden">
-            {filtrados.map((m) => (
-              <li
+            {mostrados.map((m) => (              <li
                 key={m.id}
                 className="rounded-lg border bg-white p-4 text-sm"
               >
@@ -100,7 +107,7 @@ export default function StockMovimientos({
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((m) => (
+                {mostrados.map((m) => (                  
                   <tr key={m.id} className="border-t">
                     <td className="whitespace-nowrap px-4 py-3">
                       {formatearFechaHora(m.fecha)}
@@ -127,6 +134,21 @@ export default function StockMovimientos({
                 ))}
               </tbody>
             </table>
+          </div>
+          
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <p className="text-sm text-gray-600">
+              Mostrando {mostrados.length} de {filtrados.length} movimientos
+            </p>
+            {quedan > 0 && (
+              <button
+                type="button"
+                onClick={() => setVisibles((v) => v + POR_TANDA)}
+                className="rounded border bg-white px-4 py-2 font-semibold hover:bg-gray-50"
+              >
+                Mostrar {Math.min(POR_TANDA, quedan)} más
+              </button>
+            )}
           </div>
         </>
       )}

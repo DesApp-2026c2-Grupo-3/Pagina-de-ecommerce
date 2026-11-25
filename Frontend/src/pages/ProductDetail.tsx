@@ -50,6 +50,8 @@ function DetalleProducto({ id }: { id: number }) {
   const [grupoAbierto, setGrupoAbierto] = useState<number | null>(null)
   // Paso actual de la tarjeta (empieza en 1, como el Stepper)
   const [paso, setPaso] = useState(1)
+    // La imagen se da vuelta y muestra la descripción (mouse encima en la compu, toque en el celular)
+  const [girada, setGirada] = useState(false)
   // Pregunta "¿Lo sumamos al carrito?" antes de agregarlo
   const [confirmandoAgregar, setConfirmandoAgregar] = useState(false)
 
@@ -327,27 +329,11 @@ function DetalleProducto({ id }: { id: number }) {
     />
   )
 
-  // Nombre, precio y descripción (van en la tarjeta de la izquierda, debajo de la imagen)
+  // Avisos debajo de la imagen (y el nombre, solo para lectores de pantalla)  
   const infoProducto = (
     <>
-      <h1 className="mt-0 font-display text-4xl font-extrabold leading-none tracking-tight sm:text-5xl">
-        {product.nombre}
-      </h1>
-      {descuentoSemana > 0 ? (
-        <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-2xl font-extrabold text-brand-red">{precio(conDescuento(precioBase, descuentoSemana))}</span>
-          <s className="font-bold text-brand-muted">{precio(precioBase)}</s>
-          <span className="rounded-full bg-brand-red px-2.5 py-0.5 text-xs font-extrabold text-white">
-            Producto de la semana · {Math.round(descuentoSemana * 100)}% OFF
-          </span>
-        </div>
-      ) : (
-        <p className="mt-3 text-2xl font-extrabold text-brand-red">{precio(precioBase)}</p>
-      )}
-      <p className="mt-3 w-full whitespace-normal break-words leading-relaxed text-brand-muted">
-        {product.descripcion}
-        {esCombo && <span className="block">{textoGruposCombo}</span>}
-      </p>
+      {/* El nombre se ve sobre la imagen; acá queda solo para lectores de pantalla */}
+      <h1 className="sr-only">{product.nombre}</h1>
 
       {!product.disponible && (
         <p className="mt-4 rounded-2xl border-2 border-dashed border-brand-red/40 bg-brand-red/5 px-4 py-3 font-bold text-brand-red">
@@ -375,17 +361,52 @@ function DetalleProducto({ id }: { id: number }) {
       </div>
 
       <div className="mx-auto -mt-36 grid max-w-6xl gap-8 px-4 pb-12 md:grid-cols-2 md:items-start md:gap-12 [&>*]:min-w-0">
-        {/* A la izquierda: una sola tarjeta con la categoría, la imagen chica y la descripción */}
-        <div className="rounded-[2rem] border-2 border-brand-dark bg-white p-6 shadow-sticker sm:p-8">
-          {categoryName && (
-            <span className="mb-4 inline-block rounded-full bg-brand-red px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white">
-              {categoryName}
+        {/* A la izquierda: la imagen con su nombre; al pasar el mouse o tocarla se da vuelta y muestra la descripción */}
+        <div className="flex flex-col gap-8">
+          <button
+            type="button"
+            onClick={() => setGirada((v) => !v)}
+            onPointerEnter={(e) => e.pointerType === 'mouse' && setGirada(true)}
+            onPointerLeave={(e) => e.pointerType === 'mouse' && setGirada(false)}
+            aria-pressed={girada}
+            aria-label={girada ? 'Volver a la imagen' : 'Ver descripción'}
+            className="mx-auto block aspect-square w-full max-w-sm rotate-2 cursor-pointer perspective-[1200px]"
+          >
+            <span className={`relative block h-full w-full transition-transform duration-500 transform-3d ${girada ? 'rotate-y-180' : ''}`}>
+              {/* Frente: la imagen y el nombre */}
+              <span className="absolute inset-0 grid place-items-center overflow-hidden rounded-[2.5rem] border-2 border-brand-dark bg-brand-red backface-hidden">
+                <span className="absolute inset-[8%] rounded-full bg-black/15" />
+                {imagenProducto('relative w-[75%] -rotate-2 -translate-y-6 object-contain drop-shadow-2xl', 'relative h-32 w-32 text-brand-cream')}
+                {descuentoSemana > 0 && (
+                  <span className="absolute left-4 top-4 rounded-full bg-brand-mustard px-3 py-1 text-xs font-extrabold text-brand-dark">
+                    {Math.round(descuentoSemana * 100)}% OFF
+                  </span>
+                )}
+                <span className="absolute right-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-dark">
+                  Ver descripción ↻
+                </span>
+                <span className="absolute inset-x-0 bottom-0 bg-brand-dark/85 px-6 py-4 text-left font-display text-3xl font-extrabold leading-none tracking-tight text-brand-cream">
+                  {product.nombre}
+                </span>
+              </span>
+
+              {/* Dorso: la descripción */}
+                {categoryName && (
+                  <span className="mb-3 w-fit rounded-full bg-brand-red px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-white">
+                    {categoryName}
+                  </span>
+                )}
+              <span className="absolute inset-0 flex flex-col overflow-y-auto rounded-[2.5rem] border-2 border-brand-dark bg-white p-6 text-left rotate-y-180 backface-hidden sm:p-8">
+                <span className="font-display text-3xl font-extrabold leading-none tracking-tight">{product.nombre}</span>
+                <span className="mt-4 block whitespace-normal break-words leading-relaxed text-brand-muted">
+                  {product.descripcion || 'Este producto no tiene descripción.'}
+                  {esCombo && <span className="block">{textoGruposCombo}</span>}
+                </span>
+                <span className="mt-auto pt-4 text-sm font-bold text-brand-red">↻ Volver a la imagen</span>
+              </span>
             </span>
-          )}
-          <div className="relative mx-auto mb-6 grid aspect-square w-full max-w-[13rem] rotate-2 place-items-center rounded-[1.75rem] border-2 border-brand-dark bg-brand-red">
-            <div className="absolute inset-[8%] rounded-full bg-black/15" />
-            {imagenProducto('relative w-[85%] -rotate-2 object-contain drop-shadow-xl', 'relative h-16 w-16 text-brand-cream')}
-          </div>
+          </button>
+
           {infoProducto}
         </div>
 

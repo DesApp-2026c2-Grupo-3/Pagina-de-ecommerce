@@ -4,16 +4,15 @@ import CategoryIcon from '../icons/CategoryIcon'
 import { formatearPrecio } from '../../utils/precio'
 import type { ProductoBackend } from '../../types/product'
 
-// Combo que se presenta como recién agregado a la carta (se busca por nombre exacto)
-const PRODUCTO_NUEVO = 'Combo Abominación'
-
 interface Props {
   catalogo: ProductoBackend[]
+  /** El producto que se presenta como recién agregado (lo elige el admin en Promociones) */
+  productoId: number | null
 }
 
 // "Nuevo en la carta": presenta un combo como lanzamiento, con link a su detalle para armarlo
-function NuevoEnLaCarta({ catalogo }: Props) {
-  const producto = catalogo.find((p) => p.nombre === PRODUCTO_NUEVO)
+function NuevoEnLaCarta({ catalogo, productoId }: Props) {
+  const producto = productoId == null ? undefined : catalogo.find((p) => Number(p.id) === productoId)
   if (!producto) return null
 
   return (

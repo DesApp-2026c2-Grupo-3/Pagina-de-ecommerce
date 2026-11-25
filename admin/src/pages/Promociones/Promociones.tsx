@@ -10,28 +10,35 @@ import {
   deshabilitarPromocion,
   eliminarPromocion as eliminarPromocionAPI,
   habilitarPromocion,
+  guardarProductoNuevo,
+  obtenerProductoNuevo,
   obtenerPromociones,
 } from '../../services/promocionService'
+import { obtenerProductos } from '../../services/productoService'
 import { DIAS, NOMBRE_TIPO } from '../../config/promociones'
 import type { PromocionAdmin, TipoPromo } from '../../types/promocion.types'
 
 const POR_PAGINA = 8
 
-const ORDEN_TIPO: Record<TipoPromo, number> = { SEMANA: 0, REGALO: 1, DIA: 2 }
+// "Nuevo en la carta" no es una promo (es un producto elegido aparte), pero se lista acá para poder encontrarlo
+type FilaPromo = Omit<PromocionAdmin, 'tipo'> & { tipo: TipoPromo | 'NUEVO' }
+const NOMBRE_FILA: Record<FilaPromo['tipo'], string> = { ...NOMBRE_TIPO, NUEVO: 'Nuevo en la carta' }
+
+const ORDEN_TIPO: Record<FilaPromo['tipo'], number> = { SEMANA: 0, REGALO: 1, NUEVO: 2, DIA: 3 }
 
 // Posición del primer día de la promo en la semana (lunes primero), para ordenar la lista
-const posicionDelDia = (p: PromocionAdmin) =>
+const posicionDelDia = (p: FilaPromo) =>
   p.dias.length === 0 ? 0 : Math.min(...p.dias.map((d) => DIAS.findIndex((x) => x.valor === d)))
 
-const cuando = (p: PromocionAdmin) =>
+const cuando = (p: FilaPromo) =>
   p.tipo === 'DIA'
     ? DIAS.filter((d) => p.dias.includes(d.valor)).map((d) => d.corto).join(' · ')
     : 'Toda la semana'
 
 const porcentaje = (descuento: number) => `${Math.round(descuento * 1000) / 10}%`
 
-const resumen = (p: PromocionAdmin) =>
-  p.items
+const resumen = (p: FilaPromo) =>
+  p.tipo === 'NUEVO' ? `${p.items[0]?.nombre ?? ''} (sin descuento)` : p.items
     .map((i) => {
       const nombre = i.nombre ?? 'Producto eliminado'
       const oferta = i.descuento >= 1 ? ' gratis' : i.descuento > 0 ? ` (${porcentaje(i.descuento)} menos)` : ''
@@ -39,7 +46,7 @@ const resumen = (p: PromocionAdmin) =>
     })
     .join(' · ')
 
-function Estado({ promo }: { promo: PromocionAdmin }) {
+function Estado({ promo }: { promo: FilaPromo }) {
   if (!promo.activo) {
     return <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Deshabilitada</span>
   }
@@ -62,11 +69,11 @@ export default function Promociones() {
   const navigate = useNavigate()
   const { mostrarToast } = useToast()
 
-  const [promociones, setPromociones] = useState<PromocionAdmin[]>([])
+  const [promociones, setPromociones] = useState<FilaPromo[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const [paginaActual, setPaginaActual] = useState(1)
-  const [aEliminar, setAEliminar] = useState<PromocionAdmin | null>(null)
+  const [aEliminar, setAEliminar] = useState<FilaPromo | null>(null)
 
   // Filtros
   const [busqueda, setBusqueda] = useState('')
@@ -75,7 +82,16 @@ export default function Promociones() {
 
   async function cargar() {
     try {
-      setPromociones(await obtenerPromociones())
+      const [lista, nuevo, productos] = await Promise.all([obtenerPromociones(), obtenerProductoNuevo(), obtenerProductos()])
+      const producto = (productos as any[]).find((p) => p.id === nuevo.productoId)
+      const filaNuevo: FilaPromo[] = producto
+        ? [{
+            id: -1, tipo: 'NUEVO', titulo: producto.nombre, destacado: 'Nuevo', detalle: '', dias: [],
+            maxPorPedido: null, compraMinima: null, activo: true, completa: true,
+            items: [{ productoId: producto.id, nombre: producto.nombre, precio: Number(producto.precio), cantidad: 1, descuento: 0, eliminado: false }],
+          }]
+        : []
+      setPromociones([...lista, ...filaNuevo])
       setError('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las promociones.')
@@ -93,9 +109,12 @@ export default function Promociones() {
     setPaginaActual(1)
   }
 
-  async function cambiarEstado(promo: PromocionAdmin) {
+  async function cambiarEstado(promo: FilaPromo) {
     try {
-      if (promo.activo) {
+      if (promo.tipo === 'NUEVO') {
+        await guardarProductoNuevo(null)
+        mostrarToast('Se sacó «Nuevo en la carta» de la página')
+      } else if (promo.activo) {
         await deshabilitarPromocion(promo.id)
         mostrarToast('Promoción deshabilitada')
       } else {
@@ -109,7 +128,7 @@ export default function Promociones() {
     }
   }
 
-  async function eliminar(promo: PromocionAdmin) {
+  async function eliminar(promo: FilaPromo) {
     try {
       await eliminarPromocionAPI(promo.id)
       mostrarToast('Promoción eliminada!')
@@ -140,11 +159,15 @@ export default function Promociones() {
   const pagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
   const hayFiltros = busqueda.trim() !== '' || filtroTipo !== 'todos' || filtroEstado !== 'todos'
 
-  const acciones = (p: PromocionAdmin) => (
+  const acciones = (p: FilaPromo) => (
     <div className="flex justify-end gap-2">
       <button
         type="button"
-        onClick={() => navigate(`/admin/promociones/editar/${p.id}`)}
+        onClick={() =>
+          p.tipo === 'NUEVO'
+            ? navigate('/admin/promociones/nueva', { state: { pestania: 'nuevo' } })
+            : navigate(`/admin/promociones/editar/${p.id}`)
+        }
         aria-label={`Editar ${p.titulo}`}
         title="Editar promoción"
         className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
@@ -154,23 +177,25 @@ export default function Promociones() {
       <button
         type="button"
         onClick={() => cambiarEstado(p)}
-        aria-label={`${p.activo ? 'Deshabilitar' : 'Habilitar'} ${p.titulo}`}
-        title={p.activo ? 'Deshabilitar promoción' : 'Habilitar promoción'}
+        aria-label={p.tipo === 'NUEVO' ? 'Sacar «Nuevo en la carta» de la página' : `${p.activo ? 'Deshabilitar' : 'Habilitar'} ${p.titulo}`}
+        title={p.tipo === 'NUEVO' ? 'Sacar de la página' : p.activo ? 'Deshabilitar promoción' : 'Habilitar promoción'}
         className={`${botonIcono} ${
           p.activo ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
         }`}
       >
         {p.activo ? <Ban size={18} /> : <CheckCircle size={18} />}
       </button>
-      <button
-        type="button"
-        onClick={() => setAEliminar(p)}
-        aria-label={`Eliminar ${p.titulo}`}
-        title="Eliminar promoción"
-        className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
-      >
-        <Trash2 size={18} />
-      </button>
+      {p.tipo !== 'NUEVO' && (
+        <button
+          type="button"
+          onClick={() => setAEliminar(p)}
+          aria-label={`Eliminar ${p.titulo}`}
+          title="Eliminar promoción"
+          className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
+        >
+          <Trash2 size={18} />
+        </button>
+      )}
     </div>
   )
 
@@ -206,19 +231,30 @@ export default function Promociones() {
             { valor: 'todos', etiqueta: 'Todos los tipos' },
             { valor: 'SEMANA', etiqueta: NOMBRE_TIPO.SEMANA },
             { valor: 'REGALO', etiqueta: NOMBRE_TIPO.REGALO },
+            { valor: 'NUEVO', etiqueta: 'Nuevo en la carta' },
             { valor: 'DIA', etiqueta: NOMBRE_TIPO.DIA },
           ]}
         />
-        <SelectFiltro
-          valor={filtroEstado}
-          onChange={conReinicio(setFiltroEstado)}
-          etiqueta="Filtrar por estado"
-          opciones={[
-            { valor: 'todos', etiqueta: 'Todas' },
-            { valor: 'activas', etiqueta: 'Activas' },
-            { valor: 'deshabilitadas', etiqueta: 'Deshabilitadas' },
-          ]}
-        />
+        <div className="flex gap-2" role="group" aria-label="Filtrar por estado">
+          {[
+            { valor: 'activas', etiqueta: 'Habilitadas', cantidad: promociones.filter((p) => p.activo).length },
+            { valor: 'deshabilitadas', etiqueta: 'Deshabilitadas', cantidad: promociones.filter((p) => !p.activo).length },
+          ].map((b) => {
+            const elegido = filtroEstado === b.valor
+            return (
+              <button
+                key={b.valor}
+                type="button"
+                aria-pressed={elegido}
+                onClick={() => conReinicio(setFiltroEstado)(elegido ? 'todos' : b.valor)}
+                className={`flex-1 rounded border px-3 py-2 text-sm font-semibold transition-colors md:flex-none ${
+                  elegido ? 'border-orange-400 bg-orange-100 text-orange-800' : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}>
+                {b.etiqueta} ({b.cantidad})
+              </button>
+            )
+          })}
+        </div>
       </BarraFiltros>
 
       {error && <p className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -240,7 +276,7 @@ export default function Promociones() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold">{p.titulo}</p>
-                    <p className="text-sm text-gray-600">{NOMBRE_TIPO[p.tipo]} · {cuando(p)}</p>
+                    <p className="text-sm text-gray-600">{NOMBRE_FILA[p.tipo]} · {cuando(p)}</p>
                   </div>
                   <span className="shrink-0 rounded-full bg-yellow-300 px-3 py-1 text-sm font-extrabold">{p.destacado}</span>
                 </div>
@@ -275,7 +311,7 @@ export default function Promociones() {
                         <span className="font-medium">{p.titulo}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm sm:px-6">{NOMBRE_TIPO[p.tipo]}</td>
+                    <td className="px-4 py-4 text-sm sm:px-6">{NOMBRE_FILA[p.tipo]}</td>
                     <td className="px-4 py-4 text-sm sm:px-6">{cuando(p)}</td>
                     <td className="max-w-xs px-4 py-4 text-sm text-gray-700 sm:px-6">{resumen(p)}</td>
                     <td className="px-4 py-4 sm:px-6"><Estado promo={p} /></td>

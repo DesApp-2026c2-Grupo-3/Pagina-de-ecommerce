@@ -5,6 +5,8 @@ import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useAnclajeDebajo } from '../../hooks/useAnclajeDebajo'
 import { CONSULTA_CELULAR } from '../../config/pantallas'
 import BandejaNotificaciones from './BandejaNotificaciones'
+import CartaTeExtranamos from './CartaTeExtranamos'
+import type { DatosCartaTeExtranamos } from '../../types/notificacion.types'
 
 interface Props {
   className?: string
@@ -18,6 +20,8 @@ function CampanaNotificaciones({ className = '' }: Props) {
   const botonRef = useRef<HTMLButtonElement>(null)
   const idPanel = useId()
   const { anclaje, medir } = useAnclajeDebajo(botonRef, abierto && !esCelular)
+  // La carta "Te extrañamos" que se está leyendo (null = cerrada)
+  const [carta, setCarta] = useState<DatosCartaTeExtranamos | null>(null)
 
   function abrirPanel() {
     medir()
@@ -36,10 +40,10 @@ function CampanaNotificaciones({ className = '' }: Props) {
         aria-expanded={abierto}
         aria-controls={idPanel}
         aria-haspopup="dialog"
-        className={`relative grid h-11 w-11 place-items-center rounded-2xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-mustard focus-visible:ring-offset-2 focus-visible:ring-offset-brand-dark ${
+        className={`relative grid h-11 w-11 place-items-center rounded-2xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-mustard focus-visible:ring-offset-2 focus-visible:ring-offset-brand-dark ${
           abierto
-            ? 'border-brand-cream bg-brand-cream text-brand-dark'
-            : 'border-white/15 bg-white/5 text-white hover:bg-white/10'
+            ? 'bg-brand-cream text-brand-dark'
+            : 'bg-white/5 text-white hover:bg-white/10'
         }`}
       >
         <Bell className="h-6 w-6" />
@@ -59,7 +63,10 @@ function CampanaNotificaciones({ className = '' }: Props) {
         esCelular={esCelular}
         anclaje={anclaje}
         onCerrar={cerrarPanel}
+        onAbrirCarta={(notificacion) => setCarta(notificacion.datos)}
       />
+
+      <CartaTeExtranamos carta={carta} onCerrar={() => setCarta(null)} />
     </div>
   )
 }
