@@ -47,57 +47,61 @@ export default function ProductoCard({ producto: p, categoria, onVerDetalles, on
         {formatearPrecio(p.precio)}
       </p>
 
-      <div className="col-start-1 col-end-4 row-start-2 justify-self-start @xl:col-end-5 @5xl:col-start-4 @5xl:col-end-5 @5xl:row-start-1 @5xl:row-end-3">
-        <EstadoBadge
-          texto={p.disponible ? 'Habilitado' : 'Inhabilitado'}
-          clases={p.disponible ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}
-        />
-      </div>
+      {/* Móvil: etiqueta a la izquierda e íconos a la derecha; si no entran juntos (320 px), los íconos bajan
+          a su propia línea (plan de Productos v4, D-P6). Desde @xl, cada uno vuelve a su columna */}
+      <div className="col-start-1 col-end-4 row-start-2 flex flex-wrap items-center gap-2 @xl:contents">
+        <div className="@xl:col-start-1 @xl:col-end-5 @xl:row-start-2 @xl:justify-self-start @5xl:col-start-4 @5xl:col-end-5 @5xl:row-start-1 @5xl:row-end-3">
+          <EstadoBadge
+            texto={p.disponible ? 'Habilitado' : 'Inhabilitado'}
+            clases={p.disponible ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}
+          />
+        </div>
 
-      {/* Los íconos de siempre, con sus nombres accesibles */}
-      <div className="col-start-1 col-end-4 row-start-2 flex gap-2 justify-self-end @xl:col-start-4 @xl:col-end-5 @xl:row-start-1 @5xl:col-start-5 @5xl:col-end-6 @5xl:row-end-3">
-        <button
-          type="button"
-          onClick={() => onVerDetalles(p)}
-          aria-label={`Ver detalles de ${p.nombre}`}
-          title="Ver detalles"
-          className={`${icono} border-emerald-300 bg-emerald-50 text-green-800 hover:bg-emerald-100`}
-        >
-          <Eye size={18} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onVerStock(p)}
-          aria-label={`Ver stock de ${p.nombre}`}
-          title="Ver stock"
-          className={`${icono} border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100`}
-        >
-          <Boxes size={18} aria-hidden="true" />
-        </button>
-        {/* Inhabilitar / habilitar: se puede deshacer con el mismo botón */}
-        <button
-          type="button"
-          onClick={() => onAlternarDisponibilidad(p)}
-          aria-label={`${p.disponible ? 'Inhabilitar' : 'Habilitar'} ${p.nombre}`}
-          title={p.disponible ? 'Inhabilitar' : 'Habilitar'}
-          className={`${icono} ${
-            p.disponible
-              ? 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200'
-              : 'border-emerald-300 bg-emerald-50 text-green-800 hover:bg-emerald-100'
-          }`}
-        >
-          {p.disponible ? <Ban size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}
-        </button>
-        {/* Eliminar: baja lógica (RN-16), con confirmación */}
-        <button
-          type="button"
-          onClick={() => onEliminar(p)}
-          aria-label={`Eliminar ${p.nombre}`}
-          title="Eliminar"
-          className={`${icono} border-red-300 bg-red-50 text-red-700 hover:bg-red-100`}
-        >
-          <Trash2 size={18} aria-hidden="true" />
-        </button>
+        {/* Los íconos de siempre, con sus nombres accesibles */}
+        <div className="ml-auto flex gap-2 @xl:ml-0 @xl:justify-self-end @xl:col-start-4 @xl:col-end-5 @xl:row-start-1 @5xl:col-start-5 @5xl:col-end-6 @5xl:row-end-3">
+          <button
+            type="button"
+            onClick={() => onVerDetalles(p)}
+            aria-label={`Ver detalles de ${p.nombre}`}
+            title="Ver detalles"
+            className={`${icono} border-emerald-300 bg-emerald-50 text-green-800 hover:bg-emerald-100`}
+          >
+            <Eye size={18} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onVerStock(p)}
+            aria-label={`Ver stock de ${p.nombre}`}
+            title="Ver stock"
+            className={`${icono} border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100`}
+          >
+            <Boxes size={18} aria-hidden="true" />
+          </button>
+          {/* Inhabilitar / habilitar: se puede deshacer con el mismo botón */}
+          <button
+            type="button"
+            onClick={() => onAlternarDisponibilidad(p)}
+            aria-label={`${p.disponible ? 'Inhabilitar' : 'Habilitar'} ${p.nombre}`}
+            title={p.disponible ? 'Inhabilitar' : 'Habilitar'}
+            className={`${icono} ${
+              p.disponible
+                ? 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'border-emerald-300 bg-emerald-50 text-green-800 hover:bg-emerald-100'
+            }`}
+          >
+            {p.disponible ? <Ban size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}
+          </button>
+          {/* Eliminar: baja lógica (RN-16), con confirmación */}
+          <button
+            type="button"
+            onClick={() => onEliminar(p)}
+            aria-label={`Eliminar ${p.nombre}`}
+            title="Eliminar"
+            className={`${icono} border-red-300 bg-red-50 text-red-700 hover:bg-red-100`}
+          >
+            <Trash2 size={18} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </li>
   )
