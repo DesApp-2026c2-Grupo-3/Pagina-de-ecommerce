@@ -55,6 +55,10 @@ describe('filtrarCategorias', () => {
   it('busca por nombre sin distinguir mayúsculas y sin espacios de más', () => {
     expect(filtrarCategorias(ordenadas, { busqueda: '  CLÁS ', estado: 'habilitadas' }).map((c) => c.id)).toEqual([3])
   })
+  it('ignora las tildes en los dos sentidos (PR #78)', () => {
+    expect(filtrarCategorias(ordenadas, { busqueda: 'clasicas', estado: 'habilitadas' }).map((c) => c.id)).toEqual([3])
+    expect(filtrarCategorias(ordenadas, { busqueda: 'HUERFANA', estado: 'habilitadas' }).map((c) => c.id)).toEqual([7])
+  })
 })
 
 describe('contarPorEstado', () => {

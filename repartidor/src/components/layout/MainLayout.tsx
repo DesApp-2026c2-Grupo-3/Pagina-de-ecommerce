@@ -1,6 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
-
 import { useAuth } from '../../context/AuthContext'
 import { useNotificaciones } from '../../context/notificaciones/NotificacionContext'
 import { useEstadoConexion } from '../../hooks/useEstadoConexion'
@@ -32,7 +31,19 @@ export default function MainLayout() {
   // Pedidos para tomar (v1.7): contador en la pestaña Pedidos y toast agrupado, sin campana
   const pedidosParaTomar = usePedidosParaTomar()
   useAvisoPedidosNuevos({ puedeTomar: pedidosParaTomar !== null, repartidorId: repartidor?.id ?? null })
-
+  // Alto real del encabezado (cambia si aparece la franja de conexión): lo usan las barras
+  // que se quedan pegadas justo debajo, como la del viaje en el celular
+  const refEncabezado = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const encabezado = refEncabezado.current
+    if (!encabezado) return
+    const medir = () =>
+      document.documentElement.style.setProperty('--alto-encabezado', `${encabezado.offsetHeight}px`)
+    medir()
+    const observador = new ResizeObserver(medir)
+    observador.observe(encabezado)
+    return () => observador.disconnect()
+  }, [])
   // Sin cookie no hay nada que cerrar en el servidor: el cierre es local
   const manejarSalir = () => {
     cerrarSesion()
@@ -41,8 +52,8 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-orange-50/60">
-      <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-md">
-        <EncabezadoApp
+      <header ref={refEncabezado} className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-md">        
+      <EncabezadoApp
           repartidor={repartidor}
           conexion={estado}
           noLeidas={noLeidas}

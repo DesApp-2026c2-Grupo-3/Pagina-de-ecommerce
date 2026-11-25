@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react'
 import { Search } from 'lucide-react'
-import { NOMBRE_TIPO } from '../../config/promociones'
+import { NOMBRE_FILA } from '../../config/promociones'
 import { formatearContador } from '../../utils/listas/formatoContador'
 import type { FiltroEstadoPromo, FiltroTipoPromo } from '../../utils/promociones/filtrarPromociones'
 import MenuFiltro, { type OpcionMenu } from '../listas/MenuFiltro'
@@ -18,9 +18,10 @@ interface Props {
 
 const TIPOS: { valor: FiltroTipoPromo; texto: string }[] = [
   { valor: 'todos', texto: 'Todos los tipos' },
-  { valor: 'SEMANA', texto: NOMBRE_TIPO.SEMANA },
-  { valor: 'REGALO', texto: NOMBRE_TIPO.REGALO },
-  { valor: 'DIA', texto: NOMBRE_TIPO.DIA },
+  { valor: 'SEMANA', texto: NOMBRE_FILA.SEMANA },
+  { valor: 'REGALO', texto: NOMBRE_FILA.REGALO },
+  { valor: 'NUEVO', texto: NOMBRE_FILA.NUEVO },
+  { valor: 'DIA', texto: NOMBRE_FILA.DIA },
 ]
 
 // D-PR2: la primera opción dice solo «Todos»

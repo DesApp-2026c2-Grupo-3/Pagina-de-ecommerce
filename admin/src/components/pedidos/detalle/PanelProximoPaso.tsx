@@ -1,6 +1,8 @@
 import { Info } from 'lucide-react'
 import type { RefObject } from 'react'
 import type { ProximoPaso } from '../../../utils/pedidos/proximoPaso'
+import ConfirmarCancelacion from './ConfirmarCancelacion'
+import { boton, primario, secundario } from './estilosPanel'
 
 export type Confirmacion = 'avance' | 'cancelar' | null
 
@@ -15,17 +17,15 @@ interface Props {
   guardando: boolean
   refConfirmar: RefObject<HTMLButtonElement | null>
   onPedir: (confirmacion: Exclude<Confirmacion, null>) => void
-  onConfirmar: () => void
+  // Al cancelar llega el motivo; al avanzar, nada
+  onConfirmar: (motivo?: string) => void
   onVolver: () => void
 }
-
-const boton = 'min-h-11 w-full rounded-lg px-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60'
-const primario = `${boton} bg-action text-white hover:bg-action-hover`
-const secundario = `${boton} border border-gray-300 bg-white text-gray-700 hover:bg-gray-50`
 
 // «Próximo paso» del bloque de seguimiento (plan responsivo, 4.4.1):
 // primero lo que hay que hacer, con un solo botón con el nombre de la etapa siguiente
 // y «Cancelar pedido» justo debajo. Cada acción se confirma en el mismo lugar, sin modal.
+// La cancelación pide el motivo (ConfirmarCancelacion, PR #78).
 export default function PanelProximoPaso({
   pedidoId,
   avance,
@@ -51,7 +51,7 @@ export default function PanelProximoPaso({
           ¿Pasar el pedido a «{avance.destino}»?
         </p>
         <p id="confirmar-avance-texto" className="text-sm text-orange-950">{avance.efecto}</p>
-        <button ref={refConfirmar} type="button" onClick={onConfirmar} disabled={guardando} className={primario}>
+        <button ref={refConfirmar} type="button" onClick={() => onConfirmar()} disabled={guardando} className={primario}>
           {guardando ? 'Guardando...' : `Sí, pasar a «${avance.destino}»`}
         </button>
         <button type="button" onClick={onVolver} disabled={guardando} className={secundario}>
@@ -63,31 +63,14 @@ export default function PanelProximoPaso({
 
   if (confirmacion === 'cancelar' && puedeCancelar) {
     return (
-      <div
-        role="alertdialog"
-        aria-labelledby="confirmar-cancelacion-titulo"
-        aria-describedby="confirmar-cancelacion-texto"
-        className="flex flex-col gap-2.5 rounded-xl border border-red-300 bg-red-50 p-4"
-      >
-        <p id="confirmar-cancelacion-titulo" className="font-extrabold text-red-800">
-          ¿Cancelar el pedido #{pedidoId}?
-        </p>
-        <p id="confirmar-cancelacion-texto" className="text-sm text-red-900">
-          {textoCancelacion} No se puede deshacer.
-        </p>
-        <button
-          ref={refConfirmar}
-          type="button"
-          onClick={onConfirmar}
-          disabled={guardando}
-          className={`${boton} bg-red-700 text-white hover:bg-red-800`}
-        >
-          {guardando ? 'Cancelando...' : 'Sí, cancelar pedido'}
-        </button>
-        <button type="button" onClick={onVolver} disabled={guardando} className={secundario}>
-          Volver
-        </button>
-      </div>
+      <ConfirmarCancelacion
+        pedidoId={pedidoId}
+        textoCancelacion={textoCancelacion}
+        guardando={guardando}
+        refInicial={refConfirmar}
+        onConfirmar={onConfirmar}
+        onVolver={onVolver}
+      />
     )
   }
 

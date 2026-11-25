@@ -20,13 +20,15 @@ interface Props {
   // Escritorio: posición debajo de la campana (plan, DC-1)
   anclaje: Anclaje | null
   onCerrar: () => void
+  // Los avisos que son una carta (no llevan a otra pantalla): se abren en una ventana
+  onAbrirCarta: (notificacion: Extract<NotificacionCliente, { tipo: 'cliente.te_extranamos' }>) => void
 }
 
 const CLASE_ALERTA =
   'rounded-xl border-2 border-brand-dark bg-brand-red px-3 py-2 text-sm font-semibold text-white'
 
 // La bandeja: <dialog> modal con encabezado, errores y lista
-function BandejaNotificaciones({ id, abierto, esCelular, anclaje, onCerrar }: Props) {
+function BandejaNotificaciones({ id, abierto, esCelular, anclaje, onCerrar, onAbrirCarta }: Props) {  
   const estado = useNotificaciones()
   const acciones = useAccionesNotificaciones()
   const navigate = useNavigate()
@@ -60,7 +62,8 @@ function BandejaNotificaciones({ id, abierto, esCelular, anclaje, onCerrar }: Pr
 
     const destino = fabricaNotificacionesCliente.obtenerDestino(notificacion)
     onCerrar()
-    if (destino) navigate(destino)
+    if (notificacion.tipo === 'cliente.te_extranamos') onAbrirCarta(notificacion)
+    else if (destino) navigate(destino)  
   }
 
   const { noLeidas, errorCarga, errorAccion } = estado

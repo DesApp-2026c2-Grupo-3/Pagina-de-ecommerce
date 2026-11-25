@@ -8,6 +8,7 @@ import {
   esFiltroTipoPromo,
   filtrarPromociones,
 } from '../../utils/promociones/filtrarPromociones'
+import { filaNuevoEnLaCarta } from '../../utils/promociones/nuevoEnLaCarta'
 import { cuando, porcentaje, resumen } from '../../utils/promociones/textosPromocion'
 
 function item(nombre: string | null, cantidad: number, descuento: number): ItemPromoAdmin {
@@ -65,8 +66,8 @@ describe('filtro y orden de la lista', () => {
 
 describe('contadores de los menús', () => {
   it('por tipo, sobre el estado elegido', () => {
-    expect(contarPorTipo(lista, { busqueda: '', estado: 'todos' })).toEqual({ todos: 5, SEMANA: 1, REGALO: 1, DIA: 3 })
-    expect(contarPorTipo(lista, { busqueda: '', estado: 'activas' })).toEqual({ todos: 4, SEMANA: 1, REGALO: 0, DIA: 3 })
+    expect(contarPorTipo(lista, { busqueda: '', estado: 'todos' })).toEqual({ todos: 5, SEMANA: 1, REGALO: 1, NUEVO: 0, DIA: 3 })
+    expect(contarPorTipo(lista, { busqueda: '', estado: 'activas' })).toEqual({ todos: 4, SEMANA: 1, REGALO: 0, NUEVO: 0, DIA: 3 })
   })
   it('por estado, sobre el tipo y la búsqueda elegidos', () => {
     expect(contarPorEstadoPromo(lista, { busqueda: '', tipo: 'REGALO' })).toEqual({ todos: 1, activas: 0, deshabilitadas: 1 })
@@ -78,5 +79,43 @@ describe('contadores de los menús', () => {
     expect(esFiltroEstadoPromo('activas')).toBe(true)
     expect(esFiltroEstadoPromo('todas')).toBe(false)
     expect(POR_PAGINA_PROMOCIONES).toBe(10)
+  })
+})
+
+describe('«Nuevo en la carta» (PR #78)', () => {
+  const productos = [{ id: 9, nombre: 'Doble Cheddar', precio: '5200' }]
+  const nuevo = filaNuevoEnLaCarta(9, productos)!
+  it('arma la fila con el producto elegido, activa y sin descuento', () => {
+    expect(nuevo).toMatchObject({ id: -1, tipo: 'NUEVO', titulo: 'Doble Cheddar', destacado: 'Nuevo', activo: true })
+    expect(resumen(nuevo)).toBe('Doble Cheddar (sin descuento)')
+    expect(cuando(nuevo)).toBe('Toda la semana')
+  })
+  it('no hay fila sin producto elegido o si el producto ya no está', () => {
+    expect(filaNuevoEnLaCarta(null, productos)).toBe(null)
+    expect(filaNuevoEnLaCarta(3, productos)).toBe(null)
+  })
+  it('va entre el regalo y las promos del día, y se cuenta en su tipo y en «Activas»', () => {
+    const conNuevo = [...lista, nuevo]
+    expect(filtrarPromociones(conNuevo, { busqueda: '', tipo: 'todos', estado: 'todos' }).map((p) => p.id)).toEqual([2, 3, -1, 6, 4, 5])
+    expect(contarPorTipo(conNuevo, { busqueda: '', estado: 'todos' }).NUEVO).toBe(1)
+    expect(contarPorEstadoPromo(conNuevo, { busqueda: '', tipo: 'NUEVO' })).toEqual({ todos: 1, activas: 1, deshabilitadas: 0 })
+    expect(esFiltroTipoPromo('NUEVO')).toBe(true)
+  })
+})
+
+describe('«Nuevo en la carta»: lo que ve el cliente según su producto', () => {
+  const categorias = [{ id: 1, activo: true }, { id: 2, activo: false }]
+  it('producto deshabilitado: se ve en la tienda, pero no se puede comprar', () => {
+    const fila = filaNuevoEnLaCarta(9, [{ id: 9, nombre: 'X', precio: 1, disponible: false, categoriaId: 1 }], categorias)!
+    expect(fila.aviso).toBe('producto-deshabilitado')
+    expect(fila.completa).toBe(true)
+  })
+  it('categoría deshabilitada: el bloque no se muestra (gana sobre el producto deshabilitado)', () => {
+    const fila = filaNuevoEnLaCarta(9, [{ id: 9, nombre: 'X', precio: 1, disponible: false, categoriaId: 2 }], categorias)!
+    expect(fila.aviso).toBe('categoria-deshabilitada')
+    expect(fila.completa).toBe(false)
+  })
+  it('todo habilitado: sin aviso', () => {
+    expect(filaNuevoEnLaCarta(9, [{ id: 9, nombre: 'X', precio: 1, disponible: true, categoriaId: 1 }], categorias)!.aviso).toBe(undefined)
   })
 })

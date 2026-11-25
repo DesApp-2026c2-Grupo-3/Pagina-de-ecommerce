@@ -16,3 +16,15 @@ export const DURACION_RESALTADO_MS = 4000
 
 // Acción rápida de la tarjeta: tiempo para el segundo clic que confirma
 export const DURACION_CONFIRMACION_RAPIDA_MS = 4000
+
+// Motivo de cancelación (PR #78): el backend lo exige de 3 a 200 caracteres y le llega al cliente.
+// Son los mismos textos de la semilla de motivos: así el reporte «¿Por qué se cancelan?» los agrupa.
+export const MOTIVOS_CANCELACION_FRECUENTES = [
+  'Nos quedamos sin stock de un producto del pedido',
+  'Demora en la cocina por alta demanda',
+  'No podemos entregar en tu dirección en este momento',
+  'No conseguimos un repartidor disponible',
+  'El local tuvo que cerrar antes de lo previsto',
+] as const
+export const MOTIVO_CANCELACION_MIN = 3
+export const MOTIVO_CANCELACION_MAX = 200

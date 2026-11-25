@@ -13,6 +13,7 @@ import {
   obtenerClientesInactivos,
   obtenerClientesMasPedidos,
   obtenerClientesNuevos,
+  notificarClientesInactivos,
 } from "../../services/reporteService";
 import { useSucursalesReporte } from "../../hooks/useSucursalesReporte";
 import { useAuth } from "../../context/AuthContext";
@@ -279,6 +280,20 @@ export default function ReportesClientes() {
     await Promise.all([masPedidos.cargar(), nuevos.cargar(), inactivos.cargar()]);
   };
 
+  // Manda la carta "Te extrañamos" y arma el texto del resultado para el buzón
+  const enviarCartas = async (usuarioIds: number[]) => {
+    const { enviados, yaAvisados } = await notificarClientesInactivos(usuarioIds);
+    const partes = [];
+    if (enviados > 0) partes.push(enviados === 1 ? "Listo: le llegó la carta." : `Listo: se enviaron ${enviados} cartas.`);
+    if (yaAvisados > 0)
+      partes.push(
+        yaAvisados === 1
+          ? "Ya había recibido una esta semana, así que no se la repetimos."
+          : `${yaAvisados} ya habían recibido una esta semana, así que no se las repetimos.`,
+      );
+    return partes.join(" ") || "No había clientes para avisar.";
+  };
+
   return (
     <section className="space-y-5">
       {/* Título + filtro de sucursal + Actualizar, en una sola línea */}
@@ -437,8 +452,8 @@ export default function ReportesClientes() {
             textoVacio={`¡Bien! No hay clientes que lleven más de ${dias} días sin pedir.`}
             onReintentar={() => void inactivos.cargar()}
           >
-            <BuzonInactivos key={dias} clientes={inactivos.datos} dias={dias} />
-          </TarjetaClientes>
+            <BuzonInactivos key={dias} clientes={inactivos.datos} dias={dias} onNotificar={enviarCartas} />          
+            </TarjetaClientes>
         )}
       </div>
     </section>

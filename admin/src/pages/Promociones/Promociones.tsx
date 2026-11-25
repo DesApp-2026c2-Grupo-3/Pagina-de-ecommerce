@@ -10,7 +10,7 @@ import { POR_PAGINA_PROMOCIONES } from '../../config/promociones'
 import { useFiltrosPromociones } from '../../hooks/promociones/useFiltrosPromociones'
 import { usePromociones } from '../../hooks/promociones/usePromociones'
 import { useIrAlInicioLista } from '../../hooks/useIrAlInicioLista'
-import type { PromocionAdmin } from '../../types/promocion.types'
+import type { FilaPromocion } from '../../types/promocion.types'
 import { paginar } from '../../utils/listas/paginar'
 import { contarPorEstadoPromo, contarPorTipo, filtrarPromociones } from '../../utils/promociones/filtrarPromociones'
 
@@ -21,7 +21,7 @@ export default function Promociones() {
   const datos = usePromociones()
   const filtros = useFiltrosPromociones()
   const { refTitulo, irAlInicio } = useIrAlInicioLista()
-  const [aEliminar, setAEliminar] = useState<PromocionAdmin | null>(null)
+  const [aEliminar, setAEliminar] = useState<FilaPromocion | null>(null)
 
   const filtradas = filtrarPromociones(datos.promociones, filtros)
   const { pagina, totalPaginas, items } = paginar(filtradas, filtros.pagina, POR_PAGINA_PROMOCIONES)
@@ -83,7 +83,12 @@ export default function Promociones() {
             <PromocionCard
               key={p.id}
               promo={p}
-              onEditar={(x) => navigate(`/admin/promociones/editar/${x.id}`)}
+              onEditar={(x) =>
+                // «Nuevo en la carta» se edita en su pestaña del alta (PR #78)
+                x.tipo === 'NUEVO'
+                  ? navigate('/admin/promociones/nueva', { state: { pestania: 'nuevo' } })
+                  : navigate(`/admin/promociones/editar/${x.id}`)
+              }
               onCambiarEstado={(x) => void datos.cambiarEstado(x)}
               onEliminar={setAEliminar}
             />

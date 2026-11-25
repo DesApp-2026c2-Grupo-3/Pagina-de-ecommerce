@@ -13,9 +13,12 @@ router.get('/pedidos-por-dia', esAdminJwt, reporteController.obtenerPedidosPorDi
 router.get('/pedidos-por-sucursal', esAdminJwt, reporteController.obtenerPedidosPorSucursal);
 router.get('/cancelaciones-por-dia', esAdminJwt, reporteController.obtenerCancelacionesPorDia);
 router.get('/tiempo-promedio-entrega', esAdminJwt, reporteController.obtenerTiempoPromedioEntrega);
+router.get('/motivos-cancelacion', esAdminJwt, reporteController.obtenerMotivosCancelacion);
+router.get('/demoras', esAdminJwt, reporteController.obtenerDemorasPedidos);
 router.get('/clientes-mas-pedidos', esAdminJwt, reporteController.obtenerClientesMasPedidos);
 router.get('/clientes-nuevos', esAdminJwt, reporteController.obtenerClientesNuevos);
 router.get('/clientes-inactivos', esAdminJwt, reporteController.obtenerClientesInactivos);
+router.post('/clientes-inactivos/notificar', esAdminJwt, reporteController.notificarClientesInactivos);
 router.get('/ventas-por-sucursal', esAdminJwt, reporteController.obtenerVentasPorSucursal);
 router.get('/productos-por-sucursal', esAdminJwt, reporteController.obtenerProductosPorSucursal);
 router.get('/pedidos-atendidos-por-sucursal', esAdminJwt, reporteController.obtenerPedidosAtendidosPorSucursal);

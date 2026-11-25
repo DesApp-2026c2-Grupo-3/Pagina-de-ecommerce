@@ -58,7 +58,7 @@ export default function NuevaCategoria() {
       <form onSubmit={guardarCategoria} className="max-w-md">
         <div className="mb-4">
           <label className="block mb-2 font-medium">
-            Nombre
+            Nombre de la categoria
           </label>
 
           <input

@@ -1,21 +1,21 @@
 const { Pedido, DetallePedido,Producto,Categoria,Admin,Sucursal,StockSucursal,    
     RecetaInsumo,ProductoTamanio,ComboGrupo,Insumo,sequelize,historialDeTiemposPedido,Usuario,Promocion
 } = require('../../models');
+const { fabrica } = require('../../notifications');
 
 const { Op } = require('sequelize');
 
 /* =========================================================
-   PERÍODO DE LOS BOTONES "7 días · 30 días · 12 meses · Histórico"
-   Llega como ?ultimos=7, 30 o 365 (sin "ultimos": todo el historial).
-   Devuelve { fecha } con la condición lista para el where
-   (null = sin filtro), o { error } si el valor no es válido.
+   PERÍODO DE LOS BOTONES "7 días · 30 días · 12 meses"
+   Llega como ?ultimos=7, 30 o 365. Sin "ultimos" se toman los últimos 30 días:
+   nunca se recorre todo el historial (con una base grande sería muy costoso).
+   Devuelve { fecha } con la condición lista para el where, o { error } si el valor no es válido.
    ========================================================= */
 const DIAS_DEL_PERIODO = [7, 30, 365];
+const DIAS_POR_DEFECTO = 30;
 
 const obtenerPeriodo = (query) => {
-    if (query.ultimos === undefined) return { fecha: null };
-
-    const dias = Number(query.ultimos);
+    const dias = query.ultimos === undefined ? DIAS_POR_DEFECTO : Number(query.ultimos);
     if (!DIAS_DEL_PERIODO.includes(dias)) {
         return { error: 'El período no es válido' };
     }
@@ -53,7 +53,7 @@ const obtenerProductosMasVendidos = async (req, res) => {
             wherePedido.sucursalId = sucursalId;
         }
 
-        // Período de los botones (sin "ultimos": todo el historial)
+        // Período de los botones (sin "ultimos": los últimos 30 días)
         const periodo = obtenerPeriodo(req.query);
         if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
         if (periodo.fecha) wherePedido.fecha = periodo.fecha;
@@ -134,7 +134,7 @@ const obtenerProductosMenosVendidos = async (req, res) => {
             wherePedido.sucursalId = sucursalId;
         }
 
-        // Período de los botones (sin "ultimos": todo el historial)
+        // Período de los botones (sin "ultimos": los últimos 30 días)
         const periodo = obtenerPeriodo(req.query);
         if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
         if (periodo.fecha) wherePedido.fecha = periodo.fecha;
@@ -235,7 +235,7 @@ const obtenerProductosMayorFacturacion = async (req, res) => {
             wherePedido.sucursalId = sucursalId;
         }
 
-        // Período de los botones (sin "ultimos": todo el historial)
+        // Período de los botones (sin "ultimos": los últimos 30 días)
         const periodo = obtenerPeriodo(req.query);
         if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
         if (periodo.fecha) wherePedido.fecha = periodo.fecha;
@@ -786,7 +786,7 @@ const obtenerPedidosPorSucursal = async (req, res) => {
             wherePedido.sucursalId = admin.sucursalId;
         }
 
-        // Período de los botones (sin "ultimos": todo el historial)
+        // Período de los botones (sin "ultimos": los últimos 30 días)
         const periodo = obtenerPeriodo(req.query);
         if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
         if (periodo.fecha) wherePedido.fecha = periodo.fecha;
@@ -1156,7 +1156,7 @@ const obtenerClientesMasPedidos = async (req, res) => {
             return res.status(400).json({ mensaje: filtro.error });
         }
 
-        // Período de los botones (sin "ultimos": todo el historial)
+        // Período de los botones (sin "ultimos": los últimos 30 días)
         const periodo = obtenerPeriodo(req.query);
         if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
 
@@ -1423,7 +1423,7 @@ const obtenerProductosPorSucursal = async (req, res) => {
         const wherePedido = { estado: { [Op.iLike]: 'entregado' } };
         if (admin.sucursalId !== null) wherePedido.sucursalId = admin.sucursalId;
 
-        // Período de los botones (sin "ultimos": todo el historial)
+        // Período de los botones (sin "ultimos": los últimos 30 días)
         const periodo = obtenerPeriodo(req.query);
         if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
         if (periodo.fecha) wherePedido.fecha = periodo.fecha;
@@ -1647,7 +1647,7 @@ const obtenerPromocionesMasUtilizadas = async (req, res) => {
             return res.status(400).json({ mensaje: filtro.error });
         }
 
-        // Período de los botones (sin "ultimos": todo el historial)
+        // Período de los botones (sin "ultimos": los últimos 30 días)
         const periodo = obtenerPeriodo(req.query);
         if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
 
@@ -1796,10 +1796,281 @@ const obtenerImpactoPromociones = async (req, res) => {
     }
 };
 
+/* =========================================================
+   FILTRO DE SUCURSAL (los reportes nuevos)
+   El admin de sucursal solo ve la suya; el master, la que elija (o todas).
+   Devuelve { sucursalId } (null = todas) o { error }.
+   ========================================================= */
+const sucursalDelReporte = (admin, query) => {
+    if (admin.sucursalId !== null) return { sucursalId: admin.sucursalId };
+    if (query.sucursalId === undefined) return { sucursalId: null };
+
+    const sucursalId = Number(query.sucursalId);
+    if (!Number.isInteger(sucursalId) || sucursalId <= 0) return { error: 'La sucursal no es válida' };
+    return { sucursalId };
+};
+
+/* =========================================================
+   MOTIVOS DE CANCELACIÓN
+   GET /admin/reportes/motivos-cancelacion?ultimos=7|30|365&sucursalId=
+   Ranking de por qué se cancelan los pedidos (el motivo lo escribe el admin al cancelar).
+   Los motivos iguales se juntan sin importar mayúsculas ni espacios.
+   Devuelve [{ motivo, cantidad }] de mayor a menor.
+   ========================================================= */
+const obtenerMotivosCancelacion = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+        if (!admin) return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
+
+        const filtro = sucursalDelReporte(admin, req.query);
+        if (filtro.error) return res.status(400).json({ mensaje: filtro.error });
+        const periodo = obtenerPeriodo(req.query);
+        if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
+
+        const motivoNormalizado = sequelize.fn('LOWER', sequelize.fn('TRIM', sequelize.col('motivoCancelacion')));
+        const filas = await Pedido.findAll({
+            attributes: [
+                [sequelize.fn('MIN', sequelize.col('motivoCancelacion')), 'motivo'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'cantidad'],
+            ],
+            where: {
+                estado: { [Op.iLike]: 'cancelado' },
+                motivoCancelacion: { [Op.ne]: null },
+                fecha: periodo.fecha,
+                ...(filtro.sucursalId ? { sucursalId: filtro.sucursalId } : {}),
+            },
+            group: [motivoNormalizado],
+            order: [[sequelize.literal('cantidad'), 'DESC']],
+            raw: true,
+        });
+
+        return res.json(filas.map((f) => ({ motivo: String(f.motivo).trim(), cantidad: Number(f.cantidad) })));
+    } catch (error) {
+        console.error('Error al obtener los motivos de cancelación:', error);
+        return res.status(500).json({ mensaje: 'Error al obtener los motivos de cancelación' });
+    }
+};
+
+/* =========================================================
+   DÓNDE SE GENERAN LOS ATRASOS
+   GET /admin/reportes/demoras?ultimos=7|30|365&sucursalId=
+   1) Cuánto tarda en promedio cada etapa del pedido (con el historial de estados)
+      y cuál se pasa más de su tiempo esperado: ese es el cuello de botella.
+   2) Los pedidos en curso que ahora mismo llevan demasiado en su etapa.
+   ========================================================= */
+// Etapas del pedido, en orden, con el tiempo que se espera que duren (minutos).
+// Un pedido está demorado si pasa 1,5 veces lo esperado en su etapa.
+const ETAPAS_PEDIDO = [
+    { estado: 'pendiente', nombre: 'Esperando confirmación', esperado: 5 },
+    { estado: 'en proceso', nombre: 'En la cocina', esperado: 15 },
+    { estado: 'listo para retirar', nombre: 'Esperando repartidor', esperado: 10 },
+    { estado: 'en camino', nombre: 'En viaje', esperado: 20 },
+];
+const MARGEN_DEMORA = 1.5;
+// Una etapa es el cuello de botella si se pasa al menos un 10 % de lo esperado
+const TOLERANCIA_CUELLO = 1.1;
+const etapaDe = (estado) => ETAPAS_PEDIDO.find((e) => e.estado === String(estado ?? '').trim().toLowerCase());
+
+const obtenerDemorasPedidos = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+        if (!admin) return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
+
+        const filtro = sucursalDelReporte(admin, req.query);
+        if (filtro.error) return res.status(400).json({ mensaje: filtro.error });
+        const periodo = obtenerPeriodo(req.query);
+        if (periodo.error) return res.status(400).json({ mensaje: periodo.error });
+        const whereSucursal = filtro.sucursalId ? { sucursalId: filtro.sucursalId } : {};
+
+        // 1) Duración de cada etapa: lo que pasó entre un cambio de estado y el siguiente
+        const pasos = await historialDeTiemposPedido.findAll({
+            attributes: ['pedidoId', 'estadoAnterior', 'fecha'],
+            include: [{ model: Pedido, attributes: ['fecha', 'sucursalId'], required: true, where: { ...whereSucursal, fecha: periodo.fecha } }],
+            order: [['pedidoId', 'ASC'], ['fecha', 'ASC']],
+        });
+
+        const nuevoAcumulado = () => new Map(ETAPAS_PEDIDO.map((e) => [e.estado, { total: 0, cantidad: 0 }]));
+        const acumulado = nuevoAcumulado();
+        // Lo mismo, separado por sucursal (para encontrar las más lentas)
+        const porSucursal = new Map();
+        let pedidoActual = null;
+        let desde = null;
+        for (const paso of pasos) {
+            if (paso.pedidoId !== pedidoActual) {
+                pedidoActual = paso.pedidoId;
+                desde = new Date(paso.Pedido.fecha);
+            }
+            const etapa = etapaDe(paso.estadoAnterior);
+            const hasta = new Date(paso.fecha);
+            const minutos = (hasta - desde) / 60000;
+            // Se descartan los registros raros (negativos o de más de un día)
+            if (etapa && minutos >= 0 && minutos < 1440) {
+                const a = acumulado.get(etapa.estado);
+                a.total += minutos;
+                a.cantidad += 1;
+                if (!porSucursal.has(paso.Pedido.sucursalId)) porSucursal.set(paso.Pedido.sucursalId, nuevoAcumulado());
+                const b = porSucursal.get(paso.Pedido.sucursalId).get(etapa.estado);
+                b.total += minutos;
+                b.cantidad += 1;
+            }
+            desde = hasta;
+        }
+
+        const resumirEtapas = (acum) => ETAPAS_PEDIDO.map((e) => {
+            const a = acum.get(e.estado);
+            const promedio = a.cantidad > 0 ? Math.round((a.total / a.cantidad) * 10) / 10 : null;
+            return {
+                estado: e.estado,
+                nombre: e.nombre,
+                esperadoMinutos: e.esperado,
+                promedioMinutos: promedio,
+                pedidos: a.cantidad,
+                // 1 = justo lo esperado; 1,3 = se pasa un 30 %
+                relacion: promedio === null ? null : Math.round((promedio / e.esperado) * 100) / 100,
+            };
+        });
+        // La etapa que más se pasa de lo esperado
+        const peorEtapa = (lista) => lista
+            .filter((e) => e.relacion !== null)
+            .reduce((max, e) => (max === null || e.relacion > max.relacion ? e : max), null);
+
+        const etapas = resumirEtapas(acumulado);
+        // El cuello de botella: solo si la peor etapa se pasa de verdad (10 % o más)
+        const peor = peorEtapa(etapas);
+        const cuelloDeBotella = peor && peor.relacion >= TOLERANCIA_CUELLO ? peor.estado : null;
+
+        // Con todas las sucursales: cuáles son las más lentas y en qué etapa se atrasan
+        let sucursalesLentas = [];
+        if (!filtro.sucursalId && porSucursal.size > 0) {
+            const nombres = new Map(
+                (await Sucursal.findAll({ attributes: ['id', 'nombre'], where: { id: [...porSucursal.keys()] } }))
+                    .map((suc) => [suc.id, suc.nombre]),
+            );
+            sucursalesLentas = [...porSucursal.entries()]
+                .map(([sucursalId, acum]) => ({ sucursalId, nombre: nombres.get(sucursalId) ?? null, peorEtapa: peorEtapa(resumirEtapas(acum)) }))
+                .filter((suc) => suc.peorEtapa && suc.peorEtapa.relacion >= TOLERANCIA_CUELLO)
+                .sort((a, b) => b.peorEtapa.relacion - a.peorEtapa.relacion)
+                .slice(0, 5);
+        }
+
+        // 2) Demorados ahora: pedidos en curso que llevan demasiado en su etapa actual
+        const enCurso = await Pedido.findAll({
+            attributes: ['id', 'estado', 'fecha', 'sucursalId'],
+            where: {
+                ...whereSucursal,
+                estado: { [Op.iLike]: { [Op.any]: ETAPAS_PEDIDO.map((e) => e.estado) } },
+            },
+            include: [
+                { model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos', attributes: ['fecha'] },
+                { model: Sucursal, attributes: ['nombre'] },
+                { model: Usuario, attributes: ['nombre', 'apellido'] },
+            ],
+        });
+
+        const ahora = Date.now();
+        const demorados = enCurso
+            .map((p) => {
+                const etapa = etapaDe(p.estado);
+                const fechas = (p.historialDeTiemposPedidos ?? []).map((h) => new Date(h.fecha).getTime());
+                const entro = fechas.length > 0 ? Math.max(...fechas) : new Date(p.fecha).getTime();
+                const minutos = Math.round((ahora - entro) / 60000);
+                const limite = Math.round(etapa.esperado * MARGEN_DEMORA);
+                return {
+                    pedidoId: p.id,
+                    sucursalId: p.sucursalId,
+                    sucursalNombre: p.Sucursal?.nombre ?? null,
+                    cliente: p.Usuario ? `${p.Usuario.nombre} ${p.Usuario.apellido ?? ''}`.trim() : null,
+                    estado: p.estado,
+                    etapa: etapa.nombre,
+                    minutos,
+                    limiteMinutos: limite,
+                };
+            })
+            .filter((d) => d.minutos > d.limiteMinutos)
+            .sort((a, b) => b.minutos - b.limiteMinutos - (a.minutos - a.limiteMinutos))
+            .slice(0, 20);
+
+        return res.json({ etapas, cuelloDeBotella, sucursalesLentas, demorados });
+    } catch (error) {
+        console.error('Error al obtener las demoras de los pedidos:', error);
+        return res.status(500).json({ mensaje: 'Error al obtener las demoras de los pedidos' });
+    }
+};
+
+/* =========================================================
+   CARTA "TE EXTRAÑAMOS" A LOS CLIENTES INACTIVOS
+   POST /admin/reportes/clientes-inactivos/notificar   { usuarioIds: [1, 2, ...] }
+   Le manda a cada cliente una notificación con su nombre y su producto favorito.
+   - El admin de sucursal solo puede avisarles a clientes que pidieron en su sucursal.
+   - El nombre y el favorito se calculan acá (no se confía en lo que manda el panel).
+   - A quien ya recibió la carta en los últimos 7 días no se le vuelve a mandar.
+   Devuelve { enviados, yaAvisados, noEncontrados }.
+   ========================================================= */
+const TIPO_TE_EXTRANAMOS = 'cliente.te_extranamos';
+const DIAS_ENTRE_CARTAS = 7;
+const MAXIMO_CARTAS = 100;
+
+const notificarClientesInactivos = async (req, res) => {
+    try {
+        const admin = await Admin.findByPk(req.usuario.id);
+        if (!admin) return res.status(401).json({ mensaje: 'Iniciá sesión de nuevo' });
+
+        const pedidos = Array.isArray(req.body?.usuarioIds) ? req.body.usuarioIds : null;
+        const ids = [...new Set((pedidos ?? []).map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+        if (!pedidos || ids.length === 0) {
+            return res.status(400).json({ mensaje: 'Elegí al menos un cliente para avisarle' });
+        }
+        if (ids.length > MAXIMO_CARTAS) {
+            return res.status(400).json({ mensaje: `Se puede avisar a hasta ${MAXIMO_CARTAS} clientes por vez` });
+        }
+
+        // Los clientes que el admin puede ver (el de sucursal, solo los que pidieron en la suya)
+        const filtro = obtenerSucursalDelFiltro(admin, {});
+        const clientes = agruparPorCliente(await buscarPedidosEntregados(filtro.sucursalId, null))
+            .filter((cliente) => ids.includes(cliente.usuario.id));
+
+        // Los que ya recibieron la carta hace poco
+        const [recientes] = await sequelize.query(
+            // Estas dos tablas usan nombres con guion bajo (destinatario_id, ocurrido_en...)
+            `SELECT DISTINCT d.destinatario_id AS id
+             FROM notificacion_destinatarios d
+             JOIN notificaciones n ON n.id = d.notificacion_id
+             WHERE n.tipo = :tipo AND d.destinatario_tipo = 'cliente'
+               AND d.destinatario_id IN (:ids)
+               AND n.ocurrido_en > NOW() - make_interval(days => :dias)`,
+            { replacements: { tipo: TIPO_TE_EXTRANAMOS, ids, dias: DIAS_ENTRE_CARTAS } },
+        );
+        const yaAvisados = new Set(recientes.map((fila) => Number(fila.id)));
+
+        const aAvisar = clientes.filter((cliente) => !yaAvisados.has(cliente.usuario.id));
+        const favoritos = await buscarProductosFavoritos(aAvisar);
+
+        let enviados = 0;
+        for (const cliente of aAvisar) {
+            const publicada = await fabrica.publicarPorTipo(TIPO_TE_EXTRANAMOS, {
+                usuarioId: cliente.usuario.id,
+                nombre: cliente.usuario.nombre,
+                productoFavorito: favoritos.get(cliente.usuario.id) ?? null,
+            });
+            if (publicada) enviados += 1;
+        }
+
+        return res.json({
+            enviados,
+            yaAvisados: clientes.length - aAvisar.length,
+            noEncontrados: ids.length - clientes.length,
+        });
+    } catch (error) {
+        console.error('Error al avisar a los clientes inactivos:', error);
+        return res.status(500).json({ mensaje: 'No se pudieron enviar los avisos' });
+    }
+};
+
 module.exports = {
     obtenerProductosMasVendidos, obtenerProductosMenosVendidos, obtenerProductosMayorFacturacion, obtenerProductosSinStock,
     obtenerPedidosPorEstado, obtenerPedidosPorDia, obtenerPedidosPorSucursal, obtenerCancelacionesPorDia, obtenerTiempoPromedioEntrega,
     obtenerClientesMasPedidos, obtenerClientesNuevos, obtenerClientesInactivos,
     obtenerVentasPorSucursal, obtenerProductosPorSucursal, obtenerPedidosAtendidosPorSucursal,
-    obtenerPromocionesMasUtilizadas, obtenerImpactoPromociones
+    obtenerPromocionesMasUtilizadas, obtenerImpactoPromociones,
+    obtenerMotivosCancelacion, obtenerDemorasPedidos, notificarClientesInactivos
 };

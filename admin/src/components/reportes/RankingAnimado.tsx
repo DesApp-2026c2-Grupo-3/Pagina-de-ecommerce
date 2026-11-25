@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PackageX } from "lucide-react";
 
 import { Corona, IconoComida, type TipoIcono } from "./efectos/IconosComida";
@@ -32,6 +32,8 @@ type Props = {
   limite?: number;
   seleccionadoId?: number | string;                // fila marcada como elegida
   onSeleccionar?: (id: number | string) => void;   // al tocar una fila
+  // Cambia cada vez que se toca la pestaña: hace llover hamburguesas sobre el ranking
+  lluviaAlTocarPestania?: number;
 };
 
 const MAXIMO_ICONOS = 10;
@@ -70,8 +72,20 @@ export default function RankingAnimado({
   limite = 5,
   seleccionadoId,
   onSeleccionar,
+  lluviaAlTocarPestania = 0,
 }: Props) {
   const { celebracion, celebrar } = useCelebracion();
+  const primero = filas[0]?.nombre;
+
+  // Al tocar la pestaña (o al llegar los datos después de tocarla) llueven hamburguesas.
+  // Una sola vez por toque: cambiar el período no la repite.
+  const ultimaLluvia = useRef(0);
+  useEffect(() => {
+    if (lluviaAlTocarPestania > ultimaLluvia.current && primero) {
+      ultimaLluvia.current = lluviaAlTocarPestania;
+      celebrar("hamburguesa", `¡${primero} es el más vendido!`);
+    }
+  }, [lluviaAlTocarPestania, primero, celebrar]);
   const [montaniaVisible, setMontaniaVisible] = useState(false);
 
   const visibles = filas.slice(0, limite);

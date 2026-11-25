@@ -324,7 +324,8 @@ export default function ReportesProductos() {
 
   // Pestaña del submenú que se está viendo
   const [pestania, setPestania] = useState<PestaniaProductos>("mas");
-
+  // Cuenta los toques en "Más vendidos": cada toque hace llover hamburguesas
+  const [lluviaMasVendidos, setLluviaMasVendidos] = useState(0);
   // Período de los rankings (últimos 30 días al entrar)
   const [periodo, setPeriodo] = useState<PeriodoReporte>(30);
   // Producto que se muestra en el ticket (null = el 1.º del ranking)
@@ -598,7 +599,10 @@ export default function ReportesProductos() {
               id={`pestania-${id}`}
               aria-selected={activa}
               aria-controls="panel-productos"
-              onClick={() => setPestania(id)}
+              onClick={() => {
+                setPestania(id);
+                if (id === "mas") setLluviaMasVendidos((n) => n + 1);
+              }}              
               className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-semibold transition sm:gap-2 sm:px-4 sm:text-sm ${
                 activa
                   ? "bg-white text-orange-700 shadow-[0_2px_6px_rgba(17,24,39,0.15)] ring-1 ring-orange-300"
@@ -653,6 +657,7 @@ export default function ReportesProductos() {
                       etiquetaPrimero="MÁS VENDIDO"
                       seleccionadoId={filaTicket?.id}
                       onSeleccionar={setProductoTicketId}
+                      lluviaAlTocarPestania={lluviaMasVendidos}  
                     />
                   </div>
 

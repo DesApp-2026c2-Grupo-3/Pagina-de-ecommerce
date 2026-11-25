@@ -31,3 +31,11 @@ export interface PromocionAdmin {
   completa: boolean
   items: ItemPromoAdmin[]
 }
+
+// «Nuevo en la carta» no es una promo (es un producto elegido aparte, sin descuento),
+// pero se lista con ellas para poder encontrarlo, editarlo o sacarlo de la página
+export type TipoFilaPromo = TipoPromo | 'NUEVO'
+// Por qué «Nuevo en la carta» no se ve bien en la tienda:
+// categoría deshabilitada → el bloque no aparece; producto deshabilitado → aparece, pero no se puede comprar
+export type AvisoNuevo = 'categoria-deshabilitada' | 'producto-deshabilitado'
+export type FilaPromocion = Omit<PromocionAdmin, 'tipo'> & { tipo: TipoFilaPromo; aviso?: AvisoNuevo }

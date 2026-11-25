@@ -15,6 +15,15 @@ const email = Joi.string().trim().lowercase().email().required().messages({
     'any.required': 'El email es obligatorio'
 })
 
+// Para iniciar sesión no se exige un dominio real (.com, .ar...): así entran también las
+// cuentas de prueba de la historia de ventas (cliente001@historia.burgerfast, contraseña demo1234).
+// Registrarse sigue pidiendo un dominio real.
+const emailLogin = Joi.string().trim().lowercase().email({ tlds: { allow: false } }).required().messages({
+    'string.empty': 'El email es obligatorio',
+    'string.email': 'El email no tiene un formato válido',
+    'any.required': 'El email es obligatorio'
+})
+
 const mensajesPassword = {
     'string.empty': 'La contraseña es obligatoria',
     'string.min': 'La contraseña debe tener al menos 6 caracteres',
@@ -31,7 +40,7 @@ const userSchema = Joi.object({
 })
 
 const loginSchema = Joi.object({
-    email,
+    email: emailLogin,    
     password: Joi.string().min(6).max(20).required().messages(mensajesPassword)
 })
 

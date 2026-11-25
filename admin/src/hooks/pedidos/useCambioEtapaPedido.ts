@@ -11,9 +11,10 @@ export function useCambioEtapaPedido() {
   const [errores, setErrores] = useState<Record<number, string>>({})
   const enCurso = useRef(new Set<number>())
 
-  // Devuelve el estado nuevo (normalizado) o null si el backend lo rechazó
+  // Devuelve el estado nuevo (normalizado) o null si el backend lo rechazó.
+  // Cancelar lleva el motivo que exige el backend (PR #78); la lista nunca cancela
   const cambiarEtapa = useCallback(
-    async (pedidoId: number, etapa: Etapa): Promise<string | null> => {
+    async (pedidoId: number, etapa: Etapa, motivo?: string): Promise<string | null> => {
       // Doble clic o doble envío: un solo PATCH por pedido a la vez
       if (enCurso.current.has(pedidoId)) return null
       enCurso.current.add(pedidoId)
@@ -21,7 +22,7 @@ export function useCambioEtapaPedido() {
       setErrores((prev) => ({ ...prev, [pedidoId]: '' }))
 
       try {
-        const respuesta = await actualizarEstadoPedido(pedidoId, etapa)
+        const respuesta = await actualizarEstadoPedido(pedidoId, etapa, motivo)
         return normalizarEtapa(respuesta?.estado ?? etapa)
       } catch (error) {
         setErrores((prev) => ({

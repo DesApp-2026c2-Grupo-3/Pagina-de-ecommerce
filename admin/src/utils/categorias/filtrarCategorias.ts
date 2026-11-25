@@ -1,4 +1,5 @@
 import type { CategoriaAdmin } from '../../types/categoria.types'
+import { normalizarTexto } from '../listas/normalizarTexto'
 
 // Sin «Todas»: siempre se ve una de las dos listas (plan de Categorías, D-C5: arranca en Habilitadas)
 export type FiltroEstadoCategoria = 'habilitadas' | 'deshabilitadas'
@@ -12,8 +13,9 @@ export interface FiltrosCategorias {
   estado: FiltroEstadoCategoria
 }
 
+// Ignora tildes y mayúsculas: «cafe» encuentra «Café» (PR #78)
 function coincideBusqueda(c: CategoriaAdmin, busqueda: string): boolean {
-  return c.nombre.toLowerCase().includes(busqueda.trim().toLowerCase())
+  return normalizarTexto(c.nombre).includes(normalizarTexto(busqueda))
 }
 
 // Recibe la lista ya en orden jerárquico y conserva ese orden

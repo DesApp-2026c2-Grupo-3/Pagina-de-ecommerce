@@ -44,9 +44,26 @@ const pedidoAdminSchema = Joi.object({
     estado
 });
 
+// Motivo de la cancelación: obligatorio al cancelar (le llega al cliente en la notificación).
+// En los otros estados no se usa y se descarta.
+const motivo = Joi.when('estado', {
+    is: 'Cancelado',
+    then: Joi.string().trim().min(3).max(200).required().messages({
+        'string.base': 'El motivo de la cancelación debe ser un texto',
+        'string.empty': 'Escribí el motivo de la cancelación: le llega al cliente',
+        'string.min': 'El motivo de la cancelación es muy corto (mínimo 3 caracteres)',
+        'string.max': 'El motivo de la cancelación no puede superar los 200 caracteres',
+        'any.required': 'Escribí el motivo de la cancelación: le llega al cliente'
+    }),
+    otherwise: Joi.any().strip()
+});
+
 // Esquema específico: solo el cambio de estado (PATCH /editar/estado/:id)
 const pedidoEstadoAdminSchema = Joi.object({
-    estado
+    estado,
+    motivo
+}).messages({
+    'object.unknown': 'El cambio de estado solo acepta el estado y el motivo de la cancelación'
 });
 
 module.exports = { pedidoAdminSchema, pedidoEstadoAdminSchema };

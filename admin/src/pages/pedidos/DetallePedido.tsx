@@ -57,12 +57,12 @@ export default function DetallePedido() {
   }, [cargado, pedidoId])
 
   const onCambiarEtapa = useCallback(
-    async (etapa: Etapa) => {
+    async (etapa: Etapa, motivo?: string) => {
       if (pedidoId === null) return false
-      const nuevo = await cambiarEtapa(pedidoId, etapa)
+      const nuevo = await cambiarEtapa(pedidoId, etapa, motivo)
       // Con éxito o con error (409: el repartidor lo retiró), se muestra lo que dice el servidor
       await recargar()
-      if (nuevo) mostrarToast('Estado del pedido actualizado')
+      if (nuevo) mostrarToast(motivo ? 'Pedido cancelado. Le avisamos al cliente el motivo' : 'Estado del pedido actualizado')
       return nuevo !== null
     },
     [cambiarEtapa, mostrarToast, pedidoId, recargar],

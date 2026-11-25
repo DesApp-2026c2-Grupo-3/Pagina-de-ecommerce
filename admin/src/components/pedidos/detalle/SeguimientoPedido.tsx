@@ -15,8 +15,8 @@ interface Props {
   pedido: PedidoCompleto
   guardando: boolean
   error: string
-  // Devuelve true si el backend aceptó el cambio
-  onCambiarEtapa: (etapa: Etapa) => Promise<boolean>
+  // Devuelve true si el backend aceptó el cambio. Cancelar lleva el motivo (PR #78)
+  onCambiarEtapa: (etapa: Etapa, motivo?: string) => Promise<boolean>
 }
 
 // Bloque de seguimiento del detalle (plan responsivo, 4.4.1):
@@ -50,14 +50,14 @@ export default function SeguimientoPedido({ pedido, guardando, error, onCambiarE
   const enViaje = Boolean(pedido.viajeId)
   const puedeCancelar = puedeCancelarDesdePanel(estado, pedido.retiradoEn)
 
-  async function confirmar() {
+  async function confirmar(motivo?: string) {
     const destino: Etapa | null =
       confirmacion === 'cancelar' ? 'Cancelado' : (avance?.destino ?? null)
     if (!destino) return
     // El nuevo estado llega con la recarga del detalle (durante el await):
     // se marca como esperado antes, para no anunciarlo como un cambio ajeno
     setEsperado(normalizarEstado(destino))
-    const ok = await onCambiarEtapa(destino)
+    const ok = await onCambiarEtapa(destino, destino === 'Cancelado' ? motivo : undefined)
     setEsperado(null)
     if (!ok) return
     setConfirmacion(null)
@@ -97,7 +97,7 @@ export default function SeguimientoPedido({ pedido, guardando, error, onCambiarE
               setMensaje('')
               setConfirmacion(tipo)
             }}
-            onConfirmar={() => void confirmar()}
+            onConfirmar={(motivo) => void confirmar(motivo)}
             onVolver={() => setConfirmacion(null)}
           />
         </div>
