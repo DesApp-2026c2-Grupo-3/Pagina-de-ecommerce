@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react'
 import { Search } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { SucursalOpcion } from '../../types/pedido.types'
 import FiltroSegmentado from './FiltroSegmentado'
 import SelectorSucursal from './SelectorSucursal'
@@ -11,6 +12,8 @@ interface Props<T extends string> {
   onSucursal: (id: number) => void
   // Opción «Todas las sucursales» en el selector (solo Repartidores)
   sucursalTodas?: { etiqueta: string; onElegir: () => void }
+  // Filtro que va siempre a la vista, en el lugar del selector de sucursal (Productos: categorías)
+  filtroExtra?: ReactNode
   busqueda: string
   onBusqueda: (valor: string) => void
   placeholder: string
@@ -33,6 +36,7 @@ export default function BarraFiltrosLista<T extends string>({
   sucursalId,
   onSucursal,
   sucursalTodas,
+  filtroExtra,
   busqueda,
   onBusqueda,
   placeholder,
@@ -61,7 +65,7 @@ export default function BarraFiltrosLista<T extends string>({
         </div>
 
         {/* Sin selector de sucursal, en escritorio este bloque queda vacío: se oculta para que no deje un hueco */}
-        <div className={`flex gap-3 @[60rem]:order-1 ${sucursales ? '' : '@[60rem]:hidden'}`}>
+        <div className={`flex gap-3 @[60rem]:order-1 ${sucursales || filtroExtra ? '' : '@[60rem]:hidden'}`}>
           {sucursales && (
             <SelectorSucursal
               sucursales={sucursales}
@@ -71,6 +75,7 @@ export default function BarraFiltrosLista<T extends string>({
               className="min-w-0 flex-1 @xl:w-48 @xl:flex-none @[60rem]:w-56"
             />
           )}
+          {filtroExtra}
           <FiltroSegmentado {...filtro} variante="desplegable" className="min-w-0 flex-1 @xl:w-56 @xl:flex-none @[60rem]:hidden" />
         </div>
       </div>

@@ -8,6 +8,7 @@ import { SucursalMasterProvider } from '../context/sucursalMaster/SucursalMaster
 import Productos from '../pages/Productos/Productos'
 import NuevoProducto from '../pages/Productos/NuevoProducto'
 import EditarProducto from '../pages/Productos/EditarProducto'
+import StockProducto from '../pages/Productos/StockProducto'
 import Promociones from '../pages/Promociones/Promociones'
 import NuevaPromocion from '../pages/Promociones/NuevaPromocion'
 import EditarPromocion from '../pages/Promociones/EditarPromocion'
@@ -75,6 +76,8 @@ export default function AppRoutes() {
           <Route path="/admin/productos" element={<Productos />} />
           <Route path="/admin/productos/nuevo" element={<NuevoProducto />} />
           <Route path="/admin/productos/editar/:id" element={<EditarProducto />} />
+          {/* «Ver stock» en página propia (plan de Productos, D-P3) */}
+          <Route path="/admin/productos/:productoId/stock" element={<StockProducto />} />
 
           <Route path="/admin/promociones" element={<Promociones />} />
           <Route path="/admin/promociones/nueva" element={<NuevaPromocion />} />

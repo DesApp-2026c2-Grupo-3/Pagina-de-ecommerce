@@ -66,12 +66,13 @@ export default function MenuFiltro({ id, etiqueta, opciones, valor, onChange, cl
       </button>
 
       {menu.abierto && (
+        // overscroll-contain: al llegar al final de la lista, el scroll no pasa a la página de fondo
         <ul
           ref={menu.refPanel}
           id={idLista}
           role="listbox"
           aria-labelledby={idEtiqueta}
-          className={`absolute z-40 max-h-[min(60vh,22rem)] w-[max(100%,16rem)] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white p-1 shadow-lg ${
+          className={`absolute z-40 max-h-[min(60vh,22rem)] w-[max(100%,16rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-lg border border-gray-200 bg-white p-1 shadow-lg ${
             haciaArriba ? 'bottom-full mb-1' : 'top-full mt-1'
           } ${alineadoIzquierda ? 'left-0' : 'right-0'}`}
         >
