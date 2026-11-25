@@ -1,5 +1,6 @@
-import type { ChangeEvent } from 'react'
 import { formatearContador } from '../../utils/listas/formatoContador'
+import MenuFiltro from './MenuFiltro'
+
 interface Opcion<T extends string> {
   valor: T
   etiqueta: string
@@ -19,7 +20,7 @@ interface Props<T extends string> {
   className?: string
 }
 
-// Filtro de una sola opción compartido por Pedidos y Viajes. La pantalla dibuja las dos
+// Filtro de una sola opción compartido por Pedidos, Viajes, Stock y Repartidores. La pantalla dibuja las dos
 // variantes y el CSS (container query de 60 rem) muestra una sola: la oculta queda con
 // display:none, así el lector de pantalla no la anuncia dos veces. Nunca hay scroll horizontal.
 export default function FiltroSegmentado<T extends string>({
@@ -33,27 +34,26 @@ export default function FiltroSegmentado<T extends string>({
   className = '',
 }: Props<T>) {
   if (variante === 'desplegable') {
+    // Tablet, móvil y laptops angostas: menú propio en lugar del <select> nativo (plan de filtros v2)
     return (
-      <div className={className}>
-        <label htmlFor={`${id}-select`} className="sr-only">
-          {leyenda}
-        </label>
-        <select
-          id={`${id}-select`}
-          value={valor}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            const elegida = opciones.find((o) => o.valor === e.target.value)
-            if (elegida) onChange(elegida.valor)
-          }}
-          className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3"
-        >
-          {opciones.map((opcion) => (
-            <option key={opcion.valor} value={opcion.valor}>
-              {opcion.etiqueta} ({formatearContador(contadores[opcion.valor] ?? 0)})
-            </option>
-          ))}
-        </select>
-      </div>
+      <MenuFiltro
+        id={`${id}-menu`}
+        etiqueta={leyenda}
+        opciones={opciones.map((opcion) => {
+          const cantidad = contadores[opcion.valor] ?? 0
+          return {
+            valor: opcion.valor,
+            texto: opcion.etiqueta,
+            contador: { visible: formatearContador(cantidad), real: cantidad },
+          }
+        })}
+        valor={valor}
+        onChange={(elegido) => {
+          const opcion = opciones.find((o) => o.valor === elegido)
+          if (opcion) onChange(opcion.valor)
+        }}
+        className={className}
+      />
     )
   }
 

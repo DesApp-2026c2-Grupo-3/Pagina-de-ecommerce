@@ -1,35 +1,38 @@
-import type { ChangeEvent } from 'react'
 import type { SucursalOpcion } from '../../types/pedido.types'
+import MenuFiltro from './MenuFiltro'
 
-// Selector de sucursal: solo lo ve el MASTER (RN-35)
+// Selector de sucursal: solo lo ve el MASTER (RN-35). Usa el menú propio (plan de filtros v2, D-F2),
+// igual que el filtro de estado, para que nunca se salga de la pantalla.
 export default function SelectorSucursal({
   sucursales,
   sucursalId,
   onChange,
+  todas,
   className = '',
 }: {
   sucursales: SucursalOpcion[]
   sucursalId: number | null
   onChange: (id: number) => void
+  // Opción «Todas las sucursales» (Repartidores). Pedidos y Viajes no la usan.
+  todas?: { etiqueta: string; onElegir: () => void }
   className?: string
 }) {
+  const opciones = [
+    ...(todas ? [{ valor: '', texto: todas.etiqueta }] : []),
+    ...sucursales.map((s) => ({ valor: String(s.id), texto: s.activa ? s.nombre : `${s.nombre} (inactiva)` })),
+  ]
+
   return (
-    <div className={className}>
-      <label htmlFor="filtro-sucursal" className="sr-only">
-        Elegir sucursal
-      </label>
-      <select
-        id="filtro-sucursal"
-        value={sucursalId !== null ? String(sucursalId) : ''}
-        onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(Number(e.target.value))}
-        className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3"
-      >
-        {sucursales.map((s) => (
-          <option key={s.id} value={String(s.id)}>
-            {s.activa ? s.nombre : `${s.nombre} (inactiva)`}
-          </option>
-        ))}
-      </select>
-    </div>
+    <MenuFiltro
+      id="filtro-sucursal"
+      etiqueta="Elegir sucursal"
+      opciones={opciones}
+      valor={sucursalId !== null ? String(sucursalId) : ''}
+      onChange={(valor) => {
+        if (valor === '' && todas) todas.onElegir()
+        else onChange(Number(valor))
+      }}
+      className={className}
+    />
   )
 }

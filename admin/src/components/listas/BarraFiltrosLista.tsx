@@ -9,6 +9,8 @@ interface Props<T extends string> {
   sucursales: SucursalOpcion[] | null
   sucursalId: number | null
   onSucursal: (id: number) => void
+  // Opción «Todas las sucursales» en el selector (solo Repartidores)
+  sucursalTodas?: { etiqueta: string; onElegir: () => void }
   busqueda: string
   onBusqueda: (valor: string) => void
   placeholder: string
@@ -30,6 +32,7 @@ export default function BarraFiltrosLista<T extends string>({
   sucursales,
   sucursalId,
   onSucursal,
+  sucursalTodas,
   busqueda,
   onBusqueda,
   placeholder,
@@ -64,6 +67,7 @@ export default function BarraFiltrosLista<T extends string>({
               sucursales={sucursales}
               sucursalId={sucursalId}
               onChange={onSucursal}
+              todas={sucursalTodas}
               className="min-w-0 flex-1 @xl:w-48 @xl:flex-none @[60rem]:w-56"
             />
           )}

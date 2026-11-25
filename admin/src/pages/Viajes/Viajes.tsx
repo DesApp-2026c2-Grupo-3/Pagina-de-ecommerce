@@ -49,7 +49,7 @@ export default function Viajes() {
   const error = errorSucursales || datos.errorCarga
 
   return (
-    <main className="@container w-full max-w-full overflow-hidden p-4 @3xl:p-8">
+    <main className="@container w-full max-w-full overflow-x-clip p-4 @3xl:p-8">
       <div className="mb-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Gestión de viajes</p>
         <h1 className="text-2xl font-bold @3xl:text-3xl">Viajes</h1>

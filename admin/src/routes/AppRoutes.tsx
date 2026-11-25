@@ -106,7 +106,9 @@ export default function AppRoutes() {
           <Route path="/admin/viajes" element={<Viajes />} />
           {/* El viaje se busca en la lista de su sucursal: si es de otra, «no encontrado» (RF-83) */}
           <Route path="/admin/viajes/:viajeId" element={<DetalleViaje />} />
-          <Route path="/admin/repartidores/editar/:id" element={<EditarRepartidor />}/>
+          {/* :repartidorId (no :id): SoloSuSucursal lee :id como sucursal y mandaba al admin a Reportes.
+              El backend responde 403 si el repartidor es de otra sucursal (RN-35). */}
+          <Route path="/admin/repartidores/editar/:repartidorId" element={<EditarRepartidor />}/>
           <Route path="/admin/repartidores/nuevo" element={<NuevoRepartidor />} />
           
         </Route>
