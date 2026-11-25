@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react'
+import { formatearContador } from '../../utils/listas/formatoContador'
 interface Opcion<T extends string> {
   valor: T
   etiqueta: string
@@ -48,7 +49,7 @@ export default function FiltroSegmentado<T extends string>({
         >
           {opciones.map((opcion) => (
             <option key={opcion.valor} value={opcion.valor}>
-              {opcion.etiqueta} ({contadores[opcion.valor] ?? 0})
+              {opcion.etiqueta} ({formatearContador(contadores[opcion.valor] ?? 0)})
             </option>
           ))}
         </select>
@@ -65,7 +66,7 @@ export default function FiltroSegmentado<T extends string>({
           return (
             <label
               key={opcion.valor}
-              className={`relative inline-flex min-h-10 shrink-0 cursor-pointer items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-action has-[:focus-visible]:ring-offset-2 ${
+              className={`relative inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-action has-[:focus-visible]:ring-offset-2 ${
                 activa
                   ? 'border-action bg-action text-white'
                   : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -79,7 +80,11 @@ export default function FiltroSegmentado<T extends string>({
                 onChange={() => onChange(opcion.valor)}
                 className="sr-only"
               />
-              {opcion.etiqueta} ({contadores[opcion.valor] ?? 0})
+              {/* gap-1 separa etiqueta y contador (en flex se pierde el espacio).
+                  Se ve «99+»; el lector de pantalla escucha el número real */}
+              {opcion.etiqueta}
+              <span aria-hidden="true">({formatearContador(contadores[opcion.valor] ?? 0)})</span>
+              <span className="sr-only">({contadores[opcion.valor] ?? 0})</span>
             </label>
           )
         })}

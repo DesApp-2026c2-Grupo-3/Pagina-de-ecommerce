@@ -116,7 +116,7 @@ export default function Categorias() {
   <main className="p-8">    
   <div className="mb-6 flex items-start justify-between gap-4">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+        <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">
           Organización del catálogo
         </p>
         <h1 className="text-3xl font-bold">
@@ -132,14 +132,15 @@ export default function Categorias() {
       <button 
       type="button"
       onClick={() => navigate('/admin/categorias/nueva')}
-      title="Nueva categoria"
+      title="Nueva categoría"
+      aria-label="Nueva categoría"
       className="bg-action text-white px-4 py-4 rounded-full border 
       shadow-[0_0_10px_rgba(249,115,22,0.6)]
       hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]
       transition-all
       border-orange-400 
       hover:bg-action-hover w-fit ml-auto">
-        <Plus size={22} />
+        <Plus size={22} aria-hidden="true" />
       </button>
     </div>
 
@@ -216,10 +217,12 @@ export default function Categorias() {
 
             <td className="px-4 py-4 sm:px-6">
               <div className="flex justify-end gap-2">
-                <button onClick={() => navigate(`/admin/categorias/editar/${categoria.id}`)}
+                <button type="button" onClick={() => navigate(`/admin/categorias/editar/${categoria.id}`)}
+                title="Editar categoría"
+                aria-label={`Editar ${categoria.nombre}`}
                 className="bg-emerald-200 text-success hover:text-success-hover p-2 border rounded
                 hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                    <Pencil size={18} />
+                    <Pencil size={18} aria-hidden="true" />
                 </button>
 
                 <button type="button" onClick={() => cambiarEstado(categoria)}
@@ -231,13 +234,15 @@ export default function Categorias() {
                   : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                   }`}>
                 
-                  {categoria.activo ? <Ban size={18} /> : <CheckCircle size={18} />}
+                  {categoria.activo ? <Ban size={18} aria-hidden="true" /> : <CheckCircle size={18} aria-hidden="true" />}
                 </button>
 
-                <button onClick={() => setCategoriaAEliminar(categoria.id)}
+                <button type="button" onClick={() => setCategoriaAEliminar(categoria.id)}
+                title="Eliminar categoría"
+                aria-label={`Eliminar ${categoria.nombre}`}
                 className="bg-red-200 text-danger hover:text-danger-hover p-2 border rounded
                 hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                  <Trash2 size={18} />
+                  <Trash2 size={18} aria-hidden="true" />
                 </button>
               </div>
             </td>

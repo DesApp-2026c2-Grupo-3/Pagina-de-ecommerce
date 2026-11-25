@@ -6,7 +6,7 @@ export default function EnlaceVolver({ to, texto }: { to: string; texto: string 
   return (
     <Link
       to={to}
-      className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-action hover:underline"
+      className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-orange-700 hover:underline"
     >
       <ArrowLeft size={18} aria-hidden="true" /> {texto}
     </Link>

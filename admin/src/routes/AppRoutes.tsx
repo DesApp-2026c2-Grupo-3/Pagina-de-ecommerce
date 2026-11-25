@@ -22,6 +22,7 @@ import Sucursales from '../pages/Sucursales/Sucursales'
 import NuevaSucursal from '../pages/Sucursales/NuevaSucursal'
 import EditarSucursal from '../pages/Sucursales/EditarSucursal'
 import Stock from '../pages/Stock/Stock'
+import ReportarBaja from '../pages/Stock/ReportarBaja'
 import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
 import DetallePedido from '../pages/pedidos/DetallePedido'
@@ -98,6 +99,8 @@ export default function AppRoutes() {
         <Route element={<SoloSuSucursal />}>
           <Route path="/admin/sucursales/editar/:id" element={<EditarSucursal />} />
           <Route path="/admin/sucursales/:id/stock" element={<Stock />} />
+          {/* Página propia, sin modal (plan de Stock, D-S3) */}
+          <Route path="/admin/sucursales/:id/stock/baja" element={<ReportarBaja />} />
 
           <Route path="/admin/repartidores" element={<Repartidores />} />
           <Route path="/admin/viajes" element={<Viajes />} />

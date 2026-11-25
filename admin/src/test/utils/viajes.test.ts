@@ -161,3 +161,13 @@ describe('novedades entre cargas', () => {
     expect(detectarNovedades(viajes, viajes)).toEqual({ nuevos: [], asistencias: [] })
   })
 })
+
+describe('contador de los filtros', () => {
+  test('más de 99 se muestra 99+', async () => {
+    const { formatearContador } = await import('../../utils/listas/formatoContador')
+    expect(formatearContador(0)).toBe('0')
+    expect(formatearContador(99)).toBe('99')
+    expect(formatearContador(100)).toBe('99+')
+    expect(formatearContador(1248)).toBe('99+')
+  })
+})

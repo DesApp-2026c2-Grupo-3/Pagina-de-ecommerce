@@ -57,7 +57,8 @@ export default function BarraFiltrosLista<T extends string>({
           />
         </div>
 
-        <div className="flex gap-3 @[60rem]:order-1">
+        {/* Sin selector de sucursal, en escritorio este bloque queda vacío: se oculta para que no deje un hueco */}
+        <div className={`flex gap-3 @[60rem]:order-1 ${sucursales ? '' : '@[60rem]:hidden'}`}>
           {sucursales && (
             <SelectorSucursal
               sucursales={sucursales}
