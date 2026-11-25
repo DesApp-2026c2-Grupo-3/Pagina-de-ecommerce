@@ -19,8 +19,23 @@ interface Props<T extends string> {
   variante: 'botones' | 'desplegable'
   // Solo para 'botones'. 'fila' (por defecto): en una fila · 'mitades': en un contenedor angosto,
   // cada botón ocupa la mitad del ancho y su texto puede bajar a dos líneas (Categorías: dos opciones)
-  distribucion?: 'fila' | 'mitades'
+  // · 'iguales': todos del mismo ancho y siempre en una línea; 11 rem cada uno desde 48 rem (Insumos)
+  distribucion?: 'fila' | 'mitades' | 'iguales'
   className?: string
+}
+
+const CONTENEDOR = {
+  fila: 'flex flex-nowrap gap-2',
+  mitades: 'grid grid-cols-2 gap-2 @[48rem]:flex @[48rem]:flex-nowrap',
+  iguales: 'grid auto-cols-fr grid-flow-col gap-2 @[48rem]:auto-cols-[11rem]',
+}
+
+const BOTON = {
+  fila: 'min-h-10 shrink-0 whitespace-nowrap px-3.5',
+  mitades:
+    'min-h-11 min-w-0 flex-wrap justify-center px-3.5 text-center leading-tight @[48rem]:min-h-10 @[48rem]:shrink-0 @[48rem]:flex-nowrap @[48rem]:whitespace-nowrap',
+  // Relleno más chico en pantallas angostas, para que el texto entre en una línea a 320 px
+  iguales: 'min-h-11 min-w-0 justify-center whitespace-nowrap px-2 @[24rem]:px-3.5 @[48rem]:min-h-10',
 }
 
 // Filtro de una sola opción compartido por Pedidos, Viajes, Stock, Repartidores, Productos y Categorías. La pantalla dibuja las dos
@@ -61,21 +76,16 @@ export default function FiltroSegmentado<T extends string>({
     )
   }
 
-  const mitades = distribucion === 'mitades'
   return (
     <fieldset className={className}>
       <legend className="sr-only">{leyenda}</legend>
-      <div className={mitades ? 'grid grid-cols-2 gap-2 @[48rem]:flex @[48rem]:flex-nowrap' : 'flex flex-nowrap gap-2'}>
+      <div className={CONTENEDOR[distribucion]}>
         {opciones.map((opcion) => {
           const activa = opcion.valor === valor
           return (
             <label
               key={opcion.valor}
-              className={`relative inline-flex cursor-pointer items-center gap-1 rounded-full border px-3.5 text-sm font-semibold transition-colors ${
-                mitades
-                  ? 'min-h-11 min-w-0 flex-wrap justify-center text-center leading-tight @[48rem]:min-h-10 @[48rem]:shrink-0 @[48rem]:flex-nowrap @[48rem]:whitespace-nowrap'
-                  : 'min-h-10 shrink-0 whitespace-nowrap'
-              } has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-action has-[:focus-visible]:ring-offset-2 ${
+              className={`relative inline-flex cursor-pointer items-center gap-1 rounded-full border text-sm font-semibold transition-colors ${BOTON[distribucion]} has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-action has-[:focus-visible]:ring-offset-2 ${
                 activa
                   ? 'border-action bg-action text-white'
                   : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
