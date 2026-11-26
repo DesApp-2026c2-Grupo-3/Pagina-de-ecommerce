@@ -5,8 +5,6 @@ import {
   esFiltroEstadoInsumo,
   filtrarInsumos,
   mensajeSinInsumos,
-  textoPrecioExtra,
-  textoStockMinimo,
 } from '../../utils/insumos/filtrarInsumos'
 import {
   FORMULARIO_INSUMO_VACIO,
@@ -61,14 +59,6 @@ describe('filtros y textos de la lista', () => {
   it('acepta solo los dos estados', () => {
     expect(esFiltroEstadoInsumo('deshabilitados')).toBe(true)
     expect(esFiltroEstadoInsumo('todos')).toBe(false)
-  })
-  it('precio del extra y stock mínimo', () => {
-    expect(textoPrecioExtra(lista[0])).toBe('$500')
-    expect(textoPrecioExtra(lista[3])).toBe('Sin cargo')
-    expect(textoPrecioExtra(lista[2])).toBe('Sin cargo')
-    expect(textoStockMinimo(lista[0])).toBe('20')
-    expect(textoStockMinimo(lista[2])).toBe('0')
-    expect(textoStockMinimo(lista[1])).toBe('—')
   })
   it('mensaje de lista vacía como hoy', () => {
     expect(mensajeSinInsumos(0, '')).toBe('No hay insumos registrados.')

@@ -31,18 +31,6 @@ export function contarPorEstadoInsumo(lista: Insumo[], busqueda: string): Record
   return conteo
 }
 
-// «$500» o «Sin cargo», como hoy
-export function textoPrecioExtra(insumo: Insumo): string {
-  return insumo.precioComercial != null && Number(insumo.precioComercial) > 0
-    ? `$${Number(insumo.precioComercial).toLocaleString('es-AR')}`
-    : 'Sin cargo'
-}
-
-// Stock mínimo sugerido: «20», o «—» si no tiene (D-I2)
-export function textoStockMinimo(insumo: Insumo): string {
-  return insumo.stockMinimo != null ? String(Number(insumo.stockMinimo)) : '—'
-}
-
 // Mismo criterio que hoy para el mensaje de lista vacía
 export function mensajeSinInsumos(total: number, busqueda: string): string {
   if (total === 0) return 'No hay insumos registrados.'
