@@ -11,34 +11,40 @@ interface Props {
   onAumentar: (item: ItemStock) => void
 }
 
-// Fila‑tarjeta de un insumo, sin tabla (plan de Stock v2/v3). Columnas fijas y ubicación explícita:
-// móvil = 3 líneas · tablet (@xl) = 2 líneas · escritorio (@5xl) = 1 fila.
+// Fila‑tarjeta de un insumo, sin tabla (plan de Stock v2/v3; móvil y tablet según el plan de ajustes v1).
+// Siempre igual: a la izquierda nombre y mínimo; a la derecha estado y stock, y los botones abajo.
+// móvil = 3 líneas (nombre · estado / mínimo · stock / botones) · tablet (@xl) = 2 líneas
+// (nombre · stock y estado / mínimo · botones) · escritorio (@5xl) = 1 fila.
 export default function InsumoCard({ item, resaltado, onDefinirMinimo, onAumentar }: Props) {
   const estado = ESTADOS_INSUMO[estadoInsumo(item)]
   const sinStock = item.cantidad <= 0
+  const minimo = item.stockMinimo != null ? `Mínimo ${item.stockMinimo.toLocaleString('es-AR')}` : 'Sin mínimo (no avisa)'
 
   return (
     <li
-      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 rounded-lg border-2 px-3 py-3 @xl:grid-cols-[minmax(0,1fr)_8rem_9rem] @xl:px-4 @5xl:grid-cols-[minmax(0,1fr)_8rem_9rem_15rem] @5xl:py-2.5 ${
+      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 rounded-lg border-2 px-3 py-3 @xl:px-4 @5xl:grid-cols-[minmax(0,1fr)_8rem_9rem_15rem] @5xl:py-2.5 ${
         item.activo ? 'bg-white' : 'bg-gray-50'
       } ${resaltado ? 'border-amber-400 ring-2 ring-amber-200' : 'border-gray-200'}`}
     >
-      <p className="col-start-1 col-end-3 row-start-1 truncate font-bold text-gray-900 @xl:col-end-2 @5xl:self-end" title={item.nombre}>
+      <p className="col-start-1 row-start-1 truncate font-bold text-gray-900 @5xl:self-end" title={item.nombre}>
         {item.nombre}
       </p>
-      <p className="col-start-1 row-start-2 text-sm text-gray-600 @5xl:self-start">
-        {item.stockMinimo != null ? `Mínimo ${item.stockMinimo.toLocaleString('es-AR')}` : 'Sin mínimo (no avisa)'}
+      <p className="col-start-1 row-start-2 truncate text-sm text-gray-600 @5xl:self-start" title={minimo}>
+        {minimo}
       </p>
-      <p className="col-start-2 row-start-2 justify-self-end whitespace-nowrap @xl:row-start-1 @xl:justify-self-start @5xl:row-end-3">
-        <span className={`text-xl font-extrabold ${sinStock ? 'text-red-700' : 'text-gray-900'}`}>
-          {item.cantidad.toLocaleString('es-AR')}
-        </span>{' '}
-        <span className="text-sm text-gray-600">en stock</span>
-      </p>
-      <div className="col-start-1 row-start-3 @xl:col-start-3 @xl:row-start-1 @5xl:row-end-3">
-        <EstadoBadge texto={estado.etiqueta} clases={estado.clases} />
+      {/* En tablet, stock y estado van juntos arriba de los botones; en móvil y escritorio, cada uno en su lugar */}
+      <div className="contents @xl:col-start-2 @xl:row-start-1 @xl:flex @xl:items-center @xl:justify-end @xl:gap-3 @5xl:contents">
+        <p className="col-start-2 row-start-2 justify-self-end whitespace-nowrap @5xl:row-start-1 @5xl:row-end-3 @5xl:justify-self-start">
+          <span className={`text-xl font-extrabold ${sinStock ? 'text-red-700' : 'text-gray-900'}`}>
+            {item.cantidad.toLocaleString('es-AR')}
+          </span>{' '}
+          <span className="text-sm text-gray-600">en stock</span>
+        </p>
+        <div className="col-start-2 row-start-1 justify-self-end @5xl:col-start-3 @5xl:row-end-3 @5xl:justify-self-start">
+          <EstadoBadge texto={estado.etiqueta} clases={estado.clases} />
+        </div>
       </div>
-      <div className="col-start-2 row-start-3 mt-1 flex justify-end gap-2 @xl:col-start-2 @xl:col-end-4 @xl:row-start-2 @xl:mt-0 @5xl:col-start-4 @5xl:col-end-5 @5xl:row-start-1 @5xl:row-end-3">
+      <div className="col-start-1 col-end-3 row-start-3 mt-1 flex justify-end gap-2 @xl:col-start-2 @xl:row-start-2 @xl:mt-0 @5xl:col-start-4 @5xl:col-end-5 @5xl:row-start-1 @5xl:row-end-3">
         <button
           type="button"
           onClick={() => onDefinirMinimo(item)}
