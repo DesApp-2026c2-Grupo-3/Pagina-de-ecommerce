@@ -6,7 +6,7 @@ import type {
 import { esRegistro, fechaIso, numero, numeroPositivo, texto } from '../parseo'
 import type { EstrategiaNotificacion } from '../tipos'
 import { formatearFecha } from '../../utils/notificaciones/formatoNotificacion'
-import { PARAM_SUCURSAL } from '../../utils/navegacion/parametros'
+import { rutaDetalleViaje } from '../../utils/navegacion/rutasViaje'
 
 function nombreRepartidor(id: number, nombre: string): string {
   return nombre.trim() || `Repartidor #${id}`
@@ -60,12 +60,10 @@ const estrategia = {
       detalle: `Confirmado: ${formatearFecha(datos.tomadaEn)}`,
     }
   },
+  // La página del viaje: ahí se ve a quién quedó asignado
   destino(notificacion: NotificacionDe<'viaje.asistencia_tomada'>) {
-    const params = new URLSearchParams({
-      [PARAM_SUCURSAL]: String(notificacion.datos.sucursalId),
-    })
-
-    return `/admin/viajes?${params.toString()}`
+    const { viajeId, sucursalId } = notificacion.datos
+    return rutaDetalleViaje(viajeId, sucursalId)
   },
 } satisfies EstrategiaNotificacion<'viaje.asistencia_tomada'>
 

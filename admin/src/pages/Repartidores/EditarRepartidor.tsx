@@ -9,7 +9,8 @@ import {
 import { obtenerSucursales } from '../../services/sucursalService'
 
 export default function EditarRepartidor() {
-  const { id } = useParams()
+  // La ruta usa :repartidorId para que SoloSuSucursal no lo tome como id de sucursal
+  const { repartidorId: id } = useParams()
   const { mostrarToast } = useToast()
   const { administrador } = useAuth()
   const navigate = useNavigate()

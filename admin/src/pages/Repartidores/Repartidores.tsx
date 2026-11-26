@@ -1,160 +1,76 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Plus, Trash2, UserCheck, UserX } from 'lucide-react'
-import Paginacion from '../../components/Paginacion'
-import MensajeVacio from '../../components/MensajeVacio'
-import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
-import { darDeBajaRepartidor, desactivarRepartidor, obtenerRepartidores, reactivarRepartidor } from '../../services/repartidorService'
-import type { Repartidor } from '../../types/repartidor.types'
+import { Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
-import { useToast } from '../../context/ToastContext'
+import MensajeVacio from '../../components/MensajeVacio'
+import Paginacion from '../../components/Paginacion'
+import BarraFiltrosLista from '../../components/listas/BarraFiltrosLista'
+import RepartidorCard from '../../components/repartidores/RepartidorCard'
+import { POR_PAGINA_REPARTIDORES } from '../../config/repartidores'
+import { useAuth } from '../../context/AuthContext'
+import { useFiltrosRepartidores } from '../../hooks/repartidores/useFiltrosRepartidores'
+import { useRepartidores } from '../../hooks/repartidores/useRepartidores'
+import { useIrAlInicioLista } from '../../hooks/useIrAlInicioLista'
+import type { Repartidor } from '../../types/repartidor.types'
+import { paginar } from '../../utils/listas/paginar'
+import type { FiltroEstadoRepartidor } from '../../utils/repartidores/estadoRepartidor'
+import {
+  contarPorEstadoRepartidor,
+  filtrarRepartidores,
+  sucursalesDeLaLista,
+} from '../../utils/repartidores/filtrarRepartidores'
 
-const POR_PAGINA = 8
+const OPCIONES_ESTADO: { valor: FiltroEstadoRepartidor; etiqueta: string }[] = [
+  { valor: 'todos', etiqueta: 'Todos' },
+  { valor: 'activos', etiqueta: 'Activos' },
+  { valor: 'inactivos', etiqueta: 'Inactivos' },
+  { valor: 'enViaje', etiqueta: 'En viaje' },
+]
 
+// Repartidores sin tabla (plan responsivo de Repartidores v2). Solo compone:
+// datos y acciones (useRepartidores), filtros, fila‑tarjetas, paginación de 10 y confirmaciones.
+// El admin de sucursal no ve el filtro de sucursal: el backend ya le devuelve solo los suyos (RN-35).
 export default function Repartidores() {
   const navigate = useNavigate()
-
-  const [repartidores, setRepartidores] = useState<Repartidor[]>([])
-  const [paginaActual, setPaginaActual] = useState(1)
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroSucursal, setFiltroSucursal] = useState('todas')
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
-  const { mostrarToast } = useToast()
+  const { administrador } = useAuth()
+  const esMaster = administrador?.rol === 'MASTER'
+  const datos = useRepartidores()
+  const filtros = useFiltrosRepartidores()
+  const { refTitulo, irAlInicio } = useIrAlInicioLista()
 
   const [aDesactivar, setADesactivar] = useState<Repartidor | null>(null)
   const [aDarDeBaja, setADarDeBaja] = useState<Repartidor | null>(null)
 
+  const filtrados = filtrarRepartidores(datos.repartidores, filtros)
+  const { pagina, totalPaginas, items } = paginar(filtrados, filtros.pagina, POR_PAGINA_REPARTIDORES)
+  const sucursales = esMaster
+    ? sucursalesDeLaLista(datos.repartidores).map((s) => ({ ...s, activa: true }))
+    : null
 
-  useEffect(() => {
-    obtenerRepartidores()
-      .then(setRepartidores)
-      .catch((error) => {
-        console.error('Error al cargar repartidores:', error)
-        setError('No se pudieron cargar los repartidores.')
-      })
-      .finally(() => setCargando(false))
-  }, [])
-
-
-    async function desactivar() {
-  if (!aDesactivar) return
-
-  try {
-    await desactivarRepartidor(aDesactivar.id)
-
-    setRepartidores((prev) =>
-      prev.map((r) =>
-        r.id === aDesactivar.id ? { ...r, activo: false } : r,
-      ),
-    )
-
-    mostrarToast('Repartidor desactivado correctamente')
-  } catch (error) {
-    mostrarToast(
-      error instanceof Error
-        ? error.message
-        : 'No se pudo desactivar el repartidor',
-    )
-  } finally {
+  async function confirmarDesactivar() {
+    if (aDesactivar) await datos.desactivar(aDesactivar)
     setADesactivar(null)
   }
-}
 
-async function reactivar(r: Repartidor) {
-  try {
-    await reactivarRepartidor(r.id)
-
-    setRepartidores((prev) =>
-      prev.map((repartidor) =>
-        repartidor.id === r.id
-          ? { ...repartidor, activo: true }
-          : repartidor,
-      ),
-    )
-
-    mostrarToast('Repartidor reactivado correctamente')
-  } catch (error) {
-    mostrarToast(
-      error instanceof Error
-        ? error.message
-        : 'No se pudo reactivar el repartidor',
-    )
-  }
-}
-
-  const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
-    cambiar(valor)
-    setPaginaActual(1)
-  }
-
-  const sucursalesDeLaLista = [
-    ...new Map(
-      repartidores
-        .filter((r) => r.sucursal)
-        .map((r) => [r.sucursal!.id, r.sucursal!]),
-    ).values(),
-  ].sort((a, b) => a.nombre.localeCompare(b.nombre))
-
-  const texto = busqueda.trim().toLowerCase()
-
-  const filtrados = repartidores.filter(
-    (r) =>
-      (
-        `${r.nombre} ${r.apellido}`.toLowerCase().includes(texto) ||
-        r.email.toLowerCase().includes(texto)
-      ) &&
-      (filtroSucursal === 'todas' || String(r.sucursalId) === filtroSucursal),
-  )
-
-  const pagina = filtrados.slice(
-    (paginaActual - 1) * POR_PAGINA,
-    paginaActual * POR_PAGINA,
-  )
-
-  const hayFiltros = busqueda !== '' || filtroSucursal !== 'todas'
-
-  async function darDeBaja() {
-  if (!aDarDeBaja) return
-
-  try {
-    await darDeBajaRepartidor(aDarDeBaja.id)
-
-    setRepartidores((prev) =>
-      prev.filter((r) => r.id !== aDarDeBaja.id)
-    )
-
-    if (pagina.length === 1 && paginaActual > 1) {
-      setPaginaActual((prev) => prev - 1)
-    }
-
-    mostrarToast('Repartidor dado de baja correctamente')
-  } catch (error) {
-    mostrarToast(
-      error instanceof Error
-        ? error.message
-        : 'No se pudo dar de baja el repartidor',
-    )
-  } finally {
+  async function confirmarBaja() {
+    if (aDarDeBaja) await datos.darDeBaja(aDarDeBaja)
     setADarDeBaja(null)
   }
-}
 
   return (
-    <main className="p-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <main className="@container w-full max-w-full p-4 @3xl:p-8">
+      <div className="mb-5 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-            Gestión de personal
-          </p>
-          <h1 className="break-words text-2xl font-bold sm:text-3xl">
-            Repartidores
-          </h1>
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Gestión de personal</p>
+          <h1 className="break-words text-2xl font-bold @3xl:text-3xl">Repartidores</h1>
           <p className="mt-2 text-gray-600">
-            Gestión de repartidores del sistema.
+            {esMaster
+              ? 'Repartidores de todas las sucursales.'
+              : `Repartidores de ${administrador?.sucursal?.nombre ?? 'tu sucursal'}.`}
           </p>
         </div>
 
+        {/* D-R4: el círculo con «+» de siempre */}
         <button
           type="button"
           onClick={() => navigate('/admin/repartidores/nuevo')}
@@ -162,230 +78,85 @@ async function reactivar(r: Repartidor) {
           title="Nuevo repartidor"
           className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
         >
-          <Plus size={22} />
+          <Plus size={22} aria-hidden="true" />
         </button>
       </div>
 
-      <BarraFiltros>
-        <Buscador
-          valor={busqueda}
-          onChange={conReinicio(setBusqueda)}
-          placeholder="Buscar por nombre o email..."
-        />
+      <BarraFiltrosLista<FiltroEstadoRepartidor>
+        sucursales={sucursales}
+        sucursalId={filtros.sucursalId}
+        onSucursal={filtros.setSucursalId}
+        sucursalTodas={{ etiqueta: 'Todas las sucursales', onElegir: () => filtros.setSucursalId(null) }}
+        busqueda={filtros.busqueda}
+        onBusqueda={filtros.setBusqueda}
+        placeholder="Buscar por nombre o email"
+        filtro={{
+          id: 'filtro-estado-repartidor',
+          leyenda: 'Filtrar repartidores por estado',
+          opciones: OPCIONES_ESTADO,
+          valor: filtros.estado,
+          contadores: contarPorEstadoRepartidor(datos.repartidores, filtros),
+          onChange: filtros.setEstado,
+        }}
+      />
 
-        <SelectFiltro
-          valor={filtroSucursal}
-          onChange={conReinicio(setFiltroSucursal)}
-          etiqueta="Filtrar por sucursal"
-          opciones={[
-            { valor: 'todas', etiqueta: 'Todas las sucursales' },
-            ...sucursalesDeLaLista.map((s) => ({
-              valor: String(s.id),
-              etiqueta: s.nombre,
-            })),
-          ]}
-        />
-      </BarraFiltros>
+      <h2 ref={refTitulo} tabIndex={-1} className="sr-only">
+        Repartidores, página {pagina} de {totalPaginas}
+      </h2>
 
-      {cargando ? (
-        <div className="rounded-lg border bg-white px-6 py-10 text-center text-gray-500">
-          Cargando repartidores...
-        </div>
-      ) : error ? (
-        <div className="rounded-lg border bg-white px-6 py-10 text-center text-red-600">
-          {error}
-        </div>
-      ) : pagina.length === 0 ? (
-        <div className="rounded-lg border bg-white px-6 py-10">
+      {datos.cargando ? (
+        <p className="rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-gray-600">Cargando repartidores...</p>
+      ) : datos.error ? (
+        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-6 py-10 text-center text-red-700">
+          {datos.error}
+        </p>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-10">
           <MensajeVacio
-            mensaje={
-              hayFiltros
-                ? 'No hay repartidores con esos filtros.'
-                : 'No hay repartidores registrados.'
-            }
+            mensaje={filtros.hayFiltros ? 'No hay repartidores con esos filtros.' : 'No hay repartidores registrados.'}
           />
         </div>
       ) : (
-        <>
-          {/* Celular: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {pagina.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">
-                    {r.nombre} {r.apellido}
-                  </p>
-                  <p className="truncate text-sm text-gray-600">{r.email}</p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {r.sucursal?.nombre ?? 'Sin sucursal'}
-                  </p>
-                  <p
-                    className={`mt-1 text-sm font-medium ${
-                      r.activo ? 'text-green-700' : 'text-red-600'
-                    }`}
-                  >
-                    {r.activo ? 'Activo' : 'Inactivo'}
-                  </p>
-                </div>
-
-                <button type="button" disabled={r.tieneViajeEnCurso} onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
-                  title={ r.tieneViajeEnCurso
-                    ? 'No se puede editar: tiene un viaje en curso'
-                    : 'Editar repartidor'
-                  }
-                  className="shrink-0 rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50
-                  disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400
-                  disabled:hover:bg-transparent">
-                    <Pencil size={18} />
-                </button>
-
-                {r.activo ? (
-                  <button type="button" onClick={() => setADesactivar(r)}
-                    title="Desactivar repartidor" aria-label={`Desactivar a ${r.nombre}`}
-                    className="rounded-lg border border-red-300 p-2 text-red-600 transition-colors hover:bg-red-50">
-                      <UserX size={18} />
-                  </button>
-                  ) : (
-                  <button type="button" onClick={() => reactivar(r)} title="Reactivar repartidor"
-                   aria-label={`Reactivar a ${r.nombre}`}
-                   className="rounded-lg border border-green-300 p-2 text-green-600 transition-colors hover:bg-green-50">
-                     <UserCheck size={18} />
-                  </button>
-               )}
-               
-               <button type="button"
-                onClick={() => setADarDeBaja(r)}
-                disabled={r.tieneViajeEnCurso}
-                title={ r.tieneViajeEnCurso
-                ? 'No se puede dar de baja: tiene un viaje en curso'
-                : 'Dar de baja permanentemente'
-                }
-                aria-label={`Dar de baja a ${r.nombre}`}
-                className="shrink-0 rounded-lg border border-red-300 p-2 text-red-700 
-                transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 
-                disabled:text-gray-400 disabled:hover:bg-transparent">
-                  <Trash2 size={18} />
-                </button>
-
-
-              </li>
-            ))}
-          </ul>
-
-          {/* Escritorio: tabla */}
-          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
-            <table className="w-full min-w-[750px] border-collapse">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left">Nombre</th>
-                  <th className="px-6 py-3 text-left">Email</th>
-                  <th className="px-6 py-3 text-left">Sucursal</th>
-                  <th className="px-6 py-3 text-right">Estado</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {pagina.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="px-6 py-4 font-medium">
-                      {r.nombre} {r.apellido}
-                    </td>
-                    <td className="px-6 py-4">
-                      {r.email}
-                    </td>
-                    <td className="px-6 py-4">
-                      {r.sucursal?.nombre ?? 'Sin sucursal'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span
-                        className={`rounded-full px-3 py-1 text-sm font-medium ${
-                          r.activo
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {r.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-
-
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button type="button" disabled={r.tieneViajeEnCurso} onClick={() => navigate(`/admin/repartidores/editar/${r.id}`)}
-                          title={ r.tieneViajeEnCurso
-                            ? 'No se puede editar: tiene un viaje en curso'
-                            : 'Editar repartidor'
-                          }
-                          className="rounded-lg border border-orange-300 p-2 text-orange-600 transition-colors hover:bg-orange-50
-                          disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400
-                          disabled:hover:bg-transparent">
-                            <Pencil size={18} />
-                        </button>
-                        
-                        {r.activo ? (
-                          <button type="button" onClick={() => setADesactivar(r)}
-                          title="Desactivar repartidor" aria-label={`Desactivar a ${r.nombre}`}
-                          className="rounded-lg border border-red-300 p-2 text-red-600 transition-colors hover:bg-red-50">
-                            <UserX size={18} />
-                          </button>
-                          ) : (
-                          <button type="button" onClick={() => reactivar(r)} title="Reactivar repartidor"
-                            aria-label={`Reactivar a ${r.nombre}`}
-                            className="rounded-lg border border-green-300 p-2 text-green-600 transition-colors hover:bg-green-50">
-                                <UserCheck size={18} />
-                          </button>
-                        )}
-
-                        <button type="button"
-                        onClick={() => setADarDeBaja(r)}
-                        disabled={r.tieneViajeEnCurso}
-                        title={r.tieneViajeEnCurso
-                        ? 'No se puede dar de baja: tiene un viaje en curso'
-                        : 'Dar de baja permanentemente'
-                        }
-                        aria-label={`Dar de baja a ${r.nombre}`}
-                        className="rounded-lg border border-red-300 p-2 text-red-700 transition-colors 
-                        hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 
-                        disabled:hover:bg-transparent">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <ul aria-label="Repartidores" className="flex flex-col gap-2.5">
+          {items.map((r) => (
+            <RepartidorCard
+              key={r.id}
+              repartidor={r}
+              mostrarSucursal={esMaster}
+              onEditar={(x) => navigate(`/admin/repartidores/editar/${x.id}`)}
+              onDesactivar={setADesactivar}
+              onReactivar={(x) => void datos.reactivar(x)}
+              onDarDeBaja={setADarDeBaja}
+            />
+          ))}
+        </ul>
       )}
 
       <Paginacion
-        paginaActual={paginaActual}
+        paginaActual={pagina}
         totalElementos={filtrados.length}
-        elementosPorPagina={POR_PAGINA}
-        cambiarPagina={setPaginaActual}
+        elementosPorPagina={POR_PAGINA_REPARTIDORES}
+        cambiarPagina={(nueva) => {
+          filtros.setPagina(nueva)
+          irAlInicio()
+        }}
       />
 
       <ConfirmarEliminacion
         abierto={aDesactivar !== null}
         mensaje={`¿Seguro que querés desactivar a ${aDesactivar?.nombre ?? 'este repartidor'}?`}
-        onConfirmar={desactivar}
+        onConfirmar={() => void confirmarDesactivar()}
         onCancelar={() => setADesactivar(null)}
       />
 
       <ConfirmarEliminacion
-      abierto={aDarDeBaja !== null}
-      titulo="Confirmar baja permanente"
-      textoConfirmar="Dar de baja"
-      mensaje={`¿Estás seguro de que querés dar de baja permanentemente a ${aDarDeBaja?.nombre ?? 'este repartidor'}? Esta acción no se puede revertir desde el sistema y conservará sus registros históricos.`}
-      onConfirmar={darDeBaja}
-      onCancelar={() => setADarDeBaja(null)}
+        abierto={aDarDeBaja !== null}
+        titulo="Confirmar baja permanente"
+        textoConfirmar="Dar de baja"
+        mensaje={`¿Estás seguro de que querés dar de baja permanentemente a ${aDarDeBaja?.nombre ?? 'este repartidor'}? Esta acción no se puede revertir desde el sistema y conservará sus registros históricos.`}
+        onConfirmar={() => void confirmarBaja()}
+        onCancelar={() => setADarDeBaja(null)}
       />
-
     </main>
   )
 }

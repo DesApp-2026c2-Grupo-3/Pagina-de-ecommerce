@@ -4,9 +4,11 @@ import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../components/AdminLayout'
 import { NotificacionProvider } from '../context/notificaciones/NotificacionProvider'
 import { RealtimeProvider } from '../context/realtime/RealtimeProvider'
+import { SucursalMasterProvider } from '../context/sucursalMaster/SucursalMasterProvider'
 import Productos from '../pages/Productos/Productos'
 import NuevoProducto from '../pages/Productos/NuevoProducto'
 import EditarProducto from '../pages/Productos/EditarProducto'
+import StockProducto from '../pages/Productos/StockProducto'
 import Promociones from '../pages/Promociones/Promociones'
 import Categorias from '../pages/Categorias/Categorias'
 import NuevaPromocion from '../pages/Promociones/NuevaPromocion'
@@ -21,8 +23,10 @@ import Sucursales from '../pages/Sucursales/Sucursales'
 import NuevaSucursal from '../pages/Sucursales/NuevaSucursal'
 import EditarSucursal from '../pages/Sucursales/EditarSucursal'
 import Stock from '../pages/Stock/Stock'
+import ReportarBaja from '../pages/Stock/ReportarBaja'
 import Insumos from '../pages/Insumos/Insumos'
 import Pedidos from '../pages/pedidos/Pedidos'
+import DetallePedido from '../pages/pedidos/DetallePedido'
 import { SoloMaster, SoloSuSucursal } from '../components/PermisoRol'
 import Reportes from '../pages/Reportes/Reportes'
 import Calificaciones from '../pages/Calificaciones/Calificaciones'
@@ -34,6 +38,7 @@ import Repartidores from '../pages/Repartidores/Repartidores'
 import NuevoRepartidor from '../pages/Repartidores/NuevoRepartidor'
 import EditarRepartidor from '../pages/Repartidores/EditarRepartidor'
 import Viajes from '../pages/Viajes/Viajes'
+import DetalleViaje from '../pages/Viajes/DetalleViaje'
 import Parametros from '../pages/Parametros/Parametros'
 
 export default function AppRoutes() {
@@ -46,7 +51,9 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <RealtimeProvider>
               <NotificacionProvider>
-                <AdminLayout />
+                <SucursalMasterProvider>
+                  <AdminLayout />
+                </SucursalMasterProvider>
               </NotificacionProvider>
             </RealtimeProvider>
           </ProtectedRoute>
@@ -55,6 +62,9 @@ export default function AppRoutes() {
         <Route path="/admin" element={<Reportes />} />
         <Route path="/admin/reportes" element={<Reportes />} />
         <Route path="/admin/pedidos" element={<Pedidos />} />
+        {/* Fuera de SoloSuSucursal a propósito: ese guard lee `:id` como sucursal.
+            El backend responde 404 si el pedido es de otra sucursal (RF-83). */}
+        <Route path="/admin/pedidos/:pedidoId" element={<DetallePedido />} />
         <Route path="/admin/calificaciones" element={<Calificaciones />} />
         <Route path="/admin/reportes/productos-mas-vendidos" element={<ProductosMasVendidos />} />
         <Route path="/admin/reportes/productos-menos-vendidos" element={<ProductosMenosVendidos />} />
@@ -66,6 +76,8 @@ export default function AppRoutes() {
           <Route path="/admin/productos" element={<Productos />} />
           <Route path="/admin/productos/nuevo" element={<NuevoProducto />} />
           <Route path="/admin/productos/editar/:id" element={<EditarProducto />} />
+          {/* «Ver stock» en página propia (plan de Productos, D-P3) */}
+          <Route path="/admin/productos/:productoId/stock" element={<StockProducto />} />
 
           <Route path="/admin/promociones" element={<Promociones />} />
           <Route path="/admin/promociones/nueva" element={<NuevaPromocion />} />
@@ -89,10 +101,16 @@ export default function AppRoutes() {
         <Route element={<SoloSuSucursal />}>
           <Route path="/admin/sucursales/editar/:id" element={<EditarSucursal />} />
           <Route path="/admin/sucursales/:id/stock" element={<Stock />} />
+          {/* Página propia, sin modal (plan de Stock, D-S3) */}
+          <Route path="/admin/sucursales/:id/stock/baja" element={<ReportarBaja />} />
 
           <Route path="/admin/repartidores" element={<Repartidores />} />
           <Route path="/admin/viajes" element={<Viajes />} />
-          <Route path="/admin/repartidores/editar/:id" element={<EditarRepartidor />}/>
+          {/* El viaje se busca en la lista de su sucursal: si es de otra, «no encontrado» (RF-83) */}
+          <Route path="/admin/viajes/:viajeId" element={<DetalleViaje />} />
+          {/* :repartidorId (no :id): SoloSuSucursal lee :id como sucursal y mandaba al admin a Reportes.
+              El backend responde 403 si el repartidor es de otra sucursal (RN-35). */}
+          <Route path="/admin/repartidores/editar/:repartidorId" element={<EditarRepartidor />}/>
           <Route path="/admin/repartidores/nuevo" element={<NuevoRepartidor />} />
           
         </Route>

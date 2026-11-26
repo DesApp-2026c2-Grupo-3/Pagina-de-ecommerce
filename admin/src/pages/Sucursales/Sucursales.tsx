@@ -1,120 +1,43 @@
-import { useEffect, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Boxes, Plus, Power } from 'lucide-react'
-import Paginacion from '../../components/Paginacion'
+import { Plus, Search } from 'lucide-react'
 import MensajeVacio from '../../components/MensajeVacio'
-import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
-import { useToast } from '../../context/ToastContext'
-import { obtenerSucursales, cambiarEstadoSucursal } from '../../services/sucursalService'
-import type { Sucursal } from '../../types/sucursal.types'
-import { formatearHorario } from '../../utils/horario'
+import Paginacion from '../../components/Paginacion'
+import FiltroSegmentado from '../../components/listas/FiltroSegmentado'
+import SucursalCard from '../../components/sucursales/SucursalCard'
+import { POR_PAGINA_SUCURSALES } from '../../config/sucursales'
+import { useFiltrosSucursales } from '../../hooks/sucursales/useFiltrosSucursales'
+import { useSucursales } from '../../hooks/sucursales/useSucursales'
+import { useIrAlInicioLista } from '../../hooks/useIrAlInicioLista'
+import { paginar } from '../../utils/listas/paginar'
+import {
+  contarPorEstadoSucursal,
+  filtrarSucursales,
+  type FiltroEstadoSucursal,
+} from '../../utils/sucursales/filtrarSucursales'
 
-const POR_PAGINA = 8
+const OPCIONES_ESTADO: { valor: FiltroEstadoSucursal; etiqueta: string }[] = [
+  { valor: 'activas', etiqueta: 'Activas' },
+  { valor: 'inactivas', etiqueta: 'Inactivas' },
+]
 
-// Resumen compacto del horario semanal (el texto completo queda en el title)
-function ResumenHorario({ horario }: { horario: unknown }) {
-  const texto = formatearHorario(horario)
-  return (
-    <span className="block max-w-64 truncate text-sm text-gray-600" title={texto}>
-      {texto}
-    </span>
-  )
-}
-
-function Estado({ activa }: { activa: boolean }) {
-  return activa ? (
-    <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Activa</span>
-  ) : (
-    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Inactiva</span>
-  )
-}
-
-const botonIcono = 'rounded border p-2 transition-colors'
-
+// Sucursales (solo MASTER), con tarjetas individuales y sin tabla (plan responsivo de Sucursales v3).
+// Solo compone: datos y acción (useSucursales), buscador + dos filtros directos con contador, tarjetas y paginación de 10.
 export default function Sucursales() {
   const navigate = useNavigate()
-  const { mostrarToast } = useToast()
+  const datos = useSucursales()
+  const filtros = useFiltrosSucursales()
+  const { refTitulo, irAlInicio } = useIrAlInicioLista()
 
-  const [sucursales, setSucursales] = useState<Sucursal[]>([])
-  const [paginaActual, setPaginaActual] = useState(1)
-
-  // Filtros
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroEstado, setFiltroEstado] = useState('todas')
-
-  useEffect(() => {
-    obtenerSucursales()
-      .then(setSucursales)
-      .catch((error) => console.error('Error al cargar sucursales:', error))
-  }, [])
-
-  // Al cambiar un filtro, se vuelve a la primera página
-  const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
-    cambiar(valor)
-    setPaginaActual(1)
-  }
-
-  const filtradas = sucursales.filter(
-    (s) =>
-      s.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) &&
-      (filtroEstado === 'todas' || (filtroEstado === 'activas') === s.activa),
-  )
-  const pagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
-  const hayFiltros = busqueda !== '' || filtroEstado !== 'todas'
-
-  async function cambiarEstado(sucursal: Sucursal) {
-    try {
-      const respuesta = await cambiarEstadoSucursal(sucursal.id, !sucursal.activa)
-      setSucursales((prev) => prev.map((s) => (s.id === sucursal.id ? respuesta.sucursal : s)))
-      mostrarToast(sucursal.activa ? 'Sucursal desactivada' : 'Sucursal activada')
-    } catch (error) {
-      mostrarToast(error instanceof Error ? error.message : 'No se pudo cambiar el estado')
-    }
-  }
-
-  // Los tres botones, iguales en celular y escritorio
-  const acciones = (s: Sucursal) => (
-    <div className="flex shrink-0 gap-2">
-      <button
-        type="button"
-        onClick={() => navigate(`/admin/sucursales/editar/${s.id}`)}
-        aria-label={`Ver detalles de ${s.nombre}`}
-        title="Ver detalles"
-        className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
-      >
-        <Eye size={18} />
-      </button>
-      <button
-        type="button"
-        onClick={() => navigate(`/admin/sucursales/${s.id}/stock`)}
-        aria-label={`Ver stock de ${s.nombre}`}
-        title="Ver stock"
-        className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
-      >
-        <Boxes size={18} />
-      </button>
-      <button
-        type="button"
-        onClick={() => cambiarEstado(s)}
-        aria-label={`${s.activa ? 'Desactivar' : 'Activar'} ${s.nombre}`}
-        title={s.activa ? 'Desactivar (deja de recibir pedidos)' : 'Activar'}
-        className={`${botonIcono} ${
-          s.activa ? 'bg-slate-200 text-gray-700 hover:text-danger' : 'bg-green-100 text-green-700 hover:text-green-900'
-        }`}
-      >
-        <Power size={18} />
-      </button>
-    </div>
-  )
+  const filtradas = filtrarSucursales(datos.sucursales, filtros)
+  const { pagina, totalPaginas, items } = paginar(filtradas, filtros.pagina, POR_PAGINA_SUCURSALES)
 
   return (
-    <main className="p-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-            Administración de sucursales
-          </p>
-          <h1 className="text-3xl font-bold">Sucursales</h1>
+    <main className="@container w-full max-w-full p-4 @3xl:p-8">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Administración de sucursales</p>
+          <h1 className="text-2xl font-bold @3xl:text-3xl">Sucursales</h1>
           <p className="mt-2 text-gray-600">Gestioná las sucursales y su estado.</p>
         </div>
         <button
@@ -124,85 +47,77 @@ export default function Sucursales() {
           title="Nueva sucursal"
           className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
         >
-          <Plus size={22} />
+          <Plus size={22} aria-hidden="true" />
         </button>
       </div>
 
-      <BarraFiltros>
-        <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar sucursal..." />
-        <SelectFiltro
-          valor={filtroEstado}
-          onChange={conReinicio(setFiltroEstado)}
-          etiqueta="Filtrar por estado"
-          opciones={[
-            { valor: 'todas', etiqueta: 'Todas' },
-            { valor: 'activas', etiqueta: 'Activas' },
-            { valor: 'inactivas', etiqueta: 'Inactivas' },
-          ]}
+      {/* Buscador y dos filtros directos con contador, del mismo tamaño (sin desplegable) */}
+      <div className="mb-4 flex flex-col gap-3 @[48rem]:flex-row @[48rem]:items-center">
+        <div className="relative w-full @[48rem]:w-96 @[48rem]:flex-none">
+          <Search
+            size={18}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+          />
+          <label htmlFor="filtro-sucursales-buscar" className="sr-only">
+            Buscar sucursal
+          </label>
+          <input
+            id="filtro-sucursales-buscar"
+            type="search"
+            value={filtros.busqueda}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => filtros.setBusqueda(e.target.value)}
+            placeholder="Buscar sucursal..."
+            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3"
+          />
+        </div>
+        <FiltroSegmentado<FiltroEstadoSucursal>
+          id="filtro-sucursales"
+          leyenda="Filtrar por estado"
+          opciones={OPCIONES_ESTADO}
+          valor={filtros.estado}
+          contadores={contarPorEstadoSucursal(datos.sucursales, filtros.busqueda)}
+          onChange={filtros.setEstado}
+          variante="botones"
+          distribucion="iguales"
         />
-      </BarraFiltros>
+      </div>
 
-      {pagina.length === 0 ? (
-        <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio mensaje={hayFiltros ? 'No hay sucursales con esos filtros.' : 'No hay sucursales registradas.'} />
+      <h2 ref={refTitulo} tabIndex={-1} className="sr-only">
+        Sucursales, página {pagina} de {totalPaginas}
+      </h2>
+
+      {datos.cargando ? (
+        <p className="rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-gray-600">Cargando sucursales...</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-10">
+          {/* Mismos mensajes de hoy: siempre hay un filtro de estado elegido */}
+          <MensajeVacio
+            mensaje={datos.sucursales.length === 0 ? 'No hay sucursales registradas.' : 'No hay sucursales con esos filtros.'}
+          />
         </div>
       ) : (
-        <>
-          {/* Celular: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {pagina.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{s.nombre}</p>
-                  <div className="mt-1">
-                    <ResumenHorario horario={s.horario} />
-                  </div>
-                  <div className="mt-2">
-                    <Estado activa={s.activa} />
-                  </div>
-                </div>
-                {acciones(s)}
-              </li>
-            ))}
-          </ul>
-
-          {/* Escritorio: tabla */}
-          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
-            <table className="w-full min-w-[750px] border-collapse">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left">Nombre</th>
-                  <th className="px-6 py-3 text-left">Horario</th>
-                  <th className="px-6 py-3 text-left">Estado</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagina.map((s) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="px-6 py-4 font-medium">{s.nombre}</td>
-                    <td className="px-6 py-4">
-                      <ResumenHorario horario={s.horario} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <Estado activa={s.activa} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end">{acciones(s)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <ul aria-label="Sucursales" className="flex flex-col gap-2.5">
+          {items.map((s) => (
+            <SucursalCard
+              key={s.id}
+              sucursal={s}
+              onVerDetalles={(x) => navigate(`/admin/sucursales/editar/${x.id}`)}
+              onVerStock={(x) => navigate(`/admin/sucursales/${x.id}/stock`)}
+              onCambiarEstado={(x) => void datos.cambiarEstado(x)}
+            />
+          ))}
+        </ul>
       )}
 
       <Paginacion
-        paginaActual={paginaActual}
+        paginaActual={pagina}
         totalElementos={filtradas.length}
-        elementosPorPagina={POR_PAGINA}
-        cambiarPagina={setPaginaActual}
+        elementosPorPagina={POR_PAGINA_SUCURSALES}
+        cambiarPagina={(nueva) => {
+          filtros.setPagina(nueva)
+          irAlInicio()
+        }}
       />
     </main>
   )

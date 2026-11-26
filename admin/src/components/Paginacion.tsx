@@ -33,7 +33,7 @@ export default function Paginacion({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 mt-6">
+    <nav aria-label="Paginación" className="flex flex-col items-center justify-center gap-4 mt-6">
 
       <div>
         <span className="px-3 py-1 border rounded font-medium">
@@ -43,21 +43,25 @@ export default function Paginacion({
 
       <div className="flex gap-2">
         <button
+        type="button"
+        aria-label="Primera página"
         onClick={() => cambiarPagina(1)}
         disabled={paginaActual === 1}
         className="p-2 rounded-lg border border-gray-300
         hover:bg-gray-100 transition-colors
         disabled:opacity-40 disabled:cursor-not-allowed">
-          <ChevronsLeft size={18} />
+          <ChevronsLeft size={18} aria-hidden="true" />
         </button>
 
       <button
+        type="button"
+        aria-label="Página anterior"
         onClick={() => cambiarPagina(paginaActual - 1)}
         disabled={paginaActual === 1}
         className="p-2 rounded-lg border border-gray-300
         hover:bg-gray-100 transition-colors
         disabled:opacity-40 disabled:cursor-not-allowed">
-        <ChevronLeft size={18} />
+        <ChevronLeft size={18} aria-hidden="true" />
       </button>
 
       {paginas
@@ -65,6 +69,9 @@ export default function Paginacion({
         .map((pagina) => (
           <button
             key={pagina}
+            type="button"
+            aria-label={`Página ${pagina}`}
+            aria-current={paginaActual === pagina ? 'page' : undefined}
             onClick={() => cambiarPagina(pagina)}
             className={`min-w-9 h-9 rounded-lg border transition-colors ${
               paginaActual === pagina
@@ -76,23 +83,27 @@ export default function Paginacion({
         ))}
 
       <button
+        type="button"
+        aria-label="Página siguiente"
         onClick={() => cambiarPagina(paginaActual + 1)}
         disabled={paginaActual === totalPaginas}
         className="p-2 rounded-lg border border-gray-300
         hover:bg-gray-100 transition-colors
         disabled:opacity-40 disabled:cursor-not-allowed">
-        <ChevronRight size={18} />
+        <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       <button
-      onClick={() => cambiarPagina(totalPaginas)}
+      type="button"
+        aria-label="Última página"
+        onClick={() => cambiarPagina(totalPaginas)}
       disabled={paginaActual === totalPaginas}
       className="p-2 rounded-lg border border-gray-300
       hover:bg-gray-100 transition-colors
       disabled:opacity-40 disabled:cursor-not-allowed">
-        <ChevronsRight size={18} />
+        <ChevronsRight size={18} aria-hidden="true" />
       </button>
     </div>
-  </div>
+  </nav>
   )
 }

@@ -1,213 +1,40 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Ban, CheckCircle, Pencil, Plus, Trash2 } from 'lucide-react'
-import Paginacion from '../../components/Paginacion'
+import { Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
-import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
-import { useToast } from '../../context/ToastContext'
-import {
-  deshabilitarPromocion,
-  eliminarPromocion as eliminarPromocionAPI,
-  habilitarPromocion,
-  guardarProductoNuevo,
-  obtenerProductoNuevo,
-  obtenerPromociones,
-} from '../../services/promocionService'
-import { obtenerProductos } from '../../services/productoService'
-import { DIAS, NOMBRE_TIPO } from '../../config/promociones'
-import type { PromocionAdmin, TipoPromo } from '../../types/promocion.types'
+import Paginacion from '../../components/Paginacion'
+import FiltrosPromociones from '../../components/promociones/FiltrosPromociones'
+import PromocionCard from '../../components/promociones/PromocionCard'
+import { POR_PAGINA_PROMOCIONES } from '../../config/promociones'
+import { useFiltrosPromociones } from '../../hooks/promociones/useFiltrosPromociones'
+import { usePromociones } from '../../hooks/promociones/usePromociones'
+import { useIrAlInicioLista } from '../../hooks/useIrAlInicioLista'
+import type { FilaPromocion } from '../../types/promocion.types'
+import { paginar } from '../../utils/listas/paginar'
+import { contarPorEstadoPromo, contarPorTipo, filtrarPromociones } from '../../utils/promociones/filtrarPromociones'
 
-const POR_PAGINA = 8
-
-// "Nuevo en la carta" no es una promo (es un producto elegido aparte), pero se lista acá para poder encontrarlo
-type FilaPromo = Omit<PromocionAdmin, 'tipo'> & { tipo: TipoPromo | 'NUEVO' }
-const NOMBRE_FILA: Record<FilaPromo['tipo'], string> = { ...NOMBRE_TIPO, NUEVO: 'Nuevo en la carta' }
-
-const ORDEN_TIPO: Record<FilaPromo['tipo'], number> = { SEMANA: 0, REGALO: 1, NUEVO: 2, DIA: 3 }
-
-// Posición del primer día de la promo en la semana (lunes primero), para ordenar la lista
-const posicionDelDia = (p: FilaPromo) =>
-  p.dias.length === 0 ? 0 : Math.min(...p.dias.map((d) => DIAS.findIndex((x) => x.valor === d)))
-
-const cuando = (p: FilaPromo) =>
-  p.tipo === 'DIA'
-    ? DIAS.filter((d) => p.dias.includes(d.valor)).map((d) => d.corto).join(' · ')
-    : 'Toda la semana'
-
-const porcentaje = (descuento: number) => `${Math.round(descuento * 1000) / 10}%`
-
-const resumen = (p: FilaPromo) =>
-  p.tipo === 'NUEVO' ? `${p.items[0]?.nombre ?? ''} (sin descuento)` : p.items
-    .map((i) => {
-      const nombre = i.nombre ?? 'Producto eliminado'
-      const oferta = i.descuento >= 1 ? ' gratis' : i.descuento > 0 ? ` (${porcentaje(i.descuento)} menos)` : ''
-      return `${i.cantidad}× ${nombre}${oferta}`
-    })
-    .join(' · ')
-
-function Estado({ promo }: { promo: FilaPromo }) {
-  if (!promo.activo) {
-    return <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Deshabilitada</span>
-  }
-  if (!promo.completa) {
-    return (
-      <span
-        className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800"
-        title="Un producto de la promo fue eliminado: los clientes no la ven hasta que lo cambies"
-      >
-        Oculta: producto eliminado
-      </span>
-    )
-  }
-  return <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Activa</span>
-}
-
-const botonIcono = 'rounded border p-2 transition-colors'
-
+// Promociones (solo MASTER), sin tabla (plan responsivo de Promociones v2). Solo compone: datos y acciones
+// (usePromociones), filtros con menú propio en la URL, fila‑tarjetas, paginación de 10 y la confirmación.
 export default function Promociones() {
   const navigate = useNavigate()
-  const { mostrarToast } = useToast()
+  const datos = usePromociones()
+  const filtros = useFiltrosPromociones()
+  const { refTitulo, irAlInicio } = useIrAlInicioLista()
+  const [aEliminar, setAEliminar] = useState<FilaPromocion | null>(null)
 
-  const [promociones, setPromociones] = useState<FilaPromo[]>([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
-  const [paginaActual, setPaginaActual] = useState(1)
-  const [aEliminar, setAEliminar] = useState<FilaPromo | null>(null)
-
-  // Filtros
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroTipo, setFiltroTipo] = useState('todos')
-  const [filtroEstado, setFiltroEstado] = useState('todos')
-
-  async function cargar() {
-    try {
-      const [lista, nuevo, productos] = await Promise.all([obtenerPromociones(), obtenerProductoNuevo(), obtenerProductos()])
-      const producto = (productos as any[]).find((p) => p.id === nuevo.productoId)
-      const filaNuevo: FilaPromo[] = producto
-        ? [{
-            id: -1, tipo: 'NUEVO', titulo: producto.nombre, destacado: 'Nuevo', detalle: '', dias: [],
-            maxPorPedido: null, compraMinima: null, activo: true, completa: true,
-            items: [{ productoId: producto.id, nombre: producto.nombre, precio: Number(producto.precio), cantidad: 1, descuento: 0, eliminado: false }],
-          }]
-        : []
-      setPromociones([...lista, ...filaNuevo])
-      setError('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron cargar las promociones.')
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
-
-  const conReinicio = (setter: (valor: string) => void) => (valor: string) => {
-    setter(valor)
-    setPaginaActual(1)
-  }
-
-  async function cambiarEstado(promo: FilaPromo) {
-    try {
-      if (promo.tipo === 'NUEVO') {
-        await guardarProductoNuevo(null)
-        mostrarToast('Se sacó «Nuevo en la carta» de la página')
-      } else if (promo.activo) {
-        await deshabilitarPromocion(promo.id)
-        mostrarToast('Promoción deshabilitada')
-      } else {
-        await habilitarPromocion(promo.id)
-        mostrarToast('Promoción habilitada')
-      }
-      await cargar()
-    } catch (err) {
-      // Por ejemplo, el día ya tiene 3 promos activas
-      mostrarToast(err instanceof Error ? err.message : 'No se pudo cambiar el estado de la promoción')
-    }
-  }
-
-  async function eliminar(promo: FilaPromo) {
-    try {
-      await eliminarPromocionAPI(promo.id)
-      mostrarToast('Promoción eliminada!')
-      await cargar()
-    } catch (err) {
-      mostrarToast(err instanceof Error ? err.message : 'No se pudo eliminar la promoción')
-    }
-  }
-
-  const filtradas = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase()
-    return promociones
-      .filter((p) => {
-        if (filtroTipo !== 'todos' && p.tipo !== filtroTipo) return false
-        if (filtroEstado === 'activas' && !p.activo) return false
-        if (filtroEstado === 'deshabilitadas' && p.activo) return false
-        if (!texto) return true
-        return p.titulo.toLowerCase().includes(texto) || p.items.some((i) => i.nombre?.toLowerCase().includes(texto))
-      })
-      .sort((a, b) => ORDEN_TIPO[a.tipo] - ORDEN_TIPO[b.tipo] || posicionDelDia(a) - posicionDelDia(b) || a.id - b.id)
-  }, [promociones, busqueda, filtroTipo, filtroEstado])
-
-  const ultimaPagina = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA))
-  useEffect(() => {
-    if (paginaActual > ultimaPagina) setPaginaActual(ultimaPagina)
-  }, [paginaActual, ultimaPagina])
-
-  const pagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
-  const hayFiltros = busqueda.trim() !== '' || filtroTipo !== 'todos' || filtroEstado !== 'todos'
-
-  const acciones = (p: FilaPromo) => (
-    <div className="flex justify-end gap-2">
-      <button
-        type="button"
-        onClick={() =>
-          p.tipo === 'NUEVO'
-            ? navigate('/admin/promociones/nueva', { state: { pestania: 'nuevo' } })
-            : navigate(`/admin/promociones/editar/${p.id}`)
-        }
-        aria-label={`Editar ${p.titulo}`}
-        title="Editar promoción"
-        className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
-      >
-        <Pencil size={18} />
-      </button>
-      <button
-        type="button"
-        onClick={() => cambiarEstado(p)}
-        aria-label={p.tipo === 'NUEVO' ? 'Sacar «Nuevo en la carta» de la página' : `${p.activo ? 'Deshabilitar' : 'Habilitar'} ${p.titulo}`}
-        title={p.tipo === 'NUEVO' ? 'Sacar de la página' : p.activo ? 'Deshabilitar promoción' : 'Habilitar promoción'}
-        className={`${botonIcono} ${
-          p.activo ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-        }`}
-      >
-        {p.activo ? <Ban size={18} /> : <CheckCircle size={18} />}
-      </button>
-      {p.tipo !== 'NUEVO' && (
-        <button
-          type="button"
-          onClick={() => setAEliminar(p)}
-          aria-label={`Eliminar ${p.titulo}`}
-          title="Eliminar promoción"
-          className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
-        >
-          <Trash2 size={18} />
-        </button>
-      )}
-    </div>
-  )
+  const filtradas = filtrarPromociones(datos.promociones, filtros)
+  const { pagina, totalPaginas, items } = paginar(filtradas, filtros.pagina, POR_PAGINA_PROMOCIONES)
 
   return (
-    <main className="p-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">Ofertas de la tienda</p>
-          <h1 className="text-3xl font-bold">Promociones</h1>
+    <main className="@container w-full max-w-full p-4 @3xl:p-8">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Ofertas de la tienda</p>
+          <h1 className="text-2xl font-bold @3xl:text-3xl">Promociones</h1>
           <p className="mt-2 text-gray-600">
             Armá las promos que se ven en la sección Promos de la tienda. Hay un producto y un regalo de la semana
-            activos a la vez, y un máximo de promos activas por día           
+            activos a la vez, y un máximo de promos activas por día.
           </p>
         </div>
         <button
@@ -217,111 +44,56 @@ export default function Promociones() {
           title="Nueva promoción"
           className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
         >
-          <Plus size={22} />
+          <Plus size={22} aria-hidden="true" />
         </button>
       </div>
 
-      <BarraFiltros>
-        <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar promo o producto..." />
-        <SelectFiltro
-          valor={filtroTipo}
-          onChange={conReinicio(setFiltroTipo)}
-          etiqueta="Filtrar por tipo"
-          opciones={[
-            { valor: 'todos', etiqueta: 'Todos los tipos' },
-            { valor: 'SEMANA', etiqueta: NOMBRE_TIPO.SEMANA },
-            { valor: 'REGALO', etiqueta: NOMBRE_TIPO.REGALO },
-            { valor: 'NUEVO', etiqueta: 'Nuevo en la carta' },
-            { valor: 'DIA', etiqueta: NOMBRE_TIPO.DIA },
-          ]}
-        />
-        <div className="flex gap-2" role="group" aria-label="Filtrar por estado">
-          {[
-            { valor: 'activas', etiqueta: 'Habilitadas', cantidad: promociones.filter((p) => p.activo).length },
-            { valor: 'deshabilitadas', etiqueta: 'Deshabilitadas', cantidad: promociones.filter((p) => !p.activo).length },
-          ].map((b) => {
-            const elegido = filtroEstado === b.valor
-            return (
-              <button
-                key={b.valor}
-                type="button"
-                aria-pressed={elegido}
-                onClick={() => conReinicio(setFiltroEstado)(elegido ? 'todos' : b.valor)}
-                className={`flex-1 rounded border px-3 py-2 text-sm font-semibold transition-colors md:flex-none ${
-                  elegido ? 'border-orange-400 bg-orange-100 text-orange-800' : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}>
-                {b.etiqueta} ({b.cantidad})
-              </button>
-            )
-          })}
-        </div>
-      </BarraFiltros>
+      <FiltrosPromociones
+        busqueda={filtros.busqueda}
+        onBusqueda={filtros.setBusqueda}
+        tipo={filtros.tipo}
+        onTipo={filtros.setTipo}
+        contadoresTipo={contarPorTipo(datos.promociones, filtros)}
+        estado={filtros.estado}
+        onEstado={filtros.setEstado}
+        contadoresEstado={contarPorEstadoPromo(datos.promociones, filtros)}
+      />
 
-      {error && <p className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {datos.error && (
+        <p role="alert" className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {datos.error}
+        </p>
+      )}
 
-      {cargando ? (
-        <p className="text-gray-600">Cargando...</p>
-      ) : pagina.length === 0 ? (
-        <div className="rounded-lg border bg-white px-6 py-10">
+      <h2 ref={refTitulo} tabIndex={-1} className="sr-only">
+        Promociones, página {pagina} de {totalPaginas}
+      </h2>
+
+      {datos.cargando ? (
+        <p className="rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-gray-600">Cargando...</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-10">
           <MensajeVacio
-            mensaje={hayFiltros ? 'No hay promociones con esos filtros.' : 'Todavía no hay promociones cargadas.'}
+            mensaje={filtros.hayFiltros ? 'No hay promociones con esos filtros.' : 'Todavía no hay promociones cargadas.'}
           />
         </div>
       ) : (
-        <>
-          {/* Celular: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {pagina.map((p) => (
-              <li key={p.id} className="flex flex-col gap-3 rounded-lg border bg-white p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold">{p.titulo}</p>
-                    <p className="text-sm text-gray-600">{NOMBRE_FILA[p.tipo]} · {cuando(p)}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-yellow-300 px-3 py-1 text-sm font-extrabold">{p.destacado}</span>
-                </div>
-                <p className="text-sm text-gray-700">{resumen(p)}</p>
-                <div className="flex items-center justify-between gap-3">
-                  <Estado promo={p} />
-                  {acciones(p)}
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          {/* Escritorio: tabla */}
-          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-left sm:px-6">Promo</th>
-                  <th className="px-4 py-3 text-left sm:px-6">Tipo</th>
-                  <th className="px-4 py-3 text-left sm:px-6">Cuándo</th>
-                  <th className="px-4 py-3 text-left sm:px-6">Incluye</th>
-                  <th className="px-4 py-3 text-left sm:px-6">Estado</th>
-                  <th className="px-4 py-3 text-right sm:px-6">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagina.map((p) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center gap-3">
-                        <span className="shrink-0 rounded-full bg-yellow-300 px-2.5 py-1 text-xs font-extrabold">{p.destacado}</span>
-                        <span className="font-medium">{p.titulo}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm sm:px-6">{NOMBRE_FILA[p.tipo]}</td>
-                    <td className="px-4 py-4 text-sm sm:px-6">{cuando(p)}</td>
-                    <td className="max-w-xs px-4 py-4 text-sm text-gray-700 sm:px-6">{resumen(p)}</td>
-                    <td className="px-4 py-4 sm:px-6"><Estado promo={p} /></td>
-                    <td className="px-4 py-4 sm:px-6">{acciones(p)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <ul aria-label="Promociones" className="flex flex-col gap-2.5">
+          {items.map((p) => (
+            <PromocionCard
+              key={p.id}
+              promo={p}
+              onEditar={(x) =>
+                // «Nuevo en la carta» se edita en su pestaña del alta (PR #78)
+                x.tipo === 'NUEVO'
+                  ? navigate('/admin/promociones/nueva', { state: { pestania: 'nuevo' } })
+                  : navigate(`/admin/promociones/editar/${x.id}`)
+              }
+              onCambiarEstado={(x) => void datos.cambiarEstado(x)}
+              onEliminar={setAEliminar}
+            />
+          ))}
+        </ul>
       )}
 
       <ConfirmarEliminacion
@@ -330,17 +102,20 @@ export default function Promociones() {
         textoConfirmar="Eliminar"
         mensaje={`¿Eliminar la promoción "${aEliminar?.titulo ?? ''}"? Deja de verse en la tienda y en este panel, y no se puede deshacer. Los pedidos y reportes anteriores la siguen mostrando. Si solo querés pausarla, usá "Deshabilitar".`}
         onConfirmar={() => {
-          if (aEliminar) eliminar(aEliminar)
+          if (aEliminar) void datos.eliminar(aEliminar)
           setAEliminar(null)
         }}
         onCancelar={() => setAEliminar(null)}
       />
 
       <Paginacion
-        paginaActual={paginaActual}
+        paginaActual={pagina}
         totalElementos={filtradas.length}
-        elementosPorPagina={POR_PAGINA}
-        cambiarPagina={setPaginaActual}
+        elementosPorPagina={POR_PAGINA_PROMOCIONES}
+        cambiarPagina={(nueva) => {
+          filtros.setPagina(nueva)
+          irAlInicio()
+        }}
       />
     </main>
   )

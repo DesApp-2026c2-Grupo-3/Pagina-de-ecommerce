@@ -1,4 +1,4 @@
-import type { TipoPromo } from '../types/promocion.types'
+import type { TipoFilaPromo, TipoPromo } from '../types/promocion.types'
 
 // Reglas de las promociones (las mismas que valida el backend).
 // El máximo de promos por día se configura en Parámetros.
@@ -15,6 +15,9 @@ export const NOMBRE_TIPO: Record<TipoPromo, string> = {
   DIA: 'Promo del día',
 }
 
+// Nombre de cada fila de la lista, incluida «Nuevo en la carta»
+export const NOMBRE_FILA: Record<TipoFilaPromo, string> = { ...NOMBRE_TIPO, NUEVO: 'Nuevo en la carta' }
+
 // Orden en que se muestran los días en el panel y en la página de Promos (0 = domingo)
 export const DIAS: { valor: number; corto: string; nombre: string }[] = [
   { valor: 1, corto: 'Lun', nombre: 'Lunes' },
@@ -25,3 +28,6 @@ export const DIAS: { valor: number; corto: string; nombre: string }[] = [
   { valor: 6, corto: 'Sáb', nombre: 'Sábado' },
   { valor: 0, corto: 'Dom', nombre: 'Domingo' },
 ]
+
+// Plan responsivo de Promociones v2 (D-PR1)
+export const POR_PAGINA_PROMOCIONES = 10

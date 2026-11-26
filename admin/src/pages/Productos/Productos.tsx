@@ -1,186 +1,56 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Ban, Boxes, CircleCheck, Eye, Plus, Trash2 } from 'lucide-react'
-import Paginacion from '../../components/Paginacion'
+import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
-import { BarraFiltros, Buscador, SelectFiltro } from '../../components/Filtros'
-import { useToast } from '../../context/ToastContext'
-import { useBloquearScroll } from '../../hooks/useBloquearScroll'
-import { obtenerCategorias } from '../../services/categoriaService'
+import Paginacion from '../../components/Paginacion'
+import BarraFiltrosLista from '../../components/listas/BarraFiltrosLista'
+import MenuCategorias from '../../components/productos/MenuCategorias'
+import ProductoCard from '../../components/productos/ProductoCard'
+import { POR_PAGINA_PRODUCTOS } from '../../config/productos'
+import { useFiltrosProductos } from '../../hooks/productos/useFiltrosProductos'
+import { useProductos } from '../../hooks/productos/useProductos'
+import { useIrAlInicioLista } from '../../hooks/useIrAlInicioLista'
+import type { ProductoFila } from '../../types/producto.types'
+import { paginar } from '../../utils/listas/paginar'
+import { rutaStockProducto } from '../../utils/navegacion/rutasProducto'
 import {
-  obtenerProductos,
-  eliminarProducto as eliminarProductoAPI,
-  cambiarDisponibilidad,
-  verStockProducto,
-} from '../../services/productoService'
+  contarPorDisponibilidad,
+  filtrarProductos,
+  type FiltroDisponibilidad,
+} from '../../utils/productos/filtrarProductos'
 
-interface ProductoFila {
-  id: number
-  nombre: string
-  disponible: boolean
-  categoriaId: number | null
-}
+const OPCIONES_DISPONIBILIDAD: { valor: FiltroDisponibilidad; etiqueta: string }[] = [
+  { valor: 'todas', etiqueta: 'Todos' },
+  { valor: 'habilitados', etiqueta: 'Habilitados' },
+  { valor: 'inhabilitados', etiqueta: 'Inhabilitados' },
+]
 
-interface StockDeProducto {
-  nombre: string
-  sinReceta: boolean
-  sucursales: { id: number; nombre: string; unidades: number | null; limitante: string | null }[]
-}
-
-const POR_PAGINA = 8
-
-// Inhabilitado: se sigue viendo en la tienda (en gris, "No disponible") pero no se puede pedir
-function Disponibilidad({ disponible }: { disponible: boolean }) {
-  return disponible ? (
-    <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">Habilitado</span>
-  ) : (
-    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-600">Inhabilitado</span>
-  )
-}
-
-const botonIcono = 'rounded border p-2 transition-colors'
-
+// Productos del catálogo (solo MASTER), sin tabla (plan responsivo de Productos v2). Solo compone:
+// datos y acciones (useProductos), filtros en la URL, fila‑tarjetas, paginación de 10 y la confirmación de baja.
 export default function Productos() {
   const navigate = useNavigate()
-  const { mostrarToast } = useToast()
-
-  const [productos, setProductos] = useState<ProductoFila[]>([])
-  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
-  const [paginaActual, setPaginaActual] = useState(1)
+  const location = useLocation()
+  const datos = useProductos()
+  const filtros = useFiltrosProductos()
+  const { refTitulo, irAlInicio } = useIrAlInicioLista()
   const [aEliminar, setAEliminar] = useState<ProductoFila | null>(null)
-  const [stockVisto, setStockVisto] = useState<StockDeProducto | null>(null)
-  useBloquearScroll(stockVisto !== null)
 
-  // Filtros
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroCategoria, setFiltroCategoria] = useState('todas')
-  const [filtroDisponibilidad, setFiltroDisponibilidad] = useState('todas')
+  const nombreCategoria = new Map(datos.categorias.map((c) => [c.id, c.nombre]))
+  const filtrados = filtrarProductos(datos.productos, filtros)
+  const { pagina, totalPaginas, items } = paginar(filtrados, filtros.pagina, POR_PAGINA_PRODUCTOS)
 
-  // Los eliminados (borrado lógico) no vienen: el backend solo devuelve los que no tienen deletedAt
-  useEffect(() => {
-    obtenerProductos()
-      .then(setProductos)
-      .catch((error) => {
-        console.error('Error al cargar productos:', error)
-        mostrarToast('No se pudieron cargar los productos')
-      })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-
-useEffect(() => {
-  obtenerCategorias()
-    .then(setCategorias)
-    .catch(() => setCategorias([]))
-}, [])
-
-  // Al cambiar un filtro, se vuelve a la primera página
-  const conReinicio = (cambiar: (valor: string) => void) => (valor: string) => {
-    cambiar(valor)
-    setPaginaActual(1)
+  async function confirmarEliminar() {
+    if (aEliminar) await datos.eliminar(aEliminar)
+    setAEliminar(null)
   }
-
-  const texto = busqueda.trim().toLowerCase()
-  const filtrados = productos.filter(
-    (p) =>
-      p.nombre.toLowerCase().includes(texto) &&
-      (filtroCategoria === 'todas' || String(p.categoriaId) === filtroCategoria) &&
-      (filtroDisponibilidad === 'todas' || (filtroDisponibilidad === 'habilitados') === p.disponible),
-  )
-  const pagina = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
-  const hayFiltros = busqueda !== '' || filtroCategoria !== 'todas' || filtroDisponibilidad !== 'todas'
-
-  async function eliminar() {
-    if (!aEliminar) return
-    try {
-      await eliminarProductoAPI(aEliminar.id)
-      setProductos((prev) => prev.filter((p) => p.id !== aEliminar.id))
-      mostrarToast('Producto eliminado!')
-    } catch (error) {
-      mostrarToast(error instanceof Error ? error.message : 'No se pudo eliminar el producto')
-    } finally {
-      setAEliminar(null)
-    }
-  }
-
-  // Inhabilitar / habilitar: el producto no se borra, solo cambia "disponible"
-  async function alternarDisponibilidad(producto: ProductoFila) {
-    const nuevo = !producto.disponible
-    try {
-      await cambiarDisponibilidad(producto.id, nuevo)
-      setProductos((prev) => prev.map((p) => (p.id === producto.id ? { ...p, disponible: nuevo } : p)))
-      mostrarToast(nuevo ? 'Producto habilitado!' : 'Producto inhabilitado!')
-    } catch (error) {
-      mostrarToast(error instanceof Error ? error.message : 'No se pudo cambiar la disponibilidad')
-    }
-  }
-
-  async function verStock(producto: ProductoFila) {
-    try {
-      setStockVisto(await verStockProducto(producto.id))
-    } catch (error) {
-      mostrarToast(error instanceof Error ? error.message : 'No se pudo cargar el stock')
-    }
-  }
-
-  // Los botones, iguales en celular y escritorio
-  const acciones = (p: ProductoFila) => (
-    <div className="flex shrink-0 gap-2">
-      <button
-        type="button"
-        onClick={() => navigate(`/admin/productos/editar/${p.id}`)}
-        aria-label={`Ver detalles de ${p.nombre}`}
-        title="Ver detalles"
-        className={`${botonIcono} bg-emerald-200 text-success hover:text-success-hover`}
-      >
-        <Eye size={18} />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => verStock(p)}
-        aria-label={`Ver stock de ${p.nombre}`}
-        title="Ver stock"
-        className={`${botonIcono} bg-orange-100 text-action hover:text-action-hover`}
-      >
-        <Boxes size={18} />
-      </button>
-
-      {/* Inhabilitar / habilitar: se puede deshacer con el mismo botón */}
-      <button
-        type="button"
-        onClick={() => alternarDisponibilidad(p)}
-        aria-label={`${p.disponible ? 'Inhabilitar' : 'Habilitar'} ${p.nombre}`}
-        title={p.disponible ? 'Inhabilitar' : 'Habilitar'}
-        className={`${botonIcono} ${
-          p.disponible ? 'bg-gray-200 text-gray-700 hover:text-gray-900' : 'bg-emerald-200 text-success hover:text-success-hover'
-        }`}
-      >
-        {p.disponible ? <Ban size={18} /> : <CircleCheck size={18} />}
-      </button>
-
-      {/* Eliminar: borrado lógico, no se puede deshacer desde el panel */}
-      <button
-        type="button"
-        onClick={() => setAEliminar(p)}
-        aria-label={`Eliminar ${p.nombre}`}
-        title="Eliminar"
-        className={`${botonIcono} bg-red-200 text-danger hover:text-danger-hover`}
-      >
-        <Trash2 size={18} />
-      </button>
-    </div>
-  )
 
   return (
-    <main className="p-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-          Catálogo de productos
-        </p>
-          <h1 className="text-3xl font-bold">Productos</h1>
+    <main className="@container w-full max-w-full p-4 @3xl:p-8">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Catálogo de productos</p>
+          <h1 className="text-2xl font-bold @3xl:text-3xl">Productos</h1>
           <p className="mt-2 text-gray-600">Gestioná los productos de la tienda.</p>
         </div>
         <button
@@ -190,87 +60,64 @@ useEffect(() => {
           title="Nuevo producto"
           className="shrink-0 rounded-full border border-orange-400 bg-action p-4 text-white shadow-[0_0_10px_rgba(249,115,22,0.6)] transition-all hover:bg-action-hover hover:shadow-[0_0_16px_rgba(249,115,22,0.8)]"
         >
-          <Plus size={22} />
+          <Plus size={22} aria-hidden="true" />
         </button>
       </div>
 
-      <BarraFiltros>
-        <Buscador valor={busqueda} onChange={conReinicio(setBusqueda)} placeholder="Buscar producto..." />
-        <SelectFiltro
-          valor={filtroCategoria}
-          onChange={conReinicio(setFiltroCategoria)}
-          etiqueta="Filtrar por categoría"
-          opciones={[
-            { valor: 'todas', etiqueta: 'Todas las categorías' },
-            ...categorias.map((c) => ({ valor: String(c.id), etiqueta: c.nombre })),
-          ]}
-        />
-        <SelectFiltro
-          valor={filtroDisponibilidad}
-          onChange={conReinicio(setFiltroDisponibilidad)}
-          etiqueta="Filtrar por disponibilidad"
-          opciones={[
-            { valor: 'todas', etiqueta: 'Todos' },
-            { valor: 'habilitados', etiqueta: 'Habilitados' },
-            { valor: 'inhabilitados', etiqueta: 'Inhabilitados' },
-          ]}
-        />
-      </BarraFiltros>
+      <BarraFiltrosLista<FiltroDisponibilidad>
+        sucursales={null}
+        sucursalId={null}
+        onSucursal={() => {}}
+        filtroExtra={<MenuCategorias categorias={datos.categorias} valor={filtros.categoria} onChange={filtros.setCategoria} />}
+        busqueda={filtros.busqueda}
+        onBusqueda={filtros.setBusqueda}
+        placeholder="Buscar producto"
+        filtro={{
+          id: 'filtro-disponibilidad',
+          leyenda: 'Filtrar por disponibilidad',
+          opciones: OPCIONES_DISPONIBILIDAD,
+          valor: filtros.disponibilidad,
+          contadores: contarPorDisponibilidad(datos.productos, filtros),
+          onChange: filtros.setDisponibilidad,
+        }}
+      />
 
-      {pagina.length === 0 ? (
-        <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio mensaje={hayFiltros ? 'No hay productos con esos filtros.' : 'No hay productos registrados.'} />
+      <h2 ref={refTitulo} tabIndex={-1} className="sr-only">
+        Productos, página {pagina} de {totalPaginas}
+      </h2>
+
+      {datos.cargando ? (
+        <p className="rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-gray-600">Cargando productos...</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-10">
+          <MensajeVacio mensaje={filtros.hayFiltros ? 'No hay productos con esos filtros.' : 'No hay productos registrados.'} />
         </div>
       ) : (
-        <>
-          {/* Celular: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {pagina.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{p.nombre}</p>
-                  <div className="mt-2">
-                    <Disponibilidad disponible={p.disponible} />
-                  </div>
-                </div>
-                {acciones(p)}
-              </li>
-            ))}
-          </ul>
-
-          {/* Escritorio: tabla */}
-          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
-            <table className="w-full min-w-[750px] border-collapse">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left">Nombre</th>
-                  <th className="px-6 py-3 text-left">Estado</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagina.map((p) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="px-6 py-4 font-medium">{p.nombre}</td>
-                    <td className="px-6 py-4">
-                      <Disponibilidad disponible={p.disponible} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end">{acciones(p)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <ul aria-label="Productos" className="flex flex-col gap-2.5">
+          {items.map((p) => (
+            <ProductoCard
+              key={p.id}
+              producto={p}
+              categoria={p.categoriaId !== null ? (nombreCategoria.get(p.categoriaId) ?? null) : null}
+              onVerDetalles={(x) => navigate(`/admin/productos/editar/${x.id}`)}
+              onVerStock={(x) =>
+                navigate(rutaStockProducto(x.id), { state: { desde: `${location.pathname}${location.search}` } })
+              }
+              onAlternarDisponibilidad={(x) => void datos.alternarDisponibilidad(x)}
+              onEliminar={setAEliminar}
+            />
+          ))}
+        </ul>
       )}
 
       <Paginacion
-        paginaActual={paginaActual}
+        paginaActual={pagina}
         totalElementos={filtrados.length}
-        elementosPorPagina={POR_PAGINA}
-        cambiarPagina={setPaginaActual}
+        elementosPorPagina={POR_PAGINA_PRODUCTOS}
+        cambiarPagina={(nueva) => {
+          filtros.setPagina(nueva)
+          irAlInicio()
+        }}
       />
 
       <ConfirmarEliminacion
@@ -278,51 +125,9 @@ useEffect(() => {
         titulo="Eliminar producto"
         textoConfirmar="Eliminar"
         mensaje={`¿Eliminar ${aEliminar?.nombre ?? 'este producto'}? Deja de verse en la tienda y en este panel, y no se puede deshacer. Los pedidos y reportes anteriores lo siguen mostrando. Si solo querés sacarlo de la venta por un tiempo, usá "Inhabilitar".`}
-        onConfirmar={eliminar}
+        onConfirmar={() => void confirmarEliminar()}
         onCancelar={() => setAEliminar(null)}
       />
-
-      {/* Modal: stock del producto por sucursal */}
-      {stockVisto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
-            <h2 className="text-xl font-bold">Stock de {stockVisto.nombre}</h2>
-            <p className="mt-1 text-sm text-gray-600">Cuántas unidades se pueden preparar con el stock de cada sucursal.</p>
-
-            {stockVisto.sinReceta ? (
-              <p className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-                Este producto no tiene receta, así que no descuenta stock. Cargale una en "Ver detalles".
-              </p>
-            ) : (
-              <ul className="mt-4 flex flex-col divide-y">
-                {stockVisto.sucursales.map((s) => (
-                  <li key={s.id} className="flex items-start justify-between gap-3 py-3">
-                    <span className="font-medium">{s.nombre}</span>
-                    {s.unidades && s.unidades > 0 ? (
-                      <span className="shrink-0 font-bold text-green-700">{s.unidades} unidades</span>
-                    ) : (
-                      <span className="shrink-0 text-right text-sm font-semibold text-red-700">
-                        Sin stock
-                        {s.limitante && <span className="block font-normal text-gray-500">Falta {s.limitante}</span>}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setStockVisto(null)}
-                className="rounded border px-4 py-2 font-semibold hover:bg-gray-50"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   )
 }

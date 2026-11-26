@@ -1,430 +1,145 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Ban, CheckCircle, Pencil, Search, Trash2 } from 'lucide-react'
+import { useState, type ChangeEvent } from 'react'
+import { Search } from 'lucide-react'
 import ConfirmarEliminacion from '../../components/ConfirmarEliminacion'
 import MensajeVacio from '../../components/MensajeVacio'
-import { useToast } from '../../context/ToastContext'
+import Paginacion from '../../components/Paginacion'
+import FormularioInsumo from '../../components/insumos/FormularioInsumo'
+import InsumoCatalogoCard from '../../components/insumos/InsumoCatalogoCard'
+import FiltroSegmentado from '../../components/listas/FiltroSegmentado'
+import { POR_PAGINA_INSUMOS } from '../../config/insumos'
+import { useFiltrosListaInsumos } from '../../hooks/insumos/useFiltrosListaInsumos'
+import { useFormularioInsumo } from '../../hooks/insumos/useFormularioInsumo'
+import { useInsumos } from '../../hooks/insumos/useInsumos'
+import { useIrAlInicioLista } from '../../hooks/useIrAlInicioLista'
 import type { Insumo } from '../../types/insumo.types'
 import {
-  obtenerInsumos,
-  crearInsumo,
-  actualizarInsumo,
-  eliminarInsumo,
-  deshabilitarInsumo,
-  habilitarInsumo,
-} from '../../services/insumoService'
-import Paginacion from '../../components/Paginacion'
+  contarPorEstadoInsumo,
+  filtrarInsumos,
+  mensajeSinInsumos,
+  type FiltroEstadoInsumo,
+} from '../../utils/insumos/filtrarInsumos'
+import { paginar } from '../../utils/listas/paginar'
 
-const formularioVacio = { nombre: '', precioComercial: '', stockMinimo: '' }
-const precioTexto = (insumo: Insumo) =>
-  insumo.precioComercial != null && Number(insumo.precioComercial) > 0
-    ? `$${Number(insumo.precioComercial).toLocaleString('es-AR')}`
-    : 'Sin cargo'
+const OPCIONES_ESTADO: { valor: FiltroEstadoInsumo; etiqueta: string }[] = [
+  { valor: 'habilitados', etiqueta: 'Habilitados' },
+  { valor: 'deshabilitados', etiqueta: 'Deshabilitados' },
+]
 
+// Insumos del catálogo, sin tabla (plan responsivo de Insumos v3). Solo compone: formulario de
+// crear / editar a lo ancho, filtros en la URL, fila‑tarjetas, paginación de 10 y la confirmación de baja.
 export default function Insumos() {
-  const { mostrarToast } = useToast()
-  const [insumos, setInsumos] = useState<Insumo[]>([])
-  const [busqueda, setBusqueda] = useState('')
-  const [form, setForm] = useState(formularioVacio)
-  const [editandoId, setEditandoId] = useState<number | null>(null)
-  const [aEliminar, setAEliminar] = useState<Insumo | null>(null)
   const [error, setError] = useState('')
-  const [guardando, setGuardando] = useState(false)
-  const [filtroEstado, setFiltroEstado] = useState('todos')
+  const datos = useInsumos(setError)
+  const formulario = useFormularioInsumo(setError, datos.cargar)
+  const filtros = useFiltrosListaInsumos()
+  const { refTitulo, irAlInicio } = useIrAlInicioLista()
+  const [aEliminar, setAEliminar] = useState<Insumo | null>(null)
 
-  const [paginaActual, setPaginaActual] = useState(1)
-  const insumosPorPagina = 10
-
-  function cargar() {
-    obtenerInsumos()
-      .then(setInsumos)
-      .catch((err) => setError(err.message))
-  }
-
-  useEffect(cargar, [])
-
-  const filtrados = insumos.filter((i) => {
-    const coincideNombre = i.nombre
-      .toLowerCase()
-      .includes(busqueda.trim().toLowerCase())
-
-    const coincideEstado =
-      filtroEstado === 'todos' ||
-      (filtroEstado === 'activos' && i.activo) ||
-      (filtroEstado === 'deshabilitados' && !i.activo)
-
-    return coincideNombre && coincideEstado
-  })
-
-  const indiceUltimoInsumo = paginaActual * insumosPorPagina
-  const indicePrimerInsumo = indiceUltimoInsumo - insumosPorPagina
-
-  const insumosPagina = filtrados.slice(
-    indicePrimerInsumo,
-    indiceUltimoInsumo
-  )
-
-  useEffect(() => {
-    const ultimaPagina = Math.max(
-      1, Math.ceil(filtrados.length / insumosPorPagina)
-    )
-
-    if (paginaActual > ultimaPagina) {
-      setPaginaActual(ultimaPagina)
-    }
-  }, [filtrados.length, paginaActual])
-
-  function editar(insumo: Insumo) {
-    setEditandoId(insumo.id)
-    setForm({
-      nombre: insumo.nombre,
-      precioComercial: insumo.precioComercial != null ? String(insumo.precioComercial) : '',
-      stockMinimo: insumo.stockMinimo != null ? String(Number(insumo.stockMinimo)) : '',
-    })
-    setError('')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  function cancelar() {
-    setEditandoId(null)
-    setForm(formularioVacio)
-    setError('')
-  }
-
-  async function guardar(e: FormEvent) {
-    e.preventDefault()
-
-    if (form.nombre.trim().length < 2) {
-      setError('El nombre debe tener al menos 2 caracteres.')
-      return
-    }
-    if (form.precioComercial !== '' && Number(form.precioComercial) < 0) {
-      setError('El precio del extra no puede ser negativo.')
-      return
-    }
-
-    if (form.stockMinimo !== '' && Number(form.stockMinimo) < 0) {
-      setError('El stock mínimo no puede ser negativo.')
-       return
-    }
-
-    // Por ahora, todos los insumos se miden en unidades
-    const datos = {
-      nombre: form.nombre.trim(),
-      unidadMedida: 'unidad',
-      precioComercial: form.precioComercial === '' ? null : Number(form.precioComercial),
-      stockMinimo: form.stockMinimo === '' ? null : Number(form.stockMinimo),
-    }
-
-    setGuardando(true)
-    try {
-      if (editandoId) {
-        await actualizarInsumo(editandoId, datos)
-        mostrarToast('Insumo modificado!')
-      } else {
-        await crearInsumo(datos)
-        mostrarToast('Insumo creado!')
-      }
-      cancelar()
-      cargar()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar el insumo.')
-    } finally {
-      setGuardando(false)
-    }
-  }
+  const filtrados = filtrarInsumos(datos.insumos, filtros)
+  const { pagina, totalPaginas, items } = paginar(filtrados, filtros.pagina, POR_PAGINA_INSUMOS)
 
   async function confirmarEliminacion() {
-    if (!aEliminar) return
-    try {
-      await eliminarInsumo(aEliminar.id)
-      mostrarToast('Insumo eliminado!')
-      cargar()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo eliminar el insumo.')
-    } finally {
-      setAEliminar(null)
-    }
+    if (aEliminar) await datos.eliminar(aEliminar)
+    setAEliminar(null)
   }
-
-  async function cambiarEstado(insumo: Insumo) {
-    try {
-      if (insumo.activo) {
-        await deshabilitarInsumo(insumo.id)
-        mostrarToast('Insumo deshabilitado correctamente')
-      } else {
-        await habilitarInsumo(insumo.id)
-        mostrarToast('Insumo habilitado correctamente')
-      }
-
-      cargar()
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'No se pudo cambiar el estado del insumo.'
-      )
-    }
-  }
-
-  
-const acciones = (insumo: Insumo) => (
-  <div className="flex shrink-0 gap-2">
-    <button
-      type="button"
-      onClick={() => editar(insumo)}
-      aria-label={`Editar ${insumo.nombre}`}
-      title="Editar"
-      className="rounded border bg-emerald-200 p-2 text-success hover:text-success-hover"
-    >
-      <Pencil size={18} />
-    </button>
-
-    <button
-      type="button"
-      onClick={() => cambiarEstado(insumo)}
-      aria-label={`${insumo.activo ? 'Deshabilitar' : 'Habilitar'} ${insumo.nombre}`}
-      title={insumo.activo ? 'Deshabilitar (no se repone; se usa hasta agotar stock)' : 'Habilitar insumo'}      
-      className={`rounded border p-2 ${
-        insumo.activo
-          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-          : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-      }`}
-    >
-      {insumo.activo ? <Ban size={18} /> : <CheckCircle size={18} />}
-    </button>
-
-    <button
-      type="button"
-      onClick={() => setAEliminar(insumo)}
-      aria-label={`Eliminar ${insumo.nombre}`}
-      title="Eliminar"
-      className="rounded border bg-red-200 p-2 text-danger hover:text-danger-hover"
-    >
-      <Trash2 size={18} />
-    </button>
-  </div>
-)
-
 
   return (
-    <main className="p-8">
-       <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-          Gestión de inventario
-        </p>
-      <h1 className="text-3xl font-bold">Insumos</h1>
+    <main className="@container w-full max-w-full p-4 @3xl:p-8">
+      <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Gestión de inventario</p>
+      <h1 className="text-2xl font-bold @3xl:text-3xl">Insumos</h1>
       <p className="mt-2 text-gray-600">
         Los ingredientes con los que se arman las recetas. Al crear uno, se agrega con stock 0 en todas las sucursales.
       </p>
 
-      {/* ---------- Crear o editar ---------- */}
-      <form onSubmit={guardar} noValidate className="mt-6 max-w-2xl rounded-lg border bg-white p-5">
-        <h2 className="mb-4 text-xl font-bold">{editandoId ? 'Editar insumo' : 'Nuevo insumo'}</h2>
+      <FormularioInsumo
+        form={formulario.form}
+        editando={formulario.editandoId !== null}
+        guardando={formulario.guardando}
+        error={error}
+        refFormulario={formulario.refFormulario}
+        refNombre={formulario.refNombre}
+        onCambiar={formulario.cambiar}
+        onGuardar={(e) => void formulario.guardar(e)}
+        onCancelar={formulario.cancelar}
+      />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="font-medium">Nombre</label>
-            <input
-              type="text"
-              maxLength={50}
-              value={form.nombre}
-              onChange={(e) => {
-                setForm({ ...form, nombre: e.target.value })
-                setError('')
-              }}
-              className="w-full rounded border p-2"
-              placeholder="Ej: Pepinillos"
-            />
-          </div>
-
-          <div>
-            <label className="font-medium">Precio por extra</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.precioComercial}
-              onChange={(e) => {
-                setForm({ ...form, precioComercial: e.target.value })
-                setError('')
-              }}
-              className="w-full rounded border p-2"
-              placeholder="Ej: 500 (vacío = sin cargo)"
-            />
-          </div>
-          
-          <div className="sm:col-span-2">
-              <label className="font-medium">Stock mínimo sugerido</label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={form.stockMinimo}
-                onChange={(e) => {
-                  setForm({ ...form, stockMinimo: e.target.value })
-                  setError('')
-                }}
-                className="w-full rounded border p-2 sm:w-48"
-                placeholder="Ej: 20 (vacío = sin alerta)"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                {editandoId
-                  ? 'Se usa para las sucursales que se creen de acá en adelante. Para cambiar el de una sucursal, andá a su Stock.'
-                  : 'Se copia como mínimo inicial a todas las sucursales. Después cada una lo puede ajustar en su Stock.'}
-              </p>
-            </div>
-        </div>
-
-        {error && <p className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-
-        <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          {editandoId && (
-            <button
-              type="button"
-              onClick={cancelar}
-              className="rounded border border-red-300 bg-danger px-4 py-2 text-white transition-colors hover:bg-danger-hover"
-            >
-              Cancelar
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={guardando}
-            className="rounded border border-orange-300 bg-action px-4 py-2 text-white transition-colors hover:bg-action-hover disabled:opacity-50"
-          >
-            {guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Crear insumo'}
-          </button>
-        </div>
-      </form>
-      
-      {/* ---------- Buscador y filtro ---------- */}
-      <div className="mb-4 mt-8 flex w-full flex-col gap-3 sm:flex-row">
-        <div className="relative w-full sm:max-w-80">
+      {/* Buscador y dos botones fijos del mismo tamaño (sin desplegable) */}
+      <div className="mb-4 mt-6 flex flex-col gap-3 @[48rem]:flex-row @[48rem]:items-center">
+        <div className="relative w-full @[48rem]:w-96 @[48rem]:flex-none">
           <Search
             size={18}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
           />
+          <label htmlFor="filtro-insumos-buscar" className="sr-only">
+            Buscar insumo
+          </label>
           <input
+            id="filtro-insumos-buscar"
             type="search"
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value)
-              setPaginaActual(1)
-            }}
+            value={filtros.busqueda}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => filtros.setBusqueda(e.target.value)}
             placeholder="Buscar insumo..."
-            aria-label="Buscar insumo"
-            className="w-full rounded border bg-white py-2 pl-10 pr-3"
+            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3"
           />
         </div>
-
-        <select
-          value={filtroEstado}
-          onChange={(e) => {
-            setFiltroEstado(e.target.value)
-            setPaginaActual(1)
-          }}
-          aria-label="Filtrar insumos por estado"
-          className="w-full rounded border bg-white px-3 py-2 sm:w-auto"
-        >
-          <option value="todos">Todos los insumos</option>
-          <option value="activos">Habilitados</option>
-          <option value="deshabilitados">Deshabilitados</option>
-        </select>
+        <FiltroSegmentado<FiltroEstadoInsumo>
+          id="filtro-insumos"
+          leyenda="Filtrar insumos por estado"
+          opciones={OPCIONES_ESTADO}
+          valor={filtros.estado}
+          contadores={contarPorEstadoInsumo(datos.insumos, filtros.busqueda)}
+          onChange={filtros.setEstado}
+          variante="botones"
+          distribucion="iguales"
+        />
       </div>
 
+      <h2 ref={refTitulo} tabIndex={-1} className="sr-only">
+        Insumos, página {pagina} de {totalPaginas}
+      </h2>
 
-      {/* ---------- Lista ---------- */}
-      {filtrados.length === 0 ? (
-        <div className="rounded-lg border bg-white px-6 py-10">
-          <MensajeVacio 
-          mensaje={
-            insumos.length === 0
-            ? 'No hay insumos registrados.'
-            : filtroEstado !== 'todos' && !busqueda.trim()
-            ? 'No hay insumos para este filtro.'
-            : 'No se encontraron insumos con los criterios seleccionados.'
-          }/>
-
+      {datos.cargando ? (
+        <p className="rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-gray-600">Cargando insumos...</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-10">
+          <MensajeVacio mensaje={mensajeSinInsumos(datos.insumos.length, filtros.busqueda)} />
         </div>
       ) : (
-        <>
-          {/* Celular: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {insumosPagina.map((insumo) => (
-              <li
-                key={insumo.id}
-                className={`flex items-center justify-between gap-3 rounded-lg border p-4 ${
-                  editandoId === insumo.id ? 'bg-orange-50' : 'bg-white'
-                }`}
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{insumo.nombre}</p>
-                  <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    insumo.activo
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {insumo.activo ? 'Activo' : 'Deshabilitado'}
-                  </span>
-                  <p className="text-sm text-gray-600">Extra: {precioTexto(insumo)}</p>
-                </div>
-                {acciones(insumo)}
-              </li>
-            ))}
-          </ul>
+        <ul aria-label="Insumos" className="flex flex-col gap-2.5">
+          {items.map((insumo) => (
+            <InsumoCatalogoCard
+              key={insumo.id}
+              insumo={insumo}
+              editando={formulario.editandoId === insumo.id}
+              onEditar={formulario.editar}
+              onCambiarEstado={(x) => void datos.cambiarEstado(x)}
+              onEliminar={setAEliminar}
+            />
+          ))}
+        </ul>
+      )}
 
-          {/* Escritorio: tabla */}
-          <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
-            <table className="w-full border-collapse">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left">Nombre</th>
-                  <th className="px-6 py-3 text-left">Estado</th>
-                  <th className="px-6 py-3 text-left">Precio por extra</th>  
-                  <th className="px-6 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {insumosPagina.map((insumo) => (
-                  <tr key={insumo.id} className={`border-t ${editandoId === insumo.id ? 'bg-orange-50' : ''}`}>
-                    <td className="px-6 py-4 font-medium">{insumo.nombre}</td>
-                    <td className="px-6 py-4">
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        insumo.activo
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {insumo.activo ? 'Activo' : 'Deshabilitado'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">{precioTexto(insumo)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end">{acciones(insumo)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+      {filtrados.length > 0 && (
+        <Paginacion
+          paginaActual={pagina}
+          totalElementos={filtrados.length}
+          elementosPorPagina={POR_PAGINA_INSUMOS}
+          cambiarPagina={(nueva) => {
+            filtros.setPagina(nueva)
+            irAlInicio()
+          }}
+        />
       )}
 
       <ConfirmarEliminacion
         abierto={aEliminar !== null}
         titulo="Eliminar insumo"
         textoConfirmar="Eliminar"
-        mensaje={`¿Eliminar ${aEliminar?.nombre ?? 'este insumo'}? Deja de verse en este panel y en el stock de las sucursales, y no se puede deshacer. El historial de movimientos lo sigue mostrando. Si solo querés dejar de reponerlo, usá "Deshabilitar": se sigue usando hasta agotar el stock.`}        
-        onConfirmar={confirmarEliminacion}
+        mensaje={`¿Eliminar ${aEliminar?.nombre ?? 'este insumo'}? Deja de verse en este panel y en el stock de las sucursales, y no se puede deshacer. El historial de movimientos lo sigue mostrando. Si solo querés dejar de reponerlo, usá "Deshabilitar": se sigue usando hasta agotar el stock.`}
+        onConfirmar={() => void confirmarEliminacion()}
         onCancelar={() => setAEliminar(null)}
       />
-
-      {filtrados.length > 0 && (
-        <Paginacion
-        paginaActual={paginaActual}
-        totalElementos={filtrados.length}
-        elementosPorPagina={insumosPorPagina}
-        cambiarPagina={setPaginaActual}
-        />
-      )}
     </main>
   )
 }
