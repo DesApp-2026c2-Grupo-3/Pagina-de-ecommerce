@@ -1,3 +1,4 @@
+
 # BurgerFast — Plataforma de delivery de comida rápida
 
 Trabajo práctico de **Desarrollo de Aplicaciones (2026, 2.º cuatrimestre) — Grupo 3**.
@@ -381,3 +382,5 @@ Los tests del backend no necesitan una base real: los modelos se reemplazan por 
 - [`doc/enunciado.md`](doc/enunciado.md) — consigna del trabajo práctico (la fuente de verdad).
 - [`doc/analisis-requerimientos.md`](doc/analisis-requerimientos.md) — análisis de requerimientos (borrador).
 - [`.agents.md`](.agents.md) y [`AGENTS.md`](AGENTS.md) — contexto del negocio y convenciones del código.
+=======
+
