@@ -5,6 +5,8 @@ import PasosCompra from '../cart/PasosCompra'
 import { formatearPrecio } from '../../utils/precio'
 import { totalConEnvio } from '../../utils/pedidos'
 import type { Order } from '../../types/order'
+import { ESTILO_ESTADO, normalizarEstado } from '../../config/pedidoEstados'
+import { usePedidoEnVivo } from '../../hooks/usePedidoEnVivo'
 
 interface Props {
   pedido: Order
@@ -12,8 +14,12 @@ interface Props {
   quedanEnCarrito: number
 }
 
-// Pantalla final del checkout
+// Pantalla final del checkout: muestra el estado del pedido en vivo y lleva a su detalle (plan, C-6)
 function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
+  const { pedido: enVivo } = usePedidoEnVivo(pedido.id)
+  const estado = normalizarEstado(enVivo?.estado ?? pedido.estado)
+  const minutos = enVivo?.estimacion?.minutosRestantes ?? pedido.minutosEstimados
+
   return (
     <div className="min-h-screen bg-brand-cream text-brand-dark">
       <PageHeader titulo="¡Listo!">
@@ -30,9 +36,12 @@ function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
             Tu pedido <span className="font-bold text-brand-red">#{pedido.id}</span> ya está en la cocina.
           </p>
           <p className="font-display text-3xl font-extrabold">{formatearPrecio(totalConEnvio(pedido))}</p>
-            {pedido.minutosEstimados != null && (
-              <p className="font-bold">Llega en unos {pedido.minutosEstimados} minutos</p>
-            )}
+          <p role="status" className={`rounded-full px-4 py-1 text-sm font-bold ${ESTILO_ESTADO[estado]}`}>
+            {estado}
+          </p>
+          {minutos != null && estado !== 'Entregado' && estado !== 'Cancelado' && (
+            <p className="font-bold">Llega en unos {minutos} minutos</p>
+          )}
           {pedido.observaciones?.trim() && (
             <div className="w-full rounded-2xl border-2 border-brand-dark/15 bg-brand-cream p-4 text-left">
               <p className="font-bold">Observaciones del pedido</p>
@@ -43,7 +52,7 @@ function PedidoConfirmado({ pedido, quedanEnCarrito }: Props) {
           )}
 
           <Link
-            to="/historial"
+            to={`/pedidos/${pedido.id}`}
             className="mt-2 inline-flex min-h-12 items-center rounded-full bg-brand-red px-6 font-bold text-white transition-transform hover:translate-y-0.5"
           >
             Seguir mi pedido

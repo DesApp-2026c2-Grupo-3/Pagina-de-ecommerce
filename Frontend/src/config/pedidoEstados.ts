@@ -14,7 +14,8 @@ export function esEstadoInterno(estado: string) {
   return ESTADOS_INTERNOS.has((estado ?? '').trim().toLowerCase())
 }
 
-// Acepta variantes viejas en minúscula ('pendiente', 'entregado'...)
+// Se compara sin importar mayúsculas: el backend crea los pedidos en 'pendiente' (valor por
+// defecto del modelo) y el resto de los estados se guarda capitalizado (plan, 44.3)
 export function normalizarEstado(estado: string): EstadoPedido {
   const limpio = (estado ?? '').trim().toLowerCase()
   if (limpio === 'cancelado') return 'Cancelado'

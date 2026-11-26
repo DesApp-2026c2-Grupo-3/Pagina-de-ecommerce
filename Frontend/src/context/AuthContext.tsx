@@ -19,7 +19,6 @@ import {
   limpiarSesion,
 } from '../utils/sesion'
 import { desconectarSocketCliente } from '../realtime/socketClient'
-import { limpiarBusRealtime } from '../realtime/realtimeBus'
 
 interface AuthContextType {
   user: User | null
@@ -50,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const sesion = await loginService(credentials)
 
       desconectarSocketCliente()
-      limpiarBusRealtime()
       guardarSesion(sesion)
       setUserState(sesion.user)
       setToken(sesion.token)
@@ -70,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     desconectarSocketCliente()
-    limpiarBusRealtime()
     limpiarSesion()
     setUserState(null)
     setToken(null)

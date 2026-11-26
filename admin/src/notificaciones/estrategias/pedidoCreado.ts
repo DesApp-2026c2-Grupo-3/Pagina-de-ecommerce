@@ -14,7 +14,7 @@ import type { EstrategiaNotificacion } from '../tipos'
 import {
   formatearImporte,
 } from '../../utils/notificaciones/formatoNotificacion'
-import { PARAM_PEDIDO, PARAM_SUCURSAL } from '../../utils/navegacion/parametros'
+import { rutaDetallePedido } from '../../utils/navegacion/rutasPedido'
 
 const estrategia = {
   tipo: 'pedido.creado',
@@ -58,13 +58,12 @@ const estrategia = {
       detalle: `Estado: ${notificacion.datos.estado}`,
     }
   },
+  // Lleva directo a la página del pedido, sin pasar por la cola de la lista (plan responsivo, 4.2)
   destino(notificacion: NotificacionDe<'pedido.creado'>) {
-    const params = new URLSearchParams({
-      [PARAM_PEDIDO]: String(notificacion.datos.pedidoId),
-      [PARAM_SUCURSAL]: String(notificacion.datos.sucursalId),
-    })
-
-    return `/admin/pedidos?${params.toString()}`
+    return rutaDetallePedido(
+      notificacion.datos.pedidoId,
+      notificacion.datos.sucursalId,
+    )
   },
 } satisfies EstrategiaNotificacion<'pedido.creado'>
 

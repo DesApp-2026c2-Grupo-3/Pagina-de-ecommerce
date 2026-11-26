@@ -8,6 +8,9 @@ const { esMasterJwt } = require('../../middleware/admin/esMasterJwt');
 
 // Armar, modificar, habilitar y eliminar promociones: solo el Admin-Master (también consultarlas)
 router.get('/', esMasterJwt, promocionController.obtenerPromociones);
+// "Nuevo en la carta" (antes de '/:id' para que no se confunda con un id)
+router.get('/producto-nuevo', esMasterJwt, promocionController.verProductoNuevo);
+router.patch('/producto-nuevo', esMasterJwt, promocionController.guardarProductoNuevo);
 router.get('/:id', esMasterJwt, esIdValido, promocionController.obtenerPromocionPorId);
 router.post('/nueva', esMasterJwt, validarPromocion, promocionController.crearPromocion);
 router.patch('/editar/:id', esMasterJwt, esIdValido, validarPromocion, promocionController.editarPromocionPorId);

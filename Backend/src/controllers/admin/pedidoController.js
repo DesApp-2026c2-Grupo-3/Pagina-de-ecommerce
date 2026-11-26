@@ -124,7 +124,9 @@ const obtenerPedidoPorId = async (req, res) => {
 const cambiarEstadoPedidoPorId = async (req, res) => {
     try {
         const { estado } = req.body;
-
+        // Al cancelar, el motivo es obligatorio: le llega al cliente en la notificación
+        const esCancelacion = mismoEstado(estado, 'cancelado');
+        const motivo = typeof req.body.motivo === 'string' ? req.body.motivo.trim() : '';
         // Auth primero: no se revela si el pedido existe a quien no tiene sesión
         const admin = await Admin.findByPk(req.usuario.id);
         if (!admin) {
@@ -169,6 +171,11 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
                 mensaje: `No se puede pasar de "${pedido.estado}" a "${estado}"`
             });
         }
+                if (esCancelacion && (motivo.length < 3 || motivo.length > 200)) {
+            return res.status(400).json({
+                mensaje: 'Escribí el motivo de la cancelación (entre 3 y 200 caracteres): le llega al cliente'
+            });
+        }
         // D-08: un pedido "Listo para retirar" se puede cancelar solo si el repartidor no lo retiró
         const cancelaDisponible = mismoEstado(estado, 'cancelado') && actual === 'listo para retirar';
 
@@ -182,6 +189,8 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
         try {
             const cambios = { estado };
 
+            // El motivo queda guardado en el pedido (ranking de motivos en los reportes)
+            if (esCancelacion) cambios.motivoCancelacion = motivo;
             if (cancelaDisponible) {
                 // Se relee bloqueado: el repartidor podría estar retirándolo en este momento
                 await pedido.reload({ transaction: t, lock: t.LOCK.UPDATE });
@@ -252,8 +261,8 @@ const cambiarEstadoPedidoPorId = async (req, res) => {
             });
         }
 
-        await notificarEstadoPedido(pedido, estadoPrevio);
-
+        await notificarEstadoPedido(pedido, estadoPrevio, esCancelacion ? motivo : null);
+        
         res.status(200).json(pedido);
     } catch (error) {
         if (error.statusCode) {

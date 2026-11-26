@@ -3,7 +3,7 @@ import type { PeriodoReporte } from "../../types/reporte.types";
 
 /* =========================================================
    BOTONES DE PERÍODO
-   "7 días · 30 días · 12 meses · Histórico", con una línea
+   "7 días · 30 días · 12 meses", con una línea   
    abajo que dice qué fechas se están viendo.
    Se usa en el encabezado de las tarjetas que lo necesitan.
    ========================================================= */
@@ -17,7 +17,6 @@ const OPCIONES_PERIODO: { valor: PeriodoReporte; nombre: string }[] = [
   { valor: 7, nombre: "7 días" },
   { valor: 30, nombre: "30 días" },
   { valor: 365, nombre: "12 meses" },
-  { valor: null, nombre: "Histórico" },
 ];
 
 const diaYMes = (fecha: Date) =>
@@ -27,12 +26,9 @@ export default function BotonesPeriodo({ valor, onCambiar }: Props) {
   /* "Hoy" se fija una vez, para calcular desde qué día se ve */
   const [hoy] = useState(() => new Date());
 
-  let detalle = "Todo el historial";
-  if (valor !== null) {
-    const desde = new Date(hoy);
-    desde.setDate(desde.getDate() - (valor - 1));
-    detalle = `Del ${diaYMes(desde)} al ${diaYMes(hoy)}`;
-  }
+  const desde = new Date(hoy);
+  desde.setDate(desde.getDate() - (valor - 1));
+  const detalle = `Del ${diaYMes(desde)} al ${diaYMes(hoy)}`;
 
   return (
     <div className="flex flex-col gap-1 sm:items-end">

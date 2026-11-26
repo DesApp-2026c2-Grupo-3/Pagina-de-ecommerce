@@ -9,10 +9,14 @@ import {
   Store,
   Trash2,
   Bike,
+  AlarmClock,
+  MessageSquareWarning,
 } from "lucide-react";
 
 import {
   obtenerCancelacionesPorDia,
+  obtenerDemorasPedidos,
+  obtenerMotivosCancelacion,
   obtenerPedidosPorDia,
   obtenerPedidosPorEstado,
   obtenerPedidosPorSucursal,
@@ -20,12 +24,14 @@ import {
 } from "../../services/reporteService";
 import { useSucursalesReporte } from "../../hooks/useSucursalesReporte";
 import { useAuth } from "../../context/AuthContext";
-import type { PeriodoReporte, TiempoPromedioEntrega } from "../../types/reporte.types";
+import type { DemorasPedidos as DatosDemoras, PeriodoReporte, TiempoPromedioEntrega } from "../../types/reporte.types";
 import CintaPedidos from "./CintaPedidos";
 import PlanchaPedidos from "./PlanchaPedidos";
 import CarreraSucursales from "./CarreraSucursales";
 import TachoCancelados from "./TachoCancelados";
 import BotonesPeriodo from "./BotonesPeriodo";
+import DemorasPedidos from "./DemorasPedidos";
+import MotivosCancelacion from "./MotivosCancelacion";
 
 /* =========================================================
    ESTILOS COMPARTIDOS (los mismos que en Productos)
@@ -211,6 +217,15 @@ export default function ReportesPedidos() {
     [periodoCarrera],
   );
 
+  // Período de "¿Dónde se atrasan?" (últimos 30 días al entrar)
+  const [periodoDemoras, setPeriodoDemoras] = useState<PeriodoReporte>(30);
+  const pedirDemoras = useCallback(
+    (sucursalId?: number) => obtenerDemorasPedidos(sucursalId, periodoDemoras),
+    [periodoDemoras],
+  );
+  // Los motivos cubren lo mismo que el tacho: los últimos 30 días
+  const pedirMotivos = useCallback((sucursalId?: number) => obtenerMotivosCancelacion(sucursalId), []);
+
   const porEstado = useDato(obtenerPedidosPorEstado, [], sucursalSeleccionada);
   const porDia = useDato(obtenerPedidosPorDia, [], sucursalSeleccionada);
   const porSucursal = useDato(pedirPorSucursal, []);
@@ -220,13 +235,19 @@ export default function ReportesPedidos() {
     null,
     sucursalSeleccionada,
   );
+  const demoras = useDato<DatosDemoras | null>(pedirDemoras, null, sucursalSeleccionada);
+  const motivos = useDato(pedirMotivos, [], sucursalSeleccionada);
+  // La sucursal que se está mirando: la elegida por el master o la del admin
+  const sucursalEfectiva = sucursalSeleccionada ?? administrador?.sucursal?.id;
 
   const cargandoTodo =
     porEstado.cargando ||
     porDia.cargando ||
     porSucursal.cargando ||
     cancelaciones.cargando ||
-    tiempoEntrega.cargando;
+    tiempoEntrega.cargando ||
+    demoras.cargando ||
+    motivos.cargando;
 
   const actualizarTodo = async () => {
     await Promise.all([
@@ -235,6 +256,8 @@ export default function ReportesPedidos() {
       porSucursal.cargar(),
       cancelaciones.cargar(),
       tiempoEntrega.cargar(),
+      demoras.cargar(),
+      motivos.cargar(),
     ]);
   };
 
@@ -364,6 +387,25 @@ export default function ReportesPedidos() {
           </TarjetaPedidos>
         )}
 
+        {pestania === "estados" && (
+          <div className="mt-5">
+            <TarjetaPedidos
+              titulo="¿Dónde se atrasan los pedidos?"
+              descripcion="Cuánto tarda cada etapa contra lo esperado, las sucursales más lentas y los pedidos demorados ahora."
+              icono={AlarmClock}
+              rojo
+              acciones={<BotonesPeriodo valor={periodoDemoras} onCambiar={setPeriodoDemoras} />}
+              cargando={demoras.cargando}
+              error={demoras.error}
+              vacio={demoras.datos === null}
+              textoVacio="Todavía no hay pedidos para medir."
+              onReintentar={() => void demoras.cargar()}
+            >
+              {demoras.datos && <DemorasPedidos datos={demoras.datos} />}
+            </TarjetaPedidos>
+          </div>
+        )}
+
         {pestania === "dia" && (
           <TarjetaPedidos
             titulo="La plancha"
@@ -418,6 +460,29 @@ export default function ReportesPedidos() {
           >
             <TachoCancelados pedidos={porEstado.datos} cancelaciones={cancelaciones.datos} />
           </TarjetaPedidos>
+        )}
+
+        {pestania === "cancelados" && (
+          <div className="mt-5">
+            <TarjetaPedidos
+              titulo="¿Por qué se cancelan?"
+              descripcion="Los motivos que se escribieron al cancelar (últimos 30 días) y qué hacer con cada uno."
+              icono={MessageSquareWarning}
+              rojo
+              cargando={motivos.cargando}
+              error={motivos.error}
+              vacio={false}
+              textoVacio=""
+              onReintentar={() => void motivos.cargar()}
+            >
+              <MotivosCancelacion
+                motivos={motivos.datos}
+                sucursalId={sucursalEfectiva}
+                esMaster={administrador?.rol === "MASTER"}
+                onVerAtrasos={() => setPestania("estados")}
+              />
+            </TarjetaPedidos>
+          </div>
         )}
       </div>
     </section>

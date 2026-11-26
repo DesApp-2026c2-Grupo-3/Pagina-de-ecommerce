@@ -46,21 +46,21 @@ export default function CamposCategoria({ categorias, idActual, valor, onChange 
   return (
     <>
       <div className="mb-4">
-        <label htmlFor="categoria-padre" className="mb-2 block font-medium">Depende de (opcional)</label>
+        <label htmlFor="categoria-padre" className="mb-2 block font-medium">Categoría principal (opcional)</label>        
         <select
           id="categoria-padre"
           value={valor.categoriaPadreId}
           onChange={(e) => onChange({ ...valor, categoriaPadreId: e.target.value })}
           className="w-full rounded border px-3 py-2"
         >
-          <option value="">Ninguna (categoría principal)</option>
+          <option value="">Ninguna (será una categoría principal)</option>          
           {posiblesPadres.map((c) => (
             <option key={c.id} value={c.id}>{c.nombre}</option>
           ))}
         </select>
         <p className="mt-1 text-sm text-gray-600">
-          Por ejemplo, Café y Desayunos y meriendas dependen de Cafetería, que se muestra como una sola tarjeta en el inicio.
-          La categoría principal no puede tener productos propios.
+          Si elegís una categoría principal, esta se guardará como subcategoría dentro de ella. Por ejemplo, Café y Desayunos son subcategorías de Cafetería.
+          Dejalo en "Ninguna" para crear una categoría principal.
         </p>
       </div>
 

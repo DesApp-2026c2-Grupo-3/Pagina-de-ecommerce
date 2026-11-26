@@ -16,10 +16,12 @@ const STYLES = {
   slidesStack: 'relative grid [&>*]:col-start-1 [&>*]:row-start-1',
   arrowBtn:
     'absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/20 p-2 text-white transition-colors hover:bg-black/40 md:block',
-  dotsRow: 'mt-4 flex justify-center gap-2',
+  dotsRow: 'mt-2 flex justify-center',
+  // Área táctil de 24 × 24 px alrededor del puntito (Lighthouse, tamaño de objetivos táctiles)
+  dotTarget: 'group grid h-6 min-w-6 place-items-center',
   dotBase: 'h-2 rounded-full transition-all',
   dotActive: 'w-6 bg-brand-red',
-  dotInactive: 'w-2 bg-brand-dark/25 hover:bg-brand-dark/40',
+  dotInactive: 'w-2 bg-brand-dark/25 group-hover:bg-brand-dark/40',
 } as const
 
 function PromoDestacadaBanner() {
@@ -65,8 +67,8 @@ function PromoDestacadaBanner() {
     >
       <div className={STYLES.container}>
         <h2 className={STYLES.title}>
-          No hay dos sin...<span className="text-brand-red">3 promos</span>
-        </h2>
+          Las promos <span className="text-brand-red">de hoy</span>        
+          </h2>
 
         <div className={STYLES.slidesStack}>
           {lista.map((p, i) => (
@@ -112,8 +114,10 @@ function PromoDestacadaBanner() {
                 onClick={() => setActual(i)}
                 aria-label={`Ver promo ${i + 1}: ${p.titulo}`}
                 aria-current={i === visible ? 'true' : undefined}
-                className={`${STYLES.dotBase} ${i === visible ? STYLES.dotActive : STYLES.dotInactive}`}
-              />
+                className={STYLES.dotTarget}
+              >
+                <span className={`${STYLES.dotBase} ${i === visible ? STYLES.dotActive : STYLES.dotInactive}`} />
+              </button>
             ))}
           </div>
         )}

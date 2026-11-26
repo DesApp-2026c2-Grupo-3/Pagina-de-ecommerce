@@ -9,6 +9,7 @@ import {
 } from '../utils/sesion'
 import { desconectarSocketAdmin } from '../realtime/socketClient'
 import { limpiarBusRealtime } from '../realtime/realtimeBus'
+import { limpiarSucursalesGuardadas } from '../utils/sucursalGuardada'
 
 interface AuthContextType {
   administrador: AdministradorSesion | null
@@ -32,6 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     desconectarSocketAdmin()
     limpiarBusRealtime()
     limpiarSesion()
+    // D-V4: la sucursal recordada del MASTER se borra al cerrar sesión
+    limpiarSucursalesGuardadas()
     setAdministrador(null)
     setToken(null)
   }, [])
@@ -47,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const iniciarSesion = (sesion: AdministradorSesion, nuevoToken: string) => {
     desconectarSocketAdmin()
     limpiarBusRealtime()
+    limpiarSucursalesGuardadas()
     guardarSesion(sesion, nuevoToken)
     setAdministrador(sesion)
     setToken(nuevoToken)

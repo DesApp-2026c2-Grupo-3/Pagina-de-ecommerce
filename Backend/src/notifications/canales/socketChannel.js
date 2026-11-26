@@ -42,7 +42,9 @@ class SocketChannel {
         const salas = salasDeNotificacion(notificacion.destinos, notificacion.tipo);
         if (salas.length === 0) return 0;
 
-        io.to(salas).emit('notificacion', notificacion);
+        // Los destinos solo sirven para elegir las salas: no viajan a las apps (plan de clientes, C-6)
+        const { destinos, ...payload } = notificacion;
+        io.to(salas).emit('notificacion', payload);
         return salas.length;
     }
 

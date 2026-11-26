@@ -5,7 +5,7 @@ import type {
 } from '../catalogo'
 import { esRegistro, fechaIso, numeroPositivo, texto } from '../parseo'
 import type { EstrategiaNotificacion } from '../tipos'
-import { PARAM_SUCURSAL } from '../../utils/navegacion/parametros'
+import { rutaDetalleViaje } from '../../utils/navegacion/rutasViaje'
 
 function nombreRepartidor(id: number, nombre: string): string {
   return nombre.trim() || `Repartidor #${id}`
@@ -54,12 +54,10 @@ const estrategia = {
       detalle: datos.comentario ?? 'Sin comentario',
     }
   },
+  // RN-43: lleva a donde se resuelve, la sección de asistencia del viaje
   destino(notificacion: NotificacionDe<'viaje.requiere_asistencia'>) {
-    const params = new URLSearchParams({
-      [PARAM_SUCURSAL]: String(notificacion.datos.sucursalId),
-    })
-
-    return `/admin/viajes?${params.toString()}`
+    const { viajeId, sucursalId } = notificacion.datos
+    return `${rutaDetalleViaje(viajeId, sucursalId)}#asistencia`
   },
 } satisfies EstrategiaNotificacion<'viaje.requiere_asistencia'>
 

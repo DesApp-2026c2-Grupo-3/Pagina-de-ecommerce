@@ -167,92 +167,63 @@ async function resolverEleccionCombo({ grupo, productoId, tamanioId, combo, t })
 
     return { elegido, tamanio, recargo, receta };
 }
-//Solo para pruebas
-const obtenerPedidos = async (req, res) => {
-    try {
+// Lo que la tienda muestra de un pedido: productos, sucursal, línea de tiempo, si ya se calificó y la
+// ubicación de entrega (solo para calcular la hora estimada)
+const INCLUDES_PEDIDO_CLIENTE = [{
+    model: DetallePedido,
+    include: [{ model: Producto, paranoid: false }],
+}, {
+    model: Sucursal,
+}, {
+    model: historialDeTiemposPedido,
+    as: 'historialDeTiemposPedidos',
+    attributes: ['estado', 'fecha'],
+}, {
+    model: Calificacion,
+    as: 'calificacion',
+    attributes: ['id'],
+}, {
+    model: Direccion,
+    attributes: ['latitud', 'longitud'],
+}];
 
-        const pedidos = await Pedido.findAll({ include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }] })
+const ORDEN_HISTORIAL = [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC'];
 
-        res.status(200).json(pedidos)
-
-    } catch (error) {
-        console.error('Algo salio mal', error.message)
-        res.status(500).json({ mensaje: 'Error del servidor' })
-    }
-
+// Agrega la hora estimada de llegada a un pedido en curso (se corrige sola si hay demoras).
+// D-07: el estado guardado es el que ve el cliente ("En camino" recién al iniciar el viaje).
+function conEstimacion(pedido, parametros) {
+    const datos = pedido.toJSON();
+    const distancia = distanciaEntre(pedido.Direccion, pedido.Sucursal);
+    datos.estimacion = distancia === null ? null : estimarLlegada({
+        fecha: pedido.fecha,
+        estado: datos.estado,
+        historial: datos.historialDeTiemposPedidos,
+        unidades: contarUnidades(datos.DetallePedidos ?? []),
+        distanciaKm: distancia,
+        parametros,
+    });
+    return datos;
 }
 
+// GET /pedido/mios: los pedidos del cliente de la sesión (plan de clientes, C-2)
 const obtenerPedidosPorUsuario = async (req, res) => {
     try {
         const pedidos = await Pedido.findAll({
-            where: { usuarioId: req.params.usuarioId },
-            include: [{
-                model: DetallePedido,
-                include: [{ model: Producto, paranoid: false }],
-            }, {
-                model: Sucursal,
-            }, {
-                model: historialDeTiemposPedido,
-                as: 'historialDeTiemposPedidos',
-                attributes: ['estado', 'fecha'],
-               }, {
-                   model: Calificacion,
-                   as: 'calificacion',
-                   attributes: ['id'],
-               }, {
-                   // Solo la ubicación: para calcular la hora estimada de llegada
-                   model: Direccion,
-                   attributes: ['latitud', 'longitud'],
-               }],
-               order: [['fecha', 'DESC'], [{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
-           });
+            where: { usuarioId: req.identidad.id },
+            include: INCLUDES_PEDIDO_CLIENTE,
+            order: [['fecha', 'DESC'], ORDEN_HISTORIAL],
+        });
 
-           // A cada pedido en curso se le agrega su hora estimada de llegada (se corrige sola si hay demoras)
-           const parametros = await obtenerParametros();
-           const respuesta = pedidos.map((pedido) => {
-               // D-07: el estado guardado es el que ve el cliente ("En camino" recién al iniciar el viaje)
-               const datos = pedido.toJSON();
-               const distancia = distanciaEntre(pedido.Direccion, pedido.Sucursal);
-               datos.estimacion = distancia === null ? null : estimarLlegada({
-                   fecha: pedido.fecha,
-                   estado: datos.estado,
-                   historial: datos.historialDeTiemposPedidos,
-                   unidades: contarUnidades(datos.DetallePedidos ?? []),
-                   distanciaKm: distancia,
-                   parametros,
-               });
-               return datos;
-           });
-
-           res.status(200).json(respuesta);
+        const parametros = await obtenerParametros();
+        res.status(200).json(pedidos.map((pedido) => conEstimacion(pedido, parametros)));
     } catch (error) {
         console.error('Algo salió mal', error.message);
         res.status(500).json({ mensaje: 'Error del servidor' });
     }
 };
 
-const obtenerPedidoId = async (req, res) => {
-    try {
-        const pedido = await Pedido.findByPk(req.params.id, {
-            include: [{ model: DetallePedido, include: [{ model: Producto, paranoid: false }] }]
-        });
-
-        if (!pedido) {
-            return res.status(404).json({
-                mensaje: 'Pedido no encontrado'
-            });
-        }
-
-        res.json(pedido);
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            mensaje: 'Error al obtener el pedido'
-        });
-    };
-};
-
+// GET /pedido/cliente/:id: un pedido del cliente de la sesión, con la misma forma que el historial.
+// Incluye la hora estimada: el detalle la muestra y la recarga con cada refresco (plan, E-2).
 const obtenerPedidoClienteId = async (req, res) => {
     try {
         const pedido = await Pedido.findOne({
@@ -260,17 +231,8 @@ const obtenerPedidoClienteId = async (req, res) => {
                 id: req.params.id,
                 usuarioId: req.identidad.id,
             },
-            include: [{
-                model: DetallePedido,
-                include: [{ model: Producto, paranoid: false }],
-            }, {
-                model: Sucursal,
-            }, {
-                model: historialDeTiemposPedido,
-                as: 'historialDeTiemposPedidos',
-                attributes: ['estado', 'fecha'],
-            }],
-            order: [[{ model: historialDeTiemposPedido, as: 'historialDeTiemposPedidos' }, 'fecha', 'ASC']],
+            include: INCLUDES_PEDIDO_CLIENTE,
+            order: [ORDEN_HISTORIAL],
         });
 
         if (!pedido) {
@@ -279,7 +241,8 @@ const obtenerPedidoClienteId = async (req, res) => {
             });
         }
 
-        return res.status(200).json(pedido);
+        const parametros = await obtenerParametros();
+        return res.status(200).json(conEstimacion(pedido, parametros));
     } catch (error) {
         console.error('No se pudo obtener el pedido del cliente:', error.message);
         return res.status(500).json({ mensaje: 'Error al obtener el pedido' });
@@ -335,7 +298,9 @@ const crearPedido = async (req, res) => {
 
 
     try {
-        const { usuarioId, productos, direccionId, sucursalId, observaciones } = req.body;
+        const { productos, direccionId, sucursalId, observaciones } = req.body;
+        // El cliente es el de la sesión (plan de clientes, C-2)
+        const usuarioId = req.identidad.id;
         const parametros = await obtenerParametros(t);
         const usuario = await Usuario.findByPk(usuarioId);
 
@@ -676,11 +641,13 @@ const crearPedido = async (req, res) => {
 };
 
 
-   // POST /pedido/cotizar  { usuarioId, direccionId, sucursalId, unidades }
+   // POST /pedido/cotizar  { direccionId, sucursalId, unidades }
    // Antes de confirmar: cuánto sale el envío y en cuánto llega. No crea nada.
+   // La dirección tiene que ser del cliente de la sesión (plan de clientes, C-2).
    const cotizarEnvio = async (req, res) => {
        try {
-           const { usuarioId, direccionId, sucursalId, unidades } = req.body ?? {};
+           const usuarioId = req.identidad.id;
+           const { direccionId, sucursalId, unidades } = req.body ?? {};
            const cantidad = Number(unidades);
            if (!Number.isInteger(cantidad) || cantidad < 1) {
                return res.status(400).json({ mensaje: 'La cantidad de productos no es válida' });
@@ -712,8 +679,6 @@ const crearPedido = async (req, res) => {
    };
 
    module.exports = {
-       obtenerPedidos,
-       obtenerPedidoId,
        obtenerPedidoClienteId,
        crearPedido,
        obtenerPedidosPorUsuario,

@@ -20,7 +20,9 @@ const STYLES = {
     'absolute top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/20 p-2 text-2xl leading-none text-white transition-colors hover:bg-black/40',
   heroNavBtn: 'hidden md:block',
   // Solo movemos la posición absoluta de los puntitos (cero impacto en la altura del Hero)
-  heroDotsWrapper: 'absolute bottom-10 min-[430px]:bottom-8 left-0 right-0 z-20 flex justify-center gap-2 sm:bottom-10 md:bottom-14',
+  heroDotsWrapper: 'absolute bottom-8 min-[430px]:bottom-6 left-0 right-0 z-20 flex justify-center sm:bottom-8 md:bottom-12',
+  // Área táctil de 24 × 24 px alrededor del puntito (Lighthouse, tamaño de objetivos táctiles)
+  dotTarget: 'grid h-6 min-w-6 place-items-center',
   dotBase: 'h-2 rounded-full transition-all',
   dotActive: 'w-6 bg-brand-mustard',
   dotInactive: 'w-2 bg-white/40',
@@ -87,7 +89,7 @@ function Carousel({
               <ArrowBigRight size={18} />
             </button>
 
-            <div className="absolute -bottom-8 left-0 right-0 flex justify-center gap-2">
+            <div className="absolute -bottom-10 left-0 right-0 flex justify-center">
               {children.map((_, i) => (
                 <button
                   key={i}
@@ -95,8 +97,10 @@ function Carousel({
                   aria-label={`Ir al slide ${i + 1}`}
                   aria-current={i === index}
                   onClick={() => goTo(i)}
-                  className={`${STYLES.dotBase} ${i === index ? STYLES.dotActive : STYLES.dotInactive}`}
-                />
+                  className={STYLES.dotTarget}
+                >
+                  <span className={`${STYLES.dotBase} ${i === index ? STYLES.dotActive : STYLES.dotInactive}`} />
+                </button>
               ))}
             </div>
           </>
@@ -144,8 +148,10 @@ function Carousel({
                 aria-label={`Ir al slide ${i + 1}`}
                 aria-current={i === index}
                 onClick={() => goTo(i)}
-                className={`${STYLES.dotBase} ${i === index ? STYLES.dotActive : STYLES.dotInactive}`}
-              />
+                className={STYLES.dotTarget}
+              >
+                <span className={`${STYLES.dotBase} ${i === index ? STYLES.dotActive : STYLES.dotInactive}`} />
+              </button>
             ))}
           </div>
 

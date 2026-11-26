@@ -5,15 +5,16 @@ import type { ClienteInactivo } from "../../types/reporte.types";
    EL BUZÓN DE "TE EXTRAÑAMOS"
    Cada cliente que dejó de pedir es un sobre en una pila.
    El elegido asoma entero, abre la solapa y a la derecha se ve
-   la vista previa de la notificación que le llegaría.
-   Las notificaciones todavía están en desarrollo: los botones
-   quedan listos y, si no se les pasa "onNotificar", solo avisan.
+   la vista previa de la carta que le llega.
+   Los botones le mandan la carta como notificación: en la tienda
+   llega "Tenés un mensaje de BurgerFast" y al tocarlo se abre la carta.
    ========================================================= */
 
 type Props = {
   clientes: ClienteInactivo[];
   dias: number;
-  onNotificar?: (usuarioIds: number[]) => void;
+  // Manda la carta y devuelve el texto del resultado ("Listo: se enviaron 3 cartas")
+  onNotificar?: (usuarioIds: number[]) => Promise<string>;
 };
 
 const SOBRES_A_LA_VISTA = 10;
@@ -32,6 +33,8 @@ export default function BuzonInactivos({ clientes, dias, onNotificar }: Props) {
   const [elegidoId, setElegidoId] = useState<number | null>(null);
   const [verTodos, setVerTodos] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState(false);
 
   const visibles = verTodos ? clientes : clientes.slice(0, SOBRES_A_LA_VISTA);
   const ocultos = clientes.length - visibles.length;
@@ -42,17 +45,19 @@ export default function BuzonInactivos({ clientes, dias, onNotificar }: Props) {
   );
   const elegido = visibles[indiceElegido];
 
-  const notificar = (destinatarios: ClienteInactivo[]) => {
-    if (onNotificar) {
-      onNotificar(destinatarios.map((cliente) => cliente.usuarioId));
-      return;
+  const notificar = async (destinatarios: ClienteInactivo[]) => {
+    if (!onNotificar || enviando) return;
+    setEnviando(true);
+    setErrorEnvio(false);
+    setAviso("");
+    try {
+      setAviso(await onNotificar(destinatarios.map((cliente) => cliente.usuarioId)));
+    } catch (error) {
+      setErrorEnvio(true);
+      setAviso(error instanceof Error ? error.message : "No se pudieron enviar los avisos.");
+    } finally {
+      setEnviando(false);
     }
-
-    setAviso(
-      destinatarios.length === 1
-        ? `Las notificaciones están en desarrollo. Cuando estén listas, este botón le va a enviar la notificación a ${destinatarios[0].nombre}.`
-        : `Las notificaciones están en desarrollo. Cuando estén listas, este botón les va a avisar a los ${destinatarios.length} clientes.`,
-    );
   };
 
   return (
@@ -68,10 +73,11 @@ export default function BuzonInactivos({ clientes, dias, onNotificar }: Props) {
 
           <button
             type="button"
-            onClick={() => notificar(clientes)}
-            className="min-h-10 rounded-xl border border-orange-300 bg-white px-3.5 text-[13px] font-bold text-orange-700 shadow-[0_1px_3px_rgba(17,24,39,0.12)] transition hover:bg-orange-50"
+            onClick={() => void notificar(clientes)}
+            disabled={enviando}
+            className="min-h-10 rounded-xl disabled:opacity-60 border border-orange-300 bg-white px-3.5 text-[13px] font-bold text-orange-700 shadow-[0_1px_3px_rgba(17,24,39,0.12)] transition hover:bg-orange-50"
           >
-            Notificar a todos ({clientes.length})
+            {enviando ? "Enviando…" : `Notificar a todos (${clientes.length})`}
           </button>
         </div>
 
@@ -207,17 +213,20 @@ export default function BuzonInactivos({ clientes, dias, onNotificar }: Props) {
 
           <button
             type="button"
-            onClick={() => notificar([elegido])}
-            className="mt-3.5 inline-flex min-h-11 items-center rounded-xl bg-orange-500 px-4 text-sm font-bold text-white shadow-[0_4px_0_#c2410c,0_8px_16px_rgba(234,88,12,0.3)] transition hover:bg-orange-600 active:translate-y-0.5 active:shadow-[0_2px_0_#c2410c]"
+            onClick={() => void notificar([elegido])}
+            disabled={enviando}
+            className="mt-3.5 disabled:opacity-60 inline-flex min-h-11 items-center rounded-xl bg-orange-500 px-4 text-sm font-bold text-white shadow-[0_4px_0_#c2410c,0_8px_16px_rgba(234,88,12,0.3)] transition hover:bg-orange-600 active:translate-y-0.5 active:shadow-[0_2px_0_#c2410c]"
           >
-            Enviar notificación a {elegido.nombre}
+            {enviando ? "Enviando…" : `Enviar notificación a ${elegido.nombre}`}
           </button>
         </div>
 
         {aviso && (
           <p
             role="status"
-            className="rep-subir mt-3.5 rounded-xl bg-blue-50 px-3 py-2.5 text-[13px] text-blue-800 ring-1 ring-blue-200"
+            className={`rep-subir mt-3.5 rounded-xl px-3 py-2.5 text-[13px] ring-1 ${
+              errorEnvio ? "bg-red-50 text-red-800 ring-red-200" : "bg-emerald-50 text-emerald-800 ring-emerald-200"
+            }`}
           >
             {aviso}
           </p>

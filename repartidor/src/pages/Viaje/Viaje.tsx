@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import {
   RefreshCw,
@@ -277,6 +276,73 @@ export default function Viaje() {
     punto: 'bg-orange-400',
   }
 
+  // Una sola línea que resume el viaje y lo que hay que hacer ahora
+  const ayudaDelEstado =
+    viaje.estado === 'preparando'
+      ? todosRetirados
+        ? 'Ya retiraste todo: podés iniciar el viaje.'
+        : 'Retirá todos los pedidos para iniciar el viaje.'
+      : viaje.estado === 'requiere asistencia'
+        ? `Asistencia solicitada: ${viaje.motivoAsistencia ?? 'en revisión'}`
+        : estadoVisual.descripcion
+
+  // Barra del viaje: flota pegada arriba en el celular (abajo está el menú) y abajo en escritorio.
+  // Tiene que ser hija directa de la página para que "sticky" la acompañe al desplazarse.
+  const barraViaje = (lugar: 'arriba' | 'abajo') => (
+    <section
+      aria-label={`Viaje #${viaje.id}`}
+      className={
+        lugar === 'arriba'
+          ? 'sticky top-[var(--alto-encabezado,4.5rem)] z-20 -mx-4 border-b border-orange-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-6 sm:px-6 md:hidden'
+          : 'sticky bottom-4 z-20 mx-auto hidden max-w-4xl rounded-2xl border border-orange-200 bg-white/95 px-5 py-3 shadow-xl shadow-slate-900/10 backdrop-blur md:block'
+      }
+    >
+      <div className="flex items-center gap-3">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${estadoVisual.fondo} ${estadoVisual.color}`}>
+          {estadoVisual.icono}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-bold">
+            <span className="text-slate-500">VIAJE #{viaje.id}</span>
+            <span className={`inline-flex items-center gap-1 ${estadoVisual.color}`}>
+              <span className={`h-2 w-2 rounded-full ${estadoVisual.punto}`} />
+              {estadoVisual.etiqueta}
+            </span>
+            <span className="font-medium text-slate-500">
+              · {viaje.Pedidos.length} {viaje.Pedidos.length === 1 ? 'pedido' : 'pedidos'}
+              {viaje.fechaInicio &&
+                ` · desde las ${new Date(viaje.fechaInicio).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`}
+            </span>
+          </p>
+          <p className="truncate font-extrabold text-slate-900">{estadoVisual.titulo}</p>
+          <p className="truncate text-sm text-slate-600" title={ayudaDelEstado}>{ayudaDelEstado}</p>
+        </div>
+
+        {/* Acciones: en el celular, "Iniciar viaje" y "Confirmar recepción" están en la barra de abajo */}
+        {viaje.estado === 'preparando' && lugar === 'abajo' && (
+          <Boton icono={Truck} onClick={manejarInicioViaje} disabled={!todosRetirados} cargando={iniciandoViaje} textoCargando="Iniciando…">
+            Iniciar viaje
+          </Boton>
+        )}
+        {viaje.estado === 'activo' && (
+          <button
+            type="button"
+            onClick={() => {
+              setErrorAyuda('')
+              setModalAyuda(true)
+            }}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-red-600 px-3 text-sm font-bold text-white transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-300"
+          >
+            <AlertTriangle size={17} aria-hidden="true" />
+            <span className={lugar === 'arriba' ? 'sr-only' : ''}>Solicitar asistencia</span>
+            {lugar === 'arriba' && <span aria-hidden="true">Ayuda</span>}
+          </button>
+        )}
+      </div>
+    </section>
+  )
+
   return (
     <div className="space-y-7">
 
@@ -305,67 +371,45 @@ export default function Viaje() {
       </section>
 
       
-{/* Banner principal */}
-  <section className="relative overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-100 via-orange-50 to-amber-100 p-6 shadow-lg sm:p-8">
+{/* Celular: la barra del viaje queda pegada arriba (abajo está el menú) */}
+      {barraViaje('arriba')}
 
-{/* Decoración */}
-  <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-orange-400/20 blur-3xl" />
-  <div className="absolute -bottom-28 right-1/3 h-56 w-56 rounded-full bg-amber-400/20 blur-3xl" />
-
-  <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
-    <div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full border border-orange-200 bg-white/70 px-3 py-1 text-xs font-bold text-slate-700">
-          VIAJE #{viaje.id}
-        </span>
-
-        <span className={`inline-flex items-center gap-2 rounded-full ${estadoVisual.fondo} px-3 py-1 text-xs font-bold ${estadoVisual.color}`}>
-          <span className={`h-2 w-2 rounded-full ${estadoVisual.punto}`} />
-          {estadoVisual.etiqueta}
-        </span>
-      </div>
-
-      <h3 className="mt-5 text-2xl font-extrabold text-slate-800 sm:text-3xl">
-        {estadoVisual.titulo}
-      </h3>
-
-      <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">
-        {estadoVisual.descripcion}
-      </p>
-
-      <div className="mt-6 flex flex-wrap gap-5">
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <PackageCheck size={18} className="text-orange-600" />
-          <span>
-            <strong className="text-slate-800">{viaje.Pedidos.length}</strong>{' '}
-            {viaje.Pedidos.length === 1 ? 'pedido' : 'pedidos'}
-          </span>
-        </div>
-
-        {viaje.fechaInicio && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Clock3 size={18} className="text-orange-600" />
-            <span>
-              Inicio:{' '}
-              <strong className="text-slate-800">
-                {new Date(viaje.fechaInicio).toLocaleString('es-AR')}
-              </strong>
-            </span>
+      {/* Recepción pendiente (viaje reasignado por asistencia): instrucciones para buscar los pedidos */}
+      {viaje.estado === 'activo' && !viaje.recepcionConfirmada && (
+        <section className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 rounded-xl bg-amber-100 p-2.5">
+              <PackageCheck className="text-amber-700" size={23} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-bold text-amber-950">Recepción de pedidos pendiente</h4>
+              <p className="mt-1 text-sm leading-relaxed text-amber-900">
+                Este viaje fue reasignado por asistencia. Dirigite al punto donde se encuentra el repartidor anterior
+                para recoger los pedidos y verificá que recibiste todos correctamente antes de continuar.
+              </p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                {urlUbicacionAsistencia && (
+                  <a
+                    href={urlUbicacionAsistencia}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-5 py-3 text-sm font-bold text-amber-800 transition hover:bg-amber-100"
+                  >
+                    <MapPinned size={17} />
+                    Cómo llegar
+                  </a>
+                )}
+                {/* En el celular este botón vive en la barra fija de abajo */}
+                <div className="hidden md:block">
+                  <Boton icono={CheckCircle2} onClick={manejarConfirmarRecepcion} cargando={confirmandoRecepcion} textoCargando="Confirmando…">
+                    Confirmar recepción
+                  </Boton>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-    </div>
-
-    <div className="hidden shrink-0 items-center justify-center sm:flex">
-      <div className="flex h-28 w-28 items-center justify-center rounded-full border border-orange-400/30 bg-white/40">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/30">
-          {estadoVisual.icono}
-          <span className="sr-only">{estadoVisual.etiqueta}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+        </section>
+      )}
 
 
       {/* Pedidos del viaje */}
@@ -415,215 +459,6 @@ export default function Viaje() {
         />
       </section>
 
-      {/* Acciones e información */}
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-orange-100 p-3">
-              <MapPinned className="text-orange-600" size={23} />
-            </div>
-
-            <div>
-              <h3 className="font-extrabold text-slate-900">
-                Información del recorrido
-              </h3>
-              <p className="mt-1 text-xs text-slate-600">
-                Estado actual y acciones disponibles.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4 p-5 sm:p-6">
-
-          {/* Preparando */}
-          {viaje.estado === 'preparando' && (
-            <>
-              
-            <div className="rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-orange-100 p-2.5">
-                  <PackageCheck className="text-orange-600" size={22} />
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-slate-800">
-                    Prepará tus pedidos
-                  </h4>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                    Retirá todos los pedidos de la sucursal. Cuando los
-                    tengas todos, vas a poder iniciar tu recorrido.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2 text-sm">
-                  {todosRetirados ? (
-                    <>
-                      <CheckCircle2 className="text-emerald-600" size={19} />
-                      <span className="font-medium text-emerald-700">
-                        Todos los pedidos fueron retirados.
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock3 className="text-amber-600" size={19} />
-                      <span className="text-slate-600">
-                        Todavía tenés pedidos por retirar.
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* En el celular este botón vive en la barra fija de abajo */}
-                <div className="hidden md:block">
-                  <Boton
-                    icono={Truck}
-                    onClick={manejarInicioViaje}
-                    disabled={!todosRetirados}
-                    cargando={iniciandoViaje}
-                    textoCargando="Iniciando…"
-                  >
-                    Iniciar viaje
-                  </Boton>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Activo */}
-          {viaje.estado === 'activo' && (
-            <>
-
-            {!viaje.recepcionConfirmada && (
-              <div className="rounded-2xl border border-amber-300 bg-gradient-to-r
-               from-amber-50 to-orange-50 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="shrink-0 rounded-xl bg-amber-100 p-2.5">
-                    <PackageCheck className="text-amber-700" size={23} />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-amber-950">
-                      Recepción de pedidos pendiente
-                    </h4>
-
-                    <p className="mt-1 text-sm leading-relaxed text-amber-900">
-                    Este viaje fue reasignado por asistencia. Dirigite al punto donde
-                    se encuentra el repartidor anterior para recoger los pedidos y
-                    verificar que recibiste todos correctamente.
-                    </p>
-
-                    <p className="mt-2 text-xs text-amber-800">
-                    La ubicación corresponde al momento en que se solicitó asistencia.
-                    Debés confirmar la recepción antes de continuar con las entregas.
-                    </p>
-
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    {urlUbicacionAsistencia && (
-                    <a href={urlUbicacionAsistencia}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2
-                    rounded-xl border border-amber-300 bg-white px-5 py-3 text-sm
-                    font-bold text-amber-800 transition hover:bg-amber-100">
-                      <MapPinned size={17} />
-                      Cómo llegar
-                    </a>
-                  )}
-
-                  {/* En el celular este botón vive en la barra fija de abajo */}
-                  <div className="hidden md:block">
-                    <Boton
-                      icono={CheckCircle2}
-                      onClick={manejarConfirmarRecepcion}
-                      cargando={confirmandoRecepcion}
-                      textoCargando="Confirmando…"
-                    >
-                      Confirmar recepción
-                    </Boton>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-              <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-emerald-100 p-2.5">
-                    <Truck className="text-emerald-600" size={22} />
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold text-emerald-950">
-                      ¡Tu viaje está en marcha!
-                    </h4>
-                    <p className="mt-1 text-sm leading-relaxed text-emerald-800">
-                      Gestioná las entregas pendientes y actualizá cada pedido
-                      cuando llegue a destino.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-slate-600">
-                  ¿Tuviste algún inconveniente durante el recorrido?
-                </p>
-
-                <Boton
-                  variante="peligro"
-                  icono={AlertTriangle}
-                  onClick={() => {
-                    setErrorAyuda('')
-                    setModalAyuda(true)
-                  }}
-                >
-                  Solicitar asistencia
-                </Boton>
-              </div>
-            </>
-          )}
-
-          {/* Requiere asistencia */}
-          {viaje.estado === 'requiere asistencia' && (
-            <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-amber-100 p-2.5">
-                  <AlertTriangle className="text-amber-600" size={22} />
-                </div>
-
-                <div className="min-w-0">
-                  <h4 className="font-bold text-amber-950">
-                    Solicitud de asistencia enviada
-                  </h4>
-
-                  <p className="mt-2 text-sm text-amber-900">
-                    <strong>Motivo:</strong> {viaje.motivoAsistencia}
-                  </p>
-
-                  {viaje.comentarioAsistencia && (
-                    <p className="mt-2 text-sm leading-relaxed text-amber-800 [overflow-wrap:anywhere]">
-                      <strong>Comentario:</strong>{' '}
-                      {viaje.comentarioAsistencia}
-                    </p>
-                  )}
-
-                  <div className="mt-4 flex items-center gap-2 border-t border-amber-200 pt-3 text-xs font-medium text-amber-800">
-                    <Clock3 size={15} />
-                    Esperá a que administración revise tu solicitud.
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* Modal de asistencia (siempre montado, igual que el de quitar) */}
       <ModalSolicitudAyuda
         abierto={modalAyuda}
@@ -632,6 +467,9 @@ export default function Viaje() {
         onCerrar={() => setModalAyuda(false)}
         onConfirmar={enviarSolicitudAyuda}
       />
+
+      {/* Escritorio: la barra del viaje flota abajo, angosta y centrada */}
+      {barraViaje('abajo')}
 
       {/* Acción principal en el celular: barra fija encima de la navegación (plan UX, 7.5).
           Hija directa de la página para que "sticky" la acompañe al desplazarse. */}

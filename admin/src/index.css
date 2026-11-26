@@ -23,6 +23,15 @@
     --color-secondary: #475569;
     --color-secondary-hover: #334155;
 
+    /* Pedido recién ingresado a la lista (plan responsivo de Pedidos, 4.1).
+       Se usa como motion-safe:animate-ingreso-pedido: sin animación con prefers-reduced-motion */
+    --animate-ingreso-pedido: ingreso-pedido 250ms ease-out;
+
+    @keyframes ingreso-pedido {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
 }
 
 

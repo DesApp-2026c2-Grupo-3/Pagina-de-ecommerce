@@ -22,6 +22,8 @@ module.exports = (sequelize, DataTypes) => {
     opinionesEnInicio: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 6 },
     // Promociones
     maxPromosPorDia: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 3 },
+    // "Nuevo en la carta" de la página de Promos (null = no se muestra)
+    productoNuevoId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     sequelize,
     modelName: 'Parametro',

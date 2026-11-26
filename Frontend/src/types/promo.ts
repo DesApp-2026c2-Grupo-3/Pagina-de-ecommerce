@@ -31,5 +31,7 @@ export interface Promociones {
   hoy: number
   productoSemana: Promo | null
   regalo: Promo | null
+  /** Producto de "Nuevo en la carta" (lo elige el admin; null = no se muestra) */
+  productoNuevoId?: number | null
   dias: DiaPromos[]
 }

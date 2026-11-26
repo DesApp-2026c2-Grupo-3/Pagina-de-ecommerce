@@ -27,6 +27,13 @@ export type EstadoViaje =
   | 'finalizado'
   | 'cancelado'
 
+// Filtro de la lista de viajes: todos o un estado en particular
+export type FiltroEstadoViaje = 'todos' | EstadoViaje
+export type ContadoresViaje = Record<FiltroEstadoViaje, number>
+
+// Tono de la tarjeta: rojo mientras pide asistencia, ámbar unos segundos si es nuevo
+export type TonoTarjeta = 'normal' | 'nuevo' | 'alerta'
+
 export interface Viaje {
   id: number
   repartidorId: number

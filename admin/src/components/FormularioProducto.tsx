@@ -11,6 +11,8 @@ import {
 import { API_URL } from '../services/httpClient'
 import { crearInsumo } from '../services/insumoService'
 import { TAMANIOS_AUTO, precioTamanio } from '../config/tamanios'
+import { SelectProducto } from './promociones/comun'
+import type { ProductoOpcion } from '../utils/mecanicasPromo'
 
 // ---------- Tipos del formulario (los números van como texto mientras se escriben) ----------
 
@@ -26,7 +28,7 @@ export interface FilaTamanio {
   tamanioId: number
 }
 
-// Un lugar del combo: de qué categoría elige el cliente. La más barata va incluida.
+// Un acompañamiento del combo: de qué categoría elige el cliente. La más barata va incluida.
 export interface FilaGrupo {
   nombre: string
   categoriaId: string
@@ -67,7 +69,7 @@ type TipoProducto = 'simple' | 'tamanios' | 'combo'
 const TIPOS: { valor: TipoProducto; titulo: string; detalle: string }[] = [
   { valor: 'simple', titulo: 'Simple', detalle: 'Hamburguesas, postres: un solo precio' },
   { valor: 'tamanios', titulo: 'Con tamaños', detalle: 'Papas, bebidas: regular, mediano y grande' },
-  { valor: 'combo', titulo: 'Combo', detalle: 'Un producto principal y lugares para elegir (papas, bebida)' },]
+  { valor: 'combo', titulo: 'Combo', detalle: 'Un producto principal y acompañamientos para elegir (papas, bebida)' },]
 
 export const productoVacio: DatosProducto = {
   nombre: '',
@@ -158,6 +160,9 @@ function validar(d: DatosProducto, tipo: TipoProducto): string {
   if (Number(d.precio) > 999999) return 'El precio no puede ser mayor a 999999.'
   if (!d.archivoImagen && d.imagen.trim().length < 1) return 'Subí una foto del producto.'
 
+  // Sin receta el producto no descuenta stock: todo lo que no es combo lleva al menos un insumo
+  if (tipo !== 'combo' && d.receta.length === 0) return 'Agregá al menos un insumo a la receta.'
+
   for (const [i, r] of d.receta.entries()) {
     if (r.insumoId === '') return `Elegí el insumo del ingrediente ${i + 1} de la receta.`
     const cantidad = Number(r.cantidadBase)
@@ -174,11 +179,11 @@ function validar(d: DatosProducto, tipo: TipoProducto): string {
 
   if (tipo === 'combo') {
     if (d.productoPrincipalId === '') return 'Elegí el producto principal del combo.'
-    if (d.grupos.length === 0) return 'Agregá al menos un lugar al combo (por ejemplo, Bebidas).'
-    if (d.grupos.some((g) => g.categoriaId === '')) return 'Elegí la categoría de cada lugar del combo.'
+    if (d.grupos.length === 0) return 'Agregá al menos un acompañamiento al combo (por ejemplo, Bebidas).'
+    if (d.grupos.some((g) => g.categoriaId === '')) return 'Elegí la categoría de cada acompañamiento.'
     const categoriasDeLugares = d.grupos.map((g) => g.categoriaId)
     if (new Set(categoriasDeLugares).size !== categoriasDeLugares.length) {
-      return 'Dos lugares del combo no pueden ser de la misma categoría.'
+      return 'Dos acompañamientos no pueden ser de la misma categoría.'
     }
   }
 
@@ -239,7 +244,9 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
   const [categorias, setCategorias] = useState<Opcion[]>([])
   const [insumos, setInsumos] = useState<Opcion[]>([])
     // Los productos que pueden ser principal de un combo
-  const [productos, setProductos] = useState<Opcion[]>([])
+  const [productos, setProductos] = useState<ProductoOpcion[]>([])
+  // Categorías que tienen productos que no son combos: las únicas que sirven para un acompañamiento
+  const [categoriasConProductos, setCategoriasConProductos] = useState<Set<number>>(new Set())
   // Alta rápida de un insumo nuevo, sin salir del producto (siempre en unidades)
   const [creandoInsumo, setCreandoInsumo] = useState(false)
   const [nuevoInsumo, setNuevoInsumo] = useState({ nombre: '', precioComercial: '' })
@@ -251,12 +258,14 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
       .then(([cats, ins, tams, prods]) => {
         setCategorias(cats)
         setInsumos(ins)
-        // Un combo no puede ser el principal de otro combo
+        // Un combo no puede ser el principal de otro combo, ni ofrecerse como acompañamiento
+        const noCombos = prods.filter((p: any) => !p.productoPrincipalId && !(p.grupos?.length > 0))
         setProductos(
-          prods
-            .filter((p: any) => !p.productoPrincipalId && !(p.grupos?.length > 0))
-            .sort((a: Opcion, b: Opcion) => a.nombre.localeCompare(b.nombre)),
+          noCombos
+            .map((p: any) => ({ id: p.id as number, nombre: p.nombre as string, precio: Number(p.precio) }))
+            .sort((a: ProductoOpcion, b: ProductoOpcion) => a.nombre.localeCompare(b.nombre, 'es')),
         )
+        setCategoriasConProductos(new Set(noCombos.map((p: any) => Number(p.categoriaId))))
         setDatos((prev) => ({ ...prev, tamanios: tams.map((t: Opcion) => ({ tamanioId: t.id })) }))
       })
       .catch(() => setError('No se pudieron cargar las listas del formulario. Revisá que el backend esté funcionando.'))
@@ -337,7 +346,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
     }
 
     // Lo que no corresponde al tipo se manda vacío, así se borra en el backend.
-    // El nombre de cada lugar del combo es el de su categoría.
+    // El nombre de cada acompañamiento del combo es el de su categoría.
     const aGuardar: DatosProducto = {
       ...datos,
       tamanios: tipo === 'simple' ? [] : datos.tamanios,
@@ -554,19 +563,13 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
             Lo que el combo trae siempre (por ejemplo, la hamburguesa o el café). El combo usa su receta: descuenta
             su stock y se personaliza igual. Si el principal no está disponible, el combo tampoco.
           </p>
-          <select
-            value={datos.productoPrincipalId}
-            onChange={(e) => cambiar('productoPrincipalId', e.target.value)}
-            className={campo}
-            aria-label="Producto principal"
-          >
-            <option value="">Elegir producto</option>
-            {productos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+          {/* Se escribe y la lista se filtra (son muchos productos) */}
+          <SelectProducto
+            id="producto-principal"
+            productos={productos}
+            valor={datos.productoPrincipalId ? Number(datos.productoPrincipalId) : null}
+            onChange={(id) => cambiar('productoPrincipalId', id == null ? '' : String(id))}
+          />
         </section>
       )}
 
@@ -580,7 +583,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
 
         {datos.receta.length === 0 && (
           <p className="mb-3 text-sm italic text-gray-500">
-            Sin receta: el producto no descuenta stock ni se puede personalizar.
+            Agregá al menos un insumo: sin receta el producto no descuenta stock ni se puede personalizar.
           </p>
         )}
 
@@ -730,12 +733,12 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
       </section>
       )}
 
-      {/* ---------- Lugares del combo ---------- */}
+      {/* ---------- Acompañamientos del combo ---------- */}
       {tipo === 'combo' && (
         <section className={tarjeta}>
-          <h2 className="text-xl font-bold">Lugares del combo</h2>
+          <h2 className="text-xl font-bold">Acompañamientos</h2>
           <p className="mb-4 text-sm text-gray-600">
-            De qué categoría elige el cliente (ej: Papas, Bebidas). La opción más barata va incluida en el precio. Con
+            De qué categoría elige el cliente cada acompañamiento (ej: Papas, Bebidas). Solo aparecen categorías con productos que no son combos. La opción más barata va incluida en el precio. Con
             "Cobrar diferencia" marcado, si elige una más cara paga la diferencia; desmarcado (como en las bebidas),
             cualquier opción cuesta lo mismo.
           </p>
@@ -753,10 +756,13 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                     })
                   }
                   className={campo}
-                  aria-label={`Categoría del lugar ${i + 1}`}
+                  aria-label={`Categoría del acompañamiento ${i + 1}`}
                 >
                   <option value="">Elegir categoría</option>
-                  {sinCategoriasPadre(categorias).map((c) => (
+                  {sinCategoriasPadre(categorias)
+                    // Solo categorías con productos que no son combos (la elegida se mantiene a la vista)
+                    .filter((c) => categoriasConProductos.has(c.id) || String(c.id) === g.categoriaId)
+                    .map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}
                     </option>
@@ -782,7 +788,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
                   type="button"
                   onClick={() => cambiar('grupos', datos.grupos.filter((_, j) => j !== i))}
                   className={botonQuitar}
-                  aria-label={`Quitar lugar ${i + 1}`}
+                  aria-label={`Quitar acompañamiento ${i + 1}`}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -800,7 +806,7 @@ export default function FormularioProducto({ inicial, textoBoton, onGuardar, onC
             }            
             className={`${botonAgregar} mt-3`}
           >
-            <Plus size={16} /> Agregar lugar
+            <Plus size={16} /> Agregar acompañamiento
           </button>
         </section>
       )}
